@@ -60,7 +60,22 @@
         <xpath expr="//tr[@id='order_total_taxes']" position="attributes">
             <attribute name="t-attf-style">display: none;</attribute>
         </xpath>
-        <xpath expr="//tr[@id='order_total_untaxed']" position="before">
+        <xpath expr="//div[@id='cart_total']//table/tr[last()]" position="after">
+            <tr t-if="not hide_promotions">
+                <td colspan="3" class="text-end text-xl-end border-0 p-0">
+                    <span>
+                        <t t-set="force_coupon" t-value="website_sale_order.pricelist_id.code"/>
+                        <div t-if="not force_coupon" class="coupon_form">
+                            <t t-call="mv_sale.bonus_amount_mv_sale"/>
+                        </div>
+                    </span>
+                </td>
+            </tr>
+        </xpath>
+    </template>
+
+    <template id="cart_delivery_mv_sale" inherit_id="website_sale.cart_delivery">
+        <xpath expr="//tr[@id='order_delivery']" position="before">
             <tr id="total_price_no_service">
                 <td id="total_price_no_service"
                     class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
@@ -122,7 +137,8 @@
                     <td id="after_bank_guarantee"
                         class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
                         colspan="2">
-                        Giá sau chiết khấu <p>bảo lãnh (0.5%)</p>
+                        Giá sau chiết khấu
+                        <p>bảo lãnh (0.5%)</p>
                     </td>
                     <td class="text-end border-0 pb-2 pe-0 pt-0">
                         <span t-field="website_sale_order.after_discount_bank_guarantee"
@@ -197,18 +213,6 @@
         <xpath expr="//tr[@id='order_total_untaxed']" position="attributes">
             <attribute name="t-attf-style">display: none;</attribute>
         </xpath>
-        <xpath expr="//div[@id='cart_total']//table/tr[last()]" position="after">
-            <tr t-if="not hide_promotions">
-                <td colspan="3" class="text-end text-xl-end border-0 p-0">
-                    <span>
-                        <t t-set="force_coupon" t-value="website_sale_order.pricelist_id.code"/>
-                        <div t-if="not force_coupon" class="coupon_form">
-                            <t t-call="mv_sale.bonus_amount_mv_sale"/>
-                        </div>
-                    </span>
-                </td>
-            </tr>
-        </xpath>
     </template>
     <!--    ẩn đường link-->
     <template id="cart_line_product_no_link_mv_sale" inherit_id="website_sale_loyalty.cart_line_product_no_link">
@@ -221,12 +225,13 @@
 
     <template id="portal_layout_mv_sale" inherit_id="portal.portal_layout">
         <xpath expr="//t[@t-if='my_details']/div/h3" position="replace">
-            <h3 class="my-3">My account &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
+            <h3 class="my-3">My account &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
+                &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
                 &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-                <span style='color:red;font-size:14pt;'> Bonus:
-                <t t-out="user_id.partner_id.amount" class="monetary_field"
-                          style="white-space: nowrap;"
-                          t-options="{'widget': 'monetary', 'display_currency': user_id.partner_id.property_product_pricelist.currency_id}"/>
+                <span style='color:red;font-size:14pt;'>Bonus:
+                    <t t-out="user_id.partner_id.amount" class="monetary_field"
+                       style="white-space: nowrap;"
+                       t-options="{'widget': 'monetary', 'display_currency': user_id.partner_id.property_product_pricelist.currency_id}"/>
                 </span>
             </h3>
         </xpath>

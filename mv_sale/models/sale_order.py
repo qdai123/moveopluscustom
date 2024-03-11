@@ -23,6 +23,12 @@ class SaleOrder(models.Model):
     # tổng số tiền mà khách hàng đã áp dụng giảm chiết khấu
     bonus_order = fields.Float(copy=False)
     discount_line_id = fields.Many2one("mv.compute.discount.line")
+    compute_amount_total = fields.Float(compute="_compute_amount_total", readonly=True, store=True)
+
+    @api.depends('amount_total')
+    def _compute_amount_total(self):
+        for record in self:
+            record._compute_check_discount_10()
 
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):
