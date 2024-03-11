@@ -7,7 +7,7 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     line_ids = fields.One2many("mv.discount.partner", "partner_id")
-    discount_id = fields.Many2one("mv.discount", compute="compute_discount_id", store=True)
+    discount_id = fields.Many2one("mv.discount", compute="compute_discount_id", store=True, readonly=False)
     amount = fields.Integer("amount", readonly=0, copy=False)
     is_agency = fields.Boolean(string="Agency", copy=False)
 
