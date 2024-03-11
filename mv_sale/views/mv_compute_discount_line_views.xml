@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record model="ir.ui.view" id="mv_compute_discount_line_tree">
+            <field name="name">mv_compute_discount_line_tree</field>
+            <field name="model">mv.compute.discount.line</field>
+            <field name="arch" type="xml">
+                <tree default_order="partner_id">
+                    <field name="partner_id"/>
+                    <field name="level"/>
+                    <field name="quantity"/>
+                    <field name="quantity_from" optional="hide"/>
+                    <field name="quantity_to" optional="hide"/>
+                    <field name="amount_total" widget="monetary"/>
+                    <field name="basic" column_invisible="True"/>
+                    <field name="month"/>
+                    <field name="month_money" widget="monetary"/>
+                    <field name="two_month"/>
+                    <field name="two_money" widget="monetary"/>
+                    <field name="quarter"/>
+                    <field name="quarter_money" widget="monetary"/>
+                    <field name="year"/>
+                    <field name="year_money" widget="monetary"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="mv_compute_discount_line_form">
+            <field name="name">mv_compute_discount_line_form</field>
+            <field name="model">mv.compute.discount.line</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="partner_id"/>
+                                <field name="level"/>
+                                <field name="quantity"/>
+                                <field name="quantity_from"/>
+                                <field name="quantity_to"/>
+                                <field name="amount_total" widget="monetary"/>
+                                <field name="basic" invisible="1"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                            <group>
+                                <field name="month"/>
+                                <field name="month_money" widget="monetary"/>
+                                <field name="two_month"/>
+                                <field name="two_money" widget="monetary"/>
+                                <field name="quarter"/>
+                                <field name="quarter_money" widget="monetary"/>
+                                <field name="year"/>
+                                <field name="year_money" widget="monetary"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Đơn hàng">
+                                <field name="sale_ids" nolabel="1">
+                                    <tree create="False" edit="False">
+                                        <field name="currency_id" column_invisible="True"/>
+                                        <field name="name"/>
+                                        <field name="amount_total" sum="Price" widget="monetary"/>
+                                    </tree>
+                                </field>
+                            </page>
+                            <page string="Chi tiết đơn hàng">
+                                <field name="order_line_ids" nolabel="1">
+                                    <tree create="False" edit="False">
+                                        <field name="currency_id" column_invisible="True"/>
+                                        <field name="order_id"/>
+                                        <field name="product_id"/>
+                                        <field name="product_uom_qty" sum="Quantity"/>
+                                        <field name="price_unit" widget="monetary"/>
+                                        <field name="price_subtotal" sum="Price" widget="monetary"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+    </data>
+</odoo>

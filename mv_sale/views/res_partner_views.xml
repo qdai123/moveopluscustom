@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_partner_form_mv_sale" model="ir.ui.view">
+            <field name="name">view_partner_form_mv_sale</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Discount">
+                        <group>
+                            <field name="amount"/>
+                            <field name="is_agency"/>
+                            <field name="discount_id" invisible="1"/>
+                        </group>
+                        <field name="line_ids" nolabel="1" context="{'default_parent_id': discount_id}">
+                            <tree default_order="partner_id desc level" editable="bottom">
+                                <field name="parent_id" column_invisible="True"/>
+                                <field name="date"/>
+                                <field name="level"/>
+                                <field name="min_debt"/>
+                                <field name="max_debt"/>
+                                <field name="number_debt"/>
+                            </tree>
+                        </field>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

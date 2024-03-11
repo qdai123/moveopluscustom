@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record model="ir.ui.view" id="mv_discount_line_tree">
+            <field name="name">mv_discount_line_tree</field>
+            <field name="model">mv.discount.line</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="level"/>
+                    <field name="quantity_from"/>
+                    <field name="quantity_to"/>
+                    <field name="basic"/>
+                    <field name="money"/>
+                    <field name="month"/>
+                    <field name="month_money"/>
+                    <field name="two_month"/>
+                    <field name="two_money"/>
+                    <field name="quarter"/>
+                    <field name="quarter_money"/>
+                    <field name="year"/>
+                    <field name="year_money"/>
+                    <field name="total_discount"/>
+                    <field name="total_money"/>
+                    <field name="average"/>
+                    <field name="min_debt"/>
+                    <field name="max_debt"/>
+                    <field name="number_debt"/>
+                    <field name="discount_payment"/>
+                    <field name="discount_guarantee"/>
+                    <field name="total_all"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="mv_discount_tree">
+            <field name="name">mv_discount_tree</field>
+            <field name="model">mv.discount</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="mv_discount_form">
+            <field name="name">mv_discount_form</field>
+            <field name="model">mv.discount</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                    </header>
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                        </group>
+                        <notebook>
+                            <page string="Details">
+                                <field name="line_ids" nolabel="1">
+                                    <tree default_order="level" editable="bottom">
+                                        <field name="level"/>
+                                        <field name="pricelist_id"/>
+                                        <field name="quantity_from"/>
+                                        <field name="quantity_to"/>
+                                        <field name="basic" readonly="1" force_save="1"/>
+                                        <field name="month"/>
+                                        <field name="two_month"/>
+                                        <field name="quarter"/>
+                                        <field name="year"/>
+                                    </tree>
+                                </field>
+                            </page>
+                            <page string="Partner">
+                                <field name="partner_ids" nolabel="1">
+                                    <tree default_order="partner_id desc level" editable="bottom">
+                                        <field name="partner_id"/>
+                                        <field name="date"/>
+                                        <field name="level"/>
+                                        <field name="min_debt"/>
+                                        <field name="max_debt"/>
+                                        <field name="number_debt"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="mv_discount_action" model="ir.actions.act_window">
+            <field name="name">Discount Agency</field>
+            <field name="res_model">mv.discount</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="mv_discount_menu" name="Discount Agency" action="mv_discount_action" parent="sale.menu_sales_config" sequence="0"/>
+
+    </data>
+</odoo>
