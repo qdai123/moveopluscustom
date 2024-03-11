@@ -13,6 +13,12 @@
                             <field name="amount"/>
                             <field name="is_agency"/>
                             <field name="discount_id"/>
+                            <label for="bank_guarantee"/>
+                            <div class="o_row">
+                                <field name="bank_guarantee"/>
+                                -
+                                <field name="discount_bank_guarantee" invisible="bank_guarantee == False"/>
+                            </div>
                         </group>
                         <field name="line_ids" nolabel="1" context="{'default_parent_id': discount_id}">
                             <tree default_order="partner_id desc level" editable="bottom">

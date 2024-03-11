@@ -9,6 +9,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//group[@name='order_details']" position="inside">
                     <field name="check_discount_10" invisible="1"/>
+                    <field name="bonus_order" invisible="1"/>
                 </xpath>
             </field>
         </record>

@@ -8,8 +8,10 @@ class ResPartner(models.Model):
 
     line_ids = fields.One2many("mv.discount.partner", "partner_id")
     discount_id = fields.Many2one("mv.discount", compute="compute_discount_id", store=True, readonly=False)
-    amount = fields.Integer("amount", readonly=0, copy=False)
+    amount = fields.Integer("amount", copy=False)
     is_agency = fields.Boolean(string="Agency", copy=False)
+    bank_guarantee = fields.Boolean(string="Bảo lãnh ngân hàng", copy=False)
+    discount_bank_guarantee = fields.Float(string="Bảo lãnh ngân hàng", copy=False)
 
     @api.depends("line_ids")
     def compute_discount_id(self):

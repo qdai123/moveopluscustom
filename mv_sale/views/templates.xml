@@ -101,6 +101,37 @@
                           t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
                 </td>
             </tr>
+            <t t-if="website_sale_order and website_sale_order.bank_guarantee">
+                <tr id="bank_guarantee">
+                    <td id="bank_guarantee"
+                        class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
+                        colspan="2">
+                        Chiết khấu bảo lãnh (0.5%)
+                    </td>
+                    <td class="text-end border-0 pb-2 pe-0 pt-0">
+                        -
+                        <span t-field="website_sale_order.discount_bank_guarantee"
+                              class="monetary_field"
+                              style="white-space: nowrap;"
+                              t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+                    </td>
+                </tr>
+            </t>
+            <t t-if="website_sale_order and website_sale_order.bank_guarantee">
+                <tr id="after_bank_guarantee">
+                    <td id="after_bank_guarantee"
+                        class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
+                        colspan="2">
+                        Giá sau chiết khấu <p>bảo lãnh (0.5%)</p>
+                    </td>
+                    <td class="text-end border-0 pb-2 pe-0 pt-0">
+                        <span t-field="website_sale_order.after_discount_bank_guarantee"
+                              class="monetary_field"
+                              style="white-space: nowrap;"
+                              t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+                    </td>
+                </tr>
+            </t>
             <t t-if="website_sale_order and website_sale_order.check_discount_10">
                 <tr>
                     <td colspan="2" class="border-0 pb-2 ps-0 pt-0 text-start text-muted">

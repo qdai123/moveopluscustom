@@ -11,6 +11,11 @@ class SaleOrder(models.Model):
     total_price_discount = fields.Float(compute="_compute_check_discount_10", help="Total price discount no include product service, no tax", store=True, copy=False)
     percentage = fields.Float(compute="_compute_check_discount_10", help="% discount of pricelist", store=True, copy=False)
     total_price_after_discount = fields.Float(compute="_compute_check_discount_10", help="Total price after discount no include product service, no tax", store=True, copy=False)
+    bank_guarantee = fields.Boolean(string="Bảo lãnh ngân hàng", related="partner_id.bank_guarantee")
+    discount_bank_guarantee = fields.Float(string="Bảo lãnh ngân hàng", compute="_compute_check_discount_10")
+    after_discount_bank_guarantee = fields.Float(compute="_compute_check_discount_10",
+                                                 help="Total price after discount bank guarantee", store=True,
+                                                 copy=False)
     total_price_discount_10 = fields.Float(compute="_compute_check_discount_10", help="Total price discount 1% when product_uom_qty >= 10", store=True, copy=False)
     total_price_after_discount_10 = fields.Float(compute="_compute_check_discount_10", help="Total price after discount 1% when product_uom_qty >= 10", store=True, copy=False)
     # tổng số tiền tối đa mà khách hàng có thể áp dụng chiết khấu từ tài khoản bonus của mình
@@ -81,7 +86,9 @@ class SaleOrder(models.Model):
             record.total_price_after_discount = 0
             record.total_price_discount_10 = 0
             record.total_price_after_discount_10 = 0
+            record.after_discount_bank_guarantee = 0
             record.bonus_max = 0
+            record.discount_bank_guarantee = 0
             # kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe condinental
             if record.partner_id.is_agency and len(record.order_line) > 0:
                 order_line = self.order_line.filtered(lambda x: x.product_id.detailed_type == 'product' and x.order_id.check_category_product(x.product_id.categ_id))
@@ -100,9 +107,12 @@ class SaleOrder(models.Model):
                 record.total_price_discount = total_price_discount
                 record.percentage = percentage
                 record.total_price_after_discount = record.total_price_no_service - record.total_price_discount
+                record.discount_bank_guarantee = record.total_price_after_discount * record.partner_id.discount_bank_guarantee / 100
+                record.after_discount_bank_guarantee = record.total_price_after_discount - record.discount_bank_guarantee
                 record.total_price_discount_10 = record.total_price_after_discount / 100
-                record.total_price_after_discount_10 = record.total_price_after_discount  - record.total_price_discount_10
-                record.bonus_max = (record.total_price_no_service - record.total_price_discount - record.total_price_discount_10) / 2
+                record.total_price_after_discount_10 = record.after_discount_bank_guarantee  - record.total_price_discount_10
+                record.bonus_max = (record.total_price_no_service - record.total_price_discount - record.total_price_discount_10 - record.discount_bank_guarantee) / 2
+            record.amount_total = record.amount_total - record.discount_bank_guarantee
 
     def action_cancel(self):
         if self.bonus_order > 0:
