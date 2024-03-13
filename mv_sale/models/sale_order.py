@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, api, fields
+from odoo.fields import Command
+from odoo.osv import expression
+from odoo.exceptions import UserError, ValidationError
+import itertools
+from collections import defaultdict
 
 
 class SaleOrder(models.Model):
@@ -23,12 +28,12 @@ class SaleOrder(models.Model):
     # tổng số tiền mà khách hàng đã áp dụng giảm chiết khấu
     bonus_order = fields.Float(copy=False)
     discount_line_id = fields.Many2one("mv.compute.discount.line")
-    compute_amount_total = fields.Float(compute="_compute_amount_total", readonly=True, store=True)
 
-    @api.depends('amount_total')
-    def _compute_amount_total(self):
-        for record in self:
-            record._compute_check_discount_10()
+    def button_compute(self):
+        self.write({
+            'amount_total': self.amount_total - self.discount_bank_guarantee
+        })
+        print(self.amount_total)
 
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):
@@ -51,19 +56,18 @@ class SaleOrder(models.Model):
             if bonus > self.partner_id.amount:
                 return bonus
             total_bonus = bonus + self.bonus_order
-            print(self.bonus_order)
             if total_bonus > self.bonus_max:
                 return total_bonus
-            order_line_id = self.order_line.filtered(lambda x: x.product_id.default_code == 'CKSL')
+            order_line_id = self.order_line.filtered(lambda x: x.product_id.default_code == 'CKT')
             if len(order_line_id) == 0:
-                product_tmpl_id = self.env['product.template'].search([('default_code', '=', 'CKSL')])
+                product_tmpl_id = self.env['product.template'].search([('default_code', '=', 'CKT')])
                 if not product_tmpl_id:
                     product_tmpl_id = self.env['product.template'].create({
-                        'name': 'Chiết khấu sản lượng',
+                        'name': 'Chiết khấu tháng',
                         'detailed_type': 'service',
                         'categ_id': 1,
                         'taxes_id': False,
-                        'default_code': 'CKSL'
+                        'default_code': 'CKT'
                     })
                 order_line_id = self.env['sale.order.line'].create({
                     'product_id': product_tmpl_id.product_variant_ids[0].id,
@@ -71,6 +75,7 @@ class SaleOrder(models.Model):
                     'product_uom_qty': 1,
                     'price_unit': 0,
                     'hidden_show_qty': True,
+                    'code_product': 'CKT',
                 })
             order_line_id.write({
                 'price_unit': - total_bonus,
@@ -81,6 +86,35 @@ class SaleOrder(models.Model):
             self.partner_id.write({
                 'amount': self.partner_id.amount - bonus
             })
+
+    def create_discount_bank_guarantee(self):
+        order_line = self.order_line.filtered(
+            lambda x: x.product_id.detailed_type == 'product' and x.order_id.check_category_product(
+                x.product_id.categ_id))
+        if len(order_line) > 0:
+            order_line_id = self.order_line.filtered(lambda x: x.code_product == 'CKBL')
+            if len(order_line_id) == 0:
+                product_tmpl_id = self.env['product.template'].search([('default_code', '=', 'CKBL')])
+                if not product_tmpl_id:
+                    product_tmpl_id = self.env['product.template'].create({
+                        'name': 'Chiết khấu bảo lãnh',
+                        'detailed_type': 'service',
+                        'categ_id': 1,
+                        'taxes_id': False,
+                        'default_code': 'CKBL'
+                    })
+                order_line_id = self.env['sale.order.line'].create({
+                    'product_id': product_tmpl_id.product_variant_ids[0].id,
+                    'order_id': self.id,
+                    'product_uom_qty': 1,
+                    'price_unit': 0,
+                    'hidden_show_qty': True,
+                    'code_product': 'CKBL',
+                })
+            order_line_id.write({
+                'price_unit': - self.total_price_after_discount * self.partner_id.discount_bank_guarantee / 100,
+            })
+
 
     @api.depends('order_line', 'order_line.product_uom_qty', 'order_line.product_id')
     def _compute_check_discount_10(self):
@@ -114,11 +148,12 @@ class SaleOrder(models.Model):
                 record.percentage = percentage
                 record.total_price_after_discount = record.total_price_no_service - record.total_price_discount
                 record.discount_bank_guarantee = record.total_price_after_discount * record.partner_id.discount_bank_guarantee / 100
+                if record.discount_bank_guarantee > 0:
+                    record.create_discount_bank_guarantee()
                 record.after_discount_bank_guarantee = record.total_price_after_discount - record.discount_bank_guarantee
                 record.total_price_discount_10 = record.total_price_after_discount / 100
                 record.total_price_after_discount_10 = record.after_discount_bank_guarantee  - record.total_price_discount_10
                 record.bonus_max = (record.total_price_no_service - record.total_price_discount - record.total_price_discount_10 - record.discount_bank_guarantee) / 2
-            record.amount_total = record.amount_total - record.discount_bank_guarantee
 
     def action_cancel(self):
         if self.bonus_order > 0:
@@ -129,3 +164,4 @@ class SaleOrder(models.Model):
                 'bonus_order': 0
             })
         return super().action_cancel()
+

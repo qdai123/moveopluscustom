@@ -9,10 +9,10 @@
     'author': '',
     'depends': [
         'sale',
+        'website_sale_loyalty'
     ],
 
     'data': [
-        'data/product_template_views.xml',
         'security/ir.model.access.csv',
         'views/mv_discount_views.xml',
         'views/res_partner_views.xml',

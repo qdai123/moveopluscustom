@@ -10,7 +10,7 @@ class ResPartner(models.Model):
     discount_id = fields.Many2one("mv.discount", compute="compute_discount_id", store=True, readonly=False)
     amount = fields.Integer("amount", copy=False)
     is_agency = fields.Boolean(string="Agency", copy=False)
-    bank_guarantee = fields.Boolean(string="Bảo lãnh ngân hàng", copy=False)
+    bank_guarantee = fields.Boolean(string="Bank guarantee", copy=False)
     discount_bank_guarantee = fields.Float(string="Bảo lãnh ngân hàng", copy=False)
 
     @api.depends("line_ids")

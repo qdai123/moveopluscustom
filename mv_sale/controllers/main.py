@@ -38,3 +38,17 @@ class WebsiteSaleMvSale(WebsiteSale):
                 except:
                     pass
         return request.redirect(redirect)
+
+    @http.route(['/shop/cart'], type='http', auth="public", website=True, sitemap=False)
+    def cart(self, access_token=None, revive='', **post):
+        order = request.website.sale_get_order()
+        if order.partner_id.bank_guarantee:
+            order.create_discount_bank_guarantee()
+        return super().cart(access_token=access_token, revive=revive, **post)
+
+    @http.route('/shop/payment', type='http', auth='public', website=True, sitemap=False)
+    def shop_payment(self, **post):
+        order = request.website.sale_get_order()
+        if order.bonus_order > 0:
+            order.compute_discount_for_partner(0)
+        return super().shop_payment(**post)
