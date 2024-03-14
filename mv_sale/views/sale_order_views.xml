@@ -10,9 +10,7 @@
                 <xpath expr="//group[@name='order_details']" position="inside">
                     <field name="check_discount_10" invisible="1"/>
                     <field name="bonus_order" invisible="1"/>
-                </xpath>
-                <xpath expr="//header" position="inside">
-                    <button name="button_compute" string="Compute price" type="object"/>
+                    <field name="date_invoice" />
                 </xpath>
             </field>
         </record>

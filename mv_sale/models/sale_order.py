@@ -28,12 +28,8 @@ class SaleOrder(models.Model):
     # tổng số tiền mà khách hàng đã áp dụng giảm chiết khấu
     bonus_order = fields.Float(copy=False)
     discount_line_id = fields.Many2one("mv.compute.discount.line")
-
-    def button_compute(self):
-        self.write({
-            'amount_total': self.amount_total - self.discount_bank_guarantee
-        })
-        print(self.amount_total)
+    #  ngày hóa đơn xác nhận để làm căn cứ tính discount cho đại lý
+    date_invoice = fields.Datetime(string="Date invoice")
 
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):

@@ -9,7 +9,8 @@
     'author': '',
     'depends': [
         'sale',
-        'website_sale_loyalty'
+        'website_sale_loyalty',
+        'account',
     ],
 
     'data': [
