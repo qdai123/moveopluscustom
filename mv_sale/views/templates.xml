@@ -194,7 +194,7 @@
                         Giá sau ck tháng
                     </td>
                     <td class="text-end border-0 pb-2 pe-0 pt-0">
-                        <span t-field="website_sale_order.amount_total"
+                        <span t-field="website_sale_order.total_price_after_discount_month"
                               class="monetary_field text-end p-0"
                               t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
                     </td>

@@ -6,23 +6,25 @@
             <field name="name">mv_compute_discount_line_tree</field>
             <field name="model">mv.compute.discount.line</field>
             <field name="arch" type="xml">
-                <tree default_order="partner_id name asc">
+                <tree default_order="partner_id desc month_parent desc">
+                    <field name="month_parent"/>
                     <field name="name"/>
                     <field name="partner_id"/>
-                    <field name="level"/>
-                    <field name="quantity" sum="Quantity"/>
+                    <field name="level" optional="show"/>
+                    <field name="quantity" sum="Quantity" optional="show"/>
                     <field name="quantity_from" optional="hide"/>
                     <field name="quantity_to" optional="hide"/>
                     <field name="amount_total" widget="monetary" sum="Amount month"/>
                     <field name="basic" column_invisible="True"/>
-                    <field name="month"/>
+                    <field name="month" optional="hide"/>
                     <field name="month_money" widget="monetary" sum="Discount month"/>
-                    <field name="two_month"/>
+                    <field name="two_month" optional="hide"/>
                     <field name="two_money" widget="monetary" sum="Discount two month"/>
-                    <field name="quarter"/>
+                    <field name="quarter" optional="hide"/>
                     <field name="quarter_money" widget="monetary" sum="Discount quarter"/>
-                    <field name="year"/>
+                    <field name="year" optional="hide"/>
                     <field name="year_money" widget="monetary" sum="Discount year"/>
+                    <field name="total_money" widget="monetary" sum="Total money"/>
                     <field name="currency_id" column_invisible="1"/>
                 </tree>
             </field>
@@ -37,6 +39,7 @@
                         <div>
                             <field name="is_two_month" invisible="1"/>
                             <field name="is_quarter" invisible="1"/>
+                            <field name="is_year" invisible="1"/>
                             <div class="oe_button_box" name="button_box" groups="base.group_user">
                                 <button class="oe_stat_button" name="action_view_two_month" type="object"
                                         icon="fa-pencil-square-o" invisible="is_two_month == False">
@@ -44,7 +47,11 @@
                                 </button>
                                 <button class="oe_stat_button" name="action_view_quarter" type="object"
                                         icon="fa-pencil-square-o" invisible="is_quarter == False">
-                                    Xem chiết khấu theo quy
+                                    Xem chiết khấu theo quý
+                                </button>
+                                <button class="oe_stat_button" name="action_view_year" type="object"
+                                        icon="fa-pencil-square-o" invisible="is_year == False">
+                                    Xem chiết khấu theo năm
                                 </button>
                             </div>
                         </div>
@@ -68,6 +75,7 @@
                                 <field name="quarter_money" widget="monetary"/>
                                 <field name="year"/>
                                 <field name="year_money" widget="monetary"/>
+                                <field name="total_money" widget="monetary"/>
                             </group>
                         </group>
                         <notebook>

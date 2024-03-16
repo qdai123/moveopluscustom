@@ -20,3 +20,7 @@ class ResPartner(models.Model):
             line_ids = record.line_ids.filtered(lambda x: x.parent_id)
             if len(line_ids) > 0:
                 record.discount_id = line_ids[0].parent_id.id
+
+    @api.onchange("bank_guarantee")
+    def onchange_bank_guarantee(self):
+        self.discount_bank_guarantee = 0

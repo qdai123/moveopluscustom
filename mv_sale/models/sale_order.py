@@ -27,6 +27,9 @@ class SaleOrder(models.Model):
     bonus_max = fields.Float(compute="_compute_check_discount_10", help="Total price after discount 1% when product_uom_qty >= 10", store=True, copy=False)
     # tổng số tiền mà khách hàng đã áp dụng giảm chiết khấu
     bonus_order = fields.Float(copy=False)
+    total_price_after_discount_month = fields.Float(compute="_compute_check_discount_10",
+                                                 help="Total price after discount month",
+                                                 store=True, copy=False)
     discount_line_id = fields.Many2one("mv.compute.discount.line")
     #  ngày hóa đơn xác nhận để làm căn cứ tính discount cho đại lý
     date_invoice = fields.Datetime(string="Date invoice")
@@ -125,6 +128,7 @@ class SaleOrder(models.Model):
             record.after_discount_bank_guarantee = 0
             record.bonus_max = 0
             record.discount_bank_guarantee = 0
+            record.total_price_after_discount_month = 0
             # kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe condinental
             if record.partner_id.is_agency and len(record.order_line) > 0:
                 order_line = self.order_line.filtered(lambda x: x.product_id.detailed_type == 'product' and x.order_id.check_category_product(x.product_id.categ_id))
@@ -143,12 +147,14 @@ class SaleOrder(models.Model):
                 record.total_price_discount = total_price_discount
                 record.percentage = percentage
                 record.total_price_after_discount = record.total_price_no_service - record.total_price_discount
-                record.discount_bank_guarantee = record.total_price_after_discount * record.partner_id.discount_bank_guarantee / 100
-                if record.discount_bank_guarantee > 0:
-                    record.create_discount_bank_guarantee()
+                if record.partner_id.bank_guarantee:
+                    record.discount_bank_guarantee = record.total_price_after_discount * record.partner_id.discount_bank_guarantee / 100
+                    if record.discount_bank_guarantee > 0:
+                        record.create_discount_bank_guarantee()
                 record.after_discount_bank_guarantee = record.total_price_after_discount - record.discount_bank_guarantee
                 record.total_price_discount_10 = record.total_price_after_discount / 100
                 record.total_price_after_discount_10 = record.after_discount_bank_guarantee  - record.total_price_discount_10
+                record.total_price_after_discount_month = record.total_price_after_discount_10 - record.bonus_order
                 record.bonus_max = (record.total_price_no_service - record.total_price_discount - record.total_price_discount_10 - record.discount_bank_guarantee) / 2
 
     def action_cancel(self):

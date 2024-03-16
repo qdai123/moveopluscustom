@@ -13,6 +13,8 @@ def get_years():
 
 class MvComputeDiscount(models.Model):
     _name = 'mv.compute.discount'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = "Compute discount for partner"
 
     name = fields.Char(string="Name", compute="compute_name")
     date = fields.Date("Month")
@@ -24,6 +26,11 @@ class MvComputeDiscount(models.Model):
     year = fields.Selection(get_years(), string='Year')
     state = fields.Selection(
         [('draft', 'New'), ('confirm', 'Confirm'), ('done', 'Done'), ], 'State', default="draft")
+
+    _sql_constraints = [
+        ('month_year_uniq', 'unique (month, year)',
+         "Tháng và năm này đã tồn tại không được tạo nữa")
+    ]
 
     @api.depends('month', 'year')
     def compute_name(self):
@@ -65,6 +72,10 @@ class MvComputeDiscount(models.Model):
             is_quarter = False
             quarter = 0
             quarter_money = 0
+            is_year = False
+            year = 0
+            year_money = 0
+
 
             # xác định số lượng đại lý trong tháng
             order_line_partner = order_line.filtered(lambda x: x.order_id.partner_id == partner_id)
@@ -75,10 +86,10 @@ class MvComputeDiscount(models.Model):
                 level = line_ids[-1].level
                 discount_id = line_ids[-1].parent_id
                 discount_line_id = discount_id.line_ids.filtered(lambda x: x.level == level)
+                amount_total = sum(order_line_partner.mapped('price_subtotal'))
                 if quantity >= discount_line_id.quantity_from:
                     # đạt được chỉ tiêu tháng 1 chỉ cần thỏa số lượng trong tháng
                     is_month = True
-                    amount_total = sum(order_line_partner.mapped('price_subtotal'))
                     month_money = amount_total * discount_line_id.month / 100
                     # để đạt kết quả 2 tháng:
                     # 1- tháng này phải đạt chỉ tiêu tháng
@@ -107,11 +118,30 @@ class MvComputeDiscount(models.Model):
                             is_quarter = True
                             quarter = discount_line_id.quarter
                             quarter_money = (amount_total + line_name_one.amount_total + line_name_two.amount_total) * discount_line_id.two_month / 100
+                    # để đạt kết quả năm thì tháng đang xet phai la 12
+                    # kiểm tra 11 tháng trước đó đã được chỉ tiêu tháng chưa
+                    if self.month in ['12']:
+                        flag = True
+                        total_year = 0
+                        for i in range(12):
+                            print(i)
+                            name = str(i + 1) + '/' + self.year
+                            domain = [('name', '=', name), ('is_month', '=', True), ('partner_id', '=', partner_id.id)]
+                            line_name = self.env['mv.compute.discount.line'].search(domain)
+                            if len(line_name) == 0:
+                                flag = False
+                            total_year += line_name.amount_total
+                        if flag:
+                            is_year = True
+                            year = discount_line_id.quarter
+                            year_money = total_year * discount_line_id.year / 100
 
                     print(month_money)
             if discount_line_id.level:
                 value = ((0, 0, {
                     # tính dữ liệu tháng này
+                    'discount_line_id': discount_line_id.id,
+                    'month_parent': int(self.month),
                     'partner_id': partner_id.id,
                     'level': discount_line_id.level,
                     'sale_ids': order_line_partner.order_id.ids,
@@ -133,13 +163,26 @@ class MvComputeDiscount(models.Model):
                     'is_quarter': is_quarter,
                     'quarter': quarter,
                     'quarter_money': quarter_money,
+                    # tính theo năm
+                    'is_year': is_year,
+                    'year': year,
+                    'year_money': year_money,
                 }))
                 list_line_ids.append(value)
-        self.line_ids = list_line_ids
+        self.write({
+            'line_ids': list_line_ids,
+            'state': 'confirm',
+        })
 
 
     def action_done(self):
-        print("aloaoalalaoa")
+        for line in self.line_ids:
+            line.partner_id.write({
+                'amount': line.partner_id.amount + line.total_money
+            })
+        self.write({
+            'state': 'done'
+        })
 
     def action_view_tree(self):
         return {
@@ -155,3 +198,9 @@ class MvComputeDiscount(models.Model):
                 'form_view_ref': 'mv_sale.mv_compute_discount_line_form',
             }
         }
+
+    def action_undo(self):
+        self.write({
+            'state': 'draft',
+            'line_ids': False,
+        })
