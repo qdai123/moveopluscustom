@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, api, fields
-from odoo.fields import Command
-from odoo.osv import expression
-from odoo.exceptions import UserError, ValidationError
-import itertools
-from collections import defaultdict
+from odoo import http
 
 
 class SaleOrder(models.Model):
@@ -102,17 +98,20 @@ class SaleOrder(models.Model):
                         'taxes_id': False,
                         'default_code': 'CKBL'
                     })
-                order_line_id = self.env['sale.order.line'].create({
-                    'product_id': product_tmpl_id.product_variant_ids[0].id,
-                    'order_id': self.id,
-                    'product_uom_qty': 1,
-                    'price_unit': 0,
-                    'hidden_show_qty': True,
-                    'code_product': 'CKBL',
+                url = http.request.httprequest.full_path
+                if url.find('/shop/cart') > -1:
+                    order_line_id = self.env['sale.order.line'].create({
+                        'product_id': product_tmpl_id.product_variant_ids[0].id,
+                        'order_id': self.id,
+                        'product_uom_qty': 1,
+                        'price_unit': 0,
+                        'hidden_show_qty': True,
+                        'code_product': 'CKBL',
+                    })
+            if len(order_line_id) > 0:
+                order_line_id.write({
+                    'price_unit': - self.total_price_after_discount * self.partner_id.discount_bank_guarantee / 100,
                 })
-            order_line_id.write({
-                'price_unit': - self.total_price_after_discount * self.partner_id.discount_bank_guarantee / 100,
-            })
 
 
     @api.depends('order_line', 'order_line.product_uom_qty', 'order_line.product_id')
@@ -156,6 +155,11 @@ class SaleOrder(models.Model):
                 record.total_price_after_discount_10 = record.after_discount_bank_guarantee  - record.total_price_discount_10
                 record.total_price_after_discount_month = record.total_price_after_discount_10 - record.bonus_order
                 record.bonus_max = (record.total_price_no_service - record.total_price_discount - record.total_price_discount_10 - record.discount_bank_guarantee) / 2
+            # nếu đơn hàng không còn lốp xe nữa thì xóa chiết khấu tháng và chiết khấu bảo lãnh
+            order_line_ctk = record.order_line.filtered(lambda x: x.product_id and x.product_id.default_code and x.product_id.default_code in ['CKT', 'CKBL'])
+            order_line_product = record.order_line.filtered(lambda x: x.product_id.detailed_type == 'product')
+            if len(order_line_ctk) > 0 and len(order_line_product) == 0:
+                order_line_ctk.unlink()
 
     def action_cancel(self):
         if self.bonus_order > 0:
@@ -166,4 +170,19 @@ class SaleOrder(models.Model):
                 'bonus_order': 0
             })
         return super().action_cancel()
+
+    # hàm này để không tính thuế giao hàng
+    def _get_reward_values_discount(self, reward, coupon, **kwargs):
+        list = super()._get_reward_values_discount(reward, coupon, **kwargs)
+        for line in list:
+            b = {'tax_id': False}
+            line.update(b)
+        return list
+
+    # hàm này xử lý số lượng trên thẻ cart, nó đang lấy luôn ca sản phẩm dịch vụ
+    def _compute_cart_info(self):
+        super(SaleOrder, self)._compute_cart_info()
+        for order in self:
+            service_lines = order.website_order_line.filtered(lambda line: line.product_id.detailed_type != 'product' and not line.is_reward_line)
+            order.cart_quantity -= int(sum(service_lines.mapped('product_uom_qty')))
 

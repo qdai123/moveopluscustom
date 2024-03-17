@@ -9,3 +9,4 @@ from . import sale_order_line
 from . import mv_compute_discount
 from . import mv_compute_discount_line
 from . import account_move
+from . import delivery_price_rule

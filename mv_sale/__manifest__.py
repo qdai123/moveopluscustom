@@ -8,7 +8,6 @@
     'version': '17.0',
     'author': '',
     'depends': [
-        'sale',
         'website_sale_loyalty',
         'account',
     ],

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, api, fields
+from odoo import http
 
 
 class SaleOrderLine(models.Model):
@@ -15,13 +16,16 @@ class SaleOrderLine(models.Model):
 
     def unlink(self):
         for record in self:
-            order_id = record.order_id
-            order_id.partner_id.write({
-                'amount': order_id.partner_id.amount + order_id.bonus_order
-            })
-            order_id.write({
-                'bonus_order': 0
-            })
+            if record.product_id and record.product_id.default_code and record.product_id.default_code.find('Delivery_') > -1:
+                pass
+            else:
+                order_id = record.order_id
+                order_id.partner_id.write({
+                    'amount': order_id.partner_id.amount + order_id.bonus_order
+                })
+                order_id.write({
+                    'bonus_order': 0
+                })
         return super().unlink()
 
     def write(self, vals):
@@ -35,15 +39,3 @@ class SaleOrderLine(models.Model):
                 if vals.get('product_uom_qty', False) and len(order_line) > 0:
                     order_line.unlink()
                 return res
-        
-
-    # @api.model_create_multi
-    # def create(self, vals_list):
-    #     res = super().create(vals_list)
-    #     if len(vals_list) == 1:
-    #         if not vals_list[0].get('hidden_show_qty', False):
-    #             order_id = res[0].order_id
-    #             order_line = order_id.order_line.filtered(lambda x: x.hidden_show_qty)
-    #             if len(order_line) > 0 and order_line[0].id not in res.ids:
-    #                 order_line.unlink()
-    #     return res
