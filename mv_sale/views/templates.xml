@@ -229,9 +229,9 @@
                 &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
                 &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
                 <span style='color:red;font-size:14pt;'>Bonus:
-                    <t t-out="user_id.partner_id.amount" class="monetary_field"
+                    <t t-out="user_id.sudo().partner_id.amount" class="monetary_field"
                        style="white-space: nowrap;"
-                       t-options="{'widget': 'monetary', 'display_currency': user_id.partner_id.property_product_pricelist.currency_id}"/>
+                       t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
                 </span>
             </h3>
         </xpath>
