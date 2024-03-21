@@ -188,3 +188,6 @@ class SaleOrder(models.Model):
             service_lines = order.website_order_line.filtered(lambda line: line.product_id.detailed_type != 'product' and not line.is_reward_line)
             order.cart_quantity -= int(sum(service_lines.mapped('product_uom_qty')))
 
+    def _get_order_lines_to_report(self):
+        value = super()._get_order_lines_to_report()
+        return value.sorted(key=lambda r: r.product_id.detailed_type)
