@@ -24,7 +24,7 @@
                 </div>
             </t>
             <t t-if="request.params.get('bonus_more_time')" name="bonus_more_time">
-                <div class="alert alert-danger text-start" role="alert">tổng tiền chiết khấu bạn áp dụng là
+                <div class="alert alert-danger text-start" role="alert">* Tổng số tiền chiết khấu sản lượng bạn áp dụng là
                     <t t-out="float(request.params.get('bonus_more_time'))" class="monetary_field"
                        t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
                     đã vượt qua 50% giá trị đơn hàng là:
@@ -64,16 +64,18 @@
             <attribute name="t-attf-style">display: none;</attribute>
         </xpath>
         <xpath expr="//tr[@id='order_total']" position="after">
-            <td colspan="2" class="border-0 ps-0 pt-3">
-                <strong>Chiết khấu tháng tối
-                    <p>đa có thể áp dụng</p>
-                </strong>
+            <tr>
+            <td colspan="2" class="border-0 ps-0 pt-3 text-danger mr8">
+                <small class="text-warning">
+                Số tiền chiết khấu hiện có
+                    <p>*Áp dụng không quá 50% giá trị tổng đơn hàng</p>
+                </small>
             </td>
-            <td class="text-end border-0 px-0 pt-3">
-                <strong t-field="website_sale_order.bonus_max"
-                        class="monetary_field text-end p-0"
+                <td class="text-end border-0 px-0 pt-3 text-warning">
+                <strong t-field="website_sale_order.partner_id.amount" class="monetary_field text-end p-0"
                         t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
             </td>
+            </tr>
         </xpath>
         <xpath expr="//div[@id='cart_total']//table/tr[last()]" position="after">
             <tr t-if="not hide_promotions">
