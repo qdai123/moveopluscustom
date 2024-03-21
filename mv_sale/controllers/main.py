@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from odoo import http
+from odoo import http, fields
 from odoo.http import request
 from odoo.addons.website_sale.controllers.main import WebsiteSale
+from odoo.tools.json import scriptsafe as json_scriptsafe
+from odoo.addons.payment import utils as payment_utils
 
 
 class WebsiteSaleMvSale(WebsiteSale):
@@ -52,3 +54,8 @@ class WebsiteSaleMvSale(WebsiteSale):
         if order.bonus_order > 0:
             order.compute_discount_for_partner(0)
         return super().shop_payment(**post)
+
+    def _get_shop_payment_values(self, order, **kwargs):
+        res = super(WebsiteSaleMvSale, self)._get_shop_payment_values(order, **kwargs)
+        res['submit_button_label'] = 'Đặt Hàng Ngay'
+        return res

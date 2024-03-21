@@ -2,15 +2,17 @@
 <odoo>
     <template id="bonus_amount_mv_sale" name="bonus_amount_mv_sale">
         <t t-if="website_sale_order and website_sale_order.partner_id.amount > 0">
-            <form t-attf-action="/shop/compute_bonus_amount#{redirect and '?r=' + redirect or ''}"
-                  method="post" name="compute_bonus_amount">
-                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"
-                       t-nocache="The csrf token must always be up to date."/>
-                <div class="input-group w-100 my-2">
-                    <input name="bonus" class="form-control" type="text" placeholder="Nhập số tiền muốn áp dụng"/>
-                    <a href="#" role="button" class="btn btn-secondary a-submit ps-2">Áp dụng</a>
-                </div>
-            </form>
+            <t t-if="not deliveries">
+                <form t-attf-action="/shop/compute_bonus_amount#{redirect and '?r=' + redirect or ''}"
+                      method="post" name="compute_bonus_amount">
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"
+                           t-nocache="The csrf token must always be up to date."/>
+                    <div class="input-group w-100 my-2">
+                        <input name="bonus" class="form-control" type="text" placeholder="Nhập số tiền muốn áp dụng"/>
+                        <a href="#" role="button" class="btn btn-secondary a-submit ps-2">Áp dụng</a>
+                    </div>
+                </form>
+            </t>
             <t t-if="request.params.get('not_available_condition')" name="not_available_condition">
                 <div class="alert alert-danger text-start" role="alert">Chỉ được nhập số</div>
             </t>
@@ -59,6 +61,18 @@
     <template id="total_mv_sale" inherit_id="website_sale.total">
         <xpath expr="//tr[@id='order_total_taxes']" position="attributes">
             <attribute name="t-attf-style">display: none;</attribute>
+        </xpath>
+        <xpath expr="//tr[@id='order_total']" position="after">
+            <td colspan="2" class="border-0 ps-0 pt-3">
+                <strong>Chiết khấu tháng tối
+                    <p>đa có thể áp dụng</p>
+                </strong>
+            </td>
+            <td class="text-end border-0 px-0 pt-3">
+                <strong t-field="website_sale_order.bonus_max"
+                        class="monetary_field text-end p-0"
+                        t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+            </td>
         </xpath>
         <xpath expr="//div[@id='cart_total']//table/tr[last()]" position="after">
             <tr t-if="not hide_promotions">
