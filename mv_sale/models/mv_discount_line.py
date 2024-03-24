@@ -39,9 +39,3 @@ class MvDiscountLine(models.Model):
             item_id = self.pricelist_id.item_ids[0]
             if item_id.compute_price == 'percentage':
                 self.basic = item_id.percent_price
-        # thay đổi bản giá của khách hàng có level bằng
-        partner_ids = self.parent_id.partner_ids.filtered(lambda x: self.level == x.level).mapped('partner_id')
-        if len(partner_ids) > 0:
-            partner_ids.write({
-                'property_product_pricelist': self.pricelist_id.id
-            })

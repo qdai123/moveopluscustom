@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record model="ir.ui.view" id="discount_report_tree">
+            <field name="name">discount_report_tree</field>
+            <field name="model">discount.report</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="discount_report_form">
+            <field name="name">discount_report_form</field>
+            <field name="model">discount.report</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <button name="action_confirm" string="Xác nhận" type="object" class="oe_highlight"/>
+                    </header>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="name"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Chi tiết">
+                            <field name="line_ids" nolabel="1" readonly="1">
+                                <tree default_order="partner_id" decoration-danger = "description == 'Tổng chiết khấu'">
+                                    <field name="partner_id" column_invisible="1"/>
+                                    <field name="description" decoration-success = "1"/>
+                                    <field name="january"/>
+                                    <field name="february"/>
+                                    <field name="march" />
+                                    <field name="april"/>
+                                    <field name="may"/>
+                                    <field name="june"/>
+                                    <field name="july"/>
+                                    <field name="august"/>
+                                    <field name="september"/>
+                                    <field name="october"/>
+                                    <field name="november"/>
+                                    <field name="december"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </form>
+            </field>
+        </record>
+
+        <record id="discount_report_action" model="ir.actions.act_window">
+            <field name="name">Discount Report</field>
+            <field name="res_model">discount.report</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="discount_report_menu" name="Discount Report" action="discount_report_action"
+                  parent="sale.menu_sales_config" sequence="0"/>
+
+    </data>
+</odoo>

@@ -60,8 +60,8 @@
                                         <field name="year_money" widget="monetary"/>
                                         <field name="total_money" widget="monetary"/>
                                         <field name="currency_id" column_invisible="1"/>
-                                        <button name="action_quarter" invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True" string="Quý" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
-                                        <button name="action_year" invisible="month_parent not in [12] or is_year == True" string="Năm" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
+                                        <button name="action_quarter" invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True or parent.state == 'done'" string="Quý" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
+                                        <button name="action_year" invisible="month_parent not in [12] or is_year == True or parent.state == 'done'" string="Năm" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
                                     </tree>
                                 </field>
                             </page>

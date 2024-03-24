@@ -20,6 +20,7 @@
         'views/mv_compute_discount_view.xml',
         'views/mv_compute_discount_line_views.xml',
         'views/templates.xml',
+        'report/discount_report_views.xml',
     ],
     'assets': {
         'web.assets_frontend': [

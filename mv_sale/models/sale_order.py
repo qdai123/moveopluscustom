@@ -30,7 +30,7 @@ class SaleOrder(models.Model):
                                                  store=True, copy=False)
     discount_line_id = fields.Many2one("mv.compute.discount.line")
     #  ngày hóa đơn xác nhận để làm căn cứ tính discount cho đại lý
-    date_invoice = fields.Datetime(string="Date invoice", readonly=1)
+    date_invoice = fields.Datetime(string="Date invoice", readonly=0)
 
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):

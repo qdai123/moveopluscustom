@@ -2,5 +2,7 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_mv_discount,mv.discount,model_mv_discount,base.group_user,1,1,1,1
 access_mv_discount_line,mv.discount.line,model_mv_discount_line,base.group_user,1,1,1,1
 access_mv_discount_partner,mv.discount.partner,model_mv_discount_partner,base.group_user,1,1,1,1
-access_mv_compute_discount_line,mv.compute.discount.line,model_mv_compute_discount_line,base.group_user,1,1,1,1
+access_mv_compute_discount_line,mv.compute.discount.line,model_mv_compute_discount_line,base.group_user,1,1,1,0
 access_mv_compute_discount,mv.compute.discount,model_mv_compute_discount,base.group_user,1,1,1,1
+access_discount_report_line,discount.report.line,model_discount_report_line,base.group_user,1,1,1,1
+access_discount_report,discount.report,model_discount_report,base.group_user,1,1,1,1
