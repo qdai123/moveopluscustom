@@ -10,7 +10,7 @@
                 <xpath expr="//notebook" position="inside">
                     <page string="Discount">
                         <group>
-                            <field name="amount"/>
+                            <field name="amount" readonly="1"/>
                             <field name="is_agency"/>
                             <field name="discount_id"/>
                             <label for="bank_guarantee"/>
@@ -28,6 +28,40 @@
                                 <field name="min_debt"/>
                                 <field name="max_debt"/>
                                 <field name="number_debt"/>
+                            </tree>
+                        </field>
+                    </page>
+                    <page string="Compute discount">
+                        <field name="compute_discount_line_ids" nolabel="1" readonly="1">
+                            <tree default_order="id desc" editable="bottom">
+                                <field name="name" string="Năm - tháng"/>
+                                <field name="quantity" string="Số lượng"/>
+                                <field name="quantity_from" optional="hide"/>
+                                <field name="quantity_to" optional="hide"/>
+                                <field name="amount_total"/>
+                                <field name="is_month" optional="hide"/>
+                                <field name="month" optional="hide"/>
+                                <field name="month_money" string="Ck tháng"/>
+                                <field name="is_two_month" optional="hide"/>
+                                <field name="amount_two_month" optional="hide"/>
+                                <field name="two_month" optional="hide"/>
+                                <field name="two_money" string="Ck 2 tháng"/>
+                                <field name="is_quarter" optional="hide"/>
+                                <field name="quarter" optional="hide"/>
+                                <field name="quarter_money" string="Ck quý"/>
+                                <field name="is_year" optional="hide"/>
+                                <field name="year" optional="hide"/>
+                                <field name="year_money" string="Ck năm"/>
+                                <field name="total_money" string="Tổng tiền"/>
+                            </tree>
+                        </field>
+                    </page>
+                    <page string="Đơn hàng chiết khấu tháng">
+                        <field name="sale_order_ids" nolabel="1" readonly="1" domain="[('state', '!=', 'cancel'), ('bonus_order', '>', 0)]">
+                            <tree default_order="id desc" editable="bottom">
+                                <field name="name" string="Đơn hàng"/>
+                                <field name="bonus_order" string="Số tiền đã chiết khấu"/>
+                                <field name="state"/>
                             </tree>
                         </field>
                     </page>

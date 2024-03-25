@@ -12,6 +12,7 @@ class ResPartner(models.Model):
     is_agency = fields.Boolean(string="Đại lý", copy=False)
     bank_guarantee = fields.Boolean(string="Bảo lãnh ngân hàng", copy=False)
     discount_bank_guarantee = fields.Float(string="Bảo lãnh ngân hàng", copy=False)
+    compute_discount_line_ids = fields.One2many("mv.compute.discount.line", "partner_id")
 
     @api.depends("line_ids")
     def compute_discount_id(self):
