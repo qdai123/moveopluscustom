@@ -173,6 +173,18 @@ class SaleOrder(models.Model):
             })
         return super().action_cancel()
 
+    def action_draft(self):
+        order_line = self.order_line.filtered(lambda x: x.product_id.default_code == 'CKT')
+        if len(order_line) > 0:
+            bonus_order = order_line[0].price_unit
+            self.partner_id.write({
+                'amount': self.partner_id.amount + bonus_order
+            })
+            self.write({
+                'bonus_order': -bonus_order
+            })
+        return super().action_draft()
+
     # hàm này để không tính thuế giao hàng
     def _get_reward_values_discount(self, reward, coupon, **kwargs):
         list = super()._get_reward_values_discount(reward, coupon, **kwargs)
