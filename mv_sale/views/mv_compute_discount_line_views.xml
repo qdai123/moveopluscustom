@@ -57,25 +57,25 @@
                         </div>
                         <group>
                             <group>
-                                <field name="partner_id"/>
-                                <field name="level"/>
-                                <field name="quantity_from"/>
-                                <field name="quantity_to"/>
-                                <field name="quantity"/>
-                                <field name="amount_total" widget="monetary"/>
+                                <field name="partner_id" readonly="1"/>
+                                <field name="level" readonly="1"/>
+                                <field name="quantity_from" readonly="1"/>
+                                <field name="quantity_to" readonly="1"/>
+                                <field name="quantity" readonly="1"/>
+                                <field name="amount_total" widget="monetary" readonly="1"/>
                                 <field name="basic" invisible="1"/>
                                 <field name="currency_id" invisible="1"/>
                             </group>
                             <group>
-                                <field name="month"/>
-                                <field name="month_money" widget="monetary"/>
-                                <field name="two_month"/>
-                                <field name="two_money" widget="monetary"/>
+                                <field name="month" readonly="1"/>
+                                <field name="month_money" widget="monetary" readonly="1"/>
+                                <field name="two_month" readonly="1"/>
+                                <field name="two_money" widget="monetary" readonly="1"/>
                                 <field name="quarter"/>
-                                <field name="quarter_money" widget="monetary"/>
-                                <field name="year"/>
-                                <field name="year_money" widget="monetary"/>
-                                <field name="total_money" widget="monetary"/>
+                                <field name="quarter_money" widget="monetary" readonly="1"/>
+                                <field name="year" readonly="1"/>
+                                <field name="year_money" widget="monetary" readonly="1"/>
+                                <field name="total_money" widget="monetary" readonly="1"/>
                             </group>
                         </group>
                         <notebook>
