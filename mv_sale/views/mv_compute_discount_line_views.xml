@@ -59,9 +59,9 @@
                             <group>
                                 <field name="partner_id"/>
                                 <field name="level"/>
-                                <field name="quantity"/>
                                 <field name="quantity_from"/>
                                 <field name="quantity_to"/>
+                                <field name="quantity"/>
                                 <field name="amount_total" widget="monetary"/>
                                 <field name="basic" invisible="1"/>
                                 <field name="currency_id" invisible="1"/>

@@ -245,7 +245,7 @@
             <h3 class="my-3">My account &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
                 &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
                 &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-                <span style='color:red;font-size:14pt;'>Bonus:
+                <span style='color:red;font-size:14pt;'>Số tiền chiết khấu:
                     <t t-out="user_id.sudo().partner_id.amount" class="monetary_field"
                        style="white-space: nowrap;"
                        t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
