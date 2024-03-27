@@ -25,7 +25,7 @@ class MvComputeDiscount(models.Model):
                              string='Tháng')
     year = fields.Selection(get_years(), string='Year')
     state = fields.Selection(
-        [('draft', 'Nháp'), ('confirm', 'Lưu'), ('done', 'Hoàn thành'), ], 'State', default="draft")
+        [('draft', 'Nháp'), ('confirm', 'Lưu'), ('done', 'Đã Duyệt'), ], 'State', default="draft")
 
     _sql_constraints = [
         ('month_year_uniq', 'unique (month, year)',
