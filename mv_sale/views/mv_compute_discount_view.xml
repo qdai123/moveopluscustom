@@ -18,10 +18,10 @@
             <field name="arch" type="xml">
                 <form>
                     <header>
-                        <button name="action_confirm" string="Xác nhận" type="object" class="oe_highlight" invisible="state!='draft'"/>
-                        <button name="action_done" string="Hoàn thành" type="object" class="oe_highlight" invisible="state!='confirm'" confirm="Tiền sẽ được chuyển vào tài khoản các đại lý ?"/>
-                        <button name="action_view_tree" string="Xem kết qủa" type="object" class="oe_highlight"/>
-                        <button name="action_undo" string="Trả về nháp" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
+                        <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state!='draft'"/>
+                        <button name="action_done" string="Lưu" type="object" class="oe_highlight" invisible="state!='confirm'"/>
+                        <button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
+                        <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
                         <field name="state" widget="statusbar"/>
                     </header>
                     <sheet>
@@ -37,15 +37,15 @@
                             </group>
                         </group>
                         <notebook>
-                            <page string="Details">
+                            <page string="Chi tiết">
                                 <field name="line_ids" nolabel="1" readonly="1">
                                     <tree default_order="partner_id">
                                         <field name="month_parent" column_invisible="1"/>
                                         <field name="partner_id"/>
                                         <field name="level" optional="show"/>
-                                        <field name="quantity" optional="show"/>
                                         <field name="quantity_from" optional="hide"/>
                                         <field name="quantity_to" column_invisible="1"/>
+                                        <field name="quantity" optional="show"/>
                                         <field name="amount_total" widget="monetary"/>
                                         <field name="basic" column_invisible="True"/>
                                         <field name="month" optional="hide"/>
@@ -60,8 +60,8 @@
                                         <field name="year_money" widget="monetary"/>
                                         <field name="total_money" widget="monetary"/>
                                         <field name="currency_id" column_invisible="1"/>
-                                        <button name="action_quarter" invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True or parent.state == 'done'" string="Quý" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
-                                        <button name="action_year" invisible="month_parent not in [12] or is_year == True or parent.state == 'done'" string="Năm" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
+                                        <button name="action_quarter" invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True or parent.state == 'done'" string="Cho phép Duyệt Quý" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
+                                        <button name="action_year" invisible="month_parent not in [12] or is_year == True or parent.state == 'done'" string="Cho phép Duyệt Năm" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
                                     </tree>
                                 </field>
                             </page>
@@ -77,12 +77,12 @@
         </record>
 
         <record id="mv_compute_discount_action" model="ir.actions.act_window">
-            <field name="name">Compute discount</field>
+            <field name="name">Tính chiết khấu</field>
             <field name="res_model">mv.compute.discount</field>
             <field name="view_mode">tree,form</field>
         </record>
 
-        <menuitem id="mv_compute_discount_menu" name="Compute Discount" action="mv_compute_discount_action"
+        <menuitem id="mv_compute_discount_menu" name="Tính chiết khấu" action="mv_compute_discount_action"
                   parent="sale.menu_sales_config" sequence="0"/>
 
     </data>

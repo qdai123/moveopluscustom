@@ -69,15 +69,15 @@
                                 <field name="currency_id" invisible="1"/>
                             </group>
                             <group>
-                                <field name="month"/>
-                                <field name="month_money" widget="monetary"/>
-                                <field name="two_month"/>
-                                <field name="two_money" widget="monetary"/>
+                                <field name="month" readonly="1"/>
+                                <field name="month_money" widget="monetary" readonly="1"/>
+                                <field name="two_month" readonly="1"/>
+                                <field name="two_money" widget="monetary" readonly="1"/>
                                 <field name="quarter"/>
-                                <field name="quarter_money" widget="monetary"/>
-                                <field name="year"/>
-                                <field name="year_money" widget="monetary"/>
-                                <field name="total_money" widget="monetary"/>
+                                <field name="quarter_money" widget="monetary" readonly="1"/>
+                                <field name="year" readonly="1"/>
+                                <field name="year_money" widget="monetary" readonly="1"/>
+                                <field name="total_money" widget="monetary" readonly="1"/>
                             </group>
                         </group>
                         <notebook>

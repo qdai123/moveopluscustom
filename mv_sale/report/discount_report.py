@@ -13,8 +13,8 @@ class DiscountReport(models.Model):
     _name = 'discount.report'
 
     line_ids = fields.One2many("discount.report.line", "parent_id")
-    partner_id = fields.Many2one("res.partner", required=1, string="Đại lý")
-    name = fields.Selection(get_years(), string='Năm', required=1)
+    partner_id = fields.Many2one("res.partner", required=1, string="Chọn Đại lý")
+    name = fields.Selection(get_years(), string='Chọn Năm', required=1)
 
     def create_discount_report(self, description, january, february, march, april, may, june, july, august, september,
                                october, november, december):

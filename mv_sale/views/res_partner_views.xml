@@ -8,7 +8,7 @@
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//notebook" position="inside">
-                    <page string="Discount">
+                    <page string="Chiết khấu">
                         <group>
                             <field name="amount" readonly="1"/>
                             <field name="is_agency"/>
@@ -31,7 +31,7 @@
                             </tree>
                         </field>
                     </page>
-                    <page string="Compute discount">
+                    <page string="Chi tiết chiết khấu">
                         <field name="compute_discount_line_ids" nolabel="1" readonly="1">
                             <tree default_order="id desc" editable="bottom">
                                 <field name="name" string="Năm - tháng"/>
