@@ -31,6 +31,8 @@ class SaleOrder(models.Model):
     discount_line_id = fields.Many2one("mv.compute.discount.line")
     #  ngày hóa đơn xác nhận để làm căn cứ tính discount cho đại lý
     date_invoice = fields.Datetime(string="Date invoice", readonly=0)
+    # giữ số lượng lại,để khi thay đổi thì xóa dòng delivery, chiết khấu tự đông, chiết khấu sản lượng
+    quantity_change = fields.Float()
 
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):
@@ -101,7 +103,7 @@ class SaleOrder(models.Model):
                         'default_code': 'CKBL'
                     })
                 url = http.request.httprequest.full_path
-                if url.find('/shop/cart') > -1:
+                if url.find('/shop/cart') > -1 or self._context.get('bank_guarantee', False):
                     order_line_id = self.env['sale.order.line'].create({
                         'product_id': product_tmpl_id.product_variant_ids[0].id,
                         'order_id': self.id,
@@ -203,3 +205,52 @@ class SaleOrder(models.Model):
     def _get_order_lines_to_report(self):
         value = super()._get_order_lines_to_report()
         return value.sorted(key=lambda r: r.product_id.detailed_type)
+
+    def action_compute_discount_month(self):
+        if len(self.order_line) == 0:
+            return
+        self._update_programs_and_rewards()
+        self._auto_apply_rewards()
+        if self.partner_id.bank_guarantee:
+            self.discount_bank_guarantee = self.total_price_after_discount * self.partner_id.discount_bank_guarantee / 100
+            if self.discount_bank_guarantee > 0:
+                self.with_context(bank_guarantee=True).create_discount_bank_guarantee()
+        quantity_change = sum(self.order_line.filtered(lambda x: x.product_id.detailed_type == 'product').mapped('product_uom_qty'))
+        ckt_order_line_id = self.order_line.filtered(lambda x: x.product_id.default_code == 'CKT')
+        line_delivery_id = self.order_line.filtered(lambda x: x.is_delivery)
+        len_line_delivery_id = len(line_delivery_id)
+        # khi số lượng thay đổi thì xóa delivery, chiết khấu tháng
+        if self.quantity_change != 0 and self.quantity_change != quantity_change:
+            if len_line_delivery_id > 0:
+                line_delivery_id.unlink()
+                len_line_delivery_id = 0
+            if len(ckt_order_line_id) > 0:
+                ckt_order_line_id.unlink()
+        self.write({
+            'quantity_change': quantity_change
+        })
+        if len_line_delivery_id == 0:
+            return self.action_open_delivery_wizard()
+        view_id = self.env.ref('mv_sale.mv_wiard_discount_view_form').id
+        if not self._context.get('confirm', False):
+            return {
+                'name': "Chiết khấu",
+                'type': 'ir.actions.act_window',
+                'view_mode': 'form',
+                'res_model': 'mv.wizard.discount',
+                'view_id': view_id,
+                'views': [(view_id, 'form')],
+                'target': 'new',
+                'context': {
+                    'default_sale_id': self.id,
+                    'default_partner_id': self.partner_id.id,
+                }
+            }
+    
+    def action_confirm(self):
+        if self.partner_id.is_agency:
+            self.with_context(confirm=True).action_compute_discount_month()
+            if len(self.order_line.filtered(lambda x: x.is_delivery)) == 0:
+                return self.with_context(confirm=True).action_compute_discount_month()
+        return super().action_confirm()
+

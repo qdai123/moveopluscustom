@@ -57,10 +57,10 @@
                         </field>
                     </page>
                     <page string="Đơn hàng chiết khấu tháng">
-                        <field name="sale_order_ids" nolabel="1" readonly="1" domain="[('state', '!=', 'cancel'), ('bonus_order', '>', 0)]">
+                        <field name="sale_mv_ids" nolabel="1" readonly="1">
                             <tree default_order="id desc" editable="bottom">
                                 <field name="name" string="Đơn hàng"/>
-                                <field name="bonus_order" string="Số tiền đã chiết khấu"/>
+                                <field name="bonus_order" string="Số tiền đã chiết khấu" sum="Tổng chiết khấu"/>
                                 <field name="state"/>
                             </tree>
                         </field>

@@ -12,6 +12,9 @@
                     <field name="bonus_order" invisible="1"/>
                     <field name="date_invoice" readonly="1" invisible="1"/>
                 </xpath>
+                <xpath expr="//header" position="inside">
+                    <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft']"/>
+                </xpath>
             </field>
         </record>
 

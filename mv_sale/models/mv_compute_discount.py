@@ -78,8 +78,12 @@ class MvComputeDiscount(models.Model):
 
 
             # xác định số lượng đại lý trong tháng
-            order_line_partner = order_line.filtered(lambda x: x.order_id.partner_id == partner_id)
+            order_line_total = order_line.filtered(lambda x: x.order_id.partner_id == partner_id)
+            order_line_partner = order_line_total.filtered(lambda x: x.order_id.partner_id == partner_id and x.price_unit > 0)
             quantity = sum(order_line_partner.mapped('product_uom_qty'))
+            # xác định số lương đơn hàng có giá = 0, hàng khuyến mãi
+            order_line_partner_discount = order_line_total.filtered(lambda x: x.order_id.partner_id == partner_id and x.price_unit == 0)
+            quantity_discount = sum(order_line_partner_discount.mapped('product_uom_qty'))
             # xác định cấp bậc đại lý
             line_ids = partner_id.line_ids.filtered(lambda x: date.today() >= x.date if x.date else not x.date).sorted('level')
             if len(line_ids) > 0:
@@ -144,10 +148,11 @@ class MvComputeDiscount(models.Model):
                     'month_parent': int(self.month),
                     'partner_id': partner_id.id,
                     'level': discount_line_id.level,
-                    'sale_ids': order_line_partner.order_id.ids,
-                    'order_line_ids': order_line_partner.ids,
-                    'currency_id': order_line_partner[0].order_id.currency_id.id,
+                    'sale_ids': order_line_total.order_id.ids,
+                    'order_line_ids': order_line_total.ids,
+                    'currency_id': order_line_total[0].order_id.currency_id.id,
                     'quantity': quantity,
+                    'quantity_discount': quantity_discount,
                     'quantity_from': discount_line_id.quantity_from,
                     'quantity_to': discount_line_id.quantity_to,
                     'amount_total': amount_total,

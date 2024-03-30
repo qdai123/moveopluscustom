@@ -13,6 +13,15 @@ class ResPartner(models.Model):
     bank_guarantee = fields.Boolean(string="Bảo lãnh ngân hàng", copy=False)
     discount_bank_guarantee = fields.Float(string="Bảo lãnh ngân hàng", copy=False)
     compute_discount_line_ids = fields.One2many("mv.compute.discount.line", "partner_id")
+    sale_mv_ids = fields.Many2many('sale.order', compute="compute_sale_mv_ids")
+
+    @api.depends("sale_order_ids")
+    def compute_sale_mv_ids(self):
+        for record in self:
+            record.sale_mv_ids = False
+            if len(record.sale_order_ids) > 0:
+                sale_mv_ids = record.sale_order_ids.filtered(lambda x: x.bonus_order > 0 and x.state != 'cancel')
+                record.sale_mv_ids = sale_mv_ids.ids
 
     @api.depends("line_ids")
     def compute_discount_id(self):

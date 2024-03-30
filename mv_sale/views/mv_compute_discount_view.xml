@@ -19,7 +19,7 @@
                 <form>
                     <header>
                         <button name="action_confirm" string="Xác nhận" type="object" class="oe_highlight" invisible="state!='draft'"/>
-                        <button name="action_done" string="Hoàn thành" type="object" class="oe_highlight" invisible="state!='confirm'"/>
+                        <button name="action_done" string="Hoàn thành" type="object" class="oe_highlight" invisible="state!='confirm'" confirm="Tiền sẽ được chuyển vào tài khoản các đại lý ?"/>
                         <button name="action_view_tree" string="Xem kết qủa" type="object" class="oe_highlight"/>
                         <button name="action_undo" string="Trả về nháp" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
                         <field name="state" widget="statusbar"/>
@@ -45,7 +45,7 @@
                                         <field name="level" optional="show"/>
                                         <field name="quantity" optional="show"/>
                                         <field name="quantity_from" optional="hide"/>
-                                        <field name="quantity_to" optional="hide"/>
+                                        <field name="quantity_to" column_invisible="1"/>
                                         <field name="amount_total" widget="monetary"/>
                                         <field name="basic" column_invisible="True"/>
                                         <field name="month" optional="hide"/>

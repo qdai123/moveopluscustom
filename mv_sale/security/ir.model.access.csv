@@ -6,3 +6,4 @@ access_mv_compute_discount_line,mv.compute.discount.line,model_mv_compute_discou
 access_mv_compute_discount,mv.compute.discount,model_mv_compute_discount,base.group_user,1,1,1,0
 access_discount_report_line,discount.report.line,model_discount_report_line,base.group_user,1,1,1,1
 access_discount_report,discount.report,model_discount_report,base.group_user,1,1,1,1
+access_mv_wizard_discount,mv.wizard.discount,model_mv_wizard_discount,base.group_user,1,1,1,1

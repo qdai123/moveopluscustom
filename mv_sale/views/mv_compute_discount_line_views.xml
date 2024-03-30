@@ -12,6 +12,7 @@
                     <field name="partner_id"/>
                     <field name="level" optional="show"/>
                     <field name="quantity" sum="Quantity" optional="show"/>
+                    <field name="quantity_discount" sum="Quantity" optional="hide"/>
                     <field name="quantity_from" optional="hide"/>
                     <field name="quantity_to" optional="hide"/>
                     <field name="amount_total" widget="monetary" sum="Amount month"/>
@@ -60,6 +61,7 @@
                                 <field name="partner_id"/>
                                 <field name="level"/>
                                 <field name="quantity"/>
+                                <field name="quantity_discount"/>
                                 <field name="quantity_from"/>
                                 <field name="quantity_to"/>
                                 <field name="amount_total" widget="monetary"/>
@@ -90,7 +92,7 @@
                             </page>
                             <page string="Chi tiết đơn hàng">
                                 <field name="order_line_ids" nolabel="1">
-                                    <tree create="False" edit="False">
+                                    <tree create="False" edit="False" decoration-danger = "price_unit == 0">
                                         <field name="currency_id" column_invisible="True"/>
                                         <field name="order_id"/>
                                         <field name="product_id"/>

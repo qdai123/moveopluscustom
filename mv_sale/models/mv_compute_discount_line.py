@@ -12,6 +12,7 @@ class MvComputeDiscountLine(models.Model):
     partner_id = fields.Many2one("res.partner", string="Đại lý")
     level = fields.Integer(string="Mức")
     quantity = fields.Integer(string="Số lượng")
+    quantity_discount = fields.Integer(string="Số lượng khuyến mãi")
     amount_total = fields.Float(string="Doanh thu tháng")
     quantity_from = fields.Integer(string="Từ")
     quantity_to = fields.Integer(string="Đến")
