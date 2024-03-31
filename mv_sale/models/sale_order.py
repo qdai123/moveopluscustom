@@ -33,6 +33,7 @@ class SaleOrder(models.Model):
     date_invoice = fields.Datetime(string="Date invoice", readonly=0)
     # giữ số lượng lại,để khi thay đổi thì xóa dòng delivery, chiết khấu tự đông, chiết khấu sản lượng
     quantity_change = fields.Float()
+    flag_delivery = fields.Boolean(compute="compute_flag_delivery")
 
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):
@@ -254,3 +255,8 @@ class SaleOrder(models.Model):
                 return self.with_context(confirm=True).action_compute_discount_month()
         return super().action_confirm()
 
+    def compute_flag_delivery(self):
+        for record in self:
+            record.flag_delivery = False
+            if len(record.order_line) > 0 and len(self.order_line.filtered(lambda x: x.is_delivery)) > 0:
+                record.flag_delivery = True
