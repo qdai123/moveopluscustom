@@ -13,7 +13,7 @@
                     <field name="date_invoice" readonly="1" invisible="1"/>
                 </xpath>
                 <xpath expr="//header" position="inside">
-                    <field name="flag_delivery"/>
+                    <field name="flag_delivery" invisible="1"/>
                     <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or flag_delivery"/>
                     <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Nhập chiết khấu sản lượng" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or not flag_delivery"/>
                 </xpath>
