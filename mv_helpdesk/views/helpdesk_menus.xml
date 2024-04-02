@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <menuitem id="helpdesk_ticket_product_moves_menu"
+              name="Helpdesk Ticket &amp; Product Moves"
+              action="helpdesk_ticket_product_moves_action_overview"
+              parent="helpdesk.helpdesk_menu_config"
+              sequence="1"
+              groups="base.group_no_one"/>
+
+</odoo>
