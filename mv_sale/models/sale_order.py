@@ -189,12 +189,12 @@ class SaleOrder(models.Model):
         return super().action_draft()
 
     # hàm này để không tính thuế giao hàng
-    def _get_reward_values_discount(self, reward, coupon, **kwargs):
-        list = super()._get_reward_values_discount(reward, coupon, **kwargs)
-        for line in list:
-            b = {'tax_id': False}
-            line.update(b)
-        return list
+    # def _get_reward_values_discount(self, reward, coupon, **kwargs):
+    #     list = super()._get_reward_values_discount(reward, coupon, **kwargs)
+    #     for line in list:
+    #         b = {'tax_id': False}
+    #         line.update(b)
+    #     return list
 
     # hàm này xử lý số lượng trên thẻ cart, nó đang lấy luôn ca sản phẩm dịch vụ
     def _compute_cart_info(self):
