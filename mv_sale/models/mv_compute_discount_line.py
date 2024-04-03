@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, api, fields
+from odoo.exceptions import ValidationError
 
 
 class MvComputeDiscountLine(models.Model):
@@ -66,6 +67,13 @@ class MvComputeDiscountLine(models.Model):
             }
         }
 
+    def check_access(self):
+        approver = self.env['ir.config_parameter'].sudo().get_param('mv_compute_discount')
+        if not approver:
+            raise ValidationError("Bạn không có quyền")
+        if int(approver) != self.env.user.id:
+            raise ValidationError("Bạn không có quyền")
+
     def action_view_quarter(self):
         month = self.parent_id.month
         year = self.parent_id.year
@@ -113,6 +121,7 @@ class MvComputeDiscountLine(models.Model):
         }
 
     def action_quarter(self):
+        self.check_access()
         amount_two_month = 0
         name_one = str(int(self.month_parent) - 1) + '/' + self.parent_id.year
         name_two = str(int(self.month_parent) - 2) + '/' + self.parent_id.year
@@ -130,6 +139,7 @@ class MvComputeDiscountLine(models.Model):
         self.env.user.name, self.partner_id.name, str(self.quarter_money)))
 
     def action_year(self):
+        self.check_access()
         total_year = 0
         for i in range(12):
             print(i)

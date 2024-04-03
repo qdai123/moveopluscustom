@@ -2,6 +2,7 @@
 
 from odoo import models, api, fields
 from datetime import datetime, timedelta, date
+from odoo.exceptions import ValidationError
 
 
 def get_years():
@@ -181,6 +182,11 @@ class MvComputeDiscount(models.Model):
 
 
     def action_done(self):
+        approver = self.env['ir.config_parameter'].sudo().get_param('mv_compute_discount')
+        if not approver:
+            raise ValidationError("Bạn không phép lưu")
+        if int(approver) != self.env.user.id:
+            raise ValidationError("Bạn không phép lưu")
         for line in self.line_ids:
             line.partner_id.write({
                 'amount': line.partner_id.amount + line.total_money
