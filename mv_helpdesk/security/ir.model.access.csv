@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_helpdesk_ticket_product_moves_internal_user,access.helpdesk.ticket.product.moves Internal User,model_helpdesk_ticket_product_moves,base.group_user,1,0,0,0
+access_helpdesk_ticket_product_moves_system_user,access.helpdesk.ticket.product.moves System User,model_helpdesk_ticket_product_moves,base.group_system,1,1,1,1
+access_helpdesk_ticket_product_moves_portal_user,access.helpdesk.ticket.product.moves Portal User,model_helpdesk_ticket_product_moves,base.group_portal,1,0,1,0
