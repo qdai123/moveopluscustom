@@ -7,6 +7,9 @@
     'author': 'Phat Dang <phat.dangminh@moveoplus.com>',
     'depends': ['helpdesk'],
     'data': [
+        # DATA
+        'data/helpdesk_data.xml',
+        'data/service_cron.xml',
         # SECURITY
         'security/ir.model.access.csv',
         # VIEWS
