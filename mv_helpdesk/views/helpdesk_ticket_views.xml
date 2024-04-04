@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <!-- INHERIT: FORM VIEWS -->
+    <record id="mv_helpdesk_inherit_helpdesk_ticket_form_view" model="ir.ui.view">
+        <field name="name">mv.helpdesk.inherit.helpdesk.ticket.form</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook//page[@name='description']" position="before">
+                <page string="Lot/Serial Number" name="ticket_product_moves_tab">
+                    <field mode="tree" name="helpdesk_ticket_product_move_ids" domain="[('name', '!=', ''), ('parent_id', '!=', False)]" context="{'default_helpdesk_ticket_id': id}">
+                        <tree string="Ticket &amp; Product Moves" editable="bottom">
+                            <field name="parent_id"
+                                   domain="[('name', '!=', ''), ('parent_id', '=', False)]"
+                                   string="Lot/Serial Number Name"
+                                   options="{'no_open': True}"
+                            />
+                            <field name="id" context="{'default_id': parent_id}" column_invisible="True"/>
+                            <field name="name" column_invisible="True"/>
+                            <field name="product_id" column_invisible="True"/>
+                            <field name="stock_move_line_id" column_invisible="True"/>
+                            <field name="stock_move_id" column_invisible="True"/>
+                            <field name="product_uom_id" column_invisible="True"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+            <xpath expr="//field[@name='ticket_type_id']" position="after">
+                <field invisible="1" name="is_sub_dealer"/>
+                <field invisible="1" name="is_end_user"/>
+                <field name="sub_dealer_name" invisible="not is_sub_dealer"/>
+                <field name="license_plates" invisible="not is_end_user"/>
+                <field name="mileage" invisible="not is_end_user"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
