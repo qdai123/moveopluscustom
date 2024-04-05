@@ -32,9 +32,9 @@
             <xpath expr="//field[@name='ticket_type_id']" position="after">
                 <field invisible="1" name="is_sub_dealer"/>
                 <field invisible="1" name="is_end_user"/>
-                <field name="sub_dealer_name" invisible="(not is_sub_dealer and is_end_user) or not ticket_type_id"/>
-                <field name="license_plates" invisible="(not is_end_user and is_sub_dealer) or not ticket_type_id"/>
-                <field name="mileage" invisible="not is_end_user"/>
+                <field name="sub_dealer_name" invisible="not is_sub_dealer or not ticket_type_id"/>
+                <field name="license_plates" invisible="not is_end_user or not ticket_type_id"/>
+                <field name="mileage" invisible="not is_end_user or not ticket_type_id"/>
             </xpath>
             <xpath expr="//field[@name='email_cc']" position="after">
                 <label for="portal_lot_serial_number" string="Input Lot/Serial Number Or Scanner"/>
