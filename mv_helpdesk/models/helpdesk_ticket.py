@@ -40,6 +40,8 @@ class HelpdeskTicket(models.Model):
     @api.depends("ticket_type_id")
     def _compute_ticket_type(self):
         for rec in self:
+            rec.is_sub_dealer = False
+            rec.is_end_user = False
             if (rec.ticket_type_id
                     and rec.ticket_type_id.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)'):
                 rec.is_sub_dealer = True
