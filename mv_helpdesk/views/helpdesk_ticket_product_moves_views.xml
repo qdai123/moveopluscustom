@@ -3,9 +3,9 @@
     <data>
 
         <!-- TREE VIEWS -->
-        <record id="helpdesk_ticket_product_moves_tree_view" model="ir.ui.view">
-            <field name="name">helpdesk.ticket.product.moves.tree</field>
-            <field name="model">helpdesk.ticket.product.moves</field>
+        <record id="mv_helpdesk_ticket_product_moves_tree_view" model="ir.ui.view">
+            <field name="name">mv.helpdesk.ticket.product.moves.tree</field>
+            <field name="model">mv.helpdesk.ticket.product.moves</field>
             <field name="arch" type="xml">
                 <tree string="Helpdesk Ticket &amp; Product Moves LIST" create="false" edit="false" delete="true">
                     <header>
@@ -31,9 +31,9 @@
         </record>
 
         <!-- SEARCH VIEWS -->
-        <record id="helpdesk_ticket_product_moves_search_view" model="ir.ui.view">
-            <field name="name">helpdesk.ticket.product.moves.search</field>
-            <field name="model">helpdesk.ticket.product.moves</field>
+        <record id="mv_helpdesk_ticket_product_moves_search_view" model="ir.ui.view">
+            <field name="name">mv.helpdesk.ticket.product.moves.search</field>
+            <field name="model">mv.helpdesk.ticket.product.moves</field>
             <field name="arch" type="xml">
                 <search string="Helpdesk Ticket &amp; Product Moves SEARCH">
                     <field name="name" filter_domain="['|', ('name', 'ilike', self), ('stock_move_line_id.lot_name', 'ilike', self)]"/>
@@ -55,12 +55,12 @@
         </record>
 
         <!-- ACTION VIEW -->
-        <record id="helpdesk_ticket_product_moves_action_overview" model="ir.actions.act_window">
+        <record id="mv_helpdesk_ticket_product_moves_action_overview" model="ir.actions.act_window">
             <field name="name">Ticket &amp; Stock Move Line</field>
-            <field name="res_model">helpdesk.ticket.product.moves</field>
+            <field name="res_model">mv.helpdesk.ticket.product.moves</field>
             <field name="view_mode">tree</field>
-            <field name="search_view_id" ref="helpdesk_ticket_product_moves_search_view"/>
-            <field name="view_id" ref="helpdesk_ticket_product_moves_tree_view"/>
+            <field name="search_view_id" ref="mv_helpdesk_ticket_product_moves_search_view"/>
+            <field name="view_id" ref="mv_helpdesk_ticket_product_moves_tree_view"/>
             <field name="domain" eval="[('parent_id', '!=', False)]"/>
             <field name="context">{'search_default_filter_has_lot_serial_number': 1}</field>
             <field name="help" type="html">

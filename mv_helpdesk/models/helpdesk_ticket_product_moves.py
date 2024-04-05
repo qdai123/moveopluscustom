@@ -7,7 +7,7 @@ _logger = logging.getLogger(__name__)
 
 
 class HelpdeskTicketProductMoves(models.Model):
-    _name = "helpdesk.ticket.product.moves"
+    _name = "mv.helpdesk.ticket.product.moves"
     _description = _("Helpdesk Ticket & Product Moves (Stock Move Line)")
     _rec_name = "lot_name"
     _order = "lot_name desc"
@@ -20,7 +20,7 @@ class HelpdeskTicketProductMoves(models.Model):
         string="Lot/Serial Number Name",
     )
     parent_id = fields.Many2one(
-        comodel_name="helpdesk.ticket.product.moves",
+        comodel_name="mv.helpdesk.ticket.product.moves",
         string="Parent ID",
         index=True,
         ondelete='set null',
@@ -100,7 +100,7 @@ class HelpdeskTicketProductMoves(models.Model):
 
         for vals in vals_list:
             if 'parent_id' in vals:
-                parent_ticket_stml = self.env["helpdesk.ticket.product.moves"].browse(vals['parent_id'])
+                parent_ticket_stml = self.env["mv.helpdesk.ticket.product.moves"].browse(vals['parent_id'])
                 vals.update({
                     "stock_move_line_id": parent_ticket_stml.stock_move_line_id.id,
                     "helpdesk_ticket_id": vals["helpdesk_ticket_id"]
@@ -120,7 +120,7 @@ class HelpdeskTicketProductMoves(models.Model):
     def merge_helpdesk_ticket(self, ticket_id=False):
         """ Merge helpdesk ticket.
         :param ticket_id : the ID of the Helpdesk Ticket
-        :return helpdesk.ticket.product.moves record resulting after merged
+        :return mv.helpdesk.ticket.product.moves record resulting after merged
         """
         return self._merge_helpdesk_ticket(ticket_id=ticket_id)
 
@@ -142,11 +142,11 @@ class HelpdeskTicketProductMoves(models.Model):
         if ticket_has_product_moves:
             for record in self.filtered(lambda r: r.parent_id and r.helpdesk_ticket_id in ticket_has_product_moves.ids):
                 self.env.cr.execute(
-                    "UPDATE helpdesk_ticket_product_moves SET helpdesk_ticket_id = %s WHERE id = %s",
+                    "UPDATE mv_helpdesk_ticket_product_moves SET helpdesk_ticket_id = %s WHERE id = %s",
                     [record.helpdesk_ticket_id.id, record.parent_id.id]
                 )
                 self.env.cr.execute(
-                    "DELETE FROM helpdesk_ticket_product_moves WHERE id = %s",
+                    "DELETE FROM mv_helpdesk_ticket_product_moves WHERE id = %s",
                     [record.parent_id.id]
                 )
                 self.env.cr.commit()
@@ -163,7 +163,7 @@ class HelpdeskTicketProductMoves(models.Model):
                 FROM stock_move_line
                 WHERE id NOT IN
                       (SELECT DISTINCT stock_move_line_id
-                       FROM helpdesk_ticket_product_moves
+                       FROM mv_helpdesk_ticket_product_moves
                        WHERE stock_move_line_id IS NOT NULL)
                 ORDER BY product_move_id;
             """

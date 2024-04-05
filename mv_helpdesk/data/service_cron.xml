@@ -8,7 +8,7 @@
             <field name="numbercall">-1</field>
             <field name="nextcall" eval="(DateTime.now().replace(hour=6, minute=0) + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')" />
             <field name="doall" eval="False"/>
-            <field name="model_id" ref="model_helpdesk_ticket_product_moves"/>
+            <field name="model_id" ref="model_mv_helpdesk_ticket_product_moves"/>
             <field name="code">model._auto_generate_ticket_product_moves_data()</field>
             <field name="state">code</field>
         </record>
