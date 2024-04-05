@@ -12,15 +12,15 @@ class HelpdeskTicket(models.Model):
     _inherit = "helpdesk.ticket"
 
     helpdesk_ticket_product_move_ids = fields.One2many(
-        comodel_name='helpdesk.ticket.product.moves',
+        comodel_name='mv.helpdesk.ticket.product.moves',
         inverse_name='helpdesk_ticket_id',
         string="Lot/Serial Number",
     )
     sub_dealer_name = fields.Char(string="Sub-Dealer")
-    is_sub_dealer = fields.Boolean(compute='_compute_ticket_type', store=True, default=False)
+    is_sub_dealer = fields.Boolean(compute='_compute_ticket_type')
     license_plates = fields.Char(string="License plates")
     mileage = fields.Float(digits=(16, 4), default=0, string="Mileage (Km)")
-    is_end_user = fields.Boolean(compute='_compute_ticket_type', store=True, default=False)
+    is_end_user = fields.Boolean(compute='_compute_ticket_type')
     portal_lot_serial_number = fields.Text()
     messages_label_info = fields.Html()
 
@@ -64,13 +64,13 @@ class HelpdeskTicket(models.Model):
                 str(serial_num).strip().translate(translation_table) for serial_num in text.split(',')
             ]
             lot_serial_number_in_stock = (
-                self.env["helpdesk.ticket.product.moves"].search([
+                self.env["mv.helpdesk.ticket.product.moves"].search([
                     ("parent_id", "=", False),
                     ("lot_name", "in", serial_number_list)
                 ])
             )
             for lot_serial_number in lot_serial_number_in_stock:
-                self.env["helpdesk.ticket.product.moves"].create({
+                self.env["mv.helpdesk.ticket.product.moves"].create({
                     "parent_id": lot_serial_number.id,
                     "stock_move_line_id": lot_serial_number.stock_move_line_id.id,
                     "helpdesk_ticket_id": self.id
@@ -94,13 +94,13 @@ class HelpdeskTicket(models.Model):
                 str(serial_num).strip().translate(translation_table) for serial_num in text.split(',')
             ]
             lot_serial_number_in_stock = (
-                self.env["helpdesk.ticket.product.moves"].search([
+                self.env["mv.helpdesk.ticket.product.moves"].search([
                     ("parent_id", "=", False),
                     ("lot_name", "in", serial_number_list)
                 ])
             )
             for lot_serial_number in lot_serial_number_in_stock:
-                self.env["helpdesk.ticket.product.moves"].create({
+                self.env["mv.helpdesk.ticket.product.moves"].create({
                     "parent_id": lot_serial_number.id,
                     "stock_move_line_id": lot_serial_number.stock_move_line_id.id,
                     "helpdesk_ticket_id": self.id
@@ -126,7 +126,7 @@ class HelpdeskTicket(models.Model):
     def _validation_portal_lot_serial_number(self, text=None):
         messages_list = []
         if text:
-            lot_serial_number_in_stock = self.env["helpdesk.ticket.product.moves"].search([("lot_name", "!=", "")])
+            lot_serial_number_in_stock = self.env["mv.helpdesk.ticket.product.moves"].search([("lot_name", "!=", "")])
             translation_table = str.maketrans('', '', '.,')
             serial_number_list = [
                 str(serial_num).strip().translate(translation_table) for serial_num in text.split(',')

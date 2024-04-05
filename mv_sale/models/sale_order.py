@@ -35,6 +35,16 @@ class SaleOrder(models.Model):
     quantity_change = fields.Float(copy=False)
     flag_delivery = fields.Boolean(compute="compute_flag_delivery")
 
+    # SUPPORT Fields:
+    is_sales_manager = fields.Boolean(compute='_compute_is_sales_manager', default=False)
+
+    def _compute_is_sales_manager(self):
+        for user in self:
+            if self.env.user.has_group("sales_team.group_sale_manager"):
+                user.is_sales_manager = True
+            else:
+                user.is_sales_manager = False
+
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):
         if categ_id.id == 19:
