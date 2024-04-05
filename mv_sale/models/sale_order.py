@@ -32,7 +32,7 @@ class SaleOrder(models.Model):
     #  ngày hóa đơn xác nhận để làm căn cứ tính discount cho đại lý
     date_invoice = fields.Datetime(string="Date invoice", readonly=0)
     # giữ số lượng lại,để khi thay đổi thì xóa dòng delivery, chiết khấu tự đông, chiết khấu sản lượng
-    quantity_change = fields.Float()
+    quantity_change = fields.Float(copy=False)
     flag_delivery = fields.Boolean(compute="compute_flag_delivery")
 
     # thuật toán kiếm cha là lốp xe
@@ -172,7 +172,8 @@ class SaleOrder(models.Model):
                 'amount': self.partner_id.amount + self.bonus_order
             })
             self.write({
-                'bonus_order': 0
+                'bonus_order': 0,
+                'quantity_change': 0,
             })
         return super().action_cancel()
 
@@ -260,3 +261,9 @@ class SaleOrder(models.Model):
             record.flag_delivery = False
             if len(record.order_line) > 0 and len(self.order_line.filtered(lambda x: x.is_delivery)) > 0:
                 record.flag_delivery = True
+
+    def copy(self, default=None):
+        res = super().copy(default)
+        res._update_programs_and_rewards()
+        res._auto_apply_rewards()
+        return res
