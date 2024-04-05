@@ -10,6 +10,7 @@
     'depends': [
         'website_sale_loyalty',
         'account',
+        'sale',
     ],
 
     'data': [
