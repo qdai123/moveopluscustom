@@ -19,8 +19,8 @@
                 <form>
                     <header>
                         <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state!='draft'"/>
-                        <button name="action_done" string="Lưu" type="object" class="oe_highlight" invisible="state!='confirm'"/>
                         <button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
+                        <button name="action_done" string="Duyệt" type="object" class="oe_highlight" invisible="state!='confirm'"/>
                         <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
                         <field name="state" widget="statusbar"/>
                     </header>
