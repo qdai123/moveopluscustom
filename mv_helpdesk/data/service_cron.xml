@@ -1,16 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
-        <record id="ir_cron_auto_generate_ticket_product_moves_data" model="ir.cron">
-            <field name="name">Helpdesk Ticket &amp; Product Moves: Generate data of product moves for helpdesk ticket</field>
-            <field name="interval_number">1</field>
-            <field name="interval_type">days</field>
-            <field name="numbercall">-1</field>
-            <field name="nextcall" eval="(DateTime.now().replace(hour=6, minute=0) + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')" />
-            <field name="doall" eval="False"/>
-            <field name="model_id" ref="model_mv_helpdesk_ticket_product_moves"/>
-            <field name="code">model._auto_generate_ticket_product_moves_data()</field>
-            <field name="state">code</field>
-        </record>
+    <data>
+
     </data>
 </odoo>
