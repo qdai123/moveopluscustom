@@ -10,44 +10,48 @@
         <field name="arch" type="xml">
             <xpath expr="//notebook//page[@name='description']" position="before">
                 <page string="Lot/Serial Number" name="ticket_product_moves_tab">
-                    <field mode="tree" name="helpdesk_ticket_product_move_ids"
-                           domain="[('name', '!=', ''), ('parent_id', '!=', False)]"
-                           context="{'default_helpdesk_ticket_id': id}">
-                        <tree string="Ticket &amp; Product Moves" editable="bottom">
-                            <field name="parent_id"
-                                   domain="[('name', '!=', ''), ('parent_id', '=', False)]"
-                                   string="Lot/Serial Number Name"
-                                   options="{'no_open': True}"
-                            />
-                            <field name="id" context="{'default_id': parent_id}" column_invisible="True"/>
-                            <field name="name" column_invisible="True"/>
-                            <field name="product_id" column_invisible="True"/>
+                    <field mode="tree"
+                           name="helpdesk_ticket_product_move_ids"
+                           context="{'default_helpdesk_ticket_id': id}"
+                           domain="[('lot_name', '!=', '')]"
+                           options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
+                        <tree string="Ticket &amp; Product Moves" create="false" edit="false" delete="false">
+                            <field name="lot_name" string="Lot/Serial Number"/>
                             <field name="stock_move_line_id" column_invisible="True"/>
                             <field name="stock_move_id" column_invisible="True"/>
-                            <field name="product_uom_id" column_invisible="True"/>
+                            <field name="product_id" column_invisible="True"/>
+                            <button class="btn btn-secondary" name="action_open_stock" string="Open Stock" type="object" icon="fa-arrows"/>
+                            <button invisible="True" name="action_open_product" string="Open Product" type="object" icon="fa-arrows"/>
                         </tree>
                     </field>
                 </page>
             </xpath>
+            <xpath expr="//field[@name='partner_id']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='ticket_type_id']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
             <xpath expr="//field[@name='ticket_type_id']" position="after">
-                <field invisible="1" name="is_sub_dealer"/>
-                <field invisible="1" name="is_end_user"/>
+                <field invisible="True" name="is_sub_dealer"/>
+                <field invisible="True" name="is_end_user"/>
                 <field name="sub_dealer_name" invisible="not is_sub_dealer or not ticket_type_id"/>
                 <field name="license_plates" invisible="not is_end_user or not ticket_type_id"/>
                 <field name="mileage" invisible="not is_end_user or not ticket_type_id"/>
             </xpath>
             <xpath expr="//field[@name='email_cc']" position="after">
-                <label for="portal_lot_serial_number" string="Input Lot/Serial Number Or Scanner"/>
-                <div class="o_row">
-                    <field invisible="0" name="portal_lot_serial_number"/>
-                    <button invisible="1"
-                            class="btn btn-link"
-                            type="object"
-                            name="action_validate_portal_lot_serial_number"
-                            string="Scan"
-                    />
-                </div>
-                <field invisible="1" readonly="1" name="messages_label_info" string="Notes*"/>
+                <field invisible="False" name="portal_lot_serial_number" string="Input Lot/Serial Number Or Scanner"/>
+                <field invisible="True" name="can_import_lot_serial_number"/>
+                <button class="btn btn-primary"
+                        type="object"
+                        name="action_scan_lot_serial_number"
+                        string="Scan"
+                        invisible="can_import_lot_serial_number"/>
+                <button class="btn btn-primary"
+                        type="object"
+                        name="action_import_lot_serial_number"
+                        string="Import Lot/Serial Number"
+                        invisible="not can_import_lot_serial_number"/>
             </xpath>
         </field>
     </record>
