@@ -186,3 +186,19 @@ class DiscountReport(models.Model):
                                     self.convert_vnd(sum(compute_discount_line_ids.filtered(lambda x: x.month_parent == 10).mapped('total_money'))),
                                     self.convert_vnd(sum(compute_discount_line_ids.filtered(lambda x: x.month_parent == 11).mapped('total_money'))),
                                     self.convert_vnd(sum(compute_discount_line_ids.filtered(lambda x: x.month_parent == 12).mapped('total_money'))))
+
+    def action_view_report(self):
+        view_id = self.env.ref('mv_sale.mv_report_discount_view_form').id
+        return {
+            'name': "Loại báo cáo",
+            'type': 'ir.actions.act_window',
+            'view_mode': 'form',
+            'res_model': 'mv.report.discount',
+            'view_id': view_id,
+            'views': [(view_id, 'form')],
+            'target': 'new',
+            'context': {
+                'default_year': self.name,
+                'default_partner_id': self.partner_id.id,
+            }
+        }
