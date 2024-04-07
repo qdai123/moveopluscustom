@@ -85,6 +85,9 @@ class HelpdeskTicketProductMoves(models.Model):
         return action
 
     def action_reload_data(self):
+        # Delete all of Stock Move Line doesn't have ticket
+        self.filtered(lambda r: not r.helpdesk_ticket_id).unlink()
+
         ticket_has_product_moves = self.env["helpdesk.ticket"].search(
             [("helpdesk_ticket_product_move_ids", "in", self.ids)]
         )
@@ -94,4 +97,4 @@ class HelpdeskTicketProductMoves(models.Model):
                     "UPDATE mv_helpdesk_ticket_product_moves SET helpdesk_ticket_id = %s WHERE stock_move_line_id = %s",
                     [record.helpdesk_ticket_id.id, record.stock_move_line_id.id]
                 )
-                self.env.cr.commit()
+        self.env.cr.commit()
