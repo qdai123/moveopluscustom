@@ -101,9 +101,10 @@ class HelpdeskTicket(models.Model):
                                 "helpdesk_ticket_id": res["id"]
                             })
 
-        if "name" in vals and vals.get("name") == "New":
+        if "name" in vals and vals.get("name") and vals.get("name").lower() == "new":
             res._compute_name()
 
+        # CLEAR Lot/Serial Number Input when data Import DONE
         res.clear_portal_lot_serial_number_input()
         return res
 
