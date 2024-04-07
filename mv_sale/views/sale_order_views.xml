@@ -10,7 +10,7 @@
                 <xpath expr="//group[@name='order_details']" position="inside">
                     <field name="check_discount_10" invisible="1"/>
                     <field name="bonus_order" invisible="1"/>
-                    <field name="date_invoice" readonly="1" invisible="1"/>
+                    <field name="date_invoice" readonly="1" invisible="0"/>
                 </xpath>
                 <xpath expr="//header" position="inside">
                     <field name="flag_delivery" invisible="1"/>
