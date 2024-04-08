@@ -11,14 +11,17 @@ class SaleOrderLine(models.Model):
     code_product = fields.Char(help="Do not recompute discount")
 
     # SUPPORT Fields:
-    is_sales_manager = fields.Boolean(compute='_compute_is_sales_manager', default=False)
+    is_sales_manager = fields.Boolean(
+        compute='_compute_is_sales_manager',
+        default=lambda self: self.env.user.has_group("sales_team.group_sale_manager")
+    )
 
+    @api.depends_context('uid')
     def _compute_is_sales_manager(self):
+        is_manager = self.env.user.has_group("sales_team.group_sale_manager")
+
         for user in self:
-            if self.env.user.has_group("sales_team.group_sale_manager"):
-                user.is_sales_manager = True
-            else:
-                user.is_sales_manager = False
+            user.is_sales_manager = is_manager
 
     @api.model
     def fields_get(self, allfields=None, attributes=None):
@@ -80,24 +83,15 @@ class SaleOrderLine(models.Model):
                     order_line.unlink()
                 return res
 
-    @api.onchange("product_uom_qty")
-    def _onchange_warning_order_not_free_qty_today(self):
-        if self.product_template_id:
-            if self.product_uom_qty > self.free_qty_today:
-                error_message = (
-                        "Bạn không được đặt quá số lượng hiện tại là %s của %s, "
-                        "vui lòng kiểm tra lại số lượng còn lại trong kho." % (
-                            self.free_qty_today, self.product_template_id.name
-                        ))
-                raise ValidationError(error_message)
-
     @api.constrains("product_uom_qty")
     def _check_order_not_free_qty_today(self):
-        for so_line in self:
+        for so_line in self.filtered(lambda line: line.product_template_id.detailed_type != "service"):
             if so_line.product_uom_qty > so_line.free_qty_today:
                 error_message = (
-                        "Bạn không được đặt quá số lượng hiện tại là %s của %s, "
-                        "vui lòng kiểm tra lại số lượng còn lại trong kho." % (
-                            so_line.free_qty_today, so_line.product_template_id.name
+                        "Bạn không được phép đặt quá số lượng hiện tại:"
+                        "\n- Sản phẩm: %s:"
+                        "\n- Số lượng hiện tại: %s Cái"
+                        "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho." % (
+                            so_line.product_template_id.name, int(so_line.free_qty_today)
                         ))
                 raise ValidationError(error_message)

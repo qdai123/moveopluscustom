@@ -36,14 +36,17 @@ class SaleOrder(models.Model):
     flag_delivery = fields.Boolean(compute="compute_flag_delivery")
 
     # SUPPORT Fields:
-    is_sales_manager = fields.Boolean(compute='_compute_is_sales_manager', default=False)
+    is_sales_manager = fields.Boolean(
+        compute='_compute_is_sales_manager',
+        default=lambda self: self.env.user.has_group("sales_team.group_sale_manager")
+    )
 
+    @api.depends_context('uid')
     def _compute_is_sales_manager(self):
+        is_manager = self.env.user.has_group("sales_team.group_sale_manager")
+
         for user in self:
-            if self.env.user.has_group("sales_team.group_sale_manager"):
-                user.is_sales_manager = True
-            else:
-                user.is_sales_manager = False
+            user.is_sales_manager = is_manager
 
     # thuật toán kiếm cha là lốp xe
     def check_category_product(self, categ_id):
