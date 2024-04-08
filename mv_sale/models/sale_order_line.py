@@ -89,7 +89,7 @@ class SaleOrderLine(models.Model):
             if so_line.product_uom_qty > so_line.free_qty_today:
                 error_message = (
                         "Bạn không được phép đặt quá số lượng hiện tại:"
-                        "\n- Sản phẩm: %s:"
+                        "\n- Sản phẩm: %s"
                         "\n- Số lượng hiện tại: %s Cái"
                         "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho." % (
                             so_line.product_template_id.name, int(so_line.free_qty_today)
