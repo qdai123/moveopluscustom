@@ -3,7 +3,7 @@
     <data>
 
         <record model="ir.ui.view" id="mv_compute_discount_line_tree">
-            <field name="name">"Chiết khấu sản lượng"</field>
+            <field name="name">mv_compute_discount_line_tree</field>
             <field name="model">mv.compute.discount.line</field>
             <field name="arch" type="xml">
                 <tree default_order="partner_id desc month_parent desc">
