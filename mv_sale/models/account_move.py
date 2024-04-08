@@ -12,7 +12,8 @@ class AccountMove(models.Model):
             if record.invoice_origin not in ('', False):
                 sale_id = self.env['sale.order'].search([('name', '=', record.invoice_origin)])
                 if len(sale_id) > 0:
-                    sale_id.write({
-                        'date_invoice': datetime.now()
-                    })
+                    if not sale_id.date_invoice:
+                        sale_id.write({
+                            'date_invoice': datetime.now()
+                        })
         return super().action_post()

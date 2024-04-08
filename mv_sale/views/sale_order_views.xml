@@ -10,96 +10,23 @@
                 <xpath expr="//group[@name='order_details']" position="inside">
                     <field name="check_discount_10" invisible="1"/>
                     <field name="bonus_order" invisible="1"/>
-<!--                    <field name="date_invoice" readonly="1" invisible="0"/>-->
+                    <field name="date_invoice" readonly="1" invisible="0"/>
                 </xpath>
                 <xpath expr="//header" position="inside">
                     <field name="flag_delivery" invisible="1"/>
-                    <field name="is_sales_manager" invisible="1"/>
-                    <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q"
-                            string="Chiết khấu tự động" class="btn-primary" type="object"
-                            context="{'validate_analytic': True}"
-                            invisible="state not in ['sent', 'draft'] or flag_delivery"/>
-                    <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q"
-                            string="Nhập chiết khấu sản lượng" class="btn-primary" type="object"
-                            context="{'validate_analytic': True}"
-                            invisible="state not in ['sent', 'draft'] or not flag_delivery"/>
+                    <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or flag_delivery"/>
+                    <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Nhập chiết khấu sản lượng" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or not flag_delivery"/>
                 </xpath>
-                <xpath expr="//field[@name='date_order']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
-                </xpath>
-                <xpath expr="//field[@name='pricelist_id']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
-                </xpath>
-                <xpath expr="//field[@name='payment_term_id']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="before">
-                    <field name="is_sales_manager" column_invisible="True"/>
-                </xpath>
-                <!-- Set Readonly by Groups of Sales -->
-                <xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="attributes">
-                    <attribute name="context">
-                        {
-                        'partner_id': parent.partner_id,
-                        'quantity': product_uom_qty,
-                        'pricelist': parent.pricelist_id,
-                        'uom':product_uom,
-                        'company_id': parent.company_id,
-                        'default_lst_price': price_unit,
-                        'default_description_sale': name,
-                        'check_domain_access_on_sales_groups': True
-                        }
-                    </attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='product_template_id']" position="attributes">
-                    <attribute name="context">
-                        {
-                        'partner_id': parent.partner_id,
-                        'quantity': product_uom_qty,
-                        'pricelist': parent.pricelist_id,
-                        'uom':product_uom,
-                        'company_id': parent.company_id,
-                        'default_list_price': price_unit,
-                        'default_description_sale': name,
-                        'check_domain_access_on_sales_groups': True
-                        }
-                    </attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='name']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='product_uom_qty']" position="attributes">
-                    <attribute name="readonly">is_downpayment or (not is_sales_manager and product_type == 'service')</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='qty_delivered']" position="attributes">
-                    <attribute name="readonly">(qty_delivered_method != 'manual' or is_downpayment) or (not is_sales_manager and product_type == 'service')</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='qty_invoiced']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='customer_lead']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_qty']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_id']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='tax_id']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='discount']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='price_total']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+            </field>
+        </record>
+
+        <record id="sale_order_tree_mv_sale" model="ir.ui.view">
+            <field name="name">sale_order_tree_mv_sale</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.sale_order_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//tree" position="inside">
+                    <field name="date_invoice" optional="hide"/>
                 </xpath>
             </field>
         </record>

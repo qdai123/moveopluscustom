@@ -19,6 +19,7 @@
                 <form>
                     <header>
                         <button name="action_confirm" string="Xem" type="object" class="oe_highlight"/>
+                        <button name="action_view_report" string="Xem đơn" type="object"/>
                     </header>
                     <group>
                         <group>
