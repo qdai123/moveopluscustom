@@ -11,7 +11,7 @@
                 <xpath expr="//group[@name='order_details']" position="inside">
                     <field name="check_discount_10" invisible="1"/>
                     <field name="bonus_order" invisible="1"/>
-                    <field name="date_invoice" readonly="1" invisible="1"/>
+                    <field name="date_invoice" readonly="0" invisible="0"/>
                 </xpath>
                 <xpath expr="//header" position="inside">
                     <field name="flag_delivery" invisible="1"/>
@@ -112,7 +112,7 @@
             <field name="inherit_id" ref="sale.sale_order_tree"/>
             <field name="arch" type="xml">
                 <xpath expr="//tree" position="inside">
-                    <field name="date_invoice" optional="hide"/>
+                    <field name="date_invoice" optional="hidden"/>
                 </xpath>
             </field>
         </record>
