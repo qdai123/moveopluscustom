@@ -5,15 +5,21 @@
     'category': 'Moveoplus/MV Helpdesk',
     'description': "Base on Helpdesk module to customize new features",
     'author': 'Phat Dang <phat.dangminh@moveoplus.com>',
-    'depends': ['helpdesk'],
+    'depends': [
+        # Odoo (Enterpice)
+        'helpdesk',
+    ],
     'data': [
-        # DATA
-        'data/helpdesk_data.xml',
-        'data/service_cron.xml',
         # SECURITY
         'security/ir.model.access.csv',
+        # DATA
+        'data/mail_template_data.xml',
+        'data/helpdesk_data.xml',
+        'data/service_cron.xml',
         # VIEWS
         'views/helpdesk_ticket_product_moves_views.xml',
+        'views/helpdesk_team_views.xml',
+        'views/helpdesk_ticket_type_views.xml',
         'views/helpdesk_ticket_views.xml',
         # MENU
         'views/helpdesk_menus.xml',

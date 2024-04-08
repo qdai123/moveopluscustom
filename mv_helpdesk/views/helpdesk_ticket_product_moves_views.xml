@@ -16,11 +16,11 @@
                                 groups="base.group_system"
                         />
                     </header>
+                    <field name="helpdesk_ticket_id" optional="hidden"/>
                     <field name="product_id"
                            options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"
                            optional="show"/>
                     <field name="lot_name" string="Lot/Serial Number"/>
-                    <field name="helpdesk_ticket_id" optional="hidden"/>
                     <field name="stock_move_line_id" column_invisible="True"/>
                     <field name="stock_move_id" column_invisible="True"/>
                 </tree>

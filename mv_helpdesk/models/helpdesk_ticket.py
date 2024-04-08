@@ -65,11 +65,6 @@ class HelpdeskTicket(models.Model):
 
     @api.model
     def create(self, vals):
-        scanning_data_ctx = self.env.context.get("scanning", False)
-        importing_data_ctx = self.env.context.get("importing", False)
-        if scanning_data_ctx:
-            return
-
         res = super(HelpdeskTicket, self).create(vals)
 
         if res:
@@ -77,70 +72,70 @@ class HelpdeskTicket(models.Model):
             move_line_env = self.env["stock.move.line"]
 
             if "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
-                portal_lot_serial_number_fmt = self._format_portal_lot_serial_number(vals["portal_lot_serial_number"])
-                messages_list = self._validation_portal_lot_serial_number(portal_lot_serial_number_fmt)
-                for err_message in messages_list:
-                    if err_message[0] in ["serial_number_not_found", "serial_number_already_registered"]:
-                        raise ValidationError(err_message[1])
+                call_action_validate_lot_serial_number = self.with_context(
+                    val_portal_lot_serial_number=vals.get("portal_lot_serial_number")
+                ).action_scan_lot_serial_number()
 
-                stock_move_line_ids = [
-                    move_line[0]
-                    for move_line in messages_list
-                    if move_line[0] not in ["serial_number_not_found", "serial_number_already_registered"]
-                ]
+                res["can_import_lot_serial_number"] = call_action_validate_lot_serial_number
+                if res["can_import_lot_serial_number"]:
+                    pass
+                else:
+                    messages_list = self._validation_portal_lot_serial_number(
+                        self._format_portal_lot_serial_number(vals["portal_lot_serial_number"])
+                    )
+                    stock_move_line_ids = [move_line[0] for move_line in messages_list if isinstance(move_line[0], int)]
+                    for stock_move_line in move_line_env.search([("id", "in", stock_move_line_ids)]):
+                        if stock_move_line:
+                            ticket_stock_move_line_exist = ticket_product_moves_env.search([
+                                ("stock_move_line_id", "=", stock_move_line.id)
+                            ])
+                            if ticket_stock_move_line_exist:
+                                ticket_stock_move_line_exist.write({"helpdesk_ticket_id": res["id"]})
+                            else:
+                                ticket_product_moves_env.create({
+                                    "stock_move_line_id": stock_move_line.id,
+                                    "helpdesk_ticket_id": res["id"]
+                                })
+
+                    if ("name" in vals
+                            and vals.get("name")
+                            and vals.get("name").lower() == "new"):
+                        res._compute_name()
+
+                    # CLEAR Lot/Serial Number Input when data Import DONE
+                    res.clear_portal_lot_serial_number_input()
+        return res
+
+    def write(self, vals):
+        ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
+        move_line_env = self.env["stock.move.line"]
+
+        if "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
+            call_action_validate_lot_serial_number = self.with_context(
+                    val_portal_lot_serial_number=vals.get("portal_lot_serial_number")
+            ).action_scan_lot_serial_number()
+
+            vals["can_import_lot_serial_number"] = call_action_validate_lot_serial_number
+            if vals["can_import_lot_serial_number"]:
+                pass
+            else:
+                messages_list = self._validation_portal_lot_serial_number(
+                    self._format_portal_lot_serial_number(vals["portal_lot_serial_number"])
+                )
+                stock_move_line_ids = [move_line[0] for move_line in messages_list if isinstance(move_line[0], int)]
                 for stock_move_line in move_line_env.search([("id", "in", stock_move_line_ids)]):
                     if stock_move_line:
                         ticket_stock_move_line_exist = ticket_product_moves_env.search([
                             ("stock_move_line_id", "=", stock_move_line.id)
                         ])
                         if ticket_stock_move_line_exist:
-                            ticket_stock_move_line_exist.write({"helpdesk_ticket_id": res["id"]})
+                            ticket_stock_move_line_exist.write({"helpdesk_ticket_id": self.id})
                         else:
                             ticket_product_moves_env.create({
                                 "stock_move_line_id": stock_move_line.id,
-                                "helpdesk_ticket_id": res["id"]
+                                "helpdesk_ticket_id": self.id
                             })
-
-        if "name" in vals and vals.get("name") == "New":
-            res._compute_name()
-
-        res.clear_portal_lot_serial_number_input()
-        return res
-
-    def write(self, vals):
-        scanning_data_ctx = self.env.context.get("scanning", False)
-        importing_data_ctx = self.env.context.get("importing", False)
-        if scanning_data_ctx:
-            return
-
-        ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
-        move_line_env = self.env["stock.move.line"]
-
-        if "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
-            portal_lot_serial_number_fmt = self._format_portal_lot_serial_number(vals["portal_lot_serial_number"])
-            messages_list = self._validation_portal_lot_serial_number(portal_lot_serial_number_fmt)
-            for err_message in messages_list:
-                if err_message[0] in ["serial_number_not_found", "serial_number_already_registered"]:
-                    raise ValidationError(err_message[1])
-
-            stock_move_line_ids = [
-                move_line[0]
-                for move_line in messages_list
-                if move_line[0] not in ["serial_number_not_found", "serial_number_already_registered"]
-            ]
-            for stock_move_line in move_line_env.search([("id", "in", stock_move_line_ids)]):
-                if stock_move_line:
-                    ticket_stock_move_line_exist = ticket_product_moves_env.search([
-                        ("stock_move_line_id", "=", stock_move_line.id)
-                    ])
-                    if ticket_stock_move_line_exist:
-                        ticket_stock_move_line_exist.write({"helpdesk_ticket_id": self.id})
-                    else:
-                        ticket_product_moves_env.create({
-                            "stock_move_line_id": stock_move_line.id,
-                            "helpdesk_ticket_id": self.id
-                        })
-            vals["portal_lot_serial_number"] = ""
+                vals["portal_lot_serial_number"] = ""
 
         return super(HelpdeskTicket, self).write(vals)
 
@@ -183,33 +178,22 @@ class HelpdeskTicket(models.Model):
                     raise UserError(_("An error occurred while updating record attributes: %s") % str(e))
 
     def action_scan_lot_serial_number(self):
-        if not self.portal_lot_serial_number:
-            raise UserError(_("There is no Lot/Serial Number that can validate."))
-
-        messages_html = """<div>"""
-        serial_numbers_fmt_list = self._format_portal_lot_serial_number(self.portal_lot_serial_number)
-        messages_list = self._validation_portal_lot_serial_number(serial_numbers_fmt_list)
-
         context = self.env.context.copy()
         context["scanning"] = True
-        scanning_failed = False
+        self_context = self.with_context(context)
+        portal_lot_serial_number = (
+                self.env.context.get("val_portal_lot_serial_number", "")
+                or
+                self_context.portal_lot_serial_number
+        )
+        serial_numbers_fmt_list = self_context._format_portal_lot_serial_number(portal_lot_serial_number)
+        messages_list = self_context._validation_portal_lot_serial_number(serial_numbers_fmt_list)
 
         for message in messages_list:
-            if message[0] in ["serial_number_not_found", "serial_number_already_registered"]:
-                # raise ValidationError(message[1])
-                messages_html += '<span style="color: #E4080A;">' + message[1] + '</span>'
-                scanning_failed = True
-            else:
-                messages_html += '<span style="color: #40DE12;">' + message[1] + '</span>'
+            if message[0] in ["serial_number_is_empty", "serial_number_not_found", "serial_number_already_registered"]:
+                raise ValidationError(message[1])
 
-        messages_html += """<div>"""
-
-        if scanning_failed:
-            if self.can_import_lot_serial_number:
-                self.can_import_lot_serial_number = False
-            return ValidationError(messages_html)
-        else:
-            return self.write({"can_import_lot_serial_number": True})
+        return True
 
     def _format_portal_lot_serial_number(self, text=None):
         """Return list of Lot/Serial Number input from User"""
@@ -222,12 +206,16 @@ class HelpdeskTicket(models.Model):
 
     def _validation_portal_lot_serial_number(self, serial_numbers=None):
         """Return Error/IDs of Stock Move Line, Message list when validate DONE"""
-        if serial_numbers is None:
-            serial_numbers = []
-
         messages_list = []
         ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
         move_line_env = self.env["stock.move.line"]
+
+        if serial_numbers is None:
+            serial_numbers = []
+
+        if not serial_numbers:
+            message = ("serial_number_is_empty", "Vui lòng nhập vào mã để tiến hành kiểm tra!")
+            messages_list.append(message)
 
         if serial_numbers:
             for number in serial_numbers:
