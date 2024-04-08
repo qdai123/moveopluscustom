@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class SaleOrderLine(models.Model):
@@ -78,3 +79,25 @@ class SaleOrderLine(models.Model):
                 if vals.get('product_uom_qty', False) and len(order_line) > 0:
                     order_line.unlink()
                 return res
+
+    @api.onchange("product_uom_qty")
+    def _onchange_warning_order_not_free_qty_today(self):
+        if self.product_template_id:
+            if self.product_uom_qty > self.free_qty_today:
+                error_message = (
+                        "Bạn không được đặt quá số lượng hiện tại là %s của %s, "
+                        "vui lòng kiểm tra lại số lượng còn lại trong kho." % (
+                            self.free_qty_today, self.product_template_id.name
+                        ))
+                raise ValidationError(error_message)
+
+    @api.constrains("product_uom_qty")
+    def _check_order_not_free_qty_today(self):
+        for so_line in self:
+            if so_line.product_uom_qty > so_line.free_qty_today:
+                error_message = (
+                        "Bạn không được đặt quá số lượng hiện tại là %s của %s, "
+                        "vui lòng kiểm tra lại số lượng còn lại trong kho." % (
+                            so_line.free_qty_today, so_line.product_template_id.name
+                        ))
+                raise ValidationError(error_message)

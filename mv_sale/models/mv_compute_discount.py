@@ -48,10 +48,10 @@ class MvComputeDiscount(models.Model):
             date_to = '31-' + self.month + '-' + self.year
         else:
             date_to = '01-' + str(int(self.month) + 1) + '-' + self.year
-        date_to = datetime.strptime(date_to, "%d-%m-%Y") - timedelta(days=1)
+        date_to = datetime.strptime(date_to, "%d-%m-%Y")
 
         # domain lọc dữ liệu sale trong tháng
-        domain = [('date_invoice', '>=', date_from), ('date_invoice', '<=', date_to), ('state', 'in', ['sale'])]
+        domain = [('date_invoice', '>=', date_from), ('date_invoice', '<', date_to), ('state', 'in', ['sale'])]
         sale_ids = self.env['sale.order'].search(domain)
 
         # lấy tất cả đơn hàng trong tháng, có mua lốp xe có category 19

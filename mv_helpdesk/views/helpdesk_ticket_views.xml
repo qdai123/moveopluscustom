@@ -46,11 +46,13 @@
                         type="object"
                         name="action_scan_lot_serial_number"
                         string="Scan"
+                        context="{'scanning': True}"
                         invisible="can_import_lot_serial_number"/>
                 <button class="btn btn-primary"
                         type="object"
                         name="action_import_lot_serial_number"
                         string="Import Lot/Serial Number"
+                        context="{'importing': True}"
                         invisible="not can_import_lot_serial_number"/>
             </xpath>
         </field>
