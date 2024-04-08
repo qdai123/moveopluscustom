@@ -11,7 +11,11 @@
                             <div class="container">
                                 <h2 class="text-muted">Gửi kích hoạt bảo hành</h2>
                                 <div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_form_left"/>
-                                <section class="s_text_block o_colored_level pt4 pb8" data-snippet="s_text_block" data-name="Text" style="background-image: none;">
+                                <section class="s_text_block o_colored_level pt4 pb8"
+                                         data-snippet="s_text_block"
+                                         data-name="Text"
+                                         style="background-image: none;"
+                                >
                                     <div class="container s_allow_columns">
                                         <p class="o_default_snippet_text o_small">
                                             <font class="text-o-color-5">
@@ -22,7 +26,10 @@
                                         </p>
                                     </div>
                                 </section>
-                                <span class="hidden" data-for="helpdesk_warranty_activation_form" t-att-data-values="{'team_id': team and team.id or ''}"/>
+                                <span class="hidden"
+                                      data-for="helpdesk_warranty_activation_form"
+                                      t-att-data-values="{'team_id': team and team.id or ''}"
+                                />
                                 <div id="helpdesk_warranty_activation_section">
                                     <section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
                                         <div class="container">
@@ -99,7 +106,6 @@
                                                             <div class="col-sm">
                                                                 <select name="ticket_type_id" class="form-select s_website_form_input" required="required">
                                                                     <t t-foreach="ticket_type_id or []" t-as="type" t-key="type.id">
-                                                                        <option value="">select...</option>
                                                                         <option t-att-value="type.id">
                                                                             <t t-esc="type.name"/>
                                                                         </option>
