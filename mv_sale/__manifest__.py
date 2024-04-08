@@ -11,6 +11,7 @@
         'website_sale_loyalty',
         'account',
         'sale',
+        'sale_stock',
     ],
 
     'data': [
