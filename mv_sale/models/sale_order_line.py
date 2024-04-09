@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, AccessError, ValidationError
 
 
 class SaleOrderLine(models.Model):
@@ -58,6 +58,10 @@ class SaleOrderLine(models.Model):
 
     def unlink(self):
         for record in self:
+            if not record.is_sales_manager and record.product_type == "service":
+                raise AccessError(_("Bạn không có quyền xoá các loại Sản phẩm thuộc Dịch Vụ. "
+                                    "\nVui lòng liên hệ với Quản trị viên để được hỗ trợ!"))
+
             if record.product_id and record.product_id.default_code and record.product_id.default_code.find(
                     'Delivery_') > -1:
                 pass
@@ -69,7 +73,7 @@ class SaleOrderLine(models.Model):
                 order_id.write({
                     'bonus_order': 0
                 })
-        return super().unlink()
+        return super(SaleOrderLine, self).unlink()
 
     def write(self, vals):
         res = super().write(vals)
