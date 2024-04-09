@@ -16,6 +16,7 @@
 
     'data': [
         'data/ir_config_parameter_view.xml',
+        'security/ir_rules.xml',
         'security/ir.model.access.csv',
         'views/mv_discount_views.xml',
         'views/res_partner_views.xml',

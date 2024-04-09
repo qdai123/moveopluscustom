@@ -28,9 +28,20 @@
             </xpath>
             <xpath expr="//field[@name='partner_id']" position="attributes">
                 <attribute name="required">True</attribute>
+                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='user_id']" position="attributes">
+                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='team_id']" position="attributes">
+                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='team_id']" position="after">
+                <field name="ticket_warranty_activation" invisible="True"/>
             </xpath>
             <xpath expr="//field[@name='ticket_type_id']" position="attributes">
                 <attribute name="required">True</attribute>
+                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
             </xpath>
             <xpath expr="//field[@name='ticket_type_id']" position="after">
                 <field invisible="True" name="is_sub_dealer"/>

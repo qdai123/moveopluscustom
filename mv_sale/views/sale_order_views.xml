@@ -88,7 +88,7 @@
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="attributes">
-                    <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+                    <attribute name="readonly">not is_sales_manager</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='tax_id']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
