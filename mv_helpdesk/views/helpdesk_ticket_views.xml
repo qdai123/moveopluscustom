@@ -9,7 +9,6 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
             <xpath expr="//notebook//page[@name='description']" position="before">
-                <field name="portal_create_ticket" invisible="False"/>
                 <page string="Lot/Serial Number" name="ticket_product_moves_tab">
                     <field mode="tree"
                            name="helpdesk_ticket_product_move_ids"

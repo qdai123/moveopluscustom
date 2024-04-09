@@ -52,7 +52,6 @@ class HelpdeskTicket(models.Model):
     )
 
     # ================== PORTAL WARRANTY ACTIVATION FORM
-    portal_create_ticket = fields.Boolean(string="Portal Create?")
     portal_lot_serial_number = fields.Text(string="Input Lot/Serial Number")
     can_import_lot_serial_number = fields.Boolean(string="Can Import?", readonly=True)
     ticket_warranty_activation = fields.Boolean(
@@ -68,9 +67,9 @@ class HelpdeskTicket(models.Model):
     license_plates = fields.Char(string="License plates")
     mileage = fields.Integer(default=0, string="Mileage (Km)")
 
-    @api.onchange("team_id")
+    @api.onchange("team_id", "ticket_warranty_activation")
     def onchange_team_id(self):
-        if self.team_id and self.team_id.use_website_helpdesk_warranty_activation:
+        if self.team_id and self.team_id.use_website_helpdesk_warranty_activation and self.ticket_warranty_activation:
             domain = ["|", ("name", "=", ticket_type_sub_dealer), ("name", "=", ticket_type_end_user)]
             return {"domain": {"ticket_type_id": domain}}
 
@@ -115,19 +114,18 @@ class HelpdeskTicket(models.Model):
         if res and vals.get("name") == "new":
             res._compute_name()
 
-        if res and "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
-            call_action_validate_lot_serial_number = res.with_context(
-                val_portal_lot_serial_number=vals.get("portal_lot_serial_number")
-            ).action_scan_lot_serial_number()
-
-            res.can_import_lot_serial_number = call_action_validate_lot_serial_number
-            if res.can_import_lot_serial_number:
-                pass
-            else:
-                self._import_lot_serial_numbers(res, vals)
-
+        if res and res.can_import_lot_serial_number:
+            self._import_lot_serial_numbers(res, vals)
             # Clear Lot/Serial Number Input when data Import is DONE
             res.clear_portal_lot_serial_number_input()
+        else:
+            if res and "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
+                scanning_pass = res.with_context(
+                    val_portal_lot_serial_number=vals.get("portal_lot_serial_number")
+                ).action_scan_lot_serial_number()
+
+                if scanning_pass:
+                    res.can_import_lot_serial_number = scanning_pass
 
         return res
 
@@ -175,9 +173,9 @@ class HelpdeskTicket(models.Model):
         context = self.env.context.copy()
         context["importing"] = action not in ["scanning", "create", "write"]
 
-        if vals and "portal_lot_serial_number" in vals:
+        if vals and "portal_lot_serial_number" in vals:  # Create Data
             portal_lot_serial_number = vals.get("portal_lot_serial_number")
-        elif action not in ["create"]:
+        elif action == "write":  # Write Data
             portal_lot_serial_number = self.portal_lot_serial_number
         else:
             portal_lot_serial_number = ""
@@ -189,7 +187,7 @@ class HelpdeskTicket(models.Model):
             if message[0] in ["serial_number_is_empty", "serial_number_not_found", "serial_number_already_registered"]:
                 raise ValidationError(message[1])
 
-        if not delete:
+        if action == "write":
             if self.can_import_lot_serial_number:
                 try:
                     for stock_move_line in move_line_env.search([("lot_name", "in", serial_numbers_fmt_list)]):
@@ -214,9 +212,7 @@ class HelpdeskTicket(models.Model):
                 vals["can_import_lot_serial_number"] = False
 
         try:
-            if delete:
-                self.unlink()
-            else:
+            if action == "write":
                 self.write(vals)
         except Exception as e:
             raise UserError(_("An error occurred while updating record: %s") % str(e))
@@ -331,7 +327,7 @@ class HelpdeskTicket(models.Model):
         for number in serial_numbers:
             if number not in existing_lot_names:
                 messages_list.append(("serial_number_not_found",
-                                      f"Mã {number} không tồn tại trên hệ thống hoặc chưa cập nhât. "
+                                      f"Mã {number} không tồn tại trên hệ thống hoặc chưa cập nhật. "
                                       f"\nVui lòng kiểm tra lại."))
             else:
                 conflicting_ticket = existing_tickets.filtered(lambda r: r.lot_name == number)
