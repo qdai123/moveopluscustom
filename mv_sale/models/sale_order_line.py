@@ -58,9 +58,10 @@ class SaleOrderLine(models.Model):
 
     def unlink(self):
         for record in self:
-            if not record.is_sales_manager and record.product_type == "service":
-                raise AccessError(_("Bạn không có quyền xoá các loại Sản phẩm thuộc Dịch Vụ. "
-                                    "\nVui lòng liên hệ với Quản trị viên để được hỗ trợ!"))
+            # FIXME: Need to double-check on Workflow of Sales
+            # if not record.is_sales_manager and record.product_type == "service":
+            #     raise AccessError(_("Bạn không có quyền xoá các loại Sản phẩm thuộc Dịch Vụ. "
+            #                         "\nVui lòng liên hệ với Quản trị viên để được hỗ trợ!"))
 
             if record.product_id and record.product_id.default_code and record.product_id.default_code.find(
                     'Delivery_') > -1:
