@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import cv2
 import logging
 from datetime import datetime
-from pyzbar.pyzbar import decode
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
@@ -12,14 +10,6 @@ _logger = logging.getLogger(__name__)
 # Default Ticket Type Data for Moveoplus (Name Only)
 ticket_type_sub_dealer = "Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)"
 ticket_type_end_user = "Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)"
-
-# Initialize the camera
-cap = cv2.VideoCapture(0)  # Use the correct camera index
-
-# Check if the camera opened successfully
-if not cap.isOpened():
-    print("Error: Camera could not be accessed.")
-    exit()
 
 
 class HelpdeskTicket(models.Model):
@@ -148,34 +138,6 @@ class HelpdeskTicket(models.Model):
     # ==================================
     # BUSINESS Methods
     # ==================================
-
-    def open_scanner(self):
-        try:
-            while True:
-                # Capture frame-by-frame
-                ret, frame = cap.read()
-
-                # Check if frame is read correctly
-                if not ret:
-                    print("Error: Frame could not be read.")
-                    break
-
-                # Decode the frame
-                decoded_objects = decode(frame)
-                for obj in decoded_objects:
-                    print('Type:', obj.type)
-                    print('Data:', obj.data.decode('utf-8'))
-
-                # Display the resulting frame
-                cv2.imshow('Frame', frame)
-
-                # Break the loop with 'q'
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-        finally:
-            # When everything done, release the capture
-            cap.release()
-            cv2.destroyAllWindows()
 
     def process_lot_serial_number(self, vals=None, action=False):
         """Actions: Create, Write, Scanning & Importing"""

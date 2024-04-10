@@ -8,9 +8,6 @@
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
         <field name="priority">30</field>
         <field name="arch" type="xml">
-            <xpath expr="//header" position="inside">
-                <button invisible="True" type="object" name="open_scanner" string="Scanner"/>
-            </xpath>
             <xpath expr="//notebook//page[@name='description']" position="before">
                 <page string="Lot/Serial Number" name="ticket_product_moves_tab">
                     <field mode="tree"
