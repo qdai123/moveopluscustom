@@ -8,6 +8,9 @@
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
         <field name="priority">30</field>
         <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button invisible="True" type="object" name="open_scanner" string="Scanner"/>
+            </xpath>
             <xpath expr="//notebook//page[@name='description']" position="before">
                 <page string="Lot/Serial Number" name="ticket_product_moves_tab">
                     <field mode="tree"
@@ -51,20 +54,10 @@
                 <field name="mileage" invisible="not is_end_user or not ticket_type_id"/>
             </xpath>
             <xpath expr="//field[@name='email_cc']" position="after">
-                <field invisible="False" name="portal_lot_serial_number" string="Input Lot/Serial Number Or Scanner"/>
+                <field invisible="True" readonly="True" name="portal_lot_serial_number" string="Input Lot/Serial Number Or Scanner"/>
                 <field invisible="True" name="can_import_lot_serial_number"/>
-                <button class="btn btn-primary"
-                        type="object"
-                        name="action_scan_lot_serial_number"
-                        string="Scan"
-                        context="{'scanning': True}"
-                        invisible="can_import_lot_serial_number"/>
-                <button class="btn btn-primary"
-                        type="object"
-                        name="action_import_lot_serial_number"
-                        string="Import Lot/Serial Number"
-                        context="{'importing': True}"
-                        invisible="not can_import_lot_serial_number"/>
+                <button invisible="True" class="btn btn-primary" type="object" name="action_scan_lot_serial_number" string="Scan"/>
+                <button invisible="True" class="btn btn-primary" type="object" name="action_import_lot_serial_number" string="Import Lot/Serial Number"/>
             </xpath>
         </field>
     </record>
