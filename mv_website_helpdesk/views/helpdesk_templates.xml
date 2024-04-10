@@ -7,6 +7,16 @@
                 <div id="wrap" class="container mt-4">
                     <div class="row mb16">
                         <div class="col-md-8 ps-4">
+                            <!-- Parameters -->
+                            <t t-set="type_is_sub_dealer_id"
+                               t-value="env.ref('mv_helpdesk.type_guarantee_activation_for_sub_dealer').sudo().id or false"
+                            />
+                            <t t-set="type_is_end_user_id"
+                               t-value="env.ref('mv_helpdesk.type_guarantee_activation_for_end_user').sudo().id or false"
+                            />
+                            <t t-set="ticket_type_objects"
+                               t-value="request.env['helpdesk.ticket.type'].sudo().search([('id', 'in', [type_is_sub_dealer_id, type_is_end_user_id])], order='id') or []"
+                            />
                             <div class="container">
                                 <h2 class="text-muted">Gửi kích hoạt bảo hành</h2>
                                 <div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_form_left"/>
@@ -96,7 +106,6 @@
                                                         </div>
                                                     </div>
                                                     <!-- Field: ticket_type_id (Required) -->
-                                                    <t t-set="ticket_type" t-value="request.env['helpdesk.ticket.type'].sudo().search([('name', 'in', ['Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)', 'Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)'])])"/>
                                                     <div class="mb-0 py-2 s_website_form_field col-12" data-type="many2one" data-name="Field">
                                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                                             <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_select_ticket_type_id">
@@ -105,8 +114,8 @@
                                                             </label>
                                                             <div class="col-sm">
                                                                 <select id="helpdesk_warranty_select_ticket_type_id" name="ticket_type_id" class="form-select s_website_form_input" required="1" t-on-change="onChange">
-                                                                    <option t-foreach="ticket_type or []" t-as="type" t-key="type.id" t-att-value="type.id" t-att-selected="type.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)'">
-                                                                        <t t-esc="type.name"/>
+                                                                    <option t-foreach="ticket_type_objects or []" t-as="type" t-key="type.id" t-att-value="type.id" t-att-selected="type.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)'">
+                                                                        <t t-out="type.name"/>
                                                                     </option>
                                                                 </select>
                                                             </div>
@@ -115,7 +124,7 @@
                                                     <!-- Field: sub_dealer_name (None Required) -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_field_hidden_if"
                                                          data-visibility-dependency="ticket_type_id"
-                                                         t-att-data-visibility-condition="ticket_type.filtered(lambda r: r.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)').id"
+                                                         t-att-data-visibility-condition="type_is_sub_dealer_id"
                                                          data-visibility-comparator="selected"
                                                          data-type="char"
                                                          data-name="Field">
@@ -136,7 +145,7 @@
                                                     <!-- Field: license_plates (None Required) -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_field_hidden_if"
                                                          data-visibility-dependency="ticket_type_id"
-                                                         t-att-data-visibility-condition="ticket_type.filtered(lambda r: r.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)').id"
+                                                         t-att-data-visibility-condition="type_is_end_user_id"
                                                          data-visibility-comparator="selected"
                                                          data-type="char"
                                                          data-name="Field">
@@ -157,7 +166,7 @@
                                                     <!-- Field: mileage (None Required) -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_field_hidden_if"
                                                          data-visibility-dependency="ticket_type_id"
-                                                         t-att-data-visibility-condition="ticket_type.filtered(lambda r: r.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)').id"
+                                                         t-att-data-visibility-condition="type_is_end_user_id"
                                                          data-visibility-comparator="selected"
                                                          data-type="char"
                                                          data-name="Field">
@@ -190,6 +199,8 @@
                                                                           rows="5"
                                                                           spellcheck="false"
                                                                 />
+                                                                <span id="s_website_form_result"/>
+                                                                <div id="qr-reader" style="width: 360px;"></div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -197,7 +208,7 @@
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_custom" data-type="binary" data-name="Field">
                                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                                             <label class=" col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_warranty_upload_ticket_attachments">
-                                                                <span class="s_website_form_label_content">Tệch đính kèm</span>
+                                                                <span class="s_website_form_label_content">Tệp đính kèm</span>
                                                             </label>
                                                             <div class="col-sm">
                                                                 <input type="file" class="form-control s_website_form_input" name="Attachment" id="helpdesk_warranty_upload_ticket_attachments"/>
@@ -218,10 +229,12 @@
                                                     <!-- ACTION: Submit Warranty Activation Ticket -->
                                                     <div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
                                                         <div style="width: 200px;" class="s_website_form_label"/>
-                                                        <a href="#" role="button" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text">
+                                                        <a href="#"
+                                                           role="button"
+                                                           class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text"
+                                                           style="background-color: #461885; border-color: #461885;">
                                                             Gửi kích hoạt bảo hành
                                                         </a>
-                                                        <span id="s_website_form_result"/>
                                                     </div>
                                                 </div>
                                             </form>
@@ -235,7 +248,8 @@
                                 <section class="s_text_image pt32 pb32 o_colored_level" data-snippet="s_text_image" data-name="Text - Image" style="background-image: none;">
                                     <div class="container">
                                         <div class="row o_grid_mode" data-row-count="6">
-                                            <div class="o_colored_level o_grid_item g-col-lg-5 g-height-6 col-lg-5 o_grid_item_image" style="grid-row-start: 1; grid-column-start: 7; grid-row-end: 7; grid-column-end: 12; z-index: 2;">
+                                            <div class="o_colored_level o_grid_item g-col-lg-5 g-height-6 col-lg-5 o_grid_item_image"
+                                                 style="grid-row-start: 1; grid-column-start: 7; grid-row-end: 7; grid-column-end: 12; z-index: 2; width: 100%;">
                                                 <img src="/mv_website_helpdesk/static/src/img/lot-serial-number-where-to-scanning.webp"
                                                      alt="Lot/Serial Number where to scanning"
                                                      class="img img-fluid mx-auto o_we_custom_image"
@@ -246,7 +260,8 @@
                                                      data-resize-width="690"
                                                      loading="lazy"/>
                                             </div>
-                                            <div class="o_colored_level o_grid_item g-height-4 g-col-lg-6 col-lg-6" style="z-index: 1; grid-row-start: 2; grid-column-start: 1; grid-row-end: 6; grid-column-end: 7;">
+                                            <div class="o_colored_level o_grid_item g-height-4 g-col-lg-6 col-lg-6"
+                                                 style="z-index: 1; grid-row-start: 2; grid-column-start: 1; grid-row-end: 6; grid-column-end: 7; width: 100%;">
                                                 <h3 class="o_default_snippet_text">Hình ảnh Kích Hoạt Bảo Hành</h3>
                                                 <p class="o_default_snippet_text">Đính kèm hình ảnh số seri của Sản Phẩm</p>
                                             </div>
@@ -257,6 +272,57 @@
                         </div>
                     </div>
                 </div>
+                <script src="https://unpkg.com/html5-qrcode"></script>
+                <script type="text/javascript">
+                    const list = [];
+                    function onScanSuccess(decodedText, decodedResults) {
+                        if (!list.includes(decodedText)) {
+                            list.push(decodedText);
+                        }
+                        const inputData = document.getElementById("helpdesk_warranty_input_portal_lot_serial_number");
+                        if (!inputData.value.includes(decodedText)) {
+                            inputData.value += decodedText + ",";
+                        }
+                    };
+
+                    function onScanError(errorMessage) {
+                        console.error(errorMessage);
+                        // Handle the error, e.g., display a message to the user.
+                    };
+
+                    const formatsToSupport = [
+                        Html5QrcodeSupportedFormats.QR_CODE,
+                        Html5QrcodeSupportedFormats.AZTEC,
+                        Html5QrcodeSupportedFormats.CODABAR,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.CODE_93,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E,
+                        Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
+                    ];
+
+                    let config = {
+                        fps: 10,
+                        qrbox: { width: 100, height: 100 },
+                        rememberLastUsedCamera: false,
+                        showTorchButtonIfSupported: false,
+                        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+                    };
+
+                    const html5QrcodeScanner = new Html5QrcodeScanner(
+                        "qr-reader",
+                        {
+                            fps: 10,
+                            qrbox: { width: 300, height: 100 },
+                            formatsToSupport: formatsToSupport
+                        },
+                        /* verbose= */ false);
+
+                    html5QrcodeScanner.render(onScanSuccess, onScanError);
+                </script>
             </t>
         </template>
     </data>

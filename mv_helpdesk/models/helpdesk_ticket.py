@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import cv2
 import logging
 from datetime import datetime
+from pyzbar.pyzbar import decode
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
@@ -10,6 +12,14 @@ _logger = logging.getLogger(__name__)
 # Default Ticket Type Data for Moveoplus (Name Only)
 ticket_type_sub_dealer = "Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)"
 ticket_type_end_user = "Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)"
+
+# Initialize the camera
+cap = cv2.VideoCapture(0)  # Use the correct camera index
+
+# Check if the camera opened successfully
+if not cap.isOpened():
+    print("Error: Camera could not be accessed.")
+    exit()
 
 
 class HelpdeskTicket(models.Model):
@@ -114,57 +124,58 @@ class HelpdeskTicket(models.Model):
         if res and vals.get("name") == "new":
             res._compute_name()
 
-        if res and res.can_import_lot_serial_number:
-            self._import_lot_serial_numbers(res, vals)
+        if res and "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
+            scanning_pass = res.action_scan_lot_serial_number(vals.get("portal_lot_serial_number"))
+            if scanning_pass:
+                res._import_lot_serial_numbers(res, vals)
+
             # Clear Lot/Serial Number Input when data Import is DONE
             res.clear_portal_lot_serial_number_input()
-        else:
-            if res and "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
-                scanning_pass = res.with_context(
-                    val_portal_lot_serial_number=vals.get("portal_lot_serial_number")
-                ).action_scan_lot_serial_number()
-
-                if scanning_pass:
-                    res.can_import_lot_serial_number = scanning_pass
 
         return res
 
     def write(self, vals):
-        ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
-        move_line_env = self.env["stock.move.line"]
-
         portal_lot_serial_number = vals.get("portal_lot_serial_number")
-
         if portal_lot_serial_number:
-            call_action_validate_lot_serial_number = self.with_context(
-                val_portal_lot_serial_number=portal_lot_serial_number
-            ).action_scan_lot_serial_number()
+            scanning_pass = self.action_scan_lot_serial_number(portal_lot_serial_number)
+            if scanning_pass:
+                self._import_lot_serial_numbers(self, vals)
 
-            vals["can_import_lot_serial_number"] = call_action_validate_lot_serial_number
-
-            if not vals["can_import_lot_serial_number"]:
-                messages_list = self._validation_portal_lot_serial_number(
-                    self._format_portal_lot_serial_number(portal_lot_serial_number)
-                )
-                stock_move_line_ids = [move_line[0] for move_line in messages_list if isinstance(move_line[0], int)]
-                for stock_move_line in move_line_env.browse(stock_move_line_ids):
-                    ticket_stock_move_line_exist = ticket_product_moves_env.search([
-                        ("stock_move_line_id", "=", stock_move_line.id)
-                    ], limit=1)
-                    if ticket_stock_move_line_exist:
-                        ticket_stock_move_line_exist.write({"helpdesk_ticket_id": self.id})
-                    else:
-                        ticket_product_moves_env.create({
-                            "stock_move_line_id": stock_move_line.id,
-                            "helpdesk_ticket_id": self.id
-                        })
-                vals["portal_lot_serial_number"] = ""
+            self.clear_portal_lot_serial_number_input()
 
         return super(HelpdeskTicket, self).write(vals)
 
     # ==================================
     # BUSINESS Methods
     # ==================================
+
+    def open_scanner(self):
+        try:
+            while True:
+                # Capture frame-by-frame
+                ret, frame = cap.read()
+
+                # Check if frame is read correctly
+                if not ret:
+                    print("Error: Frame could not be read.")
+                    break
+
+                # Decode the frame
+                decoded_objects = decode(frame)
+                for obj in decoded_objects:
+                    print('Type:', obj.type)
+                    print('Data:', obj.data.decode('utf-8'))
+
+                # Display the resulting frame
+                cv2.imshow('Frame', frame)
+
+                # Break the loop with 'q'
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+        finally:
+            # When everything done, release the capture
+            cap.release()
+            cv2.destroyAllWindows()
 
     def process_lot_serial_number(self, vals=None, action=False):
         """Actions: Create, Write, Scanning & Importing"""
@@ -277,21 +288,19 @@ class HelpdeskTicket(models.Model):
                 except Exception as e:
                     raise UserError(_("An error occurred while updating record attributes: %s") % str(e))
 
-    def action_scan_lot_serial_number(self):
-        context = self.env.context.copy()
-        context["scanning"] = True
-        self_context = self.with_context(context)
-        portal_lot_serial_number = (
-                self.env.context.get("val_portal_lot_serial_number", "")
-                or
-                self_context.portal_lot_serial_number
-        )
-        serial_numbers_fmt_list = self_context._format_portal_lot_serial_number(portal_lot_serial_number)
-        messages_list = self_context._validation_portal_lot_serial_number(serial_numbers_fmt_list)
+    def action_scan_lot_serial_number(self, lot_serial_number=None):
+        """Scan lot serial numbers and validate them"""
 
-        for message in messages_list:
-            if message[0] in ["serial_number_is_empty", "serial_number_not_found", "serial_number_already_registered"]:
-                raise ValidationError(message[1])
+        serial_numbers_fmt_list = self._format_portal_lot_serial_number(lot_serial_number)
+        messages_list = self._validation_portal_lot_serial_number(serial_numbers_fmt_list)
+
+        error_messages = [message[1] for message in messages_list if
+                          message[0] in ["serial_number_is_empty",
+                                         "serial_number_not_found",
+                                         "serial_number_already_registered"]]
+
+        if error_messages:
+            raise ValidationError('\n'.join(error_messages))
 
         return True
 
@@ -300,9 +309,11 @@ class HelpdeskTicket(models.Model):
         if not text:
             return []
 
-        # Remove punctuation and extra whitespace, split by commas
-        cleaned_text = text.replace('.', '').replace(',', '').strip()
-        result = cleaned_text.split()
+        # Remove special characters and split by commas
+        result = ["".join(filter(str.isdigit, item)) for item in text.split(',')]
+
+        # Remove empty strings (if any)
+        result = [item for item in result if item]
 
         # Remove duplicates and return
         return list(set(result))
@@ -330,7 +341,7 @@ class HelpdeskTicket(models.Model):
                                       f"Mã {number} không tồn tại trên hệ thống hoặc chưa cập nhật. "
                                       f"\nVui lòng kiểm tra lại."))
             else:
-                conflicting_ticket = existing_tickets.filtered(lambda r: r.lot_name == number)
+                conflicting_ticket = existing_tickets.filtered(lambda r: r.lot_name == number and r.helpdesk_ticket_id)
                 if conflicting_ticket:
                     messages_list.append(("serial_number_already_registered",
                                           f"Mã {number} đã trùng với Ticket khác. "
