@@ -1,3 +1,24 @@
 span#html5-qrcode-anchor-scan-type-change {
     display: none !important;
 }
+.bg-o-color-5 {
+    background-color: #461885 !important;
+    color: #FFFFFF;
+}
+
+.bg-o-color-5 .text-muted, .o_colored_level .bg-o-color-5 .text-muted {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+a.bg-o-color-5:hover, a.bg-o-color-5:focus, button.bg-o-color-5:hover, button.bg-o-color-5:focus {
+    background-color: #2f105a !important;
+    color: #FFFFFF;
+}
+
+.text-o-color-5 {
+    color: #461885 !important;
+}
+
+a.text-o-color-5:hover, a.text-o-color-5:focus {
+    color: #19082f !important;
+}
