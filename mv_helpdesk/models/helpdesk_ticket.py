@@ -15,15 +15,6 @@ ticket_type_end_user = "Kích Hoạt Bảo Hành Lốp Xe Continental (Người 
 class HelpdeskTicket(models.Model):
     _inherit = "helpdesk.ticket"
 
-    def _default_team_id(self):
-        team_id = self.env["helpdesk.team"].search([
-            ("member_ids", "in", self.env.uid),
-            ("use_website_helpdesk_warranty_activation", "=", True)
-        ], limit=1).id
-        if not team_id:
-            team_id = self.env["helpdesk.team"].search([], limit=1).id
-        return team_id
-
     helpdesk_ticket_product_move_ids = fields.One2many(
         comodel_name="mv.helpdesk.ticket.product.moves",
         inverse_name="helpdesk_ticket_id",
@@ -38,13 +29,6 @@ class HelpdeskTicket(models.Model):
         required=False,
         tracking=False
     )
-    team_id = fields.Many2one(
-        comodel_name="helpdesk.team",
-        string='Helpdesk Team',
-        default=_default_team_id,
-        index=True,
-        tracking=True,
-    )
     ticket_type_id = fields.Many2one(
         comodel_name="helpdesk.ticket.type",
         string="Type",
@@ -54,11 +38,6 @@ class HelpdeskTicket(models.Model):
     # ================== PORTAL WARRANTY ACTIVATION FORM
     portal_lot_serial_number = fields.Text(string="Input Lot/Serial Number")
     can_import_lot_serial_number = fields.Boolean(string="Can Import?", readonly=True)
-    ticket_warranty_activation = fields.Boolean(
-        compute="_compute_ticket_warranty_activation",
-        string="Warranty Ticket",
-        store=True,
-    )
     # For Ticket Type is Sub-Dealer
     is_sub_dealer = fields.Boolean(compute='_compute_ticket_type')
     sub_dealer_name = fields.Char(string="Sub-Dealer")
@@ -66,12 +45,6 @@ class HelpdeskTicket(models.Model):
     is_end_user = fields.Boolean(compute='_compute_ticket_type')
     license_plates = fields.Char(string="License plates")
     mileage = fields.Integer(default=0, string="Mileage (Km)")
-
-    @api.onchange("team_id", "ticket_warranty_activation")
-    def onchange_team_id(self):
-        if self.team_id and self.team_id.use_website_helpdesk_warranty_activation and self.ticket_warranty_activation:
-            domain = ["|", ("name", "=", ticket_type_sub_dealer), ("name", "=", ticket_type_end_user)]
-            return {"domain": {"ticket_type_id": domain}}
 
     @api.depends("partner_id", "ticket_type_id")
     def _compute_name(self):
@@ -94,14 +67,6 @@ class HelpdeskTicket(models.Model):
             elif rec.ticket_type_id and rec.ticket_type_id.name == ticket_type_end_user:
                 rec.is_end_user = True
                 rec.is_sub_dealer = False
-
-    @api.depends("team_id", "team_id.use_website_helpdesk_warranty_activation")
-    def _compute_ticket_warranty_activation(self):
-        for ticket in self:
-            ticket.ticket_warranty_activation = False
-            if ticket.team_id and ticket.team_id.use_website_helpdesk_warranty_activation:
-                ticket.ticket_warranty_activation = True
-                ticket.onchange_team_id()
 
     # ==================================
     # ORM Methods

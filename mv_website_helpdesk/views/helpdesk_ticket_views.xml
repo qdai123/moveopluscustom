@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <!-- INHERIT: FORM VIEWS -->
+    <record id="mv_website_helpdesk_inherit_helpdesk_ticket_form_view" model="ir.ui.view">
+        <field name="name">mv.website.helpdesk.inherit.helpdesk.ticket.form</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='team_id']" position="after">
+                <field name="ticket_warranty_activation" invisible="True"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
