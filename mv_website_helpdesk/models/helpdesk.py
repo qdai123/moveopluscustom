@@ -54,8 +54,8 @@ class HelpdeskTeam(models.Model):
     def _check_website_company(self):
         # Override to add new CASE "website_helpdesk_warranty_activation"
         if any(
-                t.use_website_helpdesk_form
-                or t.use_website_helpdesk_warranty_activation
+                (t.use_website_helpdesk_form
+                or t.use_website_helpdesk_warranty_activation)
                 and t.website_id
                 and t.website_id.company_id != t.company_id
                 for t in self
