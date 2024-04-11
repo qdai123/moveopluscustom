@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+
+        <!-- INHERIT: FORM VIEWS -->
+        <record id="mv_helpdesk_inherit_helpdesk_team_form_view" model="ir.ui.view">
+            <field name="name">mv.helpdesk.inherit.helpdesk.team.form</field>
+            <field name="model">helpdesk.team</field>
+            <field name="inherit_id" ref="helpdesk.helpdesk_team_view_form"/>
+            <field name="priority">30</field>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@id='website_form_channel']/setting[1]" position="after">
+                    <setting help="Get tickets through an online Warranty Activation Form">
+                        <field name="use_website_helpdesk_warranty_activation"/>
+                    </setting>
+                </xpath>
+                <xpath expr="//field[@name='is_published']" position="attributes">
+                    <attribute name="invisible">not (use_website_helpdesk_form or use_website_helpdesk_warranty_activation)</attribute>
+                </xpath>
+                <xpath expr="//label[@for='website_id']" position="attributes">
+                    <attribute name="invisible">not (use_website_helpdesk_form or use_website_helpdesk_warranty_activation)</attribute>
+                </xpath>
+                <xpath expr="//field[@name='website_id']" position="attributes">
+                    <attribute name="invisible">not (use_website_helpdesk_form or use_website_helpdesk_warranty_activation)</attribute>
+                    <attribute name="required">use_website_helpdesk_form or use_website_helpdesk_warranty_activation</attribute>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

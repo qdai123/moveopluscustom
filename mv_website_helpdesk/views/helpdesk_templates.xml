@@ -190,6 +190,7 @@
                                                             <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_portal_lot_serial_number">
                                                                 <span class="s_website_form_label_content">Số Lô/Số Mã Vạch</span>
                                                                 <span class="s_website_form_mark">*</span>
+                                                                <input type="button" value="Clear" onclick="clearForm()"/>
                                                             </label>
                                                             <div class="col-sm">
                                                                 <textarea id="helpdesk_warranty_input_portal_lot_serial_number"
@@ -200,7 +201,9 @@
                                                                           spellcheck="false"
                                                                 />
                                                                 <span id="s_website_form_result"/>
-                                                                <div id="qr-reader" style="width: 360px;"></div>
+                                                            </div>
+                                                            <div class="col-sm" style="padding-bottom: 120px;">
+                                                                <div id="qr-reader" style="width: 250px; height: 100px;"></div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -274,6 +277,26 @@
                 </div>
                 <script src="https://unpkg.com/html5-qrcode"></script>
                 <script type="text/javascript">
+                    function clearForm() {
+                        document.getElementById("helpdesk_warranty_input_portal_lot_serial_number").value = "";
+                    };
+
+                    function beep(vol, freq, duration) {
+                        const audioContext = new AudioContext();
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        oscillator.frequency.value = freq;
+                        oscillator.type = "square";
+
+                        gainNode.connect(audioContext.destination);
+                        gainNode.gain.value = vol * 0.01;
+
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + duration * 0.001);
+                    };
+
                     const list = [];
                     function onScanSuccess(decodedText, decodedResults) {
                         if (!list.includes(decodedText)) {
@@ -283,11 +306,11 @@
                         if (!inputData.value.includes(decodedText)) {
                             inputData.value += decodedText + ",";
                         }
+                        beep(50, 1000, 200);
                     };
 
                     function onScanError(errorMessage) {
                         console.error(errorMessage);
-                        // Handle the error, e.g., display a message to the user.
                     };
 
                     const formatsToSupport = [
@@ -306,6 +329,7 @@
 
                     let config = {
                         fps: 10,
+                        facingMode: 'environment',
                         qrbox: { width: 100, height: 100 },
                         rememberLastUsedCamera: false,
                         showTorchButtonIfSupported: false,
@@ -316,10 +340,15 @@
                         "qr-reader",
                         {
                             fps: 10,
-                            qrbox: { width: 300, height: 100 },
-                            formatsToSupport: formatsToSupport
+                            facingMode: 'environment',
+                            qrbox: { width: 200, height: 100 },
+                            formatsToSupport: formatsToSupport,
+                            rememberLastUsedCamera: true,
+                            showTorchButtonIfSupported: false,
+                            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
                         },
-                        /* verbose= */ false);
+                        /* verbose= */ false
+                    );
 
                     html5QrcodeScanner.render(onScanSuccess, onScanError);
                 </script>
@@ -328,12 +357,20 @@
     </data>
 
     <data noupdate="1">
-        <!-- Page: Helpdesk Warranty Activation -->
-        <record id="mv_helpdesk_warranty_activation_website_page" model="website.page">
+        <!-- Website Page: Helpdesk Warranty Activation -->
+        <record id="mv_website_helpdesk_warranty_activation_website_page" model="website.page">
             <field name="is_published">True</field>
             <field name="url">/kich-hoat-bao-hanh</field>
             <field name="view_id" ref="mv_helpdesk_warranty_activation_template"/>
             <field name="track">True</field>
+        </record>
+        <!-- Website Menu: Helpdesk Warranty Activation -->
+        <record id="mv_website_helpdesk_warranty_activation_website_menu" model="website.menu">
+            <field name="name">Kích hoạt bảo hành</field>
+            <field name="url">/kich-hoat-bao-hanh</field>
+            <field name="page_id" ref="mv_website_helpdesk_warranty_activation_website_page"/>
+            <field name="parent_id" ref="website.main_menu"/>
+            <field name="sequence" type="int">30</field>
         </record>
     </data>
 </odoo>
