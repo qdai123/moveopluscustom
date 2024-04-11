@@ -357,6 +357,7 @@
     </data>
 
     <data noupdate="1">
+
         <!-- Website Page: Helpdesk Warranty Activation -->
         <record id="mv_website_helpdesk_warranty_activation_website_page" model="website.page">
             <field name="is_published">True</field>
@@ -364,6 +365,7 @@
             <field name="view_id" ref="mv_helpdesk_warranty_activation_template"/>
             <field name="track">True</field>
         </record>
+
         <!-- Website Menu: Helpdesk Warranty Activation -->
         <record id="mv_website_helpdesk_warranty_activation_website_menu" model="website.menu">
             <field name="name">Kích hoạt bảo hành</field>
@@ -372,5 +374,6 @@
             <field name="parent_id" ref="website.main_menu"/>
             <field name="sequence" type="int">30</field>
         </record>
+        
     </data>
 </odoo>
