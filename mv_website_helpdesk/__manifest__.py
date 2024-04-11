@@ -8,6 +8,7 @@
     'depends': [
         # Odoo
         'barcodes',
+        'website',
         'web',
         # Odoo (Enterprice)
         'website_helpdesk',
@@ -18,9 +19,13 @@
         # SECURITY
         'security/ir.model.access.csv',
         # DATA
-        'data/helpdesk_data.xml',
+        'data/website_helpdesk_data.xml',
         # VIEWS
+        'views/helpdesk_team_views.xml',
+        'views/helpdesk_ticket_views.xml',
         'views/helpdesk_templates.xml',
+        # DEFAULT DATA
+        'data/default_data_helpdesk_team.xml',
     ],
     'bootstrap': True,
     'assets': {
@@ -43,6 +48,7 @@
             # Public Kiosk app and its components
             "mv_website_helpdesk/static/src/public_helpdesk_ticket_scanner/**/*",
             'mv_website_helpdesk/static/src/components/**/*',
+            'mv_website_helpdesk/static/src/mv_website_helpdesk_style.scss',
             "web/static/src/views/fields/formatters.js",
 
             # Barcode reader utils

@@ -9,7 +9,7 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
-                <field name="code" optional="hidden"/>
+                <field name="code" optional="show"/>
             </xpath>
         </field>
     </record>

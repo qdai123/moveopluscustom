@@ -14,55 +14,5 @@
             <field name="code">BH</field>  <!-- BH: Bảo Hành -->
         </record>
 
-        <!-- =================================================================== -->
-
-        <!-- MOVEOPLUS Helpdesk Team Default: Warranty Activation -->
-        <record id="helpdesk_team_warranty_activation" model="helpdesk.team">
-            <field name="name">Kích hoạt bảo hành</field>
-            <field name="description">Kích hoạt bảo hành cho Đối Tác / Khách Hàng</field>
-            <field name="alias_name">moveoplus-bao-hanh</field>
-            <field name="stage_ids" eval="False"/>
-            <field name="use_sla" eval="False"/>
-            <field name="use_alias" eval="False"/>
-            <field name="auto_assignment" eval="True"/>
-            <field name="privacy_visibility">portal</field>
-            <field name="use_website_helpdesk_form" eval="False"/>
-            <field name="use_website_helpdesk_livechat" eval="False"/>
-            <field name="use_website_helpdesk_forum" eval="False"/>
-            <field name="use_website_helpdesk_slides" eval="False"/>
-            <field name="use_website_helpdesk_knowledge" eval="False"/>
-            <field name="use_website_helpdesk_warranty_activation" eval="True"/>
-            <field name="member_ids" eval="[Command.link(ref('base.user_admin'))]"/>
-        </record>
-
-        <!-- Default with Stage == NEW -->
-        <record id="warranty_stage_new" model="helpdesk.stage">
-            <field name="name">New</field>
-            <field name="sequence">0</field>
-            <field name="team_ids" eval="[(4, ref('mv_helpdesk.helpdesk_team_warranty_activation'))]"/>
-            <field name="template_id" ref="mv_helpdesk.new_warranty_activation_request_email_template"/>
-        </record>
-        <record id="warranty_stage_in_progress" model="helpdesk.stage">
-            <field name="name">In Progress</field>
-            <field name="sequence">1</field>
-            <field name="team_ids" eval="[(4, ref('helpdesk_team_warranty_activation'))]"/>
-        </record>
-        <record id="warranty_stage_on_hold" model="helpdesk.stage">
-            <field name="name">On Hold</field>
-            <field name="sequence">2</field>
-            <field name="team_ids" eval="[(4, ref('helpdesk_team_warranty_activation'))]"/>
-        </record>
-        <record id="warranty_stage_solved" model="helpdesk.stage">
-            <field name="name">Solved</field>
-            <field name="team_ids" eval="[(4, ref('helpdesk_team_warranty_activation'))]"/>
-            <field name="sequence">3</field>
-            <field name="fold" eval="True"/>
-        </record>
-        <record id="warranty_stage_cancelled" model="helpdesk.stage">
-            <field name="name">Canceled</field>
-            <field name="sequence">4</field>
-            <field name="team_ids" eval="[(4, ref('helpdesk_team_warranty_activation'))]"/>
-        </record>
-
     </data>
 </odoo>
