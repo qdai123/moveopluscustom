@@ -102,6 +102,16 @@ class HelpdeskTeam(models.Model):
         ):
             raise ValidationError(_("The team company and the website company should match"))
 
+    def _ensure_website_menu(self):
+        with_website_warranty = self.filtered_domain([("use_website_helpdesk_warranty_activation", '=', True)])
+        if with_website_warranty:
+            if not with_website_warranty.is_published:
+                with_website_warranty.is_published = True
+                pass
+        else:
+            return super(HelpdeskTeam, self)._ensure_website_menu()
+
+
 
 class HelpdeskTicket(models.Model):
     _inherit = "helpdesk.ticket"
