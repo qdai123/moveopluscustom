@@ -48,7 +48,6 @@
             # Public Kiosk app and its components
             "mv_website_helpdesk/static/src/public_helpdesk_ticket_scanner/**/*",
             'mv_website_helpdesk/static/src/components/**/*',
-            'mv_website_helpdesk/static/src/mv_website_helpdesk_style.scss',
             "web/static/src/views/fields/formatters.js",
 
             # Barcode reader utils
