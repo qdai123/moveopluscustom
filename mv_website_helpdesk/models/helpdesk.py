@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.addons.http_routing.models.ir_http import slug
+
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import ticket_type_sub_dealer, ticket_type_end_user
 
 
@@ -14,6 +16,44 @@ class HelpdeskTeam(models.Model):
         store=True,
     )
 
+    def _compute_website_url(self):
+        super(HelpdeskTeam, self)._compute_website_url()
+        for team in self:
+            if team.use_website_helpdesk_warranty_activation:
+                team.website_url = "/kich-hoat-bao-hanh"
+            else:
+                team.website_url = "/helpdesk/%s" % slug(team)
+
+    @api.onchange(
+        "use_website_helpdesk_form",
+        "use_website_helpdesk_forum",
+        "use_website_helpdesk_slides",
+        "use_website_helpdesk_knowledge",
+        "use_website_helpdesk_warranty_activation")
+    def _onchange_use_website_helpdesk(self):
+        if self.use_website_helpdesk_warranty_activation:
+            self.is_published = True
+        else:
+            if not (
+                    self.use_website_helpdesk_form
+                    or self.use_website_helpdesk_forum
+                    or self.use_website_helpdesk_slides
+                    or self.use_website_helpdesk_knowledge) and self.website_published:
+                self.is_published = False
+            elif self.use_website_helpdesk_form and not self.website_published:
+                self.is_published = True
+
+    @api.depends("name", "use_website_helpdesk_form", "use_website_helpdesk_warranty_activation", "company_id")
+    def _compute_form_url(self):
+        for team in self:
+            base_url = team.get_base_url()
+            if team.use_website_helpdesk_form and not team.use_website_helpdesk_warranty_activation:
+                team.feature_form_url = (team.use_website_helpdesk_form and team.name and team.id) and (
+                        base_url + '/helpdesk/' + slug(team)) or False
+            elif team.use_website_helpdesk_warranty_activation and not team.use_website_helpdesk_form:
+                team.feature_form_url = (team.use_website_helpdesk_warranty_activation and team.name and team.id) and (
+                        base_url + '/kich-hoat-bao-hanh') or False
+
     @api.depends(
         "use_website_helpdesk_knowledge",
         "use_website_helpdesk_slides",
@@ -24,11 +64,11 @@ class HelpdeskTeam(models.Model):
         # Override to add new CASE "website_helpdesk_warranty_activation"
         teams = self.filtered(
             lambda team: not team.use_website_helpdesk_form
+                         and not team.use_website_helpdesk_warranty_activation
                          and (
                                  team.use_website_helpdesk_knowledge
                                  or team.use_website_helpdesk_slides
                                  or team.use_website_helpdesk_forum
-                                 or team.use_website_helpdesk_warranty_activation
                          )
         )
         teams.use_website_helpdesk_form = True
@@ -55,7 +95,7 @@ class HelpdeskTeam(models.Model):
         # Override to add new CASE "website_helpdesk_warranty_activation"
         if any(
                 (t.use_website_helpdesk_form
-                or t.use_website_helpdesk_warranty_activation)
+                 or t.use_website_helpdesk_warranty_activation)
                 and t.website_id
                 and t.website_id.company_id != t.company_id
                 for t in self

@@ -72,22 +72,49 @@ class HelpdeskTicket(models.Model):
     # ORM Methods
     # ==================================
 
-    @api.model
-    def create(self, vals):
-        res = super(HelpdeskTicket, self).create(vals)
+    @api.model_create_multi
+    def create(self, list_value):
+        tickets = super(HelpdeskTicket, self).create(list_value)
 
-        if res and vals.get("name") == "new":
-            res._compute_name()
+        if tickets:
+            for ticket in tickets:
+                for vals in list_value:
+                    if vals.get("name") == "new":
+                        tickets._compute_name()
 
-        if res and "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
-            scanning_pass = res.action_scan_lot_serial_number(vals.get("portal_lot_serial_number"))
-            if scanning_pass:
-                res._import_lot_serial_numbers(res, vals)
+                    if "portal_lot_serial_number" in vals and vals.get("portal_lot_serial_number"):
+                        scanning_pass = self.action_scan_lot_serial_number(vals.get("portal_lot_serial_number"))
+                        if scanning_pass:
+                            ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
+                            move_line_env = self.env["stock.move.line"]
 
-            # Clear Lot/Serial Number Input when data Import is DONE
-            res.clear_portal_lot_serial_number_input()
+                            messages_list = self._validation_portal_lot_serial_number(
+                                self._format_portal_lot_serial_number(vals.get("portal_lot_serial_number"))
+                            )
+                            stock_move_line_ids = [move_line[0] for move_line in messages_list if
+                                                   isinstance(move_line[0], int)]
 
-        return res
+                            for stock_move_line in move_line_env.browse(stock_move_line_ids):
+                                ticket_stock_move_line_exist = ticket_product_moves_env.search([
+                                    ("stock_move_line_id", "=", stock_move_line.id)
+                                ], limit=1)
+
+                                if ticket_stock_move_line_exist:
+                                    ticket_stock_move_line_exist.sudo().unlink()
+                                    ticket_product_moves_env.sudo().create({
+                                        "stock_move_line_id": stock_move_line.id,
+                                        "helpdesk_ticket_id": ticket.id
+                                    })
+                                else:
+                                    ticket_product_moves_env.sudo().create({
+                                        "stock_move_line_id": stock_move_line.id,
+                                        "helpdesk_ticket_id": ticket.id
+                                    })
+
+                        # Clear Lot/Serial Number Input when data Import is DONE
+                        ticket.clear_portal_lot_serial_number_input()
+
+        return tickets
 
     def write(self, vals):
         portal_lot_serial_number = vals.get("portal_lot_serial_number")
@@ -96,9 +123,10 @@ class HelpdeskTicket(models.Model):
             if scanning_pass:
                 self._import_lot_serial_numbers(self, vals)
 
-            self.clear_portal_lot_serial_number_input()
-
-        return super(HelpdeskTicket, self).write(vals)
+        ticket = super(HelpdeskTicket, self).write(vals)
+        if portal_lot_serial_number:
+            self.portal_lot_serial_number = ""
+        return ticket
 
     # ==================================
     # BUSINESS Methods
