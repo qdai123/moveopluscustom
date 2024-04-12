@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import pytz
 from datetime import datetime
 
 from odoo import api, fields, models, _
@@ -50,10 +51,13 @@ class HelpdeskTicket(models.Model):
     def _compute_name(self):
         for rec in self:
             if rec.partner_id and rec.ticket_type_id:
+                user_tz = self.env.user.tz or self.env.context.get('tz')
+                user_pytz = pytz.timezone(user_tz) if user_tz else pytz.utc
+                now_dt = datetime.now().astimezone(user_pytz).replace(tzinfo=None)
                 rec.name = "{}/{}/{}".format(
                     rec.partner_id.name.upper() if rec.partner_id else "-",
                     rec.ticket_type_id.name,
-                    datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    now_dt.strftime('%Y-%m-%d %H:%M:%S')
                 )
 
     @api.depends("ticket_type_id")
