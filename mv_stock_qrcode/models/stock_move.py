@@ -18,10 +18,12 @@ class StockMove(models.Model):
     def _compute_auto_call_next_number(self):
         for move in self:
             if not move.move_line_ids:
-                move.number_start = 0
+                move.number_start = 1
                 move.numer_limit_can_be_generate = move.product_uom_qty
             else:
                 move.number_start = self._get_next_number_start(move) + 1
+                if move.number_start > move.product_uom_qty:
+                    move.number_start = 0
                 current_reserved = sum(move.move_line_ids.mapped("quantity"))
                 available_quantity = max(0, move.product_uom_qty - current_reserved)
                 move.numer_limit_can_be_generate = available_quantity
@@ -100,7 +102,7 @@ class StockMove(models.Model):
             self.write({"number_qrcode": 0})
             return
 
-        next_number = self.number_start or 0
+        next_number = self.number_start or 1
         sml_vals_lst = [
             self._prepare_sml_vals(
                 *self._get_next_unique_qr_code(next_number + i)
