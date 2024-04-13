@@ -368,7 +368,7 @@
                     {
                         fps: 10,
                         facingMode: 'environment',
-                        qrbox: { width: 250, height: 100 },
+                        qrbox: { width: 230, height: 100 },
                         formatsToSupport: formatsToSupport,
                         rememberLastUsedCamera: true,
                         showTorchButtonIfSupported: false,
