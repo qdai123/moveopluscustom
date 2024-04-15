@@ -11,6 +11,7 @@
     ],
     'data': [
         # SECURITY
+        'security/helpdesk_security.xml',
         'security/ir.model.access.csv',
         # DATA
         'data/mail_template_data.xml',
@@ -21,6 +22,8 @@
         'views/helpdesk_team_views.xml',
         'views/helpdesk_ticket_type_views.xml',
         'views/helpdesk_ticket_views.xml',
+        # WIZARD
+        'wizard/wizard_import_lot_serial_number_views.xml',
         # MENU
         'views/helpdesk_menus.xml',
     ],

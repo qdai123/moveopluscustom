@@ -112,7 +112,6 @@ class HelpdeskTeam(models.Model):
             return super(HelpdeskTeam, self)._ensure_website_menu()
 
 
-
 class HelpdeskTicket(models.Model):
     _inherit = "helpdesk.ticket"
 
@@ -138,11 +137,22 @@ class HelpdeskTicket(models.Model):
         store=True,
     )
 
-    @api.onchange("team_id", "ticket_warranty_activation")
+    @api.onchange("team_id")
     def onchange_team_id(self):
-        if self.team_id and self.team_id.use_website_helpdesk_warranty_activation and self.ticket_warranty_activation:
-            domain = ["|", ("name", "=", ticket_type_sub_dealer), ("name", "=", ticket_type_end_user)]
-            return {"domain": {"ticket_type_id": domain}}
+        if self.team_id and self.team_id.use_website_helpdesk_warranty_activation:
+            ticket_type_for_warranty = self.env["helpdesk.ticket.type"].sudo().search([
+                "|",
+                ("name", "in", [ticket_type_sub_dealer, ticket_type_end_user]),
+                ("code", "=", "BH"),
+            ], limit=2) or []
+            domain = [("id", "in", ticket_type_for_warranty.ids)]
+        else:
+            ticket_type_not_for_warranty = self.env["helpdesk.ticket.type"].sudo().search([
+                ("name", "not in", [ticket_type_sub_dealer, ticket_type_end_user])
+            ]) or []
+            domain = [("id", "in", ticket_type_not_for_warranty.ids)]
+
+        return {"domain": {"ticket_type_id": domain}}
 
     @api.depends("team_id", "team_id.use_website_helpdesk_warranty_activation")
     def _compute_ticket_warranty_activation(self):
@@ -150,4 +160,4 @@ class HelpdeskTicket(models.Model):
             ticket.ticket_warranty_activation = False
             if ticket.team_id and ticket.team_id.use_website_helpdesk_warranty_activation:
                 ticket.ticket_warranty_activation = True
-                ticket.onchange_team_id()
+                ticket.sudo().onchange_team_id()

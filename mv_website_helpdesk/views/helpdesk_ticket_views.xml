@@ -11,6 +11,9 @@
             <xpath expr="//field[@name='team_id']" position="after">
                 <field name="ticket_warranty_activation" invisible="True"/>
             </xpath>
+            <xpath expr="//field[@name='user_id']" position="attributes">
+                <attribute name="readonly">ticket_warranty_activation</attribute>
+            </xpath>
         </field>
     </record>
 

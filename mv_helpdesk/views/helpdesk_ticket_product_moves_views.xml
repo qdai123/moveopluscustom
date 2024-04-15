@@ -8,14 +8,6 @@
             <field name="model">mv.helpdesk.ticket.product.moves</field>
             <field name="arch" type="xml">
                 <tree string="Helpdesk Ticket &amp; Product Moves LIST" create="false" edit="false" delete="true">
-                    <header>
-                        <button class="btn btn-primary"
-                                type="object"
-                                name="action_reload_data"
-                                string="Reload Data"
-                                groups="base.group_system"
-                        />
-                    </header>
                     <field name="helpdesk_ticket_id" optional="hidden"/>
                     <field name="product_id"
                            options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"

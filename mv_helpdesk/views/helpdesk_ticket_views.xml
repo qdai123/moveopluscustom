@@ -8,8 +8,25 @@
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
         <field name="priority">30</field>
         <field name="arch" type="xml">
+            <xpath expr="//notebook[last()]" position="inside">
+                <page name="helpdesk_ticket_settings_page" string="Settings" invisible="True">
+                    <group>
+                        <group name="group_access_fields" string="Fields base on Group Access">
+                            <field name="is_helpdesk_manager" string="Helpdesk Manager" help="Access for Helpdesk Manager"/>
+                        </group>
+                        <group name="group_conditions_fields" string="Fields base on Condition"/>
+                    </group>
+                </page>
+            </xpath>
             <xpath expr="//notebook//page[@name='description']" position="before">
                 <page string="Lot/Serial Number" name="ticket_product_moves_tab">
+                    <button name="action_wizard_import_lot_serial_number"
+                            string="Import Lot/Serial Number"
+                            type="object"
+                            groups="helpdesk.group_helpdesk_manager"
+                            class="btn btn-secondary"
+                            invisible="not id"
+                    />
                     <field mode="tree"
                            name="helpdesk_ticket_product_move_ids"
                            context="{'default_helpdesk_ticket_id': id}"
@@ -17,28 +34,28 @@
                            options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
                         <tree string="Ticket &amp; Product Moves" create="false" edit="false" delete="false">
                             <field name="lot_name" string="Lot/Serial Number"/>
+                            <button class="btn btn-secondary" name="action_open_stock" string="Open Stock" type="object" icon="fa-arrows"/>
                             <field name="stock_move_line_id" column_invisible="True"/>
                             <field name="stock_move_id" column_invisible="True"/>
                             <field name="product_id" column_invisible="True"/>
-                            <button class="btn btn-secondary" name="action_open_stock" string="Open Stock" type="object" icon="fa-arrows"/>
-                            <button invisible="True" name="action_open_product" string="Open Product" type="object" icon="fa-arrows"/>
+                            <button name="unlink" type="object" icon="fa-trash" title="Remove" class="btn-secondary float-end d-none d-md-inline" close="1" invisible="not id" groups="helpdesk.group_helpdesk_manager" data-hotkey="d"/>
                         </tree>
                     </field>
                 </page>
             </xpath>
             <xpath expr="//field[@name='partner_id']" position="attributes">
                 <attribute name="required">True</attribute>
-                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
+                <attribute name="options">{'no_create_edit': True, 'no_create': True, 'no_open': True}</attribute>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="attributes">
-                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
+                <attribute name="options">{'no_create_edit': True, 'no_create': True, 'no_open': True}</attribute>
             </xpath>
             <xpath expr="//field[@name='team_id']" position="attributes">
-                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
+                <attribute name="options">{'no_create_edit': True, 'no_create': True, 'no_open': True}</attribute>
             </xpath>
             <xpath expr="//field[@name='ticket_type_id']" position="attributes">
                 <attribute name="required">True</attribute>
-                <attribute name="options">{'no_create_edit': True, 'no_create': True}</attribute>
+                <attribute name="options">{'no_create_edit': True, 'no_create': True, 'no_open': True}</attribute>
             </xpath>
             <xpath expr="//field[@name='ticket_type_id']" position="after">
                 <field invisible="True" name="is_sub_dealer"/>
@@ -49,9 +66,7 @@
             </xpath>
             <xpath expr="//field[@name='email_cc']" position="after">
                 <field invisible="True" readonly="True" name="portal_lot_serial_number" string="Input Lot/Serial Number Or Scanner"/>
-                <field invisible="True" name="can_import_lot_serial_number"/>
                 <button invisible="True" class="btn btn-primary" type="object" name="action_scan_lot_serial_number" string="Scan"/>
-                <button invisible="True" class="btn btn-primary" type="object" name="action_import_lot_serial_number" string="Import Lot/Serial Number"/>
             </xpath>
         </field>
     </record>
