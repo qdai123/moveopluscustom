@@ -308,6 +308,8 @@
             </t>
             <script src="/mv_website_helpdesk/static/src/js/html5-qrcode.min.js"></script>
             <script type="text/javascript">
+                const scanList = [];
+
                 function clearForm() {
                     document.getElementById("helpdesk_warranty_input_portal_lot_serial_number").value = "";
                 };
@@ -328,10 +330,9 @@
                     oscillator.stop(audioContext.currentTime + duration * 0.001);
                 };
 
-                const list = [];
                 function onScanSuccess(decodedText, decodedResults) {
-                    if (!list.includes(decodedText)) {
-                        list.push(decodedText);
+                    if (!scanList.includes(decodedText)) {
+                        scanList.push(decodedText);
                     }
                     const inputData = document.getElementById("helpdesk_warranty_input_portal_lot_serial_number");
                     if (!inputData.value.includes(decodedText)) {
@@ -353,15 +354,6 @@
                     Html5QrcodeSupportedFormats.UPC_E,
                     Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
                 ];
-
-                let config = {
-                    fps: 10,
-                    facingMode: 'environment',
-                    qrbox: { width: 100, height: 100 },
-                    rememberLastUsedCamera: false,
-                    showTorchButtonIfSupported: false,
-                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-                };
 
                 const html5QrcodeScanner = new Html5QrcodeScanner(
                     "qr-reader",

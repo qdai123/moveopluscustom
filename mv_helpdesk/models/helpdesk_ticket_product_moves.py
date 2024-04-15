@@ -2,6 +2,9 @@
 import logging
 
 from odoo import api, fields, models, _
+from odoo.exceptions import AccessError, ValidationError
+
+from odoo.addons.mv_helpdesk.models.helpdesk_ticket import HELPDESK_MANAGER
 
 _logger = logging.getLogger(__name__)
 
@@ -58,6 +61,20 @@ class HelpdeskTicketProductMoves(models.Model):
     def write(self, vals):
         return super(HelpdeskTicketProductMoves, self).create(vals)
 
+    def unlink(self):
+        is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
+
+        for record in self.filtered(lambda r: r.helpdesk_ticket_id):
+            not_helpdesk_manager = not record.helpdesk_ticket_id.is_helpdesk_manager or not is_helpdesk_manager
+            not_assigned_to_user = record.helpdesk_ticket_id.user_id != self.env.user
+
+            if not_helpdesk_manager and not_assigned_to_user:
+                raise AccessError(_("You are not assigned to the ticket or don't have sufficient permissions!"))
+            elif not_helpdesk_manager and record.helpdesk_ticket_id.stage_id.name != "New":
+                raise ValidationError(_("You can only delete a ticket when it is in 'New' state."))
+
+        return super(HelpdeskTicketProductMoves, self).unlink()
+
     def action_open_stock(self):
         self.ensure_one()
         action = {
@@ -83,18 +100,3 @@ class HelpdeskTicketProductMoves(models.Model):
             'res_id': self.product_id.id,
         }
         return action
-
-    def action_reload_data(self):
-        # Delete all of Stock Move Line doesn't have ticket
-        self.filtered(lambda r: not r.helpdesk_ticket_id).unlink()
-
-        ticket_has_product_moves = self.env["helpdesk.ticket"].search(
-            [("helpdesk_ticket_product_move_ids", "in", self.ids)]
-        )
-        if ticket_has_product_moves:
-            for record in self.filtered(lambda r: r.helpdesk_ticket_id in ticket_has_product_moves.ids):
-                self.env.cr.execute(
-                    "UPDATE mv_helpdesk_ticket_product_moves SET helpdesk_ticket_id = %s WHERE stock_move_line_id = %s",
-                    [record.helpdesk_ticket_id.id, record.stock_move_line_id.id]
-                )
-        self.env.cr.commit()

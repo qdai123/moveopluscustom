@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- MOVEOPLUS OVERRIDE: Remove default access role for New Users on the Helpdesk -->
+    <record id="base.default_user" model="res.users">
+        <field name="groups_id" eval="False"/>
+    </record>
+</odoo>

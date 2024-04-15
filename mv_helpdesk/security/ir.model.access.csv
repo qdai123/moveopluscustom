@@ -2,3 +2,5 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_mv_helpdesk_ticket_product_moves_internal_user,access.mv.helpdesk.ticket.product.moves Internal User,model_mv_helpdesk_ticket_product_moves,base.group_user,1,0,0,0
 access_mv_helpdesk_ticket_product_moves_system_user,access.mv.helpdesk.ticket.product.moves System User,model_mv_helpdesk_ticket_product_moves,base.group_system,1,1,1,1
 access_mv_helpdesk_ticket_product_moves_portal_user,access.mv.helpdesk.ticket.product.moves Portal User,model_mv_helpdesk_ticket_product_moves,base.group_portal,1,0,1,0
+
+access_mv_helpdesk_wizard_import_lot_serial_number,access.mv.helpdesk.wizard.import.lot.serial.number Helpdesk Manager,model_wizard_import_lot_serial_number,helpdesk.group_helpdesk_manager,1,1,1,1

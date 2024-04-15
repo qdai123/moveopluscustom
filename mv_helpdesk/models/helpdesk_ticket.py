@@ -4,13 +4,17 @@ import pytz
 from datetime import datetime
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 # Default Ticket Type Data for Moveoplus (Name Only)
 ticket_type_sub_dealer = "Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)"
 ticket_type_end_user = "Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)"
+
+# Access Groups:
+HELPDESK_USER = "helpdesk.group_helpdesk_user"
+HELPDESK_MANAGER = "helpdesk.group_helpdesk_manager"
 
 
 class HelpdeskTicket(models.Model):
@@ -46,6 +50,19 @@ class HelpdeskTicket(models.Model):
     is_end_user = fields.Boolean(compute='_compute_ticket_type')
     license_plates = fields.Char(string="License plates")
     mileage = fields.Integer(default=0, string="Mileage (Km)")
+
+    # ACCESS Fields:
+    is_helpdesk_manager = fields.Boolean(
+        compute="_compute_is_helpdesk_manager",
+        default=lambda self: self.env.user.has_group(HELPDESK_MANAGER)
+    )
+
+    @api.depends_context("uid")
+    def _compute_is_helpdesk_manager(self):
+        is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
+
+        for user in self:
+            user.is_helpdesk_manager = is_helpdesk_manager
 
     @api.depends("partner_id", "ticket_type_id")
     def _compute_name(self):
@@ -95,12 +112,14 @@ class HelpdeskTicket(models.Model):
                             messages_list = self._validation_portal_lot_serial_number(
                                 self._format_portal_lot_serial_number(vals.get("portal_lot_serial_number"))
                             )
-                            stock_move_line_ids = [move_line[0] for move_line in messages_list if
-                                                   isinstance(move_line[0], int)]
+                            stock_move_line_ids = [
+                                move_line[0] for move_line in messages_list if isinstance(move_line[0], int)
+                            ]
 
                             for stock_move_line in move_line_env.browse(stock_move_line_ids):
                                 ticket_stock_move_line_exist = ticket_product_moves_env.search([
-                                    ("stock_move_line_id", "=", stock_move_line.id)
+                                    ("stock_move_line_id", "=", stock_move_line.id),
+                                    ("helpdesk_ticket_id", "=", False)
                                 ], limit=1)
 
                                 if ticket_stock_move_line_exist:
@@ -131,6 +150,20 @@ class HelpdeskTicket(models.Model):
         if portal_lot_serial_number:
             self.portal_lot_serial_number = ""
         return ticket
+
+    def unlink(self):
+        is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
+
+        for record in self:
+            not_helpdesk_manager = not record.is_helpdesk_manager or not is_helpdesk_manager
+            not_assigned_to_user = record.user_id != self.env.user
+
+            if not_helpdesk_manager and not_assigned_to_user:
+                raise AccessError(_("You are not assigned to the ticket or don't have sufficient permissions!"))
+            elif not_helpdesk_manager and record.stage_id.name != "New":
+                raise ValidationError(_("You can only delete a ticket when it is in 'New' state."))
+
+        return super(HelpdeskTicket, self).unlink()
 
     # ==================================
     # BUSINESS Methods
@@ -288,7 +321,7 @@ class HelpdeskTicket(models.Model):
             serial_numbers = []
 
         if not serial_numbers:
-            messages_list.append(("serial_number_is_empty", "Please enter serial numbers to check!"))
+            messages_list.append(("serial_number_is_empty", "Vui lòng nhập vào số lô/mã vạch để kiểm tra!"))
             return messages_list
 
         existing_lot_names = move_line_env.search([("lot_name", "in", serial_numbers)]).mapped("lot_name")
@@ -314,3 +347,20 @@ class HelpdeskTicket(models.Model):
                                            f"{move_line.product_id.name if move_line.product_id else ''}"))
 
         return messages_list
+
+    # ==================================
+    # WIZARDS
+    # ==================================
+
+    def action_wizard_import_lot_serial_number(self):
+        self.ensure_one()
+
+        return {
+            'name': _("Wizard: Import Lot/Serial Number"),
+            'type': 'ir.actions.act_window',
+            'res_model': 'wizard.import.lot.serial.number',
+            'view_mode': 'form',
+            'view_id': self.env.ref('mv_helpdesk.mv_helpdesk_wizard_import_lot_serial_number_form_view').id,
+            'context': {'default_helpdesk_ticket_id': self.id},
+            'target': 'new',
+        }

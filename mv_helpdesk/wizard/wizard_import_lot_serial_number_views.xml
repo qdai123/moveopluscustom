@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="mv_helpdesk_wizard_import_lot_serial_number_form_view" model="ir.ui.view">
+        <field name="name">mv.helpdesk.wizard.import.lot.serial.number.form</field>
+        <field name="model">wizard.import.lot.serial.number</field>
+        <field name="arch" type="xml">
+            <form string="Wizard: Import Lot/Serial Number FORM">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="helpdesk_ticket_id" string="Ticket" readonly="True"/>
+                        </group>
+                        <group>
+                            <field name="portal_lot_serial_number"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_import" string="Import Data" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>
