@@ -362,7 +362,7 @@
                         facingMode: 'environment',
                         qrbox: { width: 230, height: 100 },
                         formatsToSupport: formatsToSupport,
-                        rememberLastUsedCamera: false,
+                        rememberLastUsedCamera: true,
                         showTorchButtonIfSupported: false,
                         supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
                     },
