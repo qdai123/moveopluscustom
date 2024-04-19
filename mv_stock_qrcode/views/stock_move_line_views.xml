@@ -10,7 +10,7 @@
             <field name="priority">1030</field>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='lot_name']" position="after">
-                    <field column_invisible="True" readonly="True" name="number_call"/>
+                    <field readonly="True" name="number_call" optional="hidden" groups="base.group_system"/>
                 </xpath>
                 <xpath expr="//field[@name='result_package_id']" position="attributes">
                     <attribute name="optional">show</attribute>

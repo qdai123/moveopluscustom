@@ -6,24 +6,24 @@ from odoo.exceptions import ValidationError, UserError
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    number_start = fields.Integer(compute="_compute_auto_call_next_number", store=True)
     numer_limit_can_be_generate = fields.Integer(
         compute="_compute_auto_call_next_number",
         string="Available can be Generate",
-        store=True,
-        readonly=True,
     )
+
+    @api.onchange("inventory_period_id")
+    def _onchange_inventory_period_id(self):
+        if self.inventory_period_id:
+            self.number_start = self.with_context(onchange_inventory_period_id=True)._get_next_number_start(
+                False, self.product_id, self.inventory_period_id
+            ) + 1
 
     @api.depends("move_line_ids")
     def _compute_auto_call_next_number(self):
         for move in self:
             if not move.move_line_ids:
-                move.number_start = 1
                 move.numer_limit_can_be_generate = move.product_uom_qty
             else:
-                move.number_start = self._get_next_number_start(move) + 1
-                if move.number_start > move.product_uom_qty:
-                    move.number_start = 0
                 current_reserved = sum(move.move_line_ids.mapped("quantity"))
                 available_quantity = max(0, move.product_uom_qty - current_reserved)
                 move.numer_limit_can_be_generate = available_quantity
@@ -38,11 +38,28 @@ class StockMove(models.Model):
         updated_code = f"{qrcode}{str(next_number).zfill(5)}"
         return updated_code
 
-    def _get_next_number_start(self, stock_move):
-        if not stock_move:
+    def _get_next_number_start(self, stock_move=False, product=False, week_number=False):
+        if not stock_move and not self.env.context.get("onchange_inventory_period_id", False):
             raise ValidationError(_("Stock Move not found!"))
+        elif not product:
+            raise ValidationError(_("Product not found!"))
+        elif not week_number:
+            raise ValidationError(_("Week Number is not empty!"))
 
-        self._cr.execute("SELECT MAX(number_call) FROM stock_move_line WHERE move_id = %s;" % stock_move.id)
+        self._cr.execute("""
+            SELECT CASE WHEN MAX(sml.number_call) != 0 THEN MAX(sml.number_call) ELSE COUNT(sml.id) END AS max
+            FROM stock_move_line sml
+                     JOIN product_product pp ON pp.id = sml.product_id
+                     JOIN inventory_period weeknumber ON weeknumber.id = sml.inventory_period_id
+                     JOIN stock_picking sp ON sml.picking_id = sp.id AND sp.state != 'done'
+            WHERE {stock_move} sml.product_id = {product}
+              AND sml.inventory_period_id = {week_number}
+              AND sml.qr_code ILIKE weeknumber.week_number_str || pp.barcode || '%';
+        """.format(
+            stock_move="sml.move_id = {} AND".format(int(stock_move.id)) if stock_move else "",
+            product=int(product.id),
+            week_number=int(week_number.id)
+        ))
         res = self._cr.fetchone()
         return res[0] if res else 0
 
@@ -99,7 +116,6 @@ class StockMove(models.Model):
         number_generate = min(available_quantity, self.number_qrcode)
 
         if number_generate <= 0:
-            self.write({"number_qrcode": 0})
             return
 
         next_number = self.number_start or 1
@@ -113,3 +129,28 @@ class StockMove(models.Model):
                 (0, 0, sml_vals)
                 for sml_vals in sml_vals_lst
             ]
+
+        # Update Number Start && Reset Number QR-Code Input
+        self.write({
+            "number_start": self._get_next_number_start(self, self.product_id, self.inventory_period_id) + 1,
+            "number_qrcode": 0
+        })
+
+    def action_remove_all(self):
+        self.move_line_ids.unlink()
+        self._onchange_inventory_period_id()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        import pprint
+
+        print("Create Stock Move")
+        pprint.pprint(vals_list, indent=4)
+        return super(StockMove, self).create(vals_list)
+
+    def write(self, vals):
+        import pprint
+
+        print("Write Stock Move")
+        pprint.pprint(vals, indent=4)
+        return super(StockMove, self).write(vals)
