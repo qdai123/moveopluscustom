@@ -10,41 +10,52 @@ patch(BarcodeModel.prototype, {
      * @override by MOVEOPLUS
      */
 
-    setData(data) {
+    constructor() {
+        super.setup(...arguments);
+    },
+
+    setData() {
         super.setData(...arguments);
-        super.setData(data);
-    },
-
-    // GETTER
-
-    get canCreateNewMoveLine() {
-        return true;
-    },
-
-    get useExistingMoveLine() {
-        return true;
     },
 
     // ACTIONS
 
     async processBarcode(barcode) {
-        console.debug("MOVEOPLUS Debugging on Model: " + this.resModel);
-        // console.debug("Print Cache: " + JSON.stringify(this.cache));
-        this.actionMutex.exec(() => this._processBarcode(barcode));
-    },
+        const codeScanning = barcode;
+        let scanningQRCode = false;
+        let scanningBarcode = false;
 
-    createNewLine(params) {
-        // return this._createNewLine(params);
-        console.debug("Params Creation: " + params);
-        return;
+        let moveLinesObj = Object.values(this.cache.dbIdCache['stock.move.line']);
+        if (moveLinesObj) {
+            let listQRCodeToCompare = moveLinesObj.map(rec => rec.qr_code);
+            if (listQRCodeToCompare.includes(codeScanning)) {
+                scanningQRCode = true;
+            } else {
+                scanningBarcode = true;
+            }
+        } else {
+            scanningBarcode = true;
+        }
+
+        // Validate: Picking DONE
+        if (this.isDone && !this.commands[codeScanning]) {
+            return this.notification(_t("Picking is already DONE!"), { type: "danger" });
+        }
+
+        if (scanningQRCode) {
+            const moveLineObj = await this.orm.searchRead(
+                "stock.move.line",
+                [["picking_id", "in", this.recordIds], ["qr_code", "=", codeScanning]],
+                ["id", "product_id", "lot_name", "inventory_period_name", "qr_code", "quantity"]
+            );
+            this.actionMutex.exec(() => this._processQRCode(codeScanning, moveLineObj));
+        } else {
+            this.actionMutex.exec(() => this._processBarcode(codeScanning));
+        }
     },
 
     // --------------------------------------------------------------------------
     // Private
     // --------------------------------------------------------------------------
-
-    _shouldSearchForAnotherMoveLine(code, filters) {
-        return !code.match && filters['stock.move.line'] && !this.canCreateNewMoveLine && this.useExistingMoveLine;
-    },
 
 });

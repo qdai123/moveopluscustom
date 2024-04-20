@@ -7,7 +7,6 @@ import LineComponent from "@stock_barcode/components/line";
 patch(LineComponent.prototype, {
     /**
      * @override by MOVEOPLUS
-     * [NEW] Add new "qrCode" && "inventoryPeriod"
      */
 
     get qrCode() {
