@@ -14,8 +14,6 @@ patch(ListRenderer.prototype, {
         const tableList = this.tableRef.el;
         const childOfTableList = tableList.firstElementChild.firstElementChild;
 
-        console.log("tableList: " + tableList);
-        console.log("childOfTableList: " + childOfTableList);
         if (!$(childOfTableList.firstChild).hasClass("o_list_row_count")) {
             const col = $(childOfTableList).prepend(
                 '<th class="o_list_row_number_header o_list_row_count" style="width: 4% !important;">'
