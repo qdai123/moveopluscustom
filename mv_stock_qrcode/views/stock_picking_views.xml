@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+
+        <!-- INHERIT: FORM VIEWS -->
+        <record id="mv_stock_qrcode_inherit_view_picking_form" model="ir.ui.view">
+            <field name="name">mv.stock.qrcode.inherit.view.picking.form</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.view_picking_form"/>
+            <field name="priority">30</field>
+            <field name="arch" type="xml">
+                <!-- TODO: This inherited view should be move to mv_stock addon instead of mv_stock_qrcode -->
+                <xpath expr="//field[@name='move_ids_without_package']/tree/field[@name='product_uom_qty']" position="attributes">
+                    <attribute name="sum">Total product_uom_qty</attribute>
+                </xpath>
+                <xpath expr="//field[@name='move_ids_without_package']/tree/field[@name='quantity']" position="attributes">
+                    <attribute name="sum">Total quantity</attribute>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
