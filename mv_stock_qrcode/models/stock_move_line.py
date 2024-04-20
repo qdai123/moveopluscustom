@@ -11,6 +11,9 @@ class StockMoveLine(models.Model):
         help="Help to find the max of number for Lot/Serial Number",
     )
 
+    # INHERIT Fields:
+    inventory_period_name = fields.Char(related="inventory_period_id.week_number_str", store=True)
+
     def _get_fields_stock_barcode(self):
         fields = super(StockMoveLine, self)._get_fields_stock_barcode()
         fields += ["number_call"]
