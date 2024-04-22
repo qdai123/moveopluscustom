@@ -1,40 +1,39 @@
 <?xml version="1.0"?>
+<!-- ====== MOVEO PLUS INHERIT: VIEWS ====== -->
 <odoo>
-    <data>
+    <record id="mv_stock_qrcode_inherit_stock_move_operations_form_view" model="ir.ui.view">
+        <field name="name">mv_stock_qrcode.inherit.stock.move.operations.form</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="stock.view_stock_move_operations"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <!-- FIXME: phat.dangminh@moveoplus.com -->
+            <!-- TODO: This action 'generate_serials' need to be checked again, so as not to affect the Warehouse process -->
+            <xpath expr="//widget[@name='generate_serials']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+            <!-- TODO: This action 'import_lots' need to be checked again, so as not to affect the Warehouse process -->
+            <xpath expr="//widget[@name='import_lots']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+        </field>
+    </record>
 
-        <!-- INHERIT: FORM VIEWS -->
-        <record id="mv_stock_qrcode_inherit_stock_move_operations_form_view" model="ir.ui.view">
-            <field name="name">mv.stock.qrcode.inherit.stock.move.operations.form</field>
-            <field name="model">stock.move</field>
-            <field name="inherit_id" ref="stock.view_stock_move_operations"/>
-            <field name="priority">30</field>
-            <field name="arch" type="xml">
-                <xpath expr="//widget[@name='generate_serials']" position="attributes">
-                    <attribute name="invisible">True</attribute>
-                </xpath>
-                <xpath expr="//widget[@name='import_lots']" position="attributes">
-                    <attribute name="invisible">True</attribute>
-                </xpath>
-            </field>
-        </record>
-
-        <record id="mv_stock_qrcode_inherit_view_stock_move_operations_inherit_form_view" model="ir.ui.view">
-            <field name="name">mv.stock.qrcode.inherit.view.stock.move.operations.inherit.operations.form</field>
-            <field name="model">stock.move</field>
-            <field name="inherit_id" ref="biz_stock_qrcode.view_stock_move_operations_inherit"/>
-            <field name="priority">40</field>
-            <field name="arch" type="xml">
-                <xpath expr="//field[@name='inventory_period_id']" position="attributes">
-                    <attribute name="options">{'no_create_edit': True}</attribute>
-                </xpath>
-                <xpath expr="//field[@name='number_start']" position="attributes">
-                    <attribute name="readonly">True</attribute>
-                </xpath>
-                <xpath expr="//field[@name='number_qrcode']" position="before">
-                    <field name="numer_limit_can_be_generate" invisible="(numer_limit_can_be_generate == product_uom_qty) or numer_limit_can_be_generate == 0"/>
-                </xpath>
-            </field>
-        </record>
-
-    </data>
+    <record id="mv_stock_qrcode_inherit_view_stock_move_operations_inherit_form_view" model="ir.ui.view">
+        <field name="name">mv_stock_qrcode.inherit.view.stock.move.operations.inherit.operations.form</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="biz_stock_qrcode.view_stock_move_operations_inherit"/>
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='inventory_period_id']" position="attributes">
+                <attribute name="options">{'no_create_edit': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='number_start']" position="attributes">
+                <attribute name="readonly">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='number_qrcode']" position="before">
+                <field name="numer_limit_can_be_generate" invisible="(numer_limit_can_be_generate == product_uom_qty) or numer_limit_can_be_generate == 0"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
