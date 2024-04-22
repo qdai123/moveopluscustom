@@ -9,7 +9,7 @@
         # Odoo
         'web',
         # Odoo (Enterprise)
-        'web_enterpise',
+        'web_enterprise',
     ],
     'data': [],
     'assets': {
