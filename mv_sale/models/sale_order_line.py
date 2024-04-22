@@ -90,7 +90,9 @@ class SaleOrderLine(models.Model):
 
     @api.constrains("product_uom_qty")
     def _check_order_not_free_qty_today(self):
-        for so_line in self.filtered(lambda line: line.product_template_id.detailed_type != "service"):
+        for so_line in self.filtered(
+                lambda line: (line.order_id.state != 'draft' or line.state != 'draft')
+                             and line.product_template_id.detailed_type != "service"):
             if so_line.product_uom_qty > so_line.free_qty_today:
                 error_message = (
                         "Bạn không được phép đặt quá số lượng hiện tại:"
