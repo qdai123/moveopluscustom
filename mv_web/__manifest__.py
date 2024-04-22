@@ -8,6 +8,8 @@
     'depends': [
         # Odoo
         'web',
+        # Odoo (Enterprise)
+        'web_enterprise',
     ],
     'data': [],
     'assets': {
