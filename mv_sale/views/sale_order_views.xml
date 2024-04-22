@@ -71,24 +71,38 @@
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='product_uom_qty']" position="attributes">
                     <attribute name="readonly">is_downpayment or (not is_sales_manager and product_type == 'service')</attribute>
+                    <attribute name="sum">Total product_uom_qty</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='qty_delivered']" position="attributes">
                     <attribute name="readonly">(qty_delivered_method != 'manual' or is_downpayment) or (not is_sales_manager and product_type == 'service')</attribute>
+                    <attribute name="sum">Total qty_delivered</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='qty_invoiced']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+                    <attribute name="sum">Total qty_invoiced</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='customer_lead']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_qty']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+                    <attribute name="sum">Total product_packaging_qty</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_id']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="attributes">
                     <attribute name="readonly">not is_sales_manager</attribute>
+                    <attribute name="sum">Total price_unit</attribute>
+                </xpath>
+                <xpath expr="//field[@name='order_line']/tree/field[@name='price_discount_inv']" position="attributes">
+                    <attribute name="sum">Total price_discount_inv</attribute>
+                </xpath>
+                <xpath expr="//field[@name='order_line']/tree/field[@name='price_total_before_discount']" position="attributes">
+                    <attribute name="sum">Total price_total_before_discount</attribute>
+                </xpath>
+                <xpath expr="//field[@name='order_line']/tree/field[@name='purchase_price']" position="attributes">
+                    <attribute name="sum">Total purchase_price</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='tax_id']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
@@ -98,9 +112,11 @@
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+                    <attribute name="sum">Total price_subtotal</attribute>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='price_total']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+                    <attribute name="sum">Total price_total</attribute>
                 </xpath>
             </field>
         </record>
