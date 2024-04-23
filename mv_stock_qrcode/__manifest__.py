@@ -6,6 +6,8 @@
     'description': "Base on Biz Stock QR-Code module to customize new features",
     'author': 'Phat Dang <phat.dangminh@moveoplus.com>',
     'depends': [
+        # Odoo
+        'stock_barcode',
         # Biz
         'biz_stock_qrcode',
     ],
