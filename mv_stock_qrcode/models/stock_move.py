@@ -35,6 +35,8 @@ class StockMove(models.Model):
                     )
                     or 1
                 )
+            else:
+                move.number_start = 1
 
     @api.depends("move_line_ids")
     def _compute_number_qrcode_input_limited(self):
