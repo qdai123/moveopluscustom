@@ -5,17 +5,15 @@ from odoo import api, fields, models, _
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
+    def action_assign(self):
+        res = super(StockPicking, self).action_assign()
+        return res
+
     @api.model_create_multi
     def create(self, vals_list):
-        import pprint
-
-        print("Create Stock Picking")
-        pprint.pprint(vals_list, indent=4)
+        print(f"Create Picking: {vals_list}")
         return super(StockPicking, self).create(vals_list)
 
     def write(self, vals):
-        import pprint
-
-        print("Write Stock Picking")
-        pprint.pprint(vals, indent=4)
+        print(f"Write Picking: {vals}")
         return super(StockPicking, self).write(vals)

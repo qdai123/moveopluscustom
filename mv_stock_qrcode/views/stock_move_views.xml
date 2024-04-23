@@ -31,8 +31,11 @@
             <xpath expr="//field[@name='number_start']" position="attributes">
                 <attribute name="readonly">True</attribute>
             </xpath>
+            <xpath expr="//field[@name='number_start']" position="before">
+                <field name="base_qrcode" string="Base Code" invisible="True"/>
+            </xpath>
             <xpath expr="//field[@name='number_qrcode']" position="before">
-                <field name="numer_limit_can_be_generate" invisible="(numer_limit_can_be_generate == product_uom_qty) or numer_limit_can_be_generate == 0"/>
+                <field name="number_qrcode_input_limited" string="Can be generate" invisible="number_qrcode_input_limited == 0"/>
             </xpath>
         </field>
     </record>
