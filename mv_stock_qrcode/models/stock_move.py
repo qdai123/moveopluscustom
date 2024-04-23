@@ -23,34 +23,33 @@ class StockMove(models.Model):
         compute="_auto_get_number_start",
         help="Find the next Number Start by Picking, Product and Week Number",
     )
+    # move_line_ids = fields.One2many('stock.move.line', 'move_id')
 
     @api.depends("product_id", "inventory_period_id")
     def _auto_get_number_start(self):
         for move in self:
-            if not move.move_line_ids or not move.inventory_period_id:
-                move.number_start = 1
-            else:
-                if move and move.product_id and move.inventory_period_id:
-                    product = (
-                        self.env["product.product"].browse(move.product_id.id) or False
+            if move and move.product_id and move.inventory_period_id:
+                move.number_start = (
+                    self._get_next_number_start(
+                        move.product_id.id, move.inventory_period_id.id
                     )
-                    inv_period = (
-                        self.env["inventory.period"].browse(move.inventory_period_id.id)
-                        or False
-                    )
-                    week_number = inv_period
-                    next_number_to_generate = self._get_next_number_start(
-                        product, week_number
-                    ) or 1
-                    move.number_start = next_number_to_generate
+                    or 1
+                )
 
     @api.depends("move_line_ids")
     def _compute_number_qrcode_input_limited(self):
         for move in self:
             if move.move_line_ids:
-                current_reserved = sum(move.move_line_ids.mapped("quantity")) or 0
+                current_reserved_has_qrcode = (
+                    sum(
+                        move.move_line_ids.filtered(lambda line: line.qr_code).mapped(
+                            "quantity"
+                        )
+                    )
+                    or 0
+                )
                 move.number_qrcode_input_limited = max(
-                    0, move.product_uom_qty - current_reserved
+                    0, move.product_uom_qty - current_reserved_has_qrcode
                 )
             else:
                 move.number_qrcode_input_limited = move.product_uom_qty
@@ -72,26 +71,26 @@ class StockMove(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        print(f"Create Move: {vals_list}")
+        print(f"Move Creating: {vals_list}")
         return super(StockMove, self).create(vals_list)
 
     def write(self, vals):
-        print(f"Write Picking: {vals}")
+        print(f"Move Writing: {vals}")
         return super(StockMove, self).write(vals)
 
     # ===============================
     # HELPER Methods
     # ===============================
 
-    def reset_data(self, data={}):
+    def reset_data(self):
         self.ensure_one()
         self._auto_get_number_start()
         self.write({"number_qrcode": 0})
 
-    def _get_next_number_start(self, product=False, week_number=False):
-        if not product:
+    def _get_next_number_start(self, product_id=False, week_number_id=False):
+        if not product_id:
             raise ValidationError(_("Product not found!"))
-        elif not week_number:
+        elif not week_number_id:
             raise ValidationError(_("Week Number is not empty!"))
 
         self._cr.execute(
@@ -112,7 +111,7 @@ class StockMove(models.Model):
                   AND sml.inventory_period_id = %s
                 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9;
         """
-            % (product.id, week_number.id)
+            % (product_id, week_number_id)
         )
         move_line_ids = [
             {
