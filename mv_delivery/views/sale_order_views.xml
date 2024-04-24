@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ====== MOVEO PLUS INHERIT: VIEWS ====== -->
+<odoo>
+    <record id="mv_delivery_inherit_view_order_form_with_carrier" model="ir.ui.view">
+        <field name="name">mv_delivery.inherit.view.order.form.with.carrier</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="delivery.view_order_form_with_carrier"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='shipping_weight']" position="after">
+                <field name="shipping_volume" readonly="True"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
