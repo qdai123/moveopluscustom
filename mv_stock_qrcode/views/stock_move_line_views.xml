@@ -1,25 +1,29 @@
 <?xml version="1.0"?>
+<!-- ====== MOVEO PLUS INHERIT: VIEWS ====== -->
 <odoo>
-    <data>
+    <record id="mv_stock_qrcode_inherit_stock_move_line_operation_tree_view" model="ir.ui.view">
+        <field name="name">mv_stock_qrcode.inherit.stock.move.line.tree</field>
+        <field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_stock_move_line_operation_tree"/>
+        <field name="priority">1030</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='lot_name']" position="after">
+                <field name="qr_code_prefix" column_invisible="True"/>
+                <field name="qr_code_suffix" column_invisible="True"/>
+            </xpath>
+            <xpath expr="//field[@name='result_package_id']" position="attributes">
+                <attribute name="optional">hidden</attribute>
+            </xpath>
+            <xpath expr="//field[@name='owner_id']" position="attributes">
+                <attribute name="optional">hidden</attribute>
+            </xpath>
+            <xpath expr="//field[@name='inventory_period_id']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
 
-        <!-- INHERIT: FORM VIEWS -->
-        <record id="mv_stock_qrcode_inherit_stock_move_line_operation_tree_view" model="ir.ui.view">
-            <field name="name">mv.stock.qrcode.inherit.stock.move.line.tree</field>
-            <field name="model">stock.move.line</field>
-            <field name="inherit_id" ref="stock.view_stock_move_line_operation_tree"/>
-            <field name="priority">1030</field>
-            <field name="arch" type="xml">
-                <xpath expr="//field[@name='lot_name']" position="after">
-                    <field column_invisible="True" readonly="True" name="number_call"/>
-                </xpath>
-                <xpath expr="//field[@name='result_package_id']" position="attributes">
-                    <attribute name="optional">show</attribute>
-                </xpath>
-                <xpath expr="//field[@name='inventory_period_id']" position="attributes">
-                    <attribute name="optional">show</attribute>
-                </xpath>
-            </field>
-        </record>
-
-    </data>
+            <xpath expr="/tree" position="attributes">
+                <attribute name="default_order">inventory_period_id, qr_code_suffix</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>
