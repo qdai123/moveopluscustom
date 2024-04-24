@@ -7,6 +7,8 @@
     'author': 'Phat Dang <phat.dangminh@moveoplus.com>',
     'depends': [
         # Odoo
+        'stock',
+        # Odoo (Enterprise)
         'stock_barcode',
         # Biz
         'biz_stock_qrcode',
