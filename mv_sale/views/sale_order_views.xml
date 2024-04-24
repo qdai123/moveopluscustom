@@ -95,12 +95,6 @@
                     <attribute name="readonly">not is_sales_manager</attribute>
                     <attribute name="sum">Total price_unit</attribute>
                 </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='price_discount_inv']" position="attributes">
-                    <attribute name="sum">Total price_discount_inv</attribute>
-                </xpath>
-                <xpath expr="//field[@name='order_line']/tree/field[@name='price_total_before_discount']" position="attributes">
-                    <attribute name="sum">Total price_total_before_discount</attribute>
-                </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='purchase_price']" position="attributes">
                     <attribute name="sum">Total purchase_price</attribute>
                 </xpath>
@@ -117,6 +111,21 @@
                 <xpath expr="//field[@name='order_line']/tree/field[@name='price_total']" position="attributes">
                     <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
                     <attribute name="sum">Total price_total</attribute>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="mv_sale_inherit_view_order_form_hq" model="ir.ui.view">
+            <field name="name">mv_sale.inherit.view.order.form.hq</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="biz_viettel_sinvoice_v2.view_order_form_hq"/>
+            <field name="priority">30</field>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='order_line']/tree/field[@name='price_discount_inv']" position="attributes">
+                    <attribute name="sum">Total price_discount_inv</attribute>
+                </xpath>
+                <xpath expr="//field[@name='order_line']/tree/field[@name='price_total_before_discount']" position="attributes">
+                    <attribute name="sum">Total price_total_before_discount</attribute>
                 </xpath>
             </field>
         </record>
