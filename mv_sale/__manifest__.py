@@ -8,10 +8,13 @@
     'version': '17.0',
     'author': '',
     'depends': [
+        # Odoo
         'website_sale_loyalty',
         'account',
         'sale',
         'sale_stock',
+        # Biz
+        'biz_viettel_sinvoice_v2',
     ],
 
     'data': [
