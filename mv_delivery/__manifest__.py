@@ -8,6 +8,7 @@
     "depends": [
         # Odoo
         "delivery",
+        "stock_delivery",
     ],
     "data": [
         # VIEWS
