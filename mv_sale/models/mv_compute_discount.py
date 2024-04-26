@@ -1,8 +1,21 @@
 # -*- coding: utf-8 -*-
-from datetime import date, datetime
+import base64
+import calendar
+import io
+import logging
+from datetime import date, datetime, timedelta
+
+from pytz import utc
+
+try:
+    from odoo.tools.misc import xlsxwriter
+except ImportError:
+    import xlsxwriter
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.tools import OrderedSet
+from odoo.exceptions import UserError, ValidationError
+from odoo.tools.misc import formatLang
 
 
 def get_years():
@@ -17,9 +30,19 @@ class MvComputeDiscount(models.Model):
     _name = "mv.compute.discount"
     _description = _("Compute Discount (%) for Partner")
 
+    @api.depends("month", "year")
+    def _compute_name(self):
+        for record in self:
+            record.name = "{}/{}".format(str(record.month), str(record.year))
+
+    def _do_readonly(self):
+        for rec in self:
+            if rec.state in ["done"]:
+                rec.do_readonly = True
+            else:
+                rec.do_readonly = False
+
     name = fields.Char(compute="_compute_name")
-    date = fields.Date("Month")
-    line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
     month = fields.Selection(
         [
             ("1", "1"),
@@ -36,9 +59,8 @@ class MvComputeDiscount(models.Model):
             ("12", "12"),
         ],
         string="Tháng",
-        tracking=True,
     )
-    year = fields.Selection(get_years(), tracking=True)
+    year = fields.Selection(get_years())
     state = fields.Selection(
         [
             ("draft", "Nháp"),
@@ -51,6 +73,9 @@ class MvComputeDiscount(models.Model):
         readonly=True,
     )
 
+    line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
+    report_date = fields.Date(compute="_compute_report_date_by_month_year", store=True)
+
     # RULE Fields:
     do_readonly = fields.Boolean(string="Readonly?", compute="_do_readonly")
 
@@ -62,17 +87,23 @@ class MvComputeDiscount(models.Model):
         )
     ]
 
-    def _do_readonly(self):
+    @api.depends("year", "month")
+    def _compute_report_date_by_month_year(self):
         for rec in self:
-            if rec.state in ["done"]:
-                rec.do_readonly = True
+            if rec.month and rec.year:
+                rec.report_date = date.today().replace(
+                    day=1, month=int(rec.month), year=int(rec.year)
+                )
             else:
-                rec.do_readonly = False
+                rec.report_date = rec.create_date.date().replace(
+                    day=1,
+                    month=int(rec.create_date.date().month),
+                    year=int(rec.create_date.date().year),
+                )
 
-    @api.depends("month", "year")
-    def _compute_name(self):
-        for record in self:
-            record.name = str(record.month) + "/" + str(record.year)
+    # =================================
+    # BUSINESS Methods
+    # =================================
 
     def action_confirm(self):
         self.line_ids = False
@@ -211,7 +242,6 @@ class MvComputeDiscount(models.Model):
                         flag = True
                         total_year = 0
                         for i in range(12):
-                            print(i)
                             name = str(i + 1) + "/" + self.year
                             domain = [
                                 ("name", "=", name),
@@ -229,7 +259,6 @@ class MvComputeDiscount(models.Model):
                             year = discount_line_id.quarter
                             year_money = total_year * discount_line_id.year / 100
 
-                    print(month_money)
             if discount_line_id.level:
                 value = (
                     0,
@@ -286,9 +315,17 @@ class MvComputeDiscount(models.Model):
             line.partner_id.write({"amount": line.partner_id.amount + line.total_money})
         self.write({"state": "done"})
 
+    def action_undo(self):
+        self.write(
+            {
+                "state": "draft",
+                "line_ids": False,
+            }
+        )
+
     def action_view_tree(self):
         return {
-            "name": "Kết quả chiết khấu của tháng: %s" % (self.name),
+            "name": "Kết quả chiết khấu của tháng: %s" % self.name,
             "view_mode": "tree,form",
             "res_model": "mv.compute.discount.line",
             "type": "ir.actions.act_window",
@@ -301,10 +338,304 @@ class MvComputeDiscount(models.Model):
             },
         }
 
-    def action_undo(self):
-        self.write(
+    # ===================
+    # REPORT Action/Data
+    # ===================
+
+    @api.model
+    def format_value(self, amount, currency=False, blank_if_zero=False):
+        """Format amount to have a monetary display (with a currency symbol).
+        E.g: 1000 => 1000.0 $
+
+        :param amount:          A number.
+        :param currency:        An optional res.currency record.
+        :param blank_if_zero:   An optional flag forcing the string to be empty if amount is zero.
+        :return:                The formatted amount as a string.
+        """
+        currency_id = currency or self.env.company.currency_id
+        if currency_id.is_zero(amount):
+            if blank_if_zero:
+                return ""
+            # don't print -0.0 in reports
+            amount = abs(amount)
+
+        if self.env.context.get("no_format"):
+            return amount
+        return formatLang(self.env, amount, currency_obj=currency_id)
+
+    def get_days_in_month(self):
+        try:
+            year = int(self[0].report_date.year)
+            month = int(self[0].report_date.month)
+            return [
+                day
+                for week in calendar.monthcalendar(year, month)
+                for day in week
+                if day != 0  # Filter out days that belong to other months (value 0)
+            ]
+        except ValueError:
+            return []
+
+    def get_weekdays_in_month(self):
+        try:
+            year = int(self[0].report_date.year)
+            month = int(self[0].report_date.month)
+            weekdays = [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun",
+            ]
+            dates = []
+
+            for week in calendar.monthcalendar(year, month):
+                for day in week:
+                    if day != 0:
+                        d = f"{year}-{month:02d}-{day:02d}"
+                        day_of_week = weekdays[calendar.weekday(year, month, day)]
+                        dates.append((d, day_of_week))
+
+            return [weekday[1] for weekday in dates]
+        except ValueError:
+            return []
+
+    def _get_compute_discount_detail_data(self, report_date, pass_security=False):
+        report_lines = []
+        self.env["mv.compute.discount.line"].flush_model()
+        query = """
+                SELECT ROW_NUMBER() OVER ()  AS row_index,
+                           partner.name          AS sub_dealer,
+                           cdl.level             AS level,
+                           cdl.quantity_from     AS quantity_from,
+                           cdl.quantity          AS quantity,
+                           cdl.quantity_discount AS quantity_discount,
+                           cdl.amount_total      AS total
+                FROM mv_compute_discount_line cdl
+                    JOIN res_partner partner ON partner.id = cdl.partner_id
+                WHERE cdl.parent_id = %s;
+        """
+        self.env.cr.execute(query, [self.id])
+        for data in self.env.cr.dictfetchall():
+            report_lines.append(
+                {
+                    "index": data["row_index"],
+                    "partner_id": data["sub_dealer"],
+                    "level": data["level"],
+                    "quantity_from": data["quantity_from"],
+                    "quantity": data["quantity"],
+                    "quantity_discount": data["quantity_discount"],
+                    "amount_total": data["total"],
+                }
+            )
+        return report_lines
+
+    def print_report(self):
+        months = set(self.mapped("month"))
+
+        if len(months) > 1:
+            raise UserError(_("Only export report in ONE MONTH!"))
+
+        # DOWNLOAD Report Data
+        file_content, file_name = self.export_to_excel()
+
+        # REMOVE All Excel Files by file_content:
+        attachments_to_remove = self.env["ir.attachment"].search(
+            [
+                ("res_model", "=", self._name),
+                ("res_id", "=", self.id),
+                ("create_uid", "=", self.env.uid),
+                ("create_date", "<", fields.Datetime.now()),
+                ("name", "ilike", "Moveoplus-Partners-Discount-Detail%"),
+            ]
+        )
+        if attachments_to_remove:
+            attachments_to_remove.unlink()
+
+        # NEW Attachment to download
+        new_attachment = (
+            self.with_context(ats_penalties_fines=True)
+            .env["ir.attachment"]
+            .create(
+                {
+                    "name": file_name,
+                    "description": file_name,
+                    "datas": base64.b64encode(file_content),
+                    "res_model": self._name,
+                    "res_id": self.ids[0],
+                }
+            )
+        )
+
+        if len(new_attachment) == 1:
+            return {
+                "type": "ir.actions.act_url",
+                "url": f"/web/content/{new_attachment[0].id}?download=true",
+                "target": "self",
+            }
+
+        return False
+
+    def export_to_excel(self):
+        self.ensure_one()
+
+        if not self:
+            raise UserError(_("No data to generate the report for."))
+
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {"in_memory": True})
+        sheet = workbook.add_worksheet(
+            "Discount in {}-{}".format(self.report_date.month, self.report_date.year)
+        )
+        file_name = "Moveoplus-Partners-Discount-Detail_%s-%s.xlsx" % (
+            self.report_date.month,
+            self.report_date.year,
+        )
+        data_lines = self._get_compute_discount_detail_data(False, False)
+
+        # ############# [SETUP] #############
+        base_format = {
+            "bold": True,
+            "font_name": "Arial",
+            "font_size": 11,
+            "align": "center",
+            "valign": "vcenter",
+            "border": True,
+            "border_color": "black",
+        }
+        DEFAULT_FORMAT = workbook.add_format(base_format)
+
+        # ############# [HEADER] #############
+        sheet.set_row(0, 30)
+
+        # ////// NAME = "Chi tiết chiết khấu của Đại Lý trong tháng {month/year}"
+        sheet.merge_range("A1:G1", "", DEFAULT_FORMAT)
+        format_first_title = [
+            "Chi tiết chiết khấu của Đại Lý trong tháng ",
+            workbook.add_format(
+                {"font_name": "Arial", "font_size": 11, "color": "red", "bold": True}
+            ),
+            "{}/{}".format(self.month, self.year),
+        ]
+        sheet.write_rich_string(
+            "A1",
+            *format_first_title,
+            DEFAULT_FORMAT,
+        )
+
+        SUB_TITLE_FORMAT = workbook.add_format(
             {
-                "state": "draft",
-                "line_ids": False,
+                "font_name": "Arial",
+                "font_size": 10,
+                "align": "center",
+                "valign": "vcenter",
+                "border": True,
+                "border_color": "black",
+                "bold": True,
+                "bg_color": "#71C671",
+                "text_wrap": True,
             }
         )
+
+        # ////// NAME = "Thứ tự"
+        sheet.merge_range("A2:A3", "", DEFAULT_FORMAT)
+        sheet.write("A2", "#", SUB_TITLE_FORMAT)
+
+        sheet.set_column(1, 0, 5)
+
+        # ////// NAME = "Đại lý"
+        sheet.merge_range("B2:B3", "", DEFAULT_FORMAT)
+        sheet.write("B2", "Đại lý", SUB_TITLE_FORMAT)
+
+        sheet.set_column(1, 1, 70)
+
+        # ////// NAME = "Cấp bậc"
+        sheet.merge_range("C2:C3", "", DEFAULT_FORMAT)
+        sheet.write("C2", "Cấp bậc", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "24TA"
+        sheet.merge_range("D2:D3", "", DEFAULT_FORMAT)
+        sheet.write("D2", "24TA", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "Số lượng lốp đã bán (Cái)"
+        sheet.merge_range("E2:E3", "", DEFAULT_FORMAT)
+        sheet.write("E2", "Số lượng lốp đã bán (Cái)", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "Số lượng lốp Khuyến Mãi (Cái)"
+        sheet.merge_range("F2:F3", "", DEFAULT_FORMAT)
+        sheet.write("F2", "Số lượng lốp Khuyến Mãi (Cái)", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "Doanh thu Tháng"
+        sheet.merge_range("G2:G3", "", DEFAULT_FORMAT)
+        sheet.write(
+            "G2",
+            "Doanh thu Tháng",
+            workbook.add_format(
+                {
+                    "font_name": "Arial",
+                    "font_size": 10,
+                    "align": "center",
+                    "valign": "vcenter",
+                    "border": True,
+                    "border_color": "black",
+                    "bold": True,
+                    "bg_color": "#FFA07A",
+                }
+            ),
+        )
+
+        sheet.set_column(4, 6, 15)
+
+        # ############# [BODY] #############
+        BODY_CHAR_FORMAT = workbook.add_format(
+            {
+                "font_name": "Arial",
+                "font_size": 10,
+                "valign": "vcenter",
+                "border": True,
+                "border_color": "black",
+            }
+        )
+        BODY_NUM_FORMAT = workbook.add_format(
+            {
+                "font_name": "Arial",
+                "font_size": 10,
+                "align": "center",
+                "valign": "vcenter",
+                "border": True,
+                "border_color": "black",
+            }
+        )
+        BODY_TOTAL_NUM_FORMAT = workbook.add_format(
+            {
+                "font_name": "Arial",
+                "font_size": 10,
+                "align": "right",
+                "valign": "vcenter",
+                "border": True,
+                "border_color": "black",
+                "num_format": "#,##0.00",
+            }
+        )
+
+        column_headers = list(data_lines[0].keys())
+        for count, data in enumerate(data_lines, start=3):
+            for col, key in enumerate(column_headers):
+                if isinstance(data[key], str):
+                    sheet.write(count, col, data[key], BODY_CHAR_FORMAT)
+                elif isinstance(data[key], int) or isinstance(data[key], float):
+                    if col == 6:  # Amount Total
+                        sheet.write(count, col, data[key], BODY_TOTAL_NUM_FORMAT)
+                    else:
+                        sheet.write(count, col, data[key], BODY_NUM_FORMAT)
+                else:
+                    sheet.write(count, col, data[key])
+
+        # ############# [FOOTER] ###########################################
+
+        workbook.close()
+        output.seek(0)
+
+        return output.read(), file_name.replace("-", "_")

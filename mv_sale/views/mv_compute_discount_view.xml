@@ -19,6 +19,8 @@
                 <form>
                     <header>
                         <field name="do_readonly" invisible="True"/>
+                        <button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info"
+                                invisible="state not in ['confirm', 'done']"/>
                         <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight"
                                 invisible="state!='draft'"/>
                         <button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
@@ -26,7 +28,7 @@
                                 invisible="state!='confirm'"/>
                         <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'"
                                 confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
-                        <field name="state" widget="statusbar"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,confirm,done"/>
                     </header>
                     <sheet>
                         <group>
