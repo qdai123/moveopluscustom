@@ -5,10 +5,42 @@
         <field name="name">mv_delivery.inherit.view.order.form.with.carrier</field>
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="delivery.view_order_form_with_carrier"/>
+        <field name="priority" eval="30"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='shipping_weight']" position="attributes">
+                <!-- Make this field 'shipping_weight' INVISIBLE to update new VIEW below -->
+                <attribute name="invisible">True</attribute>
+            </xpath>
             <xpath expr="//field[@name='shipping_weight']" position="after">
-                <field name="shipping_volume" readonly="True"/>
+                <label for="shipping_weight"/>
+                <div class="o_row" name="shipping_weight">
+                    <field name="shipping_weight" class="oe_inline"/>
+                    <field name="shipping_weight_uom_name"/>
+                </div>
+                <label for="shipping_volume"/>
+                <div class="o_row" name="shipping_volume">
+                    <field name="shipping_volume" class="oe_inline"/>
+                    <field name="shipping_volume_uom_name"/>
+                </div>
             </xpath>
         </field>
+    </record>
+
+    <!-- Server Action:
+            + Re-compute for "shipping_weight" on Sale Order
+            + Re-compute for "shipping_volume" on Sale Order
+            + ...
+    -->
+    <record id="ir_actions_server_sale_order_recompute_data" model="ir.actions.server">
+        <field name="name">Re-compute Sale Shipping</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">
+            if records:
+            records.action_recompute_data()
+        </field>
+        <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
     </record>
 </odoo>

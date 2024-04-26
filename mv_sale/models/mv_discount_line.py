@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-
-from odoo import models, api, fields
+from odoo import api, fields, models, _
 
 
 class MvDiscountLine(models.Model):
-    _name = 'mv.discount.line'
+    _name = "mv.discount.line"
+    _description = _("Moveo PLus Discount Line (%)")
 
     parent_id = fields.Many2one("mv.discount")
     level = fields.Integer(string="Bậc")
-    pricelist_id = fields.Many2one('product.pricelist', string='Chính sách giá')
+    pricelist_id = fields.Many2one("product.pricelist", string="Chính sách giá")
     quantity_from = fields.Integer(string="Số lượng min")
     quantity_to = fields.Integer(string="Số lượng max")
     basic = fields.Float(string="Ck cơ bản")
@@ -31,11 +31,11 @@ class MvDiscountLine(models.Model):
     discount_guarantee = fields.Float(string="Guarantee opening discount")
     total_all = fields.Float(string="Total discount")
 
-    @api.onchange('pricelist_id')
+    @api.onchange("pricelist_id")
     def onchange_pricelist(self):
         self.basic = 0
         # thay đổi basic theo pricelist, quy tắc 1 pricelist chỉ được 1 rule
         if self.pricelist_id and len(self.pricelist_id.item_ids) > 0:
             item_id = self.pricelist_id.item_ids[0]
-            if item_id.compute_price == 'percentage':
+            if item_id.compute_price == "percentage":
                 self.basic = item_id.percent_price
