@@ -70,7 +70,7 @@
                                     </tree>
                                 </field>
                             </page>
-                            <page string="Partner">
+                            <page string="Khách hàng / Đại lý">
                                 <field name="partner_ids" nolabel="1">
                                     <tree default_order="partner_id desc level" editable="bottom">
                                         <field name="partner_id"/>
@@ -94,7 +94,8 @@
             <field name="view_mode">tree,form</field>
         </record>
 
-        <menuitem id="mv_discount_menu" name="Chiết khấu đại lý" action="mv_discount_action" parent="sale.menu_sales_config" sequence="0"/>
+        <menuitem id="mv_discount_menu" name="Chiết khấu đại lý" action="mv_discount_action"
+                  parent="sale.menu_sales_config" sequence="0"/>
 
     </data>
 </odoo>
