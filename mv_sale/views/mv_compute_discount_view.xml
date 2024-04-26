@@ -18,21 +18,25 @@
             <field name="arch" type="xml">
                 <form>
                     <header>
-                        <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state!='draft'"/>
+                        <field name="do_readonly" invisible="True"/>
+                        <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight"
+                                invisible="state!='draft'"/>
                         <button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
-                        <button name="action_done" string="Duyệt" type="object" class="oe_highlight" invisible="state!='confirm'"/>
-                        <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
+                        <button name="action_done" string="Duyệt" type="object" class="oe_highlight"
+                                invisible="state!='confirm'"/>
+                        <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'"
+                                confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
                         <field name="state" widget="statusbar"/>
                     </header>
                     <sheet>
                         <group>
                             <group>
-                                <field name="name" invisible="1"/>
+                                <field name="name" invisible="1" readonly="do_readonly"/>
                                 <label for="month"/>
                                 <div class="o_row">
-                                    <field name="month" required="1"/>
+                                    <field name="month" required="1" readonly="do_readonly"/>
                                     /
-                                    <field name="year" required="1"/>
+                                    <field name="year" required="1" readonly="do_readonly"/>
                                 </div>
                             </group>
                         </group>
@@ -60,8 +64,14 @@
                                         <field name="year_money" widget="monetary"/>
                                         <field name="total_money" widget="monetary"/>
                                         <field name="currency_id" column_invisible="1"/>
-                                        <button name="action_quarter" invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True or parent.state == 'done'" string="Cho phép Duyệt Quý" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
-                                        <button name="action_year" invisible="month_parent not in [12] or is_year == True or parent.state == 'done'" string="Cho phép Duyệt Năm" type="object" class="oe_highlight" confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
+                                        <button name="action_quarter"
+                                                invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True or parent.state == 'done'"
+                                                string="Cho phép Duyệt Quý" type="object" class="oe_highlight"
+                                                confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
+                                        <button name="action_year"
+                                                invisible="month_parent not in [12] or is_year == True or parent.state == 'done'"
+                                                string="Cho phép Duyệt Năm" type="object" class="oe_highlight"
+                                                confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
                                     </tree>
                                 </field>
                             </page>

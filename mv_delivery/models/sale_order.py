@@ -15,7 +15,7 @@ class SaleOrder(models.Model):
         return action
 
     shipping_weight_uom_name = fields.Char(
-        string="Weight unit of measure label", default="kg"
+        string="Weight unit of measure label", default="kg", readonly=True
     )
     shipping_volume = fields.Float(
         "Shipping Volume",
@@ -24,7 +24,7 @@ class SaleOrder(models.Model):
         readonly=False,
     )
     shipping_volume_uom_name = fields.Char(
-        string="Volume unit of measure label", default="m³"
+        string="Volume unit of measure label", default="m³", readonly=True
     )
 
     @api.depends("order_line.product_uom_qty", "order_line.product_uom")
