@@ -7,7 +7,6 @@ import { patch } from "@web/core/utils/patch";
 patch(ListRenderer.prototype, {
     /**
      * @override by MOVEOPLUS
-     * [NEW] Add new "RowNumber" on List Views
      */
 
     freezeColumnWidths() {
