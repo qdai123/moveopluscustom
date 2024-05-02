@@ -14,12 +14,12 @@
             <xpath expr="//field[@name='shipping_weight']" position="after">
                 <label for="shipping_weight"/>
                 <div class="o_row" name="shipping_weight">
-                    <field name="shipping_weight" class="oe_inline"/>
+                    <field name="shipping_weight" class="oe_inline" readonly="True"/>
                     <field name="shipping_weight_uom_name"/>
                 </div>
                 <label for="shipping_volume"/>
                 <div class="o_row" name="shipping_volume">
-                    <field name="shipping_volume" class="oe_inline"/>
+                    <field name="shipping_volume" class="oe_inline" readonly="True"/>
                     <field name="shipping_volume_uom_name"/>
                 </div>
             </xpath>
