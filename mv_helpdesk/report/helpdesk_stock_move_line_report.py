@@ -139,7 +139,7 @@ SELECT ROW_NUMBER() OVER ()        AS id,
             if join_
             else """
 FROM stock_move_line sml
-         LEFT JOIN tickets AS t ON (t.move_line_id = sml.id)
+         INNER JOIN tickets AS t ON (t.move_line_id = sml.id)
          INNER JOIN products AS p ON (p.product_product_id = sml.product_id)
          LEFT JOIN products_first_attribute AS patt_first
                    ON (patt_first.product_template_id = p.product_template_id)
