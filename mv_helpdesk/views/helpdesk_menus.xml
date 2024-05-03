@@ -8,4 +8,10 @@
               sequence="1"
               groups="base.group_no_one"/>
 
+    <menuitem id="helpdesk_stock_move_line_report_menu"
+              name="Tickets &amp; Product Moves"
+              action="mv_helpdesk_stock_move_line_report_action_view"
+              parent="helpdesk.helpdesk_ticket_report_menu_main"
+              sequence="11"/>
+
 </odoo>
