@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models, tools, _
+from odoo import api, fields, models, tools, _
 
 
 class HelpdeskStockMoveLineReport(models.Model):
@@ -9,20 +9,44 @@ class HelpdeskStockMoveLineReport(models.Model):
     _rec_name = "product_template_id"
     _order = "serial_number desc"
 
+    @api.depends("product_template_id")
+    def _compute_by_product(self):
+        size_lop = "Size lốp"
+        ma_gai = "Mã gai"
+
+        for record in self:
+            if record.product_template_id:
+                # Fetch all attribute values for the product template
+                attribute_values = self.env["product.template.attribute.value"].search(
+                    [
+                        ("product_tmpl_id", "=", record.product_template_id.id),
+                        ("attribute_id.name", "in", [size_lop, ma_gai]),
+                    ]
+                )
+
+                # Extract attribute values for "Size lốp" and "Mã gai"
+                size_lop_value = attribute_values.filtered(
+                    lambda r: r.attribute_id.name == size_lop
+                ).product_attribute_value_id.name
+                ma_gai_value = attribute_values.filtered(
+                    lambda r: r.attribute_id.name == ma_gai
+                ).product_attribute_value_id.name
+
+                # Update the record fields
+                record.product_att_size_lop = size_lop_value
+                record.product_att_ma_gai = ma_gai_value
+
+    # ==== Product fields ====
+    product_barcode = fields.Char("Barcode", readonly=True)
+    product_template_id = fields.Many2one("product.template", "Product", readonly=True)
+    product_country_of_origin = fields.Many2one("res.country", "Country", readonly=True)
+    product_att_size_lop = fields.Char("Size lốp", compute="_compute_by_product")
+    product_att_ma_gai = fields.Char("Mã gai", compute="_compute_by_product")
+
     # ==== Stock fields ====
     serial_number = fields.Char("Serial Number", readonly=True)
     qrcode = fields.Char("QR-Code", readonly=True)
     week_number = fields.Char("DOT", readonly=True)
-
-    # ==== Product fields ====
-    product_id = fields.Many2one(
-        "product.product", readonly=True, help="Invisible field!"
-    )
-    product_template_id = fields.Many2one("product.template", "Product", readonly=True)
-    product_barcode = fields.Char("Barcode", readonly=True)
-    product_country_of_origin = fields.Many2one("res.country", "Country", readonly=True)
-    product_att_size_lop = fields.Char("Size lốp", readonly=True)
-    product_att_ma_gai = fields.Char("Mã gai", readonly=True)
 
     # ==== Helpdesk fields ====
     ticket_id = fields.Many2one("helpdesk.ticket", "Ticket", readonly=True)
@@ -50,86 +74,27 @@ class HelpdeskStockMoveLineReport(models.Model):
         )
 
     def _with_clause(self, *with_):
-        return (
-            """
-WITH 
-    """
-            + ",\n    ".join(with_)
-            if with_
-            else """
-WITH products AS (SELECT pp.id                AS product_product_id,
-                         pt.id                AS product_template_id,
-                         pt.country_of_origin AS product_country_of_origin,
-                         pp.barcode           AS product_barcode
-                  FROM product_template pt
-                           JOIN product_product pp ON pt.id = pp.product_tmpl_id
-                  WHERE pt.type = 'product'
-                  GROUP BY 1, 2, 3, 4),
-     products_first_attribute AS (SELECT attribute.id                   AS attribute_id,
-                                         attribute.name ->> 'en_US'     AS attribute_name,
-                                         attribute_val.id               AS attribute_value_id,
-                                         attribute_val.name ->> 'en_US' AS attribute_value,
-                                         ptattline.product_tmpl_id      AS product_template_id
-                                  FROM product_attribute attribute
-                                           JOIN product_attribute_value attribute_val
-                                                ON attribute.id = attribute_val.attribute_id
-                                           JOIN product_template_attribute_line ptattline
-                                                ON attribute.id = ptattline.attribute_id
-                                  WHERE attribute.name ->> 'en_US' = 'Size lốp'
-                                  GROUP BY attribute.id, 2, 3, 4, 5
-                                  ORDER BY attribute.id),
-     products_second_attribute AS (SELECT attribute.id                   AS attribute_id,
-                                          attribute.name ->> 'en_US'     AS attribute_name,
-                                          attribute_val.id               AS attribute_value_id,
-                                          attribute_val.name ->> 'en_US' AS attribute_value,
-                                          ptattline.product_tmpl_id      AS product_template_id
-                                   FROM product_attribute attribute
-                                            JOIN product_attribute_value attribute_val
-                                                 ON attribute.id = attribute_val.attribute_id
-                                            JOIN product_template_attribute_line ptattline
-                                                 ON attribute.id = ptattline.attribute_id
-                                   WHERE attribute.name ->> 'en_US' = 'Mã gai'
-                                   GROUP BY attribute.id, 2, 3, 4, 5
-                                   ORDER BY attribute.id),
-     tickets AS (SELECT ticket.id                    AS ticket_id,
-                        ticket_type.name ->> 'en_US' AS ticket_type,
-                        hs.name ->> 'en_US'          AS ticket_stage,
-                        ticket.write_date            AS ticket_write_date,
-                        ticket.partner_id            AS partner_id,
-                        ticket.partner_email         AS partner_email,
-                        ticket.partner_phone         AS partner_phone,
-                        hpm.stock_move_line_id       AS move_line_id
-                 FROM helpdesk_ticket ticket
-                          JOIN helpdesk_ticket_type AS ticket_type ON (ticket.ticket_type_id = ticket_type.id)
-                          JOIN helpdesk_stage AS hs ON (ticket.stage_id = hs.id)
-                          JOIN mv_helpdesk_ticket_product_moves AS hpm ON (ticket.id = hpm.helpdesk_ticket_id)
-                 WHERE hs.name ->> 'en_US' = 'Done'
-                 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8)
-            """
-        )
+        return """WITH """ + ",\n    ".join(with_) if with_ else ""
 
     def _select_clause(self, *select):
         return "" + (
             ",\n    " + ",\n    ".join(select)
             if select
             else """
-SELECT ROW_NUMBER() OVER ()        AS id,
-       sml.lot_name                AS serial_number,
-       sml.product_id              AS product_id,
-       p.product_template_id       AS product_template_id,
-       patt_first.attribute_value  AS product_att_size_lop,
-       patt_second.attribute_value AS product_att_ma_gai,
-       p.product_country_of_origin AS product_country_of_origin,
-       p.product_barcode           AS product_barcode,
-       sml.qr_code                 AS qrcode,
-       sml.inventory_period_name   AS week_number,
-       t.ticket_id,
-       t.ticket_type,
-       t.ticket_stage,
-       t.ticket_write_date,
-       t.partner_id,
-       t.partner_email,
-       t.partner_phone
+                SELECT ROW_NUMBER() OVER ()           AS id,
+                           product.barcode                AS product_barcode,
+                           product_tmpl.id                AS product_template_id,
+                           product_tmpl.country_of_origin AS product_country_of_origin,
+                           stock_ml.lot_name              AS serial_number,
+                           stock_ml.qr_code               AS qrcode,
+                           stock_ml.inventory_period_name AS week_number,
+                           ticket.id                      AS ticket_id,
+                           ticket_type.name ->> 'en_US'   AS ticket_type,
+                           ticket_stage.name ->> 'en_US'  AS ticket_stage,
+                           ticket.write_date              AS ticket_write_date,
+                           ticket.partner_id,
+                           ticket.partner_email,
+                           ticket.partner_phone
             """
         )
 
@@ -138,13 +103,17 @@ SELECT ROW_NUMBER() OVER ()        AS id,
             "\n".join(join_) + "\n"
             if join_
             else """
-FROM stock_move_line sml
-         INNER JOIN tickets AS t ON (t.move_line_id = sml.id)
-         INNER JOIN products AS p ON (p.product_product_id = sml.product_id)
-         LEFT JOIN products_first_attribute AS patt_first
-                   ON (patt_first.product_template_id = p.product_template_id)
-         LEFT JOIN products_second_attribute AS patt_second
-                   ON (patt_second.product_template_id = p.product_template_id)
+                FROM product_product product
+                     LEFT JOIN product_template AS product_tmpl
+                               ON (product.product_tmpl_id = product_tmpl.id AND product_tmpl.detailed_type = 'product')
+                     JOIN mv_helpdesk_ticket_product_moves AS ticket_product_moves
+                          ON (ticket_product_moves.product_id = product.id 
+                          AND ticket_product_moves.helpdesk_ticket_id IS NOT NULL)
+                     JOIN stock_move_line AS stock_ml
+                          ON (stock_ml.product_id = product.id AND stock_ml.id = ticket_product_moves.stock_move_line_id)
+                     LEFT JOIN helpdesk_ticket AS ticket ON (ticket.id = ticket_product_moves.helpdesk_ticket_id)
+                     LEFT JOIN helpdesk_ticket_type AS ticket_type ON (ticket_type.id = ticket.ticket_type_id)
+                     LEFT JOIN helpdesk_stage AS ticket_stage ON (ticket_stage.id = ticket.stage_id)
             """
         )
 
@@ -152,5 +121,19 @@ FROM stock_move_line sml
         return (
             "" + ",\n    ".join(group_by)
             if group_by
-            else "GROUP BY 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17"
+            else """
+                GROUP BY product_barcode,
+                              product_template_id,
+                              product_country_of_origin,
+                              serial_number,
+                              qrcode,
+                              week_number,
+                              ticket_id,
+                              ticket_type,
+                              ticket_stage,
+                              ticket_write_date,
+                              ticket.partner_id,
+                              ticket.partner_email,
+                              ticket.partner_phone
+            """
         )
