@@ -4,7 +4,7 @@
 		<field name="name">mv.helpdesk.stock.move.line.report.tree</field>
 		<field name="model">mv.helpdesk.stock.move.line.report</field>
 		<field name="arch" type="xml">
-			<tree string="Tickets &amp; Product Moves Analysis LIST" create="false" edit="false" delete="false">
+			<tree string="Tickets &amp; Product Moves Analysis LIST" create="false" edit="false" delete="false" import="false" export_xlsx="false">
 				<field name="serial_number"/>
 				<field name="product_template_id"/>
 				<field name="product_att_size_lop"/>
