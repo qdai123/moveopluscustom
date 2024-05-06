@@ -70,7 +70,7 @@
 		<field name="context">{}</field>
 		<field name="help" type="html">
 			<p class="o_view_nocontent_empty_folder">
-				No data yet!
+				No data yet, please create new data!
 			</p>
 		</field>
 	</record>
