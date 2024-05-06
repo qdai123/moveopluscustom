@@ -19,6 +19,7 @@
 				<field name="ticket_id" column_invisible="True"/>
 				<field name="ticket_type" optional="show"/>
 				<field name="ticket_stage" decoration-info="ticket_stage in ['New', 'In Progress']" decoration-success="ticket_stage == 'Done'" decoration-muted="ticket_stage == 'Canceled'" widget="badge" optional="show"/>
+				<field name="ticket_create_date" optional="show"/>
 				<field name="ticket_write_date" optional="show"/>
 			</tree>
 		</field>
@@ -45,6 +46,7 @@
                         ('partner_id', 'ilike', self),
                         ('partner_name', 'ilike', self),
                         ('partner_email', 'ilike', self)]"/>
+				<filter name="filter_ticket_create_date" date="ticket_create_date" default_period="this_year" string="Period"/>
 				<group expand="0" string="Group By" colspan="16">
 					<filter string="Ticket" name="groupby_ticket" context="{'group_by':'ticket_id'}"/>
 					<filter string="Ticket Type" name="groupby_ticket" context="{'group_by':'ticket_type'}"/>
