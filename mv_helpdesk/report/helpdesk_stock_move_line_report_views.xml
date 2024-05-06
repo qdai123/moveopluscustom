@@ -1,74 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="mv_helpdesk_stock_move_line_report_tree_view" model="ir.ui.view">
-        <field name="name">mv.helpdesk.stock.move.line.report.tree</field>
-        <field name="model">mv.helpdesk.stock.move.line.report</field>
-        <field name="arch" type="xml">
-            <tree string="Tickets &amp; Product Moves Analysis LIST" create="false" edit="false" delete="false">
-                <field name="serial_number"/>
-                <field name="product_id" column_invisible="True"/>
-                <field name="product_template_id" options="{'no_open': True}"/>
-                <field name="product_att_size_lop"/>
-                <field name="product_att_ma_gai"/>
-                <field name="product_country_of_origin" options="{'no_open': True}"/>
-                <field name="product_barcode" optional="show"/>
-                <field name="qrcode" optional="show"/>
-                <field name="week_number" optional="show"/>
-                <field name="ticket_stage"/>
-                <field name="ticket_id" column_invisible="True"/>
-                <field name="partner_id" widget="res_partner_many2one" optional="show"/>
-                <field name="partner_email" optional="hidden"/>
-                <field name="partner_phone" optional="hidden"/>
-                <field name="ticket_type"/>
-                <field name="ticket_write_date"/>
-            </tree>
-        </field>
-    </record>
+	<record id="mv_helpdesk_stock_move_line_report_tree_view" model="ir.ui.view">
+		<field name="name">mv.helpdesk.stock.move.line.report.tree</field>
+		<field name="model">mv.helpdesk.stock.move.line.report</field>
+		<field name="arch" type="xml">
+			<tree string="Tickets &amp; Product Moves Analysis LIST" create="false" edit="false" delete="false" import="false" export_xlsx="false">
+				<field name="serial_number"/>
+				<field name="product_template_id"/>
+				<field name="product_att_size_lop"/>
+				<field name="product_att_ma_gai"/>
+				<field name="product_country_of_origin" options="{'no_open': True}"/>
+				<field name="product_barcode" optional="show"/>
+				<field name="qrcode" optional="show"/>
+				<field name="week_number" optional="show"/>
+				<field string="Customer" name="partner_id" widget="res_partner_many2one"/>
+				<field name="partner_email" optional="hidden"/>
+				<field name="partner_phone" optional="hidden"/>
+				<field name="ticket_id" column_invisible="True"/>
+				<field name="ticket_type" optional="show"/>
+				<field name="ticket_stage" decoration-info="ticket_stage in ['New', 'In Progress']" decoration-success="ticket_stage == 'Done'" decoration-muted="ticket_stage == 'Canceled'" widget="badge" optional="show"/>
+				<field name="ticket_write_date" optional="show"/>
+			</tree>
+		</field>
+	</record>
 
-    <record id="mv_helpdesk_stock_move_line_report_search_view" model="ir.ui.view">
-        <field name="name">mv.helpdesk.stock.move.line.report.search</field>
-        <field name="model">mv.helpdesk.stock.move.line.report</field>
-        <field name="arch" type="xml">
-            <search string="Tickets &amp; Product Moves Analysis SEARCH">
-                <field name="serial_number" string="Serial Number"/>
-                <field name="ticket_id" operator="child_of" string="Ticket" filter_domain="[
+	<record id="mv_helpdesk_stock_move_line_report_search_view" model="ir.ui.view">
+		<field name="name">mv.helpdesk.stock.move.line.report.search</field>
+		<field name="model">mv.helpdesk.stock.move.line.report</field>
+		<field name="arch" type="xml">
+			<search string="Tickets &amp; Product Moves Analysis SEARCH">
+				<field name="serial_number" string="Serial Number"/>
+				<field name="qrcode" string="QR-Code"/>
+				<field name="week_number" string="Week Number"/>
+				<field name="ticket_id" operator="child_of" string="Ticket" filter_domain="[
                         '|',
                         ('ticket_id', 'ilike', self),
                         ('ticket_id.name', 'ilike', self)]"/>
-                <field name="product_template_id" operator="child_of" string="Product" filter_domain="[
+				<field name="product_template_id" operator="child_of" string="Product" filter_domain="[
                         '|',
                         ('product_template_id', 'ilike', self),
                         ('product_template_id.name', 'ilike', self)]"/>
-                <field name="partner_id" operator="child_of" string="Customer" filter_domain="[
+				<field name="partner_id" operator="child_of" string="Customer" filter_domain="[
                         '|', '|',
                         ('partner_id', 'ilike', self),
                         ('partner_name', 'ilike', self),
                         ('partner_email', 'ilike', self)]"/>
-                <group expand="0" string="Group By" colspan="16">
-                    <filter string="Ticket" name="groupby_ticket" context="{'group_by':'ticket_id'}"/>
-                    <filter string="Ticket Type" name="groupby_ticket" context="{'group_by':'ticket_type'}"/>
-                    <separator/>
-                    <filter string="Product" name="groupby_product" context="{'group_by':'product_template_id'}"/>
-                    <filter string="Product Country" name="groupby_product_country"
-                            context="{'group_by':'product_country_of_origin'}"/>
-                    <separator/>
-                    <filter string="Customer" name="groupby_partner" context="{'group_by':'partner_id'}"/>
-                </group>
-            </search>
-        </field>
-    </record>
+				<group expand="0" string="Group By" colspan="16">
+					<filter string="Ticket" name="groupby_ticket" context="{'group_by':'ticket_id'}"/>
+					<filter string="Ticket Type" name="groupby_ticket" context="{'group_by':'ticket_type'}"/>
+					<separator/>
+					<filter string="Product" name="groupby_product" context="{'group_by':'product_template_id'}"/>
+					<filter string="Product Country" name="groupby_product_country"
+					        context="{'group_by':'product_country_of_origin'}"/>
+					<separator/>
+					<filter string="Customer" name="groupby_partner" context="{'group_by':'partner_id'}"/>
+				</group>
+			</search>
+		</field>
+	</record>
 
-    <record id="mv_helpdesk_stock_move_line_report_action_view" model="ir.actions.act_window">
-        <field name="name">Ticket &amp; Product Moves Analysis</field>
-        <field name="res_model">mv.helpdesk.stock.move.line.report</field>
-        <field name="search_view_id" ref="mv_helpdesk_stock_move_line_report_search_view"/>
-        <field name="view_id" ref="mv_helpdesk_stock_move_line_report_tree_view"/>
-        <field name="domain">[]</field>
-        <field name="context">{}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_empty_folder">
-                No data yet!
-            </p>
-        </field>
-    </record>
+	<record id="mv_helpdesk_stock_move_line_report_action_view" model="ir.actions.act_window">
+		<field name="name">Ticket &amp; Product Moves Analysis</field>
+		<field name="res_model">mv.helpdesk.stock.move.line.report</field>
+		<field name="search_view_id" ref="mv_helpdesk_stock_move_line_report_search_view"/>
+		<field name="view_id" ref="mv_helpdesk_stock_move_line_report_tree_view"/>
+		<field name="domain">[]</field>
+		<field name="context">{}</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_empty_folder">
+				No data yet!
+			</p>
+		</field>
+	</record>
 </odoo>
