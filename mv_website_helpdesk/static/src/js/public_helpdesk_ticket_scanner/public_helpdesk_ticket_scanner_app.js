@@ -21,7 +21,6 @@ class validateHelpdeskTicketLotSerialNumberApp extends Component{
         this.barcode = useService("barcode");
         this.notification = useService("notification");
         this.lockScanner = false;
-        console.log("12i31oi32y1oi231oi2u3y1oi2");
     }
 
     async validateLotSerialNumber(lotSerialNumber){
