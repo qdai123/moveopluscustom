@@ -87,7 +87,7 @@ class HelpdeskStockMoveLineReport(models.Model):
                            product_tmpl.country_of_origin AS product_country_of_origin,
                            stock_ml.lot_name              AS serial_number,
                            stock_ml.qr_code               AS qrcode,
-                           stock_ml.inventory_period_name AS week_number,
+                           period.week_number_str         AS week_number,
                            ticket.id                      AS ticket_id,
                            ticket_type.name ->> 'en_US'   AS ticket_type,
                            ticket_stage.name ->> 'en_US'  AS ticket_stage,
@@ -111,6 +111,7 @@ class HelpdeskStockMoveLineReport(models.Model):
                           AND ticket_product_moves.helpdesk_ticket_id IS NOT NULL)
                      JOIN stock_move_line AS stock_ml
                           ON (stock_ml.product_id = product.id AND stock_ml.id = ticket_product_moves.stock_move_line_id)
+                     LEFT JOIN inventory_period AS period ON (period.id = stock_ml.inventory_period_id)
                      LEFT JOIN helpdesk_ticket AS ticket ON (ticket.id = ticket_product_moves.helpdesk_ticket_id)
                      LEFT JOIN helpdesk_ticket_type AS ticket_type ON (ticket_type.id = ticket.ticket_type_id)
                      LEFT JOIN helpdesk_stage AS ticket_stage ON (ticket_stage.id = ticket.stage_id)
