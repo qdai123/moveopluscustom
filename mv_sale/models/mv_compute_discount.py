@@ -412,7 +412,12 @@ class MvComputeDiscount(models.Model):
                            cdl.quantity_from     AS quantity_from,
                            cdl.quantity          AS quantity,
                            cdl.quantity_discount AS quantity_discount,
-                           cdl.amount_total      AS total
+                           cdl.amount_total      AS total,
+                           cdl.month_money       AS month_money,
+                           cdl.two_money         AS two_money,
+                           cdl.quarter_money     AS quarter_money,
+                           cdl.year_money        AS year_money,
+                           cdl.total_money       AS total_money
                 FROM mv_compute_discount_line cdl
                     JOIN res_partner partner ON partner.id = cdl.partner_id
                 WHERE cdl.parent_id = %s;
@@ -428,6 +433,11 @@ class MvComputeDiscount(models.Model):
                     "quantity": data["quantity"],
                     "quantity_discount": data["quantity_discount"],
                     "amount_total": data["total"],
+                    "amount_month_money": data["month_money"],
+                    "amount_two_money": data["two_money"],
+                    "amount_quarter_money": data["quarter_money"],
+                    "amount_year_money": data["year_money"],
+                    "amount_total_money": data["total_money"],
                 }
             )
         return report_lines
@@ -511,7 +521,7 @@ class MvComputeDiscount(models.Model):
         sheet.set_row(0, 30)
 
         # ////// NAME = "Chi tiết chiết khấu của Đại Lý trong tháng {month/year}"
-        sheet.merge_range("A1:G1", "", DEFAULT_FORMAT)
+        sheet.merge_range("A1:L1", "", DEFAULT_FORMAT)
         format_first_title = [
             "Chi tiết chiết khấu của Đại Lý trong tháng ",
             workbook.add_format(
@@ -539,11 +549,25 @@ class MvComputeDiscount(models.Model):
             }
         )
 
+        SUB_TITLE_TOTAL_FORMAT = workbook.add_format(
+            {
+                "font_name": "Arial",
+                "font_size": 10,
+                "align": "center",
+                "valign": "vcenter",
+                "border": True,
+                "border_color": "black",
+                "bold": True,
+                "bg_color": "#FFA07A",
+                "text_wrap": True,
+            }
+        )
+
         # ////// NAME = "Thứ tự"
         sheet.merge_range("A2:A3", "", DEFAULT_FORMAT)
         sheet.write("A2", "#", SUB_TITLE_FORMAT)
 
-        sheet.set_column(1, 0, 5)
+        sheet.set_column(1, 0, 3)
 
         # ////// NAME = "Đại lý"
         sheet.merge_range("B2:B3", "", DEFAULT_FORMAT)
@@ -569,24 +593,29 @@ class MvComputeDiscount(models.Model):
 
         # ////// NAME = "Doanh thu Tháng"
         sheet.merge_range("G2:G3", "", DEFAULT_FORMAT)
-        sheet.write(
-            "G2",
-            "Doanh thu Tháng",
-            workbook.add_format(
-                {
-                    "font_name": "Arial",
-                    "font_size": 10,
-                    "align": "center",
-                    "valign": "vcenter",
-                    "border": True,
-                    "border_color": "black",
-                    "bold": True,
-                    "bg_color": "#FFA07A",
-                }
-            ),
-        )
+        sheet.write("G2", "Doanh thu Tháng", SUB_TITLE_TOTAL_FORMAT)
 
-        sheet.set_column(4, 6, 15)
+        # ////// NAME = "Số tiền chiết khấu tháng"
+        sheet.merge_range("H2:H3", "", DEFAULT_FORMAT)
+        sheet.write("H2", "Số tiền chiết khấu tháng", SUB_TITLE_TOTAL_FORMAT)
+
+        # ////// NAME = "Số tiền chiết khấu 2 tháng"
+        sheet.merge_range("I2:I3", "", DEFAULT_FORMAT)
+        sheet.write("I2", "Số tiền chiết khấu 2 tháng", SUB_TITLE_TOTAL_FORMAT)
+
+        # ////// NAME = "Số tiền chiết khấu quý"
+        sheet.merge_range("J2:J3", "", DEFAULT_FORMAT)
+        sheet.write("J2", "Số tiền chiết khấu quý", SUB_TITLE_TOTAL_FORMAT)
+
+        # ////// NAME = "Số tiền chiết khấu năm"
+        sheet.merge_range("K2:K3", "", DEFAULT_FORMAT)
+        sheet.write("K2", "Số tiền chiết khấu năm", SUB_TITLE_TOTAL_FORMAT)
+
+        # ////// NAME = "Tổng tiền chiết khấu"
+        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
+        sheet.write("L2", "Tổng tiền chiết khấu", SUB_TITLE_TOTAL_FORMAT)
+
+        sheet.set_column(4, 11, 15)
 
         # ############# [BODY] #############
         BODY_CHAR_FORMAT = workbook.add_format(
@@ -626,7 +655,7 @@ class MvComputeDiscount(models.Model):
                 if isinstance(data[key], str):
                     sheet.write(count, col, data[key], BODY_CHAR_FORMAT)
                 elif isinstance(data[key], int) or isinstance(data[key], float):
-                    if col == 6:  # Amount Total
+                    if col in [6, 7, 8, 9, 10, 11]:
                         sheet.write(count, col, data[key], BODY_TOTAL_NUM_FORMAT)
                     else:
                         sheet.write(count, col, data[key], BODY_NUM_FORMAT)
