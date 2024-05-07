@@ -52,9 +52,7 @@
 					<div class="row mb16">
 						<div class="col-md-8 ps-4">
 							<div class="container">
-								<h2 class="text-muted">
-									Gửi kích hoạt bảo hành
-								</h2>
+								<h2 class="text-muted">Gửi kích hoạt bảo hành</h2>
 								<div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_form_left"/>
 								<section class="s_text_block o_colored_level pt4 pb8" data-snippet="s_text_block" data-name="Text" style="background-image: none;">
 									<div class="container s_allow_columns">
@@ -76,6 +74,7 @@
 											<form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/kich-hoat-bao-hanh-xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
 
 												<!-- Parameters -->
+												<t t-set="anonymous" t-value="not env.user.has_group('base.group_portal') and not env.user.has_group('base.group_user')"/>
 												<t t-set="type_is_sub_dealer_id" t-value="env.ref('mv_helpdesk.type_guarantee_activation_for_sub_dealer').sudo().id or false"/>
 												<t t-set="type_is_end_user_id" t-value="env.ref('mv_helpdesk.type_guarantee_activation_for_end_user').sudo().id or false"/>
 												<t t-set="ticket_type_objects" t-value="request.env['helpdesk.ticket.type'].sudo().search([('id', 'in', [type_is_sub_dealer_id, type_is_end_user_id])], order='id') or []"/>
@@ -96,87 +95,64 @@
 															</div>
 														</div>
 													</div>
-													<!-- Testing -->
-													<t t-if="not (env.user.has_group('base.group_portal') or env.user.has_group('base.group_user'))">
-				                                        <div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
-															<div style="width: 200px;" class="s_website_form_label"/>
-					                                        <span>Get Partner Data</span>
+													<!-- Field: Validation Partner Phone Number -->
+													<t t-if="anonymous">
+														<div class="mb-0 py-2 s_website_form_field col-12">
+															<div class="o_search input-group col-sm" style="height: 80%;" role="search">
+													            <input type="search" name="search" id="search-phone-number" class="form-control border-info" placeholder="Nhập số điện thoại..." t-ref="search"/>
+													            <a href="#" role="button" id="search-btn" class="btn btn-primary btn-lg" style="background-color: #461885; border-color: #461885;">
+																	<i class="fa fa-search" style="vertical-align: super;"/>
+																</a>
+													        </div>
 														</div>
-				                                    </t>
-				                                    <t t-else=""/>
+														<div class="alert alert-warning mt-2 col-sm" id="phonenumber-error-message" style="display:none; margin: 0 16px 0 16px;"></div>
+													</t>
 													<!-- Field: partner_name (Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required"
-													     data-type="char" data-name="Field">
+													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
 															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_partner_name">
 																<span class="s_website_form_label_content">Họ &amp; Tên</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_partner_name" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" required="1"/>
+																<input id="helpdesk_warranty_input_partner_name" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="anonymous"/>
 															</div>
 														</div>
 													</div>
 													<!-- Field: partner_email (Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required"
-													     data-type="email" data-name="Field">
+													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="email" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label "
-															       style="width: 200px"
-															       for="helpdesk_warranty_input_partner_email">
+															<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_warranty_input_partner_email">
 																<span class="s_website_form_label_content">Email</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_partner_email"
-																       class="form-control s_website_form_input"
-																       type="email"
-																       name="partner_email"
-																       data-fill-with="email"
-																       required="1"/>
+																<input id="helpdesk_warranty_input_partner_email" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="anonymous"/>
 															</div>
 														</div>
 													</div>
 													<!-- Field: name (Required, Invisible) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable"
-													     data-type="char" data-name="Field">
+													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable" data-type="char" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label "
-															       style="width: 200px"
-															       for="helpdesk_warranty_input_ticket_name">
-																<span class="s_website_form_label_content">Tiêu đề
-																</span>
+															<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_warranty_input_ticket_name">
+																<span class="s_website_form_label_content">Tiêu đề</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_ticket_name"
-																       class="form-control s_website_form_input"
-																       type="text"
-																       name="name"
-																       data-fill-with="undefined"
-																       value="new"/>
+																<input id="helpdesk_warranty_input_ticket_name" class="form-control s_website_form_input" type="text" name="name" data-fill-with="undefined" value="new"/>
 															</div>
 														</div>
 													</div>
 													<!-- Field: ticket_type_id (Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12"
-													     data-type="many2one" data-name="Field">
+													<div class="mb-0 py-2 s_website_form_field col-12" data-type="many2one" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label"
-															       style="width: 200px"
-															       for="helpdesk_warranty_select_ticket_type_id">
+															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_select_ticket_type_id">
 																<span class="s_website_form_label_content">Loại</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<select id="helpdesk_warranty_select_ticket_type_id"
-																        name="ticket_type_id"
-																        class="form-select s_website_form_input"
-																        required="1" t-on-change="onChange">
-																	<option t-foreach="ticket_type_objects or []"
-																	        t-as="type" t-key="type.id"
-																	        t-att-value="type.id"
-																	        t-att-selected="type.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)'">
+																<select id="helpdesk_warranty_select_ticket_type_id" name="ticket_type_id" class="form-select s_website_form_input" required="1" t-on-change="onChange">
+																	<option t-foreach="ticket_type_objects or []" t-as="type" t-key="type.id" t-att-value="type.id" t-att-selected="type.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)'">
 																		<t t-out="type.name"/>
 																	</option>
 																</select>
@@ -191,20 +167,11 @@
 													     data-type="char"
 													     data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label"
-															       style="width: 200px"
-															       for="helpdesk_warranty_input_sub_dealer_name">
-																<span class="s_website_form_label_content">Tên Đại lý
-																	mua hàng
-																</span>
+															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_sub_dealer_name">
+																<span class="s_website_form_label_content">Tên Đại lý mua hàng</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_sub_dealer_name"
-																       class="form-control s_website_form_input"
-																       type="text"
-																       name="sub_dealer_name"
-																       data-fill-with="undefined"
-																/>
+																<input id="helpdesk_warranty_input_sub_dealer_name" class="form-control s_website_form_input" type="text" name="sub_dealer_name" data-fill-with="undefined"/>
 															</div>
 														</div>
 													</div>
@@ -240,12 +207,8 @@
 													     data-type="char"
 													     data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label"
-															       style="width: 200px"
-															       for="helpdesk_warranty_input_mileage">
-																<span class="s_website_form_label_content">Số Km hiện
-																	tại
-																</span>
+															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_mileage">
+																<span class="s_website_form_label_content">Số Km hiện tại</span>
 															</label>
 															<div class="col-sm">
 																<input id="helpdesk_warranty_input_mileage"
@@ -258,29 +221,15 @@
 														</div>
 													</div>
 													<!-- Field: portal_lot_serial_number (Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required"
-													     data-type="text" data-name="Field">
+													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="text" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label"
-															       style="width: 200px"
-															       for="helpdesk_warranty_input_portal_lot_serial_number">
-																<span class="s_website_form_label_content">Số Lô/Số Mã
-																	Vạch
-																</span>
+															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_portal_lot_serial_number">
+																<span class="s_website_form_label_content">Số Lô/Số Mã Vạch</span>
 																<span class="s_website_form_mark">*</span>
-																<input type="button" value="Clear"
-																       onclick="clearForm()"/>
+																<input type="button" value="Clear" onclick="clearForm()"/>
 															</label>
 															<div class="col-sm">
-																<textarea
-																		id="helpdesk_warranty_input_portal_lot_serial_number"
-																		type="text"
-																		class="form-control s_website_form_input"
-																		name="portal_lot_serial_number"
-																		required="1"
-																		rows="5"
-																		spellcheck="false"
-																/>
+																<textarea id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="5" spellcheck="false"/>
 															</div>
 															<div class="col-sm">
 																<div id="qr-reader" style="width: 250px;"></div>
@@ -288,28 +237,20 @@
 														</div>
 													</div>
 													<!-- UPLOAD: attachment (None Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_custom"
-													     data-type="binary" data-name="Field">
+													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_custom" data-type="binary" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class=" col-sm-auto s_website_form_label "
-															       style="width: 200px"
-															       for="helpdesk_warranty_upload_ticket_attachments">
-																<span class="s_website_form_label_content">Tệp đính
-																	kèm
-																</span>
+															<label class=" col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_warranty_upload_ticket_attachments">
+																<span class="s_website_form_label_content">Tệp đính kèm</span>
 															</label>
 															<div class="col-sm">
-																<input type="file"
-																       class="form-control s_website_form_input"
-																       name="Attachment"
-																       id="helpdesk_warranty_upload_ticket_attachments"/>
+																<input type="file" class="form-control s_website_form_input" name="Attachment" id="helpdesk_warranty_upload_ticket_attachments"/>
 															</div>
 														</div>
 													</div>
 													<!-- ACTION: Submit -->
 													<div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
 														<div style="width: 200px;" class="s_website_form_label"/>
-														<a href="#" role="button" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text" style="background-color: #461885; border-color: #461885;">
+														<a href="#" role="button" id="submit-btn" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text" style="background-color: #461885; border-color: #461885;">
 															Gửi kích hoạt bảo hành
 														</a>
 													</div>
@@ -351,11 +292,7 @@
 			<script src="/mv_website_helpdesk/static/src/js/html5-qrcode-handler.js"></script>
 		</template>
 
-	</data>
-
-	<data noupdate="1">
-
-        <!-- ==================== PAGEs ==================== -->
+		<!-- ==================== PAGEs ==================== -->
 
 		<!-- Page: Kích Hoạt Bảo Hành -->
 		<record id="mv_website_helpdesk_warranty_activation_website_page" model="website.page">

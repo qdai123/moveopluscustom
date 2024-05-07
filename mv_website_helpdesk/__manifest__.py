@@ -1,55 +1,55 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'MV Website Helpdesk',
-    'version': '17.0.1.0',
-    'category': 'Moveoplus/MV Website Helpdesk',
-    'description': "Base on Website Helpdesk module to customize new features",
-    'author': 'Phat Dang <phat.dangminh@moveoplus.com>',
-    'depends': [
+    "name": "MV Website Helpdesk",
+    "version": "17.0.1.0",
+    "category": "Moveoplus/MV Website Helpdesk",
+    "description": "Base on Website Helpdesk module to customize new features",
+    "author": "Phat Dang <phat.dangminh@moveoplus.com>",
+    "depends": [
         # Odoo
-        'barcodes',
-        'website',
-        'web',
+        "barcodes",
+        "website",
+        "web",
         # Odoo (Enterprice)
-        'website_helpdesk',
+        "website_helpdesk",
         # Moveoplus
-        'mv_helpdesk',
+        "mv_helpdesk",
     ],
-    'data': [
+    "data": [
         # SECURITY
-        'security/ir.model.access.csv',
+        "security/ir.model.access.csv",
         # DATA
-        'data/website_helpdesk_data.xml',
+        "data/website_helpdesk_data.xml",
         # VIEWS
-        'views/helpdesk_team_views.xml',
-        'views/helpdesk_ticket_views.xml',
-        'views/helpdesk_templates.xml',
+        "views/helpdesk_team_views.xml",
+        "views/helpdesk_ticket_views.xml",
+        "views/helpdesk_templates.xml",
         # DEFAULT DATA
-        'data/default_data_helpdesk_team.xml',
+        "data/default_data_helpdesk_team.xml",
     ],
-    'bootstrap': True,
-    'assets': {
-        'web.assets_backend': [],
-        'mv_website_helpdesk.assets_public_website_helpdesk': [
+    "bootstrap": True,
+    "assets": {
+        "web.assets_frontend": [
+            "mv_website_helpdesk/static/src/js/website_helpdesk_helpdesk_warranty_activation_form.js",
+        ],
+        "mv_website_helpdesk.assets_public_website_helpdesk": [
             # Front-end libraries
-            ('include', 'web._assets_helpers'),
-            ('include', 'web._assets_frontend_helpers'),
-            'web/static/src/scss/pre_variables.scss',
-            'web/static/lib/bootstrap/scss/_variables.scss',
-            ('include', 'web._assets_bootstrap_frontend'),
-            ('include', 'web._assets_bootstrap_backend'),
-            '/web/static/lib/odoo_ui_icons/*',
-            '/web/static/lib/bootstrap/scss/_functions.scss',
-            '/web/static/lib/bootstrap/scss/_mixins.scss',
-            '/web/static/lib/bootstrap/scss/utilities/_api.scss',
-            'web/static/src/libs/fontawesome/css/font-awesome.css',
-            ('include', 'web._assets_core'),
-
+            ("include", "web._assets_helpers"),
+            ("include", "web._assets_frontend_helpers"),
+            "web/static/src/scss/pre_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables.scss",
+            ("include", "web._assets_bootstrap_frontend"),
+            ("include", "web._assets_bootstrap_backend"),
+            "/web/static/lib/odoo_ui_icons/*",
+            "/web/static/lib/bootstrap/scss/_functions.scss",
+            "/web/static/lib/bootstrap/scss/_mixins.scss",
+            "/web/static/lib/bootstrap/scss/utilities/_api.scss",
+            "web/static/src/libs/fontawesome/css/font-awesome.css",
+            ("include", "web._assets_core"),
             # Public Kiosk app and its components
-            "mv_website_helpdesk/static/src/public_helpdesk_ticket_scanner/**/*",
-            'mv_website_helpdesk/static/src/components/**/*',
+            # "mv_website_helpdesk/static/src/public_helpdesk_ticket_scanner/**/*",
+            # "mv_website_helpdesk/static/src/components/**/*",
             "web/static/src/views/fields/formatters.js",
-
             # Barcode reader utils
             "web/static/src/webclient/barcode/barcode_scanner.js",
             "web/static/src/webclient/barcode/barcode_scanner.xml",
@@ -63,8 +63,8 @@
             "barcodes/static/src/components/barcode_scanner.xml",
             "barcodes/static/src/components/barcode_scanner.scss",
             "barcodes/static/src/barcode_service.js",
-        ]
+        ],
     },
-    'license': 'LGPL-3',
-    'application': True,
+    "license": "LGPL-3",
+    "application": True,
 }

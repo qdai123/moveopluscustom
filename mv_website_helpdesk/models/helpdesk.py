@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
-try:
-    import phonenumbers
-except ImportError:
-    phonenumbers = None
-
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 from odoo.addons.http_routing.models.ir_http import slug
-from odoo.addons.account.models.company import PEPPOL_LIST
 
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
     ticket_type_sub_dealer,
@@ -226,41 +220,3 @@ class HelpdeskTicket(models.Model):
             ):
                 ticket.ticket_warranty_activation = True
                 ticket.sudo().onchange_team_id()
-
-    def get_partner_by_phone_number(self, phone_number=None):
-        if not phone_number:
-            raise ValidationError(_("Please input your phone number."))
-
-        try:
-            phone_nbr = phonenumbers.parse(phone_number, None)
-        except phonenumbers.phonenumberutil.NumberParseException:
-            raise ValidationError(
-                _(
-                    "Please enter the phone number in the correct international format. "
-                    "For example: +32123456789."
-                )
-            )
-
-        if not phonenumbers.is_valid_number(phone_nbr):
-            raise ValidationError(_("Please enter a valid phone number."))
-
-        country_code = phonenumbers.phonenumberutil.region_code_for_number(phone_nbr)
-        if country_code not in PEPPOL_LIST:
-            raise ValidationError(
-                _("Currently, only European countries are supported.")
-            )
-
-        res = {}
-        partner_info = (
-            self.env["res.partner"]
-            .sudo()
-            .search(
-                ["|", ("phone", "=", phone_number), ("mobile", "=", phone_number)],
-                limit=1,
-            )
-        )
-        for partner in partner_info:
-            res.update({"id": partner.id, "name": partner.name, "email": partner.email})
-
-        print("Res: ", res)
-        return res
