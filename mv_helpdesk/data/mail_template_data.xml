@@ -1,32 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
-        <record id="new_warranty_activation_request_email_template" model="mail.template">
-            <field name="name">Helpdesk: Warranty Activation Received</field>
+    <data noupdate="0">
+
+        <record id="mv_helpdesk_new_ticket_request_email_template" model="mail.template">
+            <field name="name">Helpdesk: Đã nhận được kích hoạt</field>
             <field name="model_id" ref="helpdesk.model_helpdesk_ticket"/>
             <field name="subject">{{ object.display_name }}</field>
             <field name="email_from">{{ (object.team_id.alias_email_from or object.company_id.email_formatted or object.user_id.email_formatted or user.email_formatted) }}</field>
             <field name="email_to">{{ (object.partner_email if not object.sudo().partner_id.email or object.sudo().partner_id.email != object.partner_email else '') }}</field>
             <field name="partner_to">{{ object.partner_id.id if object.sudo().partner_id.email and object.sudo().partner_id.email == object.partner_email else '' }}</field>
             <field name="description">
-                Send customers a confirmation email to notify them that their helpdesk ticket has been received and is currently being reviewed by the helpdesk team.
-                Automatically email customers when a ticket reaches a specific stage in a helpdesk team by setting this template on that stage.
+                Gửi cho khách hàng email xác nhận để thông báo rằng phiếu trợ giúp của họ đã được nhận và hiện đang được nhóm trợ giúp xem xét.
+                Tự động gửi email cho khách hàng khi yêu cầu đạt đến một giai đoạn cụ thể trong nhóm trợ giúp bằng cách đặt mẫu này trên giai đoạn đó.
             </field>
             <field name="body_html" type="html">
                 <div>
-                    Dear <t t-out="object.sudo().partner_id.name or object.sudo().partner_name or 'Madam/Sir'">Madam/Sir</t>,
+                    Kính gửi <t t-out="object.sudo().partner_id.name or object.sudo().partner_name or 'Ông/Bà'">Ông/Bà</t>,
                     <br/>
                     <br/>
-                    Your request
+                    Yêu cầu của ông/bà
                     <t t-if="object.get_portal_url()">
                         <a t-attf-href="/my/ticket/{{ object.id }}/{{ object.access_token }}" t-out="object.name or ''">
-                            Table legs are unbalanced
+                            Chân bàn không cân đối
                         </a>
                     </t>
-                    has been received and is being reviewed by our <t t-out="object.team_id.name or ''">VIP Support</t> team.
+                    đã được nhận và đang được xem xét bởi chúng tôi <t t-out="object.team_id.name or ''">Nhóm hỗ trợ VIP.</t>
                     <br/>
                     <br/>
-                    The reference for your ticket is
+                    Tài liệu tham khảo cho vé của bạn là
                     <strong>
                         <t t-out="object.ticket_ref or ''">15</t>
                     </strong>
@@ -34,50 +35,48 @@
                     <br/>
                     <br/>
 
-                    To provide any additional information, simply reply to this email.
+                    Để cung cấp bất kỳ thông tin bổ sung nào, chỉ cần trả lời email này.
                     <br/>
                     <br/>
                     <t t-if="object.team_id.show_knowledge_base">
-                        Don't hesitate to visit our <a t-attf-href="{{ object.team_id.get_knowledge_base_url() }}">Help
-                        Center</a>. You might find the answer to your question.
+                        Đừng ngần ngại ghé thăm của chúng tôi tại <a t-attf-href="{{ object.team_id.get_knowledge_base_url() }}">Trung tâm trợ giúp</a>. Bạn có thể tìm thấy câu trả lời cho câu hỏi của bạn.
                         <br/>
                         <br/>
                     </t>
                     <t t-if="object.team_id.allow_portal_ticket_closing">
-                        Feel free to close your ticket if our help is no longer needed. Thank you for your
-                        collaboration.
+                        Vui lòng đóng yêu cầu của bạn nếu không cần sự trợ giúp của chúng tôi nữa. Cảm ơn vì sự hợp tác của bạn.
                         <br/>
                         <br/>
                     </t>
 
                     <div style="text-align: center; padding: 16px 0px 16px 0px;">
                         <a style="background-color: #875A7B; padding: 8px 16px 8px 16px; text-decoration: none; color: #fff; border-radius: 5px; font-size:13px;"
-                           t-att-href="object.get_portal_url()" target="_blank">View Ticket
+                           t-att-href="object.get_portal_url()" target="_blank">Xem vé
                         </a>
                         <t t-if="object.team_id.allow_portal_ticket_closing">
                             <a style="background-color: #875A7B; padding: 8px 16px 8px 16px; text-decoration: none; color: #fff; border-radius: 5px; font-size:13px;"
                                t-att-href="'/my/ticket/close/%s/%s' % (object.id, object.access_token)" target="_blank">
-                                Close Ticket
+                                Đóng vé
                             </a>
                         </t>
                         <t t-if="object.team_id.use_website_helpdesk_forum or object.team_id.use_website_helpdesk_knowledge or object.team_id.use_website_helpdesk_slides">
                             <a style="background-color: #875A7B; padding: 8px 16px 8px 16px; text-decoration: none; color: #fff; border-radius: 5px; font-size:13px;"
-                               t-att-href="object.team_id.feature_form_url" target="_blank">Visit Help Center
+                               t-att-href="object.team_id.feature_form_url" target="_blank">Truy cập Trung tâm trợ giúp
                             </a>
                         </t>
                         <br/>
                         <br/>
                     </div>
 
-                    Best regards,
+                    Trân trọng,
                     <br/>
                     <br/>
-                    <t t-out="object.team_id.name or 'Helpdesk'">Helpdesk</t>
-                    Team
+                    <t t-out="object.team_id.name or 'Moveo Plus'">Moveo Plus</t>Team
                 </div>
             </field>
             <field name="lang">{{ object.partner_id.lang or object.user_id.lang or user.lang }}</field>
             <field name="auto_delete" eval="True"/>
         </record>
+
     </data>
 </odoo>

@@ -11,6 +11,7 @@ class HelpdeskStockMoveLineReport(models.Model):
 
     @api.depends("product_template_id")
     def _compute_by_product(self):
+        # TODO: These attributes need to be unique to the SQL query
         size_lop = "Size lốp"
         ma_gai = "Mã gai"
 
@@ -107,7 +108,7 @@ class HelpdeskStockMoveLineReport(models.Model):
             else """
                 FROM product_product product
                      LEFT JOIN product_template AS product_tmpl
-                               ON (product.product_tmpl_id = product_tmpl.id AND product_tmpl.detailed_type = 'product')
+                          ON (product.product_tmpl_id = product_tmpl.id AND product_tmpl.detailed_type = 'product')
                      JOIN mv_helpdesk_ticket_product_moves AS ticket_product_moves
                           ON (ticket_product_moves.product_id = product.id 
                           AND ticket_product_moves.helpdesk_ticket_id IS NOT NULL)
