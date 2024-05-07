@@ -53,6 +53,7 @@ class HelpdeskStockMoveLineReport(models.Model):
     ticket_id = fields.Many2one("helpdesk.ticket", "Ticket", readonly=True)
     ticket_type = fields.Char("Ticket Type", readonly=True)
     ticket_stage = fields.Char("Ticket Stage", readonly=True)
+    ticket_create_date = fields.Date("Created On", readonly=True)
     ticket_write_date = fields.Datetime("Last Updated On", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
     partner_email = fields.Char("Email", readonly=True)
@@ -92,6 +93,7 @@ class HelpdeskStockMoveLineReport(models.Model):
                            ticket.id                      AS ticket_id,
                            ticket_type.name ->> 'en_US'   AS ticket_type,
                            ticket_stage.name ->> 'en_US'  AS ticket_stage,
+                           ticket.create_date::DATE       AS ticket_create_date,
                            ticket.write_date              AS ticket_write_date,
                            ticket.partner_id,
                            ticket.partner_email,
@@ -125,17 +127,18 @@ class HelpdeskStockMoveLineReport(models.Model):
             if group_by
             else """
                 GROUP BY product_barcode,
-                               product_template_id,
-                               product_country_of_origin,
-                               serial_number,
-                               qrcode,
-                               week_number,
-                               ticket_id,
-                               ticket_type,
-                               ticket_stage,
-                               ticket_write_date,
-                               ticket.partner_id,
-                               ticket.partner_email,
-                               ticket.partner_phone
+                              product_template_id,
+                              product_country_of_origin,
+                              serial_number,
+                              qrcode,
+                              week_number,
+                              ticket_id,
+                              ticket_type,
+                              ticket_stage,
+                              ticket_create_date,
+                              ticket_write_date,
+                              ticket.partner_id,
+                              ticket.partner_email,
+                              ticket.partner_phone
             """
         )
