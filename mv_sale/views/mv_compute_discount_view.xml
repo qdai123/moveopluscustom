@@ -67,11 +67,11 @@
                                         <field name="total_money" widget="monetary"/>
                                         <field name="currency_id" column_invisible="1"/>
                                         <button name="action_quarter"
-                                                invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True or parent.state == 'done'"
+                                                invisible="month_parent not in [3, 6, 9 ,12] or is_quarter or parent.state == 'done'"
                                                 string="Cho phép Duyệt Quý" type="object" class="oe_highlight"
                                                 confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
                                         <button name="action_year"
-                                                invisible="month_parent not in [12] or is_year == True or parent.state == 'done'"
+                                                invisible="month_parent not in [12] or is_year or parent.state == 'done'"
                                                 string="Cho phép Duyệt Năm" type="object" class="oe_highlight"
                                                 confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
                                     </tree>
