@@ -99,13 +99,13 @@
 													<t t-if="anonymous">
 														<div class="mb-0 py-2 s_website_form_field col-12">
 															<div class="o_search input-group col-sm" style="height: 80%;" role="search">
-													            <input type="search" name="search" id="search-phone-number" class="form-control border-info" placeholder="Nhập số điện thoại..." t-ref="search"/>
+													            <input type="search" name="search" class="form-control border-info o_website_helpdesk_search_phone_number" placeholder="Nhập số điện thoại..." t-ref="search"/>
 													            <a href="#" role="button" id="search-btn" class="btn btn-primary btn-lg" style="background-color: #461885; border-color: #461885;">
 																	<i class="fa fa-search" style="vertical-align: super;"/>
 																</a>
 													        </div>
 														</div>
-														<div class="alert alert-warning mt-2 col-sm" id="phonenumber-error-message" style="display:none; margin: 0 16px 0 16px;"></div>
+														<div class="alert alert-warning mt-2 col-sm" id="phonenumber-error-message" style="display:none; margin: 0 16px 16px 16px;"></div>
 													</t>
 													<!-- Field: partner_name (Required) -->
 													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
@@ -247,7 +247,7 @@
 															</div>
 														</div>
 													</div>
-													<!-- ACTION: Submit -->
+													<!-- ACTION: Submit Button -->
 													<div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
 														<div style="width: 200px;" class="s_website_form_label"/>
 														<a href="#" role="button" id="submit-btn" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text" style="background-color: #461885; border-color: #461885;">
