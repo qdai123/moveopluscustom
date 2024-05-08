@@ -90,21 +90,26 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $partnerName = $('#helpdesk_warranty_input_partner_name');
         const $partnerEmail = $('#helpdesk_warranty_input_partner_email');
         const $portalLotSerialNumber = $('#helpdesk_warranty_input_portal_lot_serial_number');
+        $partnerName.attr('required', false);
+        $partnerEmail.attr('required', false);
+        $portalLotSerialNumber.attr('required', false);
 
         const is_partnerName_empty = !$partnerName.length || $partnerName.val().trim() === '';
         const is_partnerEmail_empty = !$partnerEmail.length || $partnerEmail.val().trim() === '';
         const is_portalLotSerialNumber_empty = !$portalLotSerialNumber.length || $portalLotSerialNumber.val().trim() === '';
 
-        if (is_partnerName_empty) {
+        if (is_partnerName_empty && is_partnerEmail_empty && is_portalLotSerialNumber_empty) {
             $partnerName.attr('required', true);
-        } else if (is_partnerEmail_empty) {
             $partnerEmail.attr('required', true);
-        } else if (is_portalLotSerialNumber_empty) {
             $portalLotSerialNumber.attr('required', true);
         } else {
-            $partnerName.attr('required', false);
-            $partnerEmail.attr('required', false);
-            $portalLotSerialNumber.attr('required', false);
+            if (is_partnerName_empty) {
+                $partnerName.attr('required', true);
+            } else if (is_partnerEmail_empty) {
+                $partnerEmail.attr('required', true);
+            } else if (is_portalLotSerialNumber_empty) {
+                $portalLotSerialNumber.attr('required', true);
+            }
         }
     },
 });
