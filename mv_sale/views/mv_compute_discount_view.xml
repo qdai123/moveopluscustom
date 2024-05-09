@@ -44,36 +44,48 @@
                         </group>
                         <notebook>
                             <page string="Chi tiết">
-                                <field name="line_ids" nolabel="1" readonly="1">
-                                    <tree default_order="partner_id">
-                                        <field name="month_parent" column_invisible="1"/>
+                                <field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': id}">
+                                    <tree default_order="level">
+                                        <field column_invisible="True" name="currency_id"/>
+                                        <field column_invisible="True" name="month_parent"/>
                                         <field name="partner_id"/>
                                         <field name="level" optional="show"/>
-                                        <field name="quantity_from" optional="hide"/>
-                                        <field name="quantity_to" column_invisible="1"/>
+                                        <field name="quantity_from" optional="hidden"/>
+                                        <field column_invisible="True" name="quantity_to"/>
                                         <field name="quantity" optional="show"/>
                                         <field name="amount_total" widget="monetary"/>
-                                        <field name="basic" column_invisible="True"/>
-                                        <field name="month" optional="hide"/>
+                                        <field column_invisible="True" name="basic"/>
+                                        <field name="month" widget="percentage" optional="hidden"/>
+                                        <field column_invisible="True" name="is_month"/>
                                         <field name="month_money" widget="monetary"/>
-                                        <field name="two_month" optional="hide"/>
+                                        <field name="two_month" widget="percentage" optional="hidden"/>
                                         <field name="two_money" widget="monetary"/>
-                                        <field name="is_quarter" column_invisible="1"/>
-                                        <field name="quarter" optional="hide"/>
+                                        <field column_invisible="True" name="is_quarter"/>
+                                        <field name="quarter" widget="percentage" optional="hidden"/>
                                         <field name="quarter_money" widget="monetary"/>
-                                        <field name="is_year" column_invisible="1"/>
-                                        <field name="year" optional="hide"/>
+                                        <field column_invisible="True" name="is_year"/>
+                                        <field name="year" widget="percentage" optional="hidden"/>
                                         <field name="year_money" widget="monetary"/>
-                                        <field name="total_money" widget="monetary"/>
-                                        <field name="currency_id" column_invisible="1"/>
+                                        <field class="font-weight: bolder" name="total_money" widget="monetary"/>
+                                        <button name="action_approve_for_month"
+                                                class="btn btn-success"
+                                                type="object"
+                                                invisible="(quantity &gt; quantity_from) or is_month or parent.state == 'done'"
+                                                string="Duyệt tháng"
+                                                groups="mv_sale.group_mv_compute_discount_approver"
+                                                confirm="Cho phép đại lý hưởng chiết khấu theo Tháng?"/>
                                         <button name="action_quarter"
-                                                invisible="month_parent not in [3, 6, 9 ,12] or is_quarter == True or parent.state == 'done'"
-                                                string="Cho phép Duyệt Quý" type="object" class="oe_highlight"
-                                                confirm="Cho phép đại lý hưởng chiết khấu theo quý"/>
+                                                class="btn btn-success"
+                                                type="object"
+                                                invisible="month_parent not in [3, 6, 9 ,12] or is_quarter or parent.state == 'done'"
+                                                string="Duyệt Quý"
+                                                confirm="Cho phép đại lý hưởng chiết khấu theo Quý?"/>
                                         <button name="action_year"
-                                                invisible="month_parent not in [12] or is_year == True or parent.state == 'done'"
-                                                string="Cho phép Duyệt Năm" type="object" class="oe_highlight"
-                                                confirm="Cho phép đại lý hưởng chiết khấu theo year"/>
+                                                class="btn btn-success"
+                                                type="object"
+                                                invisible="month_parent not in [12] or is_year or parent.state == 'done'"
+                                                string="Duyệt Năm"
+                                                confirm="Cho phép đại lý hưởng chiết khấu theo Năm?"/>
                                     </tree>
                                 </field>
                             </page>
