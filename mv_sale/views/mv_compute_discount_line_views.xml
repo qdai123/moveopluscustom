@@ -69,13 +69,13 @@
                                 <field name="currency_id" invisible="1"/>
                             </group>
                             <group>
-                                <field name="month" widget="percentage" readonly="1"/>
+                                <field name="month" readonly="1"/>
                                 <field name="month_money" widget="monetary" readonly="1"/>
-                                <field name="two_month" widget="percentage" readonly="1"/>
+                                <field name="two_month" readonly="1"/>
                                 <field name="two_money" widget="monetary" readonly="1"/>
-                                <field name="quarter" widget="percentage" readonly="1"/>
+                                <field name="quarter" readonly="1"/>
                                 <field name="quarter_money" widget="monetary" readonly="1"/>
-                                <field name="year" widget="percentage" readonly="1"/>
+                                <field name="year" readonly="1"/>
                                 <field name="year_money" widget="monetary" readonly="1"/>
                                 <field name="total_money" widget="monetary" readonly="1"/>
                             </group>

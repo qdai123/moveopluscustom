@@ -55,16 +55,16 @@
                                         <field name="quantity" optional="show"/>
                                         <field name="amount_total" widget="monetary"/>
                                         <field column_invisible="True" name="basic"/>
-                                        <field name="month" widget="percentage" optional="hidden"/>
+                                        <field name="month" optional="hidden"/>
                                         <field column_invisible="True" name="is_month"/>
                                         <field name="month_money" widget="monetary"/>
-                                        <field name="two_month" widget="percentage" optional="hidden"/>
+                                        <field name="two_month" optional="hidden"/>
                                         <field name="two_money" widget="monetary"/>
                                         <field column_invisible="True" name="is_quarter"/>
-                                        <field name="quarter" widget="percentage" optional="hidden"/>
+                                        <field name="quarter" optional="hidden"/>
                                         <field name="quarter_money" widget="monetary"/>
                                         <field column_invisible="True" name="is_year"/>
-                                        <field name="year" widget="percentage" optional="hidden"/>
+                                        <field name="year" optional="hidden"/>
                                         <field name="year_money" widget="monetary"/>
                                         <field class="font-weight: bolder" name="total_money" widget="monetary"/>
                                         <button name="action_approve_for_month"
