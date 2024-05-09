@@ -10,7 +10,7 @@ except ImportError:
     import xlsxwriter
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.misc import formatLang
 
 
@@ -302,16 +302,19 @@ class MvComputeDiscount(models.Model):
         )
 
     def action_done(self):
-        approver = (
-            self.env["ir.config_parameter"].sudo().get_param("mv_compute_discount")
-        )
-        if not approver:
-            raise ValidationError("Bạn không phép lưu")
-        if int(approver) != self.env.user.id:
-            raise ValidationError("Bạn không phép lưu")
-        for line in self.line_ids:
-            line.partner_id.write({"amount": line.partner_id.amount + line.total_money})
-        self.write({"state": "done"})
+        if not self._access_approve():
+            raise AccessError(_("Bạn không có quyền duyệt!"))
+
+        for rec in self:
+            if rec.line_ids:
+                for discount_line in self.line_ids:
+                    discount_line.partner_id.write(
+                        {
+                            "amount": discount_line.partner_id.amount
+                            + discount_line.total_money
+                        }
+                    )
+            rec.write({"state": "done"})
 
     def action_undo(self):
         self.write(
@@ -335,6 +338,19 @@ class MvComputeDiscount(models.Model):
                 "form_view_ref": "mv_sale.mv_compute_discount_line_form",
             },
         }
+
+    # =================================
+    # HELPER/PRIVATE Methods
+    # =================================
+
+    def _access_approve(self):
+        """
+            Helps check user security for access to Discount Line approval
+        :return: True/False
+        """
+
+        access = self.env.user.has_group("mv_sale.group_mv_compute_discount_approver")
+        return access
 
     # ===================
     # REPORT Action/Data
