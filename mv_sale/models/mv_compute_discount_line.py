@@ -44,7 +44,20 @@ class MvComputeDiscountLine(models.Model):
     currency_id = fields.Many2one("res.currency", readonly=True)
     discount_line_id = fields.Many2one("mv.discount.line")
 
-    @api.depends("month_money", "two_money", "quarter_money", "year_money")
+    # Chiết Khấu Khuyến Khích
+    is_promote_discount = fields.Boolean()
+    promote_discount_percentage = fields.Float(
+        "% chiết khấu khuyến khích", digits=(16, 1)
+    )
+    promote_discount_money = fields.Float("Số tiền chiết khấu khuyến khích")
+
+    @api.depends(
+        "month_money",
+        "two_money",
+        "quarter_money",
+        "year_money",
+        "promote_discount_money",
+    )
     def compute_total_money(self):
         for record in self:
             record.total_money = (
@@ -52,41 +65,104 @@ class MvComputeDiscountLine(models.Model):
                 + record.two_money
                 + record.quarter_money
                 + record.year_money
+                + record.promote_discount_money
             )
 
     # =================================
     # BUSINESS Methods
     # =================================
 
+    def action_approve_for_promote(self):
+        if not self._access_approve():
+            raise AccessError(_("Bạn không có quyền duyệt!"))
+
+        # for rec in self:
+        #     amount_by_month = 0
+        #     name = "{}/{}".format(str(int(rec.month_parent)), rec.parent_id.year)
+        #     line_ids = self.env["mv.compute.discount.line"].search(
+        #         [
+        #             ("partner_id", "=", rec.partner_id.id),
+        #             ("name", "=", name),
+        #         ]
+        #     )
+        #     if len(line_ids) > 0:
+        #         for line in line_ids:
+        #             amount_by_month += line.month_money
+        #
+        #     rec.write(
+        #         {
+        #             "is_month": True,
+        #             "month": rec.discount_line_id.month,
+        #             "month_money": (amount_by_month + rec.amount_total)
+        #             * rec.discount_line_id.month
+        #             / 100,
+        #         }
+        #     )
+        #     tracking_text = """
+        #         <div class="o_mail_notification">
+        #             %s đã xác nhận chiết khấu tháng cho %s. <br/>
+        #             Với số tiền là: <b>%s</b>
+        #         </div>
+        #     """
+        #     rec.parent_id.message_post(
+        #         body=Markup(tracking_text)
+        #         % (
+        #             self.env.user.name,
+        #             rec.partner_id.name,
+        #             self.format_value(amount=rec.month_money, currency=rec.currency_id),
+        #         )
+        #     )
+        return
+
     def action_approve_for_month(self):
         if not self._access_approve():
             raise AccessError(_("Bạn không có quyền duyệt!"))
 
-        for rec in self:
-            amount_by_month = 0
-            name = "{}/{}".format(str(int(rec.month_parent)), rec.parent_id.year)
-            line_ids = self.env["mv.compute.discount.line"].search(
-                [
-                    ("partner_id", "=", rec.partner_id.id),
-                    ("name", "=", name),
-                ]
-            )
-            if len(line_ids) > 0:
-                for line in line_ids:
-                    amount_by_month += line.month_money
-
-            rec.write(
+        vals = {}
+        discount_line_env = self.env["mv.compute.discount.line"]
+        for rec in self.filtered(lambda r: r.quantity < r.quantity_from):
+            # Case 1:
+            vals.update(
                 {
                     "is_month": True,
                     "month": rec.discount_line_id.month,
-                    "month_money": (amount_by_month + rec.amount_total)
+                    "month_money": (rec.month_money + rec.amount_total)
                     * rec.discount_line_id.month
                     / 100,
                 }
             )
+            # Case 2:
+            amount_by_two_month = 0
+            previous_month = "{}/{}".format(
+                str(int(rec.month_parent) - 1), rec.parent_id.year
+            )
+            discount_line_previous_month = discount_line_env.search(
+                [
+                    ("partner_id", "=", rec.partner_id.id),
+                    ("is_month", "=", True),
+                    ("is_two_month", "=", False),
+                    ("name", "=", previous_month),
+                ]
+            )
+            if len(discount_line_previous_month) > 0:
+                for line in discount_line_previous_month:
+                    amount_by_two_month += line.amount_total
+
+            vals.update(
+                {
+                    "is_two_month": True,
+                    "two_month": rec.discount_line_id.two_month,
+                    "two_money": (amount_by_two_month + rec.amount_total)
+                    * rec.discount_line_id.two_month
+                    / 100,
+                }
+            )
+
+            rec.write(vals)
+
             tracking_text = """
                 <div class="o_mail_notification">
-                    %s đã xác nhận chiết khấu tháng cho người dùng %s. <br/>
+                    %s đã xác nhận chiết khấu tháng cho %s. <br/>
                     Với số tiền là: <b>%s</b>
                 </div>
             """

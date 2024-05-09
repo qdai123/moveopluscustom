@@ -103,6 +103,9 @@ class MvComputeDiscount(models.Model):
     # BUSINESS Methods
     # =================================
 
+    def action_reset_to_draft(self):
+        self.filtered(lambda r: r.state != "draft").write({"state": "draft"})
+
     def action_confirm(self):
         self.line_ids = False
         list_line_ids = []

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<record id="mv_promote_discount_line_tree_view" model="ir.ui.view">
+		<field name="name">mv.promote.discount.line.tree</field>
+		<field name="model">mv.promote.discount.line</field>
+		<field name="arch" type="xml">
+			<tree string="Promote Discount (%) Line TREE">
+				<field name="parent_id" column_invisible="True"/>
+				<field name="pricelist_id" string="Pricelist" options="{'no_create_edit': 1, 'no_open': 1}"/>
+				<field name="quantity_minimum" sum="Quantity (Min)"/>
+				<field name="quantity_maximum" sum="Quantity (Max)"/>
+				<field name="promote_discount"/>
+			</tree>
+		</field>
+	</record>
+
+</odoo>
