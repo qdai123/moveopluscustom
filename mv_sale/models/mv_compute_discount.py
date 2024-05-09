@@ -2,10 +2,7 @@
 import base64
 import calendar
 import io
-import logging
-from datetime import date, datetime, timedelta
-
-from pytz import utc
+from datetime import date, datetime
 
 try:
     from odoo.tools.misc import xlsxwriter
@@ -13,7 +10,6 @@ except ImportError:
     import xlsxwriter
 
 from odoo import api, fields, models, _
-from odoo.tools import OrderedSet
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.misc import formatLang
 
@@ -23,6 +19,23 @@ def get_years():
     for year in range(2000, 2100):
         year_list.append((str(year), str(year)))
     return year_list
+
+
+def get_months():
+    return [
+        ("1", "1"),
+        ("2", "2"),
+        ("3", "3"),
+        ("4", "4"),
+        ("5", "5"),
+        ("6", "6"),
+        ("7", "7"),
+        ("8", "8"),
+        ("9", "9"),
+        ("10", "10"),
+        ("11", "11"),
+        ("12", "12"),
+    ]
 
 
 class MvComputeDiscount(models.Model):
@@ -42,42 +55,27 @@ class MvComputeDiscount(models.Model):
             else:
                 rec.do_readonly = False
 
-    name = fields.Char(compute="_compute_name")
-    month = fields.Selection(
-        [
-            ("1", "1"),
-            ("2", "2"),
-            ("3", "3"),
-            ("4", "4"),
-            ("5", "5"),
-            ("6", "6"),
-            ("7", "7"),
-            ("8", "8"),
-            ("9", "9"),
-            ("10", "10"),
-            ("11", "11"),
-            ("12", "12"),
-        ],
-        string="Tháng",
-    )
-    year = fields.Selection(get_years())
+    # RULE Fields:
+    do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
+
+    # BASE Fields:
+    name = fields.Char(compute="_compute_name", default="New", store=True)
+    year = fields.Selection(get_years(), "Năm")
+    month = fields.Selection(get_months(), "Tháng")
+
     state = fields.Selection(
         [
             ("draft", "Nháp"),
             ("confirm", "Lưu"),
             ("done", "Đã Duyệt"),
         ],
-        "State",
+        "Trạng thái",
         default="draft",
         tracking=True,
         readonly=True,
     )
-
     line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
     report_date = fields.Date(compute="_compute_report_date_by_month_year", store=True)
-
-    # RULE Fields:
-    do_readonly = fields.Boolean(string="Readonly?", compute="_do_readonly")
 
     _sql_constraints = [
         (
