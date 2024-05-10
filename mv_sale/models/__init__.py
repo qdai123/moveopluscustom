@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
 from . import mv_discount
 from . import mv_discount_line
+from . import mv_promote_discount_line
 from . import mv_discount_partner
 from . import res_partner
 from . import sale_order

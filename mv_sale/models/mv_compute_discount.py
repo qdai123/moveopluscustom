@@ -43,6 +43,29 @@ class MvComputeDiscount(models.Model):
     _name = "mv.compute.discount"
     _description = _("Compute Discount (%) for Partner")
 
+    @api.model
+    def default_get(self, fields):
+        res = super(MvComputeDiscount, self).default_get(fields)
+        promote_discount = (
+            self.env["mv.discount"]
+            .search([("level_promote_apply", "!=", False)], limit=1)
+            .level_promote_apply
+        )
+        if promote_discount:
+            res["level_promote_apply_for"] = promote_discount
+        return res
+
+    def _default_level(self):
+        return (
+            self.env["mv.discount"]
+            .search([("level_promote_apply", "!=", False)], limit=1)
+            .level_promote_apply
+        )
+
+    def _get_promote_discount_level(self):
+        for record in self:
+            record.level_promote_apply_for = self._default_level()
+
     @api.depends("month", "year")
     def _compute_name(self):
         for record in self:
@@ -62,7 +85,6 @@ class MvComputeDiscount(models.Model):
     name = fields.Char(compute="_compute_name", default="New", store=True)
     year = fields.Selection(get_years(), "Năm")
     month = fields.Selection(get_months(), "Tháng")
-
     state = fields.Selection(
         [
             ("draft", "Nháp"),
@@ -76,6 +98,10 @@ class MvComputeDiscount(models.Model):
     )
     line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
     report_date = fields.Date(compute="_compute_report_date_by_month_year", store=True)
+
+    level_promote_apply_for = fields.Integer(
+        "Bậc áp dụng (Khuyến khích)", compute="_get_promote_discount_level"
+    )
 
     _sql_constraints = [
         (
@@ -103,6 +129,9 @@ class MvComputeDiscount(models.Model):
     # BUSINESS Methods
     # =================================
 
+    def action_reset_to_draft(self):
+        self.filtered(lambda r: r.state != "draft").write({"state": "draft"})
+
     def action_confirm(self):
         self.line_ids = False
         list_line_ids = []
@@ -122,6 +151,11 @@ class MvComputeDiscount(models.Model):
             ("state", "in", ["sale"]),
         ]
         sale_ids = self.env["sale.order"].search(domain)
+
+        if not sale_ids:
+            raise UserError(
+                _("Hiện tại không có đơn hàng nào đã chốt trong tháng %s") % self.month
+            )
 
         # lấy tất cả đơn hàng trong tháng, có mua lốp xe có category 19
         order_line = sale_ids.order_line.filtered(
@@ -326,10 +360,24 @@ class MvComputeDiscount(models.Model):
 
     def action_view_tree(self):
         return {
-            "name": "Kết quả chiết khấu của tháng: %s" % self.name,
-            "view_mode": "tree,form",
-            "res_model": "mv.compute.discount.line",
             "type": "ir.actions.act_window",
+            "name": "Kết quả chiết khấu của tháng: %s" % self.name,
+            "res_model": "mv.compute.discount.line",
+            "view_mode": "tree,form",
+            "views": [
+                [
+                    self.env.ref("mv_sale.mv_compute_discount_line_tree").id,
+                    "tree",
+                ],
+                [
+                    self.env.ref("mv_sale.mv_compute_discount_line_form").id,
+                    "form",
+                ],
+            ],
+            "search_view_id": [
+                self.env.ref("mv_sale.mv_compute_discount_line_search_view").id,
+                "search",
+            ],
             "domain": [("parent_id", "=", self.id)],
             "context": {
                 "create": False,
@@ -345,7 +393,7 @@ class MvComputeDiscount(models.Model):
 
     def _access_approve(self):
         """
-            Helps check user security for access to Discount Line approval
+            Helps check user security for access to Discount/Discount Line approval
         :return: True/False
         """
 

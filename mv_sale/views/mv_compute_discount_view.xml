@@ -19,15 +19,12 @@
                 <form>
                     <header>
                         <field name="do_readonly" invisible="True"/>
-                        <button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info"
-                                invisible="state not in ['confirm', 'done']"/>
-                        <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight"
-                                invisible="state!='draft'"/>
+                        <button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info" invisible="state not in ['confirm', 'done']"/>
+                        <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state!='draft'"/>
                         <button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
-                        <button name="action_done" string="Duyệt" type="object" class="oe_highlight"
-                                invisible="state!='confirm'"/>
-                        <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'"
-                                confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
+                        <button name="action_done" string="Duyệt" type="object" class="oe_highlight" invisible="state!='confirm'"/>
+                        <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
+<!--                        <button name="action_reset_to_draft" string="Trả về nháp" type="object" invisible="state!='done'"/>-->
                         <field name="state" widget="statusbar" statusbar_visible="draft,confirm,done"/>
                     </header>
                     <sheet>
@@ -44,8 +41,9 @@
                         </group>
                         <notebook>
                             <page string="Chi tiết">
+                                <field invisible="True" name="level_promote_apply_for"/>
                                 <field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': id}">
-                                    <tree default_order="level">
+                                    <tree default_order="partner_id">
                                         <field column_invisible="True" name="currency_id"/>
                                         <field column_invisible="True" name="month_parent"/>
                                         <field name="partner_id"/>
@@ -53,7 +51,7 @@
                                         <field name="quantity_from" optional="hidden"/>
                                         <field column_invisible="True" name="quantity_to"/>
                                         <field name="quantity" optional="show"/>
-                                        <field name="amount_total" widget="monetary"/>
+                                        <field name="amount_total" string="Doanh thu" widget="monetary"/>
                                         <field column_invisible="True" name="basic"/>
                                         <field name="month" optional="hidden"/>
                                         <field column_invisible="True" name="is_month"/>
@@ -66,7 +64,10 @@
                                         <field column_invisible="True" name="is_year"/>
                                         <field name="year" optional="hidden"/>
                                         <field name="year_money" widget="monetary"/>
-                                        <field class="font-weight: bolder" name="total_money" widget="monetary"/>
+                                        <field column_invisible="True" name="is_promote_discount"/>
+                                        <field name="promote_discount_percentage" optional="hidden"/>
+                                        <field name="promote_discount_money" widget="monetary"/>
+                                        <field name="total_money" string="Tổng số tiền" widget="monetary"/>
                                         <button name="action_approve_for_month"
                                                 class="btn btn-success"
                                                 type="object"
@@ -79,13 +80,22 @@
                                                 type="object"
                                                 invisible="month_parent not in [3, 6, 9 ,12] or is_quarter or parent.state == 'done'"
                                                 string="Duyệt Quý"
+                                                groups="mv_sale.group_mv_compute_discount_approver"
                                                 confirm="Cho phép đại lý hưởng chiết khấu theo Quý?"/>
                                         <button name="action_year"
                                                 class="btn btn-success"
                                                 type="object"
                                                 invisible="month_parent not in [12] or is_year or parent.state == 'done'"
                                                 string="Duyệt Năm"
+                                                groups="mv_sale.group_mv_compute_discount_approver"
                                                 confirm="Cho phép đại lý hưởng chiết khấu theo Năm?"/>
+                                        <button name="action_approve_for_promote"
+                                                class="btn btn-warning"
+                                                type="object"
+                                                    invisible="is_promote_discount or level != parent.level_promote_apply_for or parent.state == 'done'"
+                                                string="Duyệt Khuyến Khích"
+                                                groups="mv_sale.group_mv_compute_discount_approver"
+                                                confirm="Cho phép đại lý hưởng chiết khấu Khuyến Khích?"/>
                                     </tree>
                                 </field>
                             </page>
