@@ -468,18 +468,19 @@ class MvComputeDiscount(models.Model):
         report_lines = []
         self.env["mv.compute.discount.line"].flush_model()
         query = """
-                SELECT ROW_NUMBER() OVER ()  AS row_index,
-                           partner.name          AS sub_dealer,
-                           cdl.level             AS level,
-                           cdl.quantity_from     AS quantity_from,
-                           cdl.quantity          AS quantity,
-                           cdl.quantity_discount AS quantity_discount,
-                           cdl.amount_total      AS total,
-                           cdl.month_money       AS month_money,
-                           cdl.two_money         AS two_money,
-                           cdl.quarter_money     AS quarter_money,
-                           cdl.year_money        AS year_money,
-                           cdl.total_money       AS total_money
+                SELECT ROW_NUMBER() OVER ()                    AS row_index,
+                           partner.name                            AS sub_dealer,
+                           cdl.level                               AS level,
+                           cdl.quantity_from                       AS quantity_from,
+                           cdl.quantity                            AS quantity,
+                           cdl.quantity_discount                   AS quantity_discount,
+                           cdl.amount_total                        AS total,
+                           cdl.month_money                         AS month_money,
+                           cdl.two_money                           AS two_money,
+                           cdl.quarter_money                       AS quarter_money,
+                           cdl.year_money                          AS year_money,
+                           COALESCE(cdl.promote_discount_money, 0) AS promote_discount_money,
+                           cdl.total_money                         AS total_money
                 FROM mv_compute_discount_line cdl
                     JOIN res_partner partner ON partner.id = cdl.partner_id
                 WHERE cdl.parent_id = %s;
@@ -499,6 +500,7 @@ class MvComputeDiscount(models.Model):
                     "amount_two_money": data["two_money"],
                     "amount_quarter_money": data["quarter_money"],
                     "amount_year_money": data["year_money"],
+                    "amount_promote_discount_money": data["promote_discount_money"],
                     "amount_total_money": data["total_money"],
                 }
             )
@@ -583,7 +585,7 @@ class MvComputeDiscount(models.Model):
         sheet.set_row(0, 30)
 
         # ////// NAME = "Chi tiết chiết khấu của Đại Lý trong tháng {month/year}"
-        sheet.merge_range("A1:L1", "", DEFAULT_FORMAT)
+        sheet.merge_range("A1:M1", "", DEFAULT_FORMAT)
         format_first_title = [
             "Chi tiết chiết khấu của Đại Lý trong tháng ",
             workbook.add_format(
@@ -647,37 +649,41 @@ class MvComputeDiscount(models.Model):
 
         # ////// NAME = "Số lượng lốp đã bán (Cái)"
         sheet.merge_range("E2:E3", "", DEFAULT_FORMAT)
-        sheet.write("E2", "Số lượng lốp đã bán (Cái)", SUB_TITLE_FORMAT)
+        sheet.write("E2", "SL lốp đã bán (Cái)", SUB_TITLE_FORMAT)
 
         # ////// NAME = "Số lượng lốp Khuyến Mãi (Cái)"
         sheet.merge_range("F2:F3", "", DEFAULT_FORMAT)
-        sheet.write("F2", "Số lượng lốp Khuyến Mãi (Cái)", SUB_TITLE_FORMAT)
+        sheet.write("F2", "SL lốp khuyến mãi (Cái)", SUB_TITLE_FORMAT)
 
         # ////// NAME = "Doanh thu Tháng"
         sheet.merge_range("G2:G3", "", DEFAULT_FORMAT)
-        sheet.write("G2", "Doanh thu Tháng", SUB_TITLE_TOTAL_FORMAT)
+        sheet.write("G2", "Doanh thu", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu tháng"
         sheet.merge_range("H2:H3", "", DEFAULT_FORMAT)
-        sheet.write("H2", "Số tiền chiết khấu tháng", SUB_TITLE_TOTAL_FORMAT)
+        sheet.write("H2", "Tiền CK Tháng", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu 2 tháng"
         sheet.merge_range("I2:I3", "", DEFAULT_FORMAT)
-        sheet.write("I2", "Số tiền chiết khấu 2 tháng", SUB_TITLE_TOTAL_FORMAT)
+        sheet.write("I2", "Tiền CK 2 Tháng", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu quý"
         sheet.merge_range("J2:J3", "", DEFAULT_FORMAT)
-        sheet.write("J2", "Số tiền chiết khấu quý", SUB_TITLE_TOTAL_FORMAT)
+        sheet.write("J2", "Tiền CK Quý", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu năm"
         sheet.merge_range("K2:K3", "", DEFAULT_FORMAT)
-        sheet.write("K2", "Số tiền chiết khấu năm", SUB_TITLE_TOTAL_FORMAT)
+        sheet.write("K2", "Tiền CK Năm", SUB_TITLE_TOTAL_FORMAT)
+
+        # ////// NAME = "Số tiền chiết khấu khuyến khích"
+        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
+        sheet.write("L2", "Tiền CK Khuyến Khích", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Tổng tiền chiết khấu"
-        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
-        sheet.write("L2", "Tổng tiền chiết khấu", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("M2:M3", "", DEFAULT_FORMAT)
+        sheet.write("M2", "Tổng tiền", SUB_TITLE_TOTAL_FORMAT)
 
-        sheet.set_column(4, 11, 15)
+        sheet.set_column(4, 12, 15)
 
         # ############# [BODY] #############
         BODY_CHAR_FORMAT = workbook.add_format(
@@ -717,7 +723,7 @@ class MvComputeDiscount(models.Model):
                 if isinstance(data[key], str):
                     sheet.write(count, col, data[key], BODY_CHAR_FORMAT)
                 elif isinstance(data[key], int) or isinstance(data[key], float):
-                    if col in [6, 7, 8, 9, 10, 11]:
+                    if col in [6, 7, 8, 9, 10, 11, 12]:
                         sheet.write(count, col, data[key], BODY_TOTAL_NUM_FORMAT)
                     else:
                         sheet.write(count, col, data[key], BODY_NUM_FORMAT)

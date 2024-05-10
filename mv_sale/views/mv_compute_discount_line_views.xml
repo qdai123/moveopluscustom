@@ -24,8 +24,8 @@
                 <field name="quarter_money" widget="monetary" sum="Discount quarter"/>
                 <field name="year" optional="hidden"/>
                 <field name="year_money" widget="monetary" sum="Discount year"/>
-                <field name="promote_discount_money" widget="monetary" sum="Promote Discount"/>
                 <field name="promote_discount_percentage" optional="hidden"/>
+                <field name="promote_discount_money" widget="monetary" sum="Promote Discount"/>
                 <field name="total_money" string="Tổng số tiền" widget="monetary" sum="Total money"/>
                 <field column_invisible="True" name="basic"/>
                 <field column_invisible="True" name="currency_id"/>
@@ -39,45 +39,69 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <div>
-                        <field name="is_two_month" invisible="1"/>
-                        <field name="is_quarter" invisible="1"/>
-                        <field name="is_year" invisible="1"/>
-                        <div class="oe_button_box" name="button_box" groups="base.group_user">
-                            <button class="oe_stat_button" name="action_view_two_month" type="object" icon="fa-pencil-square-o" invisible="is_two_month == False">
-                                Xem chiết khấu 2 tháng
-                            </button>
-                            <button class="oe_stat_button" name="action_view_quarter" type="object" icon="fa-pencil-square-o" invisible="is_quarter == False">
-                                Xem chiết khấu theo quý
-                            </button>
-                            <button class="oe_stat_button" name="action_view_year" type="object" icon="fa-pencil-square-o" invisible="is_year == False">
-                                Xem chiết khấu theo năm
-                            </button>
-                        </div>
+                    <field name="is_two_month" invisible="1"/>
+                    <field name="is_quarter" invisible="1"/>
+                    <field name="is_year" invisible="1"/>
+                    <div class="oe_button_box" name="button_box" groups="base.group_user">
+                        <button class="oe_stat_button" name="action_view_two_month" type="object" icon="fa-pencil-square-o" invisible="is_two_month == False">
+                            Xem chiết khấu 2 tháng
+                        </button>
+                        <button class="oe_stat_button" name="action_view_quarter" type="object" icon="fa-pencil-square-o" invisible="is_quarter == False">
+                            Xem chiết khấu theo quý
+                        </button>
+                        <button class="oe_stat_button" name="action_view_year" type="object" icon="fa-pencil-square-o" invisible="is_year == False">
+                            Xem chiết khấu theo năm
+                        </button>
                     </div>
                     <group>
-                        <group>
+                        <group name="group_information_1">
                             <field name="partner_id"/>
                             <field name="level"/>
-                            <field name="quantity"/>
-                            <field name="quantity_discount"/>
-                            <field name="quantity_from"/>
-                            <field name="quantity_to"/>
-                            <field name="amount_total" widget="monetary"/>
-                            <field name="basic" invisible="1"/>
-                            <field name="currency_id" invisible="1"/>
+                            <field name="basic" invisible="True"/>
+                            <field name="currency_id" invisible="True"/>
+                        </group>
+                        <group name="group_information_2">
+                            <group>
+                                <field name="quantity"/>
+                                <field name="quantity_discount"/>
+                            </group>
+                            <group>
+                                <field name="quantity_from"/>
+                                <field name="quantity_to"/>
+                            </group>
                         </group>
                         <group>
-                            <field name="month" readonly="1"/>
-                            <field name="month_money" widget="monetary" readonly="1"/>
-                            <field name="two_month" readonly="1"/>
-                            <field name="two_money" widget="monetary" readonly="1"/>
-                            <field name="quarter" readonly="1"/>
-                            <field name="quarter_money" widget="monetary" readonly="1"/>
-                            <field name="year" readonly="1"/>
-                            <field name="year_money" widget="monetary" readonly="1"/>
-                            <field name="total_money" widget="monetary" readonly="1"/>
+                            <field name="amount_total" widget="monetary"/>
+                            <field name="total_money" widget="monetary"/>
                         </group>
+                        <group/>
+                    </group>
+                    <group>
+                        <group name="group_percentage_discount_by_month" string="(%) Tháng &amp; 2 Tháng">
+                            <group>
+                                <field name="month" string="(%) CK Tháng"/>
+                                <field name="month_money" string="Tiền CK Tháng" widget="monetary"/>
+                            </group>
+                            <group>
+                                <field name="two_month" string="(%) CK 2 Tháng"/>
+                                <field name="two_money" string="Tiền CK 2 Tháng" widget="monetary"/>
+                            </group>
+                        </group>
+                        <group name="group_percentage_discount_by_quarter_and_year" string="(%) Quý &amp; Năm">
+                            <group>
+                                <field name="quarter" string="(%) CK Quý"/>
+                                <field name="quarter_money" string="Tiền CK Quý" widget="monetary"/>
+                            </group>
+                            <group>
+                                <field name="year" string="(%) CK Năm"/>
+                                <field name="year_money" string="Tiền CK Năm" widget="monetary"/>
+                            </group>
+                        </group>
+                        <group name="group_percentage_promote_discount" string="(%) Khuyến Khích">
+                            <field name="promote_discount_percentage" string="(%) CK Khuyến Khích"/>
+                            <field name="promote_discount_money" string="Tiền CK Khuyến Khích" widget="monetary" readonly="True"/>
+                        </group>
+                        <group/>
                     </group>
                     <notebook>
                         <page string="Đơn hàng">
