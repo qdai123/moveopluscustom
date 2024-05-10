@@ -174,15 +174,16 @@ class MvComputeDiscountLine(models.Model):
                 for line in discount_line_previous_month:
                     amount_by_two_month += line.amount_total
 
-            vals.update(
-                {
-                    "is_two_month": True,
-                    "two_month": rec.discount_line_id.two_month,
-                    "two_money": (amount_by_two_month + rec.amount_total)
-                    * rec.discount_line_id.two_month
-                    / 100,
-                }
-            )
+                vals.update(
+                    {
+                        "is_two_month": True,
+                        "two_month": rec.discount_line_id.two_month,
+                        "two_money": (amount_by_two_month + rec.amount_total)
+                        * rec.discount_line_id.two_month
+                        / 100,
+                    }
+                )
+
             rec.write(vals)
 
             tracking_text = """
