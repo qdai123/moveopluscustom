@@ -26,10 +26,9 @@ class MVWizardPromoteDiscountLine(models.TransientModel):
 
     def action_save(self):
         vals = {}
-        amount = 0
         compute_discount = False
-        discount_env = self.env["mv.compute.discount"]
         discount_line = False
+        discount_env = self.env["mv.compute.discount"]
         discount_line_env = self.env["mv.compute.discount.line"]
         if self.compute_discount_line_id:
             discount_line = discount_line_env.browse(self.compute_discount_line_id.id)
@@ -38,15 +37,15 @@ class MVWizardPromoteDiscountLine(models.TransientModel):
             compute_discount = discount_env.browse(self.compute_discount_id.id)
 
         if compute_discount and discount_line:
+            promote_discount = self.promote_discount.promote_discount
             promote_discount_percentage = (
-                self.promote_discount_percentage
-                or self.promote_discount.promote_discount / 100
+                self.promote_discount_percentage or promote_discount / 100
             )
             vals.update(
                 {
                     "partner_sales_state": "qualified_by_approving",
                     "is_promote_discount": True,
-                    "promote_discount_percentage": self.promote_discount_percentage,
+                    "promote_discount_percentage": promote_discount,
                     "promote_discount_money": discount_line.amount_total
                     * promote_discount_percentage,
                 }
