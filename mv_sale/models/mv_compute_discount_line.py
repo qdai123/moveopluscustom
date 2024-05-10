@@ -11,38 +11,70 @@ class MvComputeDiscountLine(models.Model):
     _description = _("Compute Discount (%) Line for Partner")
     _rec_name = "partner_id"
 
+    def _get_company_currency(self):
+        for partner in self:
+            if partner.company_id:
+                partner.currency_id = partner.sudo().company_id.currency_id
+            else:
+                partner.currency_id = self.env.company.currency_id
+
+    # Parent Model Fields:
+    parent_id = fields.Many2one("mv.compute.discount")
     name = fields.Char(related="parent_id.name", store=True)
     month_parent = fields.Integer()
-    parent_id = fields.Many2one("mv.compute.discount")
-    partner_id = fields.Many2one("res.partner", string="Đại lý")
-    level = fields.Integer(string="Bậc")
-    quantity = fields.Integer(string="Số lượng lốp đã bán")
-    quantity_discount = fields.Integer(string="Số lượng khuyến mãi")
-    amount_total = fields.Float(string="Doanh thu tháng")
-    quantity_from = fields.Integer(string="Số lượng lốp min")
-    quantity_to = fields.Integer(string="Số lượng lốp max")
-    basic = fields.Float(string="Basic")
-    is_month = fields.Boolean()
-    month = fields.Float(string="% chiết khấu tháng")
-    month_money = fields.Integer(string="Số tiền chiết khấu tháng")
-    is_two_month = fields.Boolean()
-    amount_two_month = fields.Float(string="Số tiền 2 Tháng")
-    two_month = fields.Float(string="% chiết khấu 2 tháng")
-    two_money = fields.Integer(string="Số tiền chiết khấu 2 tháng")
-    is_quarter = fields.Boolean()
-    quarter = fields.Float(string="% chiết khấu quý")
-    quarter_money = fields.Integer(string="Số tiền chiết khấu quý")
-    is_year = fields.Boolean()
-    year = fields.Float(string="% chiết khấu năm")
-    year_money = fields.Integer(string="Số tiền chiết khấu năm")
-    total_discount = fields.Float(string="Total % discount")
-    total_money = fields.Integer(
-        "Tổng tiền chiết khấu ", compute="compute_total_money", store=True
+
+    # Base Fields:
+    currency_id = fields.Many2one(
+        "res.currency", compute="_get_company_currency", store=True
     )
+    partner_id = fields.Many2one("res.partner", "Đại lý")
+    partner_sales_state = fields.Selection(
+        [
+            ("qualified", "Đạt"),
+            ("imqualified", "Chưa Đạt"),
+            ("qualified_by_approving", "Duyệt cho Đạt"),
+        ],
+        "Trạng thái",
+        compute="_compute_partner_sales_state",
+        store=True,
+    )
+    level = fields.Integer("Bậc")
+    quantity = fields.Integer("Số lượng lốp đã bán")
+    quantity_discount = fields.Integer("Số lượng khuyến mãi")
+    quantity_from = fields.Integer("Số lượng lốp min")
+    quantity_to = fields.Integer("Số lượng lốp max")
+    basic = fields.Float("Basic")
     sale_ids = fields.One2many("sale.order", "discount_line_id")
     order_line_ids = fields.One2many("sale.order.line", "discount_line_id")
-    currency_id = fields.Many2one("res.currency", readonly=True)
     discount_line_id = fields.Many2one("mv.discount.line")
+
+    # TOTAL Fields:
+    amount_total = fields.Float("Doanh thu tháng")
+    total_discount = fields.Float("Total % Discount")
+    total_money = fields.Integer(
+        "Tổng tiền chiết khấu ", compute="_compute_total_money", store=True
+    )
+
+    # Chiết Khấu 1 Tháng
+    is_month = fields.Boolean()
+    month = fields.Float("% chiết khấu tháng")
+    month_money = fields.Integer("Số tiền chiết khấu tháng")
+
+    # Chiết Khấu 2 Tháng
+    is_two_month = fields.Boolean()
+    amount_two_month = fields.Float("Số tiền 2 Tháng")
+    two_month = fields.Float("% chiết khấu 2 tháng")
+    two_money = fields.Integer("Số tiền chiết khấu 2 tháng")
+
+    # Chiết Khấu Quý
+    is_quarter = fields.Boolean()
+    quarter = fields.Float("% chiết khấu quý")
+    quarter_money = fields.Integer("Số tiền chiết khấu quý")
+
+    # Chiết Khấu Năm
+    is_year = fields.Boolean()
+    year = fields.Float("% chiết khấu năm")
+    year_money = fields.Integer("Số tiền chiết khấu năm")
 
     # Chiết Khấu Khuyến Khích
     is_promote_discount = fields.Boolean()
@@ -51,6 +83,16 @@ class MvComputeDiscountLine(models.Model):
     )
     promote_discount_money = fields.Float("Số tiền chiết khấu khuyến khích")
 
+    @api.depends("quantity", "quantity_from")
+    def _compute_partner_sales_state(self):
+        for record in self.filtered(
+            lambda r: r.partner_sales_state not in ["qualified_by_approving"]
+        ):
+            if record.quantity >= record.quantity_from:
+                record.partner_sales_state = "qualified"
+            else:
+                record.partner_sales_state = "imqualified"
+
     @api.depends(
         "month_money",
         "two_money",
@@ -58,7 +100,7 @@ class MvComputeDiscountLine(models.Model):
         "year_money",
         "promote_discount_money",
     )
-    def compute_total_money(self):
+    def _compute_total_money(self):
         for record in self:
             record.total_money = (
                 record.month_money
@@ -76,43 +118,26 @@ class MvComputeDiscountLine(models.Model):
         if not self._access_approve():
             raise AccessError(_("Bạn không có quyền duyệt!"))
 
-        # for rec in self:
-        #     amount_by_month = 0
-        #     name = "{}/{}".format(str(int(rec.month_parent)), rec.parent_id.year)
-        #     line_ids = self.env["mv.compute.discount.line"].search(
-        #         [
-        #             ("partner_id", "=", rec.partner_id.id),
-        #             ("name", "=", name),
-        #         ]
-        #     )
-        #     if len(line_ids) > 0:
-        #         for line in line_ids:
-        #             amount_by_month += line.month_money
-        #
-        #     rec.write(
-        #         {
-        #             "is_month": True,
-        #             "month": rec.discount_line_id.month,
-        #             "month_money": (amount_by_month + rec.amount_total)
-        #             * rec.discount_line_id.month
-        #             / 100,
-        #         }
-        #     )
-        #     tracking_text = """
-        #         <div class="o_mail_notification">
-        #             %s đã xác nhận chiết khấu tháng cho %s. <br/>
-        #             Với số tiền là: <b>%s</b>
-        #         </div>
-        #     """
-        #     rec.parent_id.message_post(
-        #         body=Markup(tracking_text)
-        #         % (
-        #             self.env.user.name,
-        #             rec.partner_id.name,
-        #             self.format_value(amount=rec.month_money, currency=rec.currency_id),
-        #         )
-        #     )
-        return
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Vui lòng chọn % chiết khấu Khuyến Khích cho Đại lý",
+            "res_model": "mv.wizard.promote.discount.line",
+            "views": [
+                [
+                    self.env.ref(
+                        "mv_sale.mv_wizard_promote_discount_line_form_view"
+                    ).id,
+                    "form",
+                ]
+            ],
+            "domain": [],
+            "context": {
+                "default_compute_discount_line_id": self.id,
+                "default_compute_discount_id": self.parent_id.id,
+                "default_partner_id": self.partner_id.id,
+            },
+            "target": "new",
+        }
 
     def action_approve_for_month(self):
         if not self._access_approve():
@@ -124,6 +149,7 @@ class MvComputeDiscountLine(models.Model):
             # Case 1:
             vals.update(
                 {
+                    "partner_sales_state": "qualified_by_approving",
                     "is_month": True,
                     "month": rec.discount_line_id.month,
                     "month_money": (rec.month_money + rec.amount_total)
@@ -157,7 +183,6 @@ class MvComputeDiscountLine(models.Model):
                     / 100,
                 }
             )
-
             rec.write(vals)
 
             tracking_text = """
@@ -192,6 +217,7 @@ class MvComputeDiscountLine(models.Model):
                 amount_two_month += line.amount_total
         self.write(
             {
+                "partner_sales_state": "qualified_by_approving",
                 "is_quarter": True,
                 "quarter": self.discount_line_id.quarter,
                 "quarter_money": (amount_two_month + self.amount_total)
@@ -199,8 +225,15 @@ class MvComputeDiscountLine(models.Model):
                 / 100,
             }
         )
+
+        tracking_text = """
+            <div class="o_mail_notification">
+                %s đã xác nhận chiết khấu quý cho %s. <br/>
+                Với số tiền là: <b>%s</b>
+            </div>
+        """
         self.parent_id.message_post(
-            body="%s đã xác nhận chiết khấu quý cho người dùng %s với số tiền là: %s"
+            body=Markup(tracking_text)
             % (self.env.user.name, self.partner_id.name, str(self.quarter_money))
         )
 
@@ -218,13 +251,21 @@ class MvComputeDiscountLine(models.Model):
                 total_year += line_ids.amount_total
         self.write(
             {
+                "partner_sales_state": "qualified_by_approving",
                 "is_year": True,
                 "year": self.discount_line_id.year,
                 "year_money": total_year * self.discount_line_id.year / 100,
             }
         )
+
+        tracking_text = """
+            <div class="o_mail_notification">
+                %s đã xác nhận chiết khấu năm cho %s. <br/>
+                Với số tiền là: <b>%s</b>
+            </div>
+        """
         self.parent_id.message_post(
-            body="%s đã xác nhận chiết khấu năm cho người dùng %s với số tiền là: %s"
+            body=Markup(tracking_text)
             % (self.env.user.name, self.partner_id.name, str(total_year))
         )
 

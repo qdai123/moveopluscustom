@@ -38,6 +38,7 @@
         # WIZARD
         "wizard/mv_wizard_discount_views.xml",
         "wizard/mv_report_discount_views.xml",
+        "wizard/mv_wizard_promote_discount_line_views.xml",
     ],
     "assets": {
         "web.assets_frontend": [

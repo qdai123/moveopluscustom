@@ -1,112 +1,121 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
 
-        <record model="ir.ui.view" id="mv_compute_discount_line_tree">
-            <field name="name">mv_compute_discount_line_tree</field>
-            <field name="model">mv.compute.discount.line</field>
-            <field name="arch" type="xml">
-                <tree default_order="partner_id desc month_parent desc">
-                    <field name="month_parent"/>
-                    <field name="name"/>
-                    <field name="partner_id"/>
-                    <field name="level" optional="show"/>
-                    <field name="quantity" sum="Quantity" optional="show"/>
-                    <field name="quantity_discount" sum="Quantity" optional="hide"/>
-                    <field name="quantity_from" optional="hide"/>
-                    <field name="quantity_to" optional="hide"/>
-                    <field name="amount_total" widget="monetary" sum="Amount month"/>
-                    <field name="basic" column_invisible="True"/>
-                    <field name="month" optional="hide"/>
-                    <field name="month_money" widget="monetary" sum="Discount month"/>
-                    <field name="two_month" optional="hide"/>
-                    <field name="two_money" widget="monetary" sum="Discount two month"/>
-                    <field name="quarter" optional="hide"/>
-                    <field name="quarter_money" widget="monetary" sum="Discount quarter"/>
-                    <field name="year" optional="hide"/>
-                    <field name="year_money" widget="monetary" sum="Discount year"/>
-                    <field name="total_money" widget="monetary" sum="Total money"/>
-                    <field name="currency_id" column_invisible="1"/>
-                </tree>
-            </field>
-        </record>
+    <record model="ir.ui.view" id="mv_compute_discount_line_tree">
+        <field name="name">mv_compute_discount_line_tree</field>
+        <field name="model">mv.compute.discount.line</field>
+        <field name="arch" type="xml">
+            <tree default_order="partner_id desc month_parent desc">
+                <field name="month_parent" optional="hidden"/>
+                <field name="name" string="Tháng/Năm" optional="hidden"/>
+                <field name="partner_sales_state" decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']" decoration-warning="partner_sales_state == 'imqualified'" widget="badge" optional="hidden"/>
+                <field name="partner_id"/>
+                <field name="level" optional="show"/>
+                <field name="quantity" sum="Quantity" optional="show"/>
+                <field name="quantity_discount" sum="Quantity" optional="hidden"/>
+                <field name="quantity_from" optional="hidden"/>
+                <field name="quantity_to" optional="hidden"/>
+                <field name="amount_total" string="Doanh thu" widget="monetary" sum="Amount month"/>
+                <field name="month" optional="hidden"/>
+                <field name="month_money" widget="monetary" sum="Discount month"/>
+                <field name="two_month" optional="hidden"/>
+                <field name="two_money" widget="monetary" sum="Discount two month"/>
+                <field name="quarter" optional="hidden"/>
+                <field name="quarter_money" widget="monetary" sum="Discount quarter"/>
+                <field name="year" optional="hidden"/>
+                <field name="year_money" widget="monetary" sum="Discount year"/>
+                <field name="promote_discount_money" widget="monetary" sum="Promote Discount"/>
+                <field name="promote_discount_percentage" optional="hidden"/>
+                <field name="total_money" string="Tổng số tiền" widget="monetary" sum="Total money"/>
+                <field column_invisible="True" name="basic"/>
+                <field column_invisible="True" name="currency_id"/>
+            </tree>
+        </field>
+    </record>
 
-        <record model="ir.ui.view" id="mv_compute_discount_line_form">
-            <field name="name">mv_compute_discount_line_form</field>
-            <field name="model">mv.compute.discount.line</field>
-            <field name="arch" type="xml">
-                <form>
-                    <sheet>
-                        <div>
-                            <field name="is_two_month" invisible="1"/>
-                            <field name="is_quarter" invisible="1"/>
-                            <field name="is_year" invisible="1"/>
-                            <div class="oe_button_box" name="button_box" groups="base.group_user">
-                                <button class="oe_stat_button" name="action_view_two_month" type="object"
-                                        icon="fa-pencil-square-o" invisible="is_two_month == False">
-                                    Xem chiết khấu 2 tháng
-                                </button>
-                                <button class="oe_stat_button" name="action_view_quarter" type="object"
-                                        icon="fa-pencil-square-o" invisible="is_quarter == False">
-                                    Xem chiết khấu theo quý
-                                </button>
-                                <button class="oe_stat_button" name="action_view_year" type="object"
-                                        icon="fa-pencil-square-o" invisible="is_year == False">
-                                    Xem chiết khấu theo năm
-                                </button>
-                            </div>
+    <record model="ir.ui.view" id="mv_compute_discount_line_form">
+        <field name="name">mv_compute_discount_line_form</field>
+        <field name="model">mv.compute.discount.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div>
+                        <field name="is_two_month" invisible="1"/>
+                        <field name="is_quarter" invisible="1"/>
+                        <field name="is_year" invisible="1"/>
+                        <div class="oe_button_box" name="button_box" groups="base.group_user">
+                            <button class="oe_stat_button" name="action_view_two_month" type="object" icon="fa-pencil-square-o" invisible="is_two_month == False">
+                                Xem chiết khấu 2 tháng
+                            </button>
+                            <button class="oe_stat_button" name="action_view_quarter" type="object" icon="fa-pencil-square-o" invisible="is_quarter == False">
+                                Xem chiết khấu theo quý
+                            </button>
+                            <button class="oe_stat_button" name="action_view_year" type="object" icon="fa-pencil-square-o" invisible="is_year == False">
+                                Xem chiết khấu theo năm
+                            </button>
                         </div>
+                    </div>
+                    <group>
                         <group>
-                            <group>
-                                <field name="partner_id"/>
-                                <field name="level"/>
-                                <field name="quantity"/>
-                                <field name="quantity_discount"/>
-                                <field name="quantity_from"/>
-                                <field name="quantity_to"/>
-                                <field name="amount_total" widget="monetary"/>
-                                <field name="basic" invisible="1"/>
-                                <field name="currency_id" invisible="1"/>
-                            </group>
-                            <group>
-                                <field name="month" readonly="1"/>
-                                <field name="month_money" widget="monetary" readonly="1"/>
-                                <field name="two_month" readonly="1"/>
-                                <field name="two_money" widget="monetary" readonly="1"/>
-                                <field name="quarter" readonly="1"/>
-                                <field name="quarter_money" widget="monetary" readonly="1"/>
-                                <field name="year" readonly="1"/>
-                                <field name="year_money" widget="monetary" readonly="1"/>
-                                <field name="total_money" widget="monetary" readonly="1"/>
-                            </group>
+                            <field name="partner_id"/>
+                            <field name="level"/>
+                            <field name="quantity"/>
+                            <field name="quantity_discount"/>
+                            <field name="quantity_from"/>
+                            <field name="quantity_to"/>
+                            <field name="amount_total" widget="monetary"/>
+                            <field name="basic" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
                         </group>
-                        <notebook>
-                            <page string="Đơn hàng">
-                                <field name="sale_ids" nolabel="1">
-                                    <tree create="False" edit="False">
-                                        <field name="currency_id" column_invisible="True"/>
-                                        <field name="name"/>
-                                        <field name="amount_total" sum="Price" widget="monetary"/>
-                                    </tree>
-                                </field>
-                            </page>
-                            <page string="Chi tiết sản phẩm lốp">
-                                <field name="order_line_ids" nolabel="1">
-                                    <tree create="False" edit="False" decoration-danger = "price_unit == 0">
-                                        <field name="currency_id" column_invisible="True"/>
-                                        <field name="order_id"/>
-                                        <field name="product_id"/>
-                                        <field name="product_uom_qty" sum="Quantity"/>
-                                        <field name="price_unit" widget="monetary"/>
-                                        <field name="price_subtotal" sum="Price" widget="monetary"/>
-                                    </tree>
-                                </field>
-                            </page>
-                        </notebook>
-                    </sheet>
-                </form>
-            </field>
-        </record>
+                        <group>
+                            <field name="month" readonly="1"/>
+                            <field name="month_money" widget="monetary" readonly="1"/>
+                            <field name="two_month" readonly="1"/>
+                            <field name="two_money" widget="monetary" readonly="1"/>
+                            <field name="quarter" readonly="1"/>
+                            <field name="quarter_money" widget="monetary" readonly="1"/>
+                            <field name="year" readonly="1"/>
+                            <field name="year_money" widget="monetary" readonly="1"/>
+                            <field name="total_money" widget="monetary" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Đơn hàng">
+                            <field name="sale_ids" nolabel="1">
+                                <tree create="False" edit="False">
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="name"/>
+                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Chi tiết sản phẩm lốp">
+                            <field name="order_line_ids" nolabel="1">
+                                <tree create="False" edit="False" decoration-danger = "price_unit == 0">
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="order_id"/>
+                                    <field name="product_id"/>
+                                    <field name="product_uom_qty" sum="Quantity"/>
+                                    <field name="price_unit" widget="monetary"/>
+                                    <field name="price_subtotal" sum="Price" widget="monetary"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
 
-    </data>
+    <record id="mv_compute_discount_line_search_view" model="ir.ui.view">
+        <field name="model">mv.compute.discount.line.search</field>
+        <field name="model">mv.compute.discount.line</field>
+        <field name="arch" type="xml">
+            <search string="MV Compute Discount Line SEARCH">
+                <field name="partner_id"/>
+                <filter name="filter_partner_sales_state" string="Đại lý Chưa Đạt" domain="[('partner_sales_state', '=', 'imqualified')]"/>
+            </search>
+        </field>
+    </record>
+
 </odoo>
