@@ -9,10 +9,11 @@ from markupsafe import Markup
 from odoo import http, _
 from odoo.http import request
 from odoo.addons.phone_validation.tools import phone_validation
+from odoo.exceptions import ValidationError
 from odoo.addons.website.controllers import form
 
 from werkzeug.utils import redirect
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, BadRequest
 
 # BASE Templates Website Helpdesk:
 HELPDESK_WARRANTY_ACTIVATION_FORM = (
@@ -227,7 +228,8 @@ class WebsiteForm(form.WebsiteForm):
                         .search([("email", "=", email)], limit=1)
                     )
                 if not partner:
-                    return HTTPException(description=_("Partner not found!"))
+                    # return HTTPException(description=_("Partner not found!"))
+                    raise ValidationError(_("Partner not found!"))
                 else:
                     request.params["partner_id"] = partner.id
 
@@ -242,6 +244,7 @@ class WebsiteForm(form.WebsiteForm):
                 if tickets_by_codes:
                     for ticket in tickets_by_codes:
                         if ticket[0] in ["code_not_found", "code_already_registered"]:
-                            return HTTPException(description=_(ticket[1]))
+                            # return HTTPException(description=_(ticket[1]))
+                            raise ValidationError(_(ticket[1]))
 
         return super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
