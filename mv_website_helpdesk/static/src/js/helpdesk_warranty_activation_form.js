@@ -124,27 +124,33 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $phoneNumber = $(".o_website_helpdesk_search_phone_number");
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
+        const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
 
         const is_partnerName_empty = !$partnerName.val().trim();
         const is_partnerEmail_empty = !$partnerEmail.val().trim();
+        const is_portalLotSerialNumber_empty = !$portalLotSerialNumber.val().trim();
 
-        if (is_partnerName_empty && is_partnerEmail_empty) {
+        if (is_partnerName_empty && is_partnerEmail_empty && is_portalLotSerialNumber_empty) {
             $partnerName.attr("required", true);
             $partnerEmail.attr("required", true);
+            $portalLotSerialNumber.attr("required", true);
             $phoneNumber.addClass("border-danger");
         } else {
             $partnerName.attr("required", is_partnerName_empty);
             $partnerEmail.attr("required", is_partnerEmail_empty);
+            $portalLotSerialNumber.attr("required", is_portalLotSerialNumber_empty);
 
             if (is_partnerName_empty) {
                 $partnerName.addClass("border-danger");
             } else if (is_partnerEmail_empty) {
                 $partnerEmail.addClass("border-danger");
+            } else if (is_portalLotSerialNumber_empty) {
+                $portalLotSerialNumber.addClass("border-danger");
             }
         }
 
-        if (is_partnerName_empty || is_partnerEmail_empty) {
-            this.notification.add(_t("Vui lòng nhập vào thông tin của bạn!"), {
+        if (is_partnerName_empty || is_partnerEmail_empty || is_portalLotSerialNumber_empty) {
+            this.notification.add(_t("Vui lòng nhập vào đủ thông tin yêu cầu!"), {
                 type: "danger",
             });
         }
