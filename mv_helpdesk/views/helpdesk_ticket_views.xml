@@ -34,7 +34,7 @@
                            options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
                         <tree string="Ticket &amp; Product Moves" create="false" edit="false" delete="false">
                             <field name="lot_name" string="Lot/Serial Number"/>
-                            <field name="qr_code" string="QR-Code" optional="hidden"/>
+                            <field name="qr_code" string="QR-Code" optional="show"/>
                             <button class="btn btn-secondary" name="action_open_stock" string="Open Stock" type="object" icon="fa-arrows"/>
                             <field name="stock_move_line_id" column_invisible="True"/>
                             <field name="stock_move_id" column_invisible="True"/>
