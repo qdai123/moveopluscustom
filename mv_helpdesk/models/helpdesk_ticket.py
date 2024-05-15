@@ -419,7 +419,7 @@ class HelpdeskTicket(models.Model):
         ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
         move_line_env = self.env["stock.move.line"]
 
-        codes = serial_numbers or []
+        codes = serial_numbers
 
         if not codes:
             messages_list.append(
@@ -504,8 +504,15 @@ class HelpdeskTicket(models.Model):
             return False
 
         move_line_env = self.env["stock.move.line"]
+        if type(codes) is list:
+            codes_convert_to_list = codes
+        else:
+            codes_convert_to_list = [int(c.strip()) for c in codes.split(",")]
         return move_line_env.search(
-            [("qr_code", "in", codes), ("inventory_period_id", "!=", False)]
+            [
+                ("qr_code", "in", codes_convert_to_list),
+                ("inventory_period_id", "!=", False),
+            ]
         ).mapped("qr_code")
 
     # ==================================

@@ -231,4 +231,17 @@ class WebsiteForm(form.WebsiteForm):
                 else:
                     request.params["partner_id"] = partner.id
 
+            # Validated Portal Lot/Serial Number
+            codes = request.params.get("portal_lot_serial_number")
+            if codes:
+                tickets_by_codes = (
+                    request.env["helpdesk.ticket"]
+                    .sudo()
+                    ._validation_portal_lot_serial_number(codes)
+                )
+                if tickets_by_codes:
+                    for ticket in tickets_by_codes:
+                        if ticket[0] in ["code_not_found", "code_already_registered"]:
+                            return HTTPException(description=_(ticket[1]))
+
         return super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)

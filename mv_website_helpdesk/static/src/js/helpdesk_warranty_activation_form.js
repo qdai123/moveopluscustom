@@ -154,5 +154,27 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 type: "danger",
             });
         }
+
+        if ($portalLotSerialNumber.val()) {
+            const codes = $portalLotSerialNumber.val();
+            const listCode = this._cleanAndConvertCodesToArray(codes);
+            const res = await this.rpc("/mv_website_helpdesk/validate_scanned_code", { codes: listCode });
+
+            if (!res || res.length === 0) return;
+
+            for (const [keyName, keyMessage] of res) {
+                if (["is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
+                    this.notification.add(_t(keyMessage), {
+                        type: "warning",
+                    });
+                }
+            }
+        }
+    },
+
+    _cleanAndConvertCodesToArray(codes) {
+        codes = codes.replace(/\s+/g, ""); // Remove all spaces
+        codes = codes.replace(/,$/, ""); // Remove the trailing comma if it exists
+        return codes.split(",");
     },
 });
