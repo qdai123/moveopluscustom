@@ -4,39 +4,42 @@
 
         <!-- ==================== TEMPLATEs ==================== -->
 
-        <!-- Template: Xác nhận Kích Hoạt Bảo Hành -->
+        <!-- Template: Xác nhận =Kích Hoạt Bảo Hành= -->
 		<template id="mv_helpdesk_warranty_activation_submitted" name="Xác nhận Kích Hoạt Bảo Hành">
 			<t t-call="website.layout">
 				<div id="wrap" class="oe_structure oe_empty h-100">
 					<div class="container d-flex flex-column justify-content-center h-100">
-						<div class="oe_structure" id="oe_structure_website_helpdesk_thanks_you"/>
+						<div class="oe_structure" id="oe_structure_mv_website_helpdesk_confirm_warranty_activation"/>
 						<div class="row justify-content-center mb16">
 							<t t-if="request.session.get('form_builder_model_model', '') == 'helpdesk.ticket'">
 								<t t-set="ticket" t-value="request.website._website_form_last_record()"/>
 							</t>
 							<h1 class="text-center">
-								<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success"
-								   title="Success"/>
+								<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
 								<t t-if="ticket">
 									<span>Mã số phiếu yêu cầu của bạn là
-										<a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">#
+										<a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
+											#
 											<span t-field="ticket.ticket_ref"/>
 										</a>
-										<t t-if="not request.session.get('uid')">#
+										<t t-if="not request.session.get('uid')">
+											#
 											<span t-field="ticket.id"/>
 										</t>
 										.
 									</span>
 								</t>
 							</h1>
-							<h2 class="text-center">Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời
-								gian sớm nhất!
+							<h2 class="text-center">
+								Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!
 							</h2>
 							<div class="text-center">
-								<a class="btn btn-primary" t-if="ticket and request.session.uid"
-								   t-attf-href="/helpdesk/ticket/#{ticket.id}">Xem phiếu yêu cầu
+								<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
+									Xem phiếu
 								</a>
-								<a class="btn btn-primary" href='/'>Trở về trang chủ</a>
+								<a class="btn btn-primary" href='/'>
+									Trở về trang chủ
+								</a>
 							</div>
 						</div>
 						<div class="oe_structure" id="oe_structure_website_helpdesk_thanks_you_bottom"/>
@@ -45,7 +48,7 @@
 			</t>
 		</template>
 
-        <!-- Template: Kích Hoạt Bảo Hành -->
+        <!-- Template: Phiếu =Kích Hoạt Bảo Hành= -->
 		<template id="mv_helpdesk_warranty_activation_template" name="Kích Hoạt Bảo Hành">
 			<t t-call="website.layout">
 				<div id="wrap" class="container mt-4">
@@ -67,18 +70,11 @@
 										</p>
 									</div>
 								</section>
-								<span class="hidden" data-for="helpdesk_warranty_activation_form" t-att-data-values="{'team_id': team and team.id or ''}"/>
+								<span class="hidden" data-for="helpdesk_warranty_activation_form" t-att-data-values="{'team_id': default_helpdesk_team and default_helpdesk_team.id or ''}"/>
 								<div id="helpdesk_warranty_activation_section">
 									<section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
 										<div class="container">
 											<form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/kich-hoat-bao-hanh-xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
-
-												<!-- Parameters -->
-												<t t-set="anonymous" t-value="not env.user.has_group('base.group_portal') and not env.user.has_group('base.group_user')"/>
-												<t t-set="type_is_sub_dealer_id" t-value="env.ref('mv_helpdesk.type_guarantee_activation_for_sub_dealer').sudo().id or false"/>
-												<t t-set="type_is_end_user_id" t-value="env.ref('mv_helpdesk.type_guarantee_activation_for_end_user').sudo().id or false"/>
-												<t t-set="ticket_type_objects" t-value="request.env['helpdesk.ticket.type'].sudo().search([('id', 'in', [type_is_sub_dealer_id, type_is_end_user_id])], order='id') or []"/>
-
 												<div class="s_website_form_rows row s_col_no_bgcolor">
 													<!-- Field: team_id (Default Value == "Kích hoạt bảo hành") -->
 													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable" data-type="many2one" data-name="Field">
@@ -88,9 +84,7 @@
 															</label>
 															<div class="col-sm">
 																<select id="helpdesk_warranty_team_id_default" name="team_id" class="form-select s_website_form_input">
-																	<option t-foreach="request.env['helpdesk.team'].sudo().search([('use_website_helpdesk_warranty_activation', '=', True)], limit=1) or []" t-as="team" t-key="team.id" t-att-value="team.id">
-																		<t t-out="team.name"/>
-																	</option>
+																	<option t-att-value="default_helpdesk_team.id"><t t-out="default_helpdesk_team.name"/></option>
 																</select>
 															</div>
 														</div>
@@ -99,35 +93,35 @@
 													<t t-if="anonymous">
 														<div class="mb-0 py-2 s_website_form_field col-12">
 															<div class="o_search input-group col-sm" style="height: 80%;" role="search">
-													            <input type="search" name="search" class="form-control border-info o_website_helpdesk_search_phone_number" placeholder="Nhập số điện thoại..." t-ref="search"/>
+													            <input type="search" name="search" class="form-control border-info o_website_helpdesk_search_phone_number" placeholder="Nhập số điện thoại..."/>
 													            <a href="#" role="button" id="search-btn" class="btn btn-primary btn-lg" style="background-color: #461885; border-color: #461885;">
 																	<i class="fa fa-search" style="vertical-align: super;"/>
 																</a>
 													        </div>
 														</div>
-														<div class="alert alert-warning mt-2 col-sm" id="phonenumber-error-message" style="display:none; margin: 0 16px 16px 16px;"></div>
+														<div role="alert" class="alert alert-warning mt-2 col-sm" id="phonenumber-error-message" style="display:none; margin: 0 16px 16px 16px;"></div>
 													</t>
 													<!-- Field: partner_name (Required) -->
 													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_partner_name">
+															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdeskWarrantyInputPartnerName">
 																<span class="s_website_form_label_content">Họ &amp; Tên</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_partner_name" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="anonymous"/>
+																<input id="helpdeskWarrantyInputPartnerName" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="anonymous"/>
 															</div>
 														</div>
 													</div>
 													<!-- Field: partner_email (Required) -->
 													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="email" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_warranty_input_partner_email">
+															<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdeskWarrantyInputPartnerEmail">
 																<span class="s_website_form_label_content">Email</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_partner_email" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="anonymous"/>
+																<input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="anonymous"/>
 															</div>
 														</div>
 													</div>
@@ -151,8 +145,8 @@
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<select id="helpdesk_warranty_select_ticket_type_id" name="ticket_type_id" class="form-select s_website_form_input" required="1" t-on-change="onChange">
-																	<option t-foreach="ticket_type_objects or []" t-as="type" t-key="type.id" t-att-value="type.id" t-att-selected="type.name == 'Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)'">
+																<select id="helpdesk_warranty_select_ticket_type_id" class="form-select s_website_form_input" name="ticket_type_id" required="True">
+																	<option t-foreach="ticket_type_objects or []" t-as="type" t-att-value="type.id">
 																		<t t-out="type.name"/>
 																	</option>
 																</select>
@@ -220,19 +214,15 @@
 															</div>
 														</div>
 													</div>
-													<!-- Field: portal_lot_serial_number (Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="text" data-name="Field">
+													<!-- Field: portal_lot_serial_number (None Required) -->
+													<div class="mb-0 py-2 s_website_form_field col-12" data-type="text" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
 															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_portal_lot_serial_number">
 																<span class="s_website_form_label_content">Số Lô/Số Mã Vạch</span>
-																<span class="s_website_form_mark">*</span>
-																<input type="button" value="Clear" onclick="clearForm()"/>
+																<button type="button" id="scanning-btn" class="btn btn-primary">Scanning</button>
 															</label>
 															<div class="col-sm">
-																<textarea id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="5" spellcheck="false"/>
-															</div>
-															<div class="col-sm">
-																<div id="qr-reader" style="width: 250px;"></div>
+																<textarea id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="3" spellcheck="false"/>
 															</div>
 														</div>
 													</div>
@@ -254,7 +244,7 @@
 															Gửi kích hoạt bảo hành
 														</a>
 													</div>
-													<div class="mb-0 py-2 col-12">
+													<div t-if="not anonymous" class="mb-0 py-2 col-12">
 														<span id="s_website_form_result"/>
 													</div>
 												</div>
@@ -288,8 +278,6 @@
 					</div>
 				</div>
 			</t>
-			<script src="/mv_website_helpdesk/static/src/js/html5-qrcode.min.js"></script>
-			<script src="/mv_website_helpdesk/static/src/js/html5-qrcode-handler.js"></script>
 		</template>
 
 		<!-- ==================== PAGEs ==================== -->

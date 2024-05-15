@@ -9,10 +9,9 @@
             <field name="arch" type="xml">
                 <tree string="Helpdesk Ticket &amp; Product Moves LIST" create="false" edit="false" delete="true">
                     <field name="helpdesk_ticket_id" optional="hidden"/>
-                    <field name="product_id"
-                           options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"
-                           optional="show"/>
+                    <field name="product_id" options="{'no_create': True, 'no_create_edit': True, 'no_open': True}" optional="show"/>
                     <field name="lot_name" string="Lot/Serial Number"/>
+                    <field name="qr_code" string="QR-Code" optional="hidden"/>
                     <field name="stock_move_line_id" column_invisible="True"/>
                     <field name="stock_move_id" column_invisible="True"/>
                 </tree>
@@ -26,6 +25,7 @@
             <field name="arch" type="xml">
                 <search string="Helpdesk Ticket &amp; Product Moves SEARCH">
                     <field name="lot_name" filter_domain="['|', ('lot_name', 'ilike', self), ('stock_move_line_id.lot_name', 'ilike', self)]"/>
+                    <field name="qr_code" filter_domain="['|', ('qr_code', 'ilike', self), ('stock_move_line_id.qr_code', 'ilike', self)]"/>
                     <field name="product_id"/>
                     <field name="helpdesk_ticket_id"/>
                     <filter string="Current Month" name="current_month" domain="[('create_date', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('create_date', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>

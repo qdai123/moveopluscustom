@@ -220,11 +220,3 @@ class HelpdeskTicket(models.Model):
             ):
                 ticket.ticket_warranty_activation = True
                 ticket.sudo().onchange_team_id()
-
-    @api.model_create_multi
-    def create(self, list_value):
-        for vals in list_value:
-            if "partner_name" not in vals or "partner_email" not in vals:
-                return
-
-        return super().create(list_value)
