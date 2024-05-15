@@ -144,10 +144,15 @@ class MVWebsiteHelpdesk(http.Controller):
                 )
 
             if conflicting_ticket:
+                ticket_id = (
+                    conflicting_ticket.helpdesk_ticket_id
+                    and conflicting_ticket.helpdesk_ticket_id.id
+                    or False
+                )
                 messages_list.append(
                     (
                         "code_already_registered",
-                        f"Mã {code} đã trùng với Ticket khác. "
+                        f"Mã {code} đã trùng với Ticket khác mã là (#{ticket_id})."
                         f"\nVui lòng chọn một mã khác.",
                     )
                 )
