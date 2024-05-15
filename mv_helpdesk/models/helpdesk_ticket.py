@@ -413,67 +413,100 @@ class HelpdeskTicket(models.Model):
         return list(set(result))
 
     def _validation_portal_lot_serial_number(self, serial_numbers=None):
-        """Return a list of error messages or stock move line IDs for the given serial numbers"""
+        """Return a list of error messages or stock move line IDs for the given Serial Numbers"""
 
         messages_list = []
         ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
         move_line_env = self.env["stock.move.line"]
 
-        if serial_numbers is None:
-            serial_numbers = []
+        codes = serial_numbers or []
 
-        if not serial_numbers:
+        if not codes:
             messages_list.append(
                 (
-                    "serial_number_is_empty",
-                    "Vui lòng nhập vào số lô/mã vạch để kiểm tra!",
+                    "is_empty",
+                    "Vui lòng nhập vào Số lô/Mã vạch hoặc mã QR-Code để kiểm tra!",
                 )
             )
             return messages_list
 
-        existing_lot_names = move_line_env.search(
-            [("lot_name", "in", serial_numbers)]
-        ).mapped("lot_name")
-        existing_tickets = ticket_product_moves_env.search(
-            [("lot_name", "in", existing_lot_names)]
-        )
+        is_qrcode = self._is_qrcode(codes)
+        if is_qrcode:
+            list_codes = is_qrcode
+            existing_codes = move_line_env.search(
+                [("qr_code", "in", list_codes)]
+            ).mapped("qr_code")
+            domain_search = [("qr_code", "in", list_codes)]
+        else:
+            list_codes = codes
+            existing_codes = move_line_env.search(
+                [("lot_name", "in", list_codes)]
+            ).mapped("lot_name")
+            domain_search = [("lot_name", "in", existing_codes)]
 
-        for number in serial_numbers:
-            if number not in existing_lot_names:
+        existing_tickets = ticket_product_moves_env.search(domain_search)
+
+        for code in list_codes:
+            if code not in existing_codes:
                 messages_list.append(
                     (
-                        "serial_number_not_found",
-                        f"Mã {number} không tồn tại trên hệ thống hoặc chưa cập nhật. "
+                        "code_not_found",
+                        f"Mã {code} không tồn tại trên hệ thống hoặc chưa cập nhật. "
                         f"\nVui lòng kiểm tra lại.",
                     )
                 )
+                continue
+
+            if is_qrcode:
+                conflicting_ticket = existing_tickets.filtered(
+                    lambda r: r.stock_move_line_id.qr_code == code
+                    and r.helpdesk_ticket_id
+                )
             else:
                 conflicting_ticket = existing_tickets.filtered(
-                    lambda r: r.lot_name == number and r.helpdesk_ticket_id
+                    lambda r: r.lot_name == code and r.helpdesk_ticket_id
                 )
-                if conflicting_ticket:
-                    messages_list.append(
-                        (
-                            "serial_number_already_registered",
-                            f"Mã {number} đã trùng với Ticket khác. "
-                            f"\nVui lòng chọn một mã khác.",
-                        )
+
+            if conflicting_ticket:
+                messages_list.append(
+                    (
+                        "code_already_registered",
+                        f"Mã {code} đã trùng với Ticket khác. "
+                        f"\nVui lòng chọn một mã khác.",
                     )
+                )
+            else:
+                if is_qrcode:
+                    move_line = move_line_env.search([("qr_code", "=", code)], limit=1)
                 else:
-                    move_line = move_line_env.search(
-                        [("lot_name", "=", str(number))], limit=1
-                    )
-                    if move_line:
+                    move_line = move_line_env.search([("lot_name", "=", code)], limit=1)
+
+                if move_line:
+                    if is_qrcode:
                         messages_list.append(
                             (
                                 move_line.id,
-                                f"{move_line.lot_name} "
-                                f"- "
-                                f"{move_line.product_id.name if move_line.product_id else ''}",
+                                f"{move_line.qr_code} - {move_line.product_id.name if move_line.product_id else ''}",
+                            )
+                        )
+                    else:
+                        messages_list.append(
+                            (
+                                move_line.id,
+                                f"{move_line.lot_name} - {move_line.product_id.name if move_line.product_id else ''}",
                             )
                         )
 
         return messages_list
+
+    def _is_qrcode(self, codes):
+        if not codes:
+            return False
+
+        move_line_env = self.env["stock.move.line"]
+        return move_line_env.search(
+            [("qr_code", "in", codes), ("inventory_period_id", "!=", False)]
+        ).mapped("qr_code")
 
     # ==================================
     # WIZARDS
