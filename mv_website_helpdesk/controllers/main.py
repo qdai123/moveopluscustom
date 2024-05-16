@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import requests
 
 try:
@@ -16,6 +17,8 @@ from odoo.addons.website.controllers import form
 
 from werkzeug.utils import redirect
 from werkzeug.exceptions import HTTPException, BadRequest
+
+_logger = logging.getLogger(__name__)
 
 # BASE Templates Website Helpdesk:
 HELPDESK_WARRANTY_ACTIVATION_FORM = (
@@ -78,8 +81,10 @@ class MVWebsiteHelpdesk(http.Controller):
         template = http.request.render(HELPDESK_WARRANTY_ACTIVATION_FORM, values)
 
         # TODO: Remove these "print" after fixed
-        print(f"Request Session Headers: {requests.Session().headers}")
-        print(f"Request Cookies: {request.httprequest.cookies}")
+        _logger.debug(
+            f"######### Request Session Headers: {requests.Session().headers}"
+        )
+        _logger.debug(f"######### Request Cookies: {request.httprequest.cookies}")
 
         return template
 
