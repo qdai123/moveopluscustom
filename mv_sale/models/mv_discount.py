@@ -7,6 +7,7 @@ class MvDiscount(models.Model):
     _name = "mv.discount"
     _description = _("Moveo PLus Discount (%)")
 
+    active = fields.Boolean("Active", default=True)
     name = fields.Char("Chính sách chiết khấu")
     line_ids = fields.One2many("mv.discount.line", "parent_id")
     level_promote_apply = fields.Integer("Level")

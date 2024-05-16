@@ -3,6 +3,7 @@ import base64
 import calendar
 import io
 from datetime import date, datetime
+from dateutil.relativedelta import relativedelta
 
 try:
     from odoo.tools.misc import xlsxwriter
@@ -10,8 +11,15 @@ except ImportError:
     import xlsxwriter
 
 from odoo import api, fields, models, _
-from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tools.misc import formatLang
+from odoo.exceptions import AccessError, UserError
+from odoo.tools.misc import format_date, formatLang, get_lang
+
+DEFAULT_SERVER_DATE_FORMAT = "%Y-%m-%d"
+DEFAULT_SERVER_TIME_FORMAT = "%H:%M:%S"
+DEFAULT_SERVER_DATETIME_FORMAT = "%s %s" % (
+    DEFAULT_SERVER_DATE_FORMAT,
+    DEFAULT_SERVER_TIME_FORMAT,
+)
 
 
 def get_years():
@@ -44,8 +52,8 @@ class MvComputeDiscount(models.Model):
     _description = _("Compute Discount (%) for Partner")
 
     @api.model
-    def default_get(self, fields):
-        res = super(MvComputeDiscount, self).default_get(fields)
+    def default_get(self, fields_list):
+        res = super(MvComputeDiscount, self).default_get(fields_list)
         promote_discount = (
             self.env["mv.discount"]
             .search([("level_promote_apply", "!=", False)], limit=1)
@@ -98,7 +106,6 @@ class MvComputeDiscount(models.Model):
     )
     line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
     report_date = fields.Date(compute="_compute_report_date_by_month_year", store=True)
-
     level_promote_apply_for = fields.Integer(
         "Bậc áp dụng (Khuyến khích)", compute="_get_promote_discount_level"
     )
@@ -132,26 +139,57 @@ class MvComputeDiscount(models.Model):
     def action_reset_to_draft(self):
         self.filtered(lambda r: r.state != "draft").write({"state": "draft"})
 
+    def _get_partner_for_discount_only(self, month, year):
+        self.env["mv.discount.partner"].flush_model()
+        query = """
+            WITH date_params AS (SELECT %s::INT    AS target_year,
+                                                        %s::INT    AS target_month)
+                    SELECT dp.parent_id AS mv_discount_id,
+                               dp.partner_id,
+                               dp.level
+                    FROM mv_discount_partner dp
+                             JOIN date_params AS d ON (EXTRACT(YEAR FROM dp.date) = d.target_year)
+                    GROUP BY 1, dp.partner_id, dp.level
+                    ORDER BY dp.partner_id, dp.level;
+        """
+        self.env.cr.execute(query, [year, month])
+        res = [r[1] for r in self.env.cr.fetchall()]
+        return res
+
+    def _compute_dates(self, month, year):
+        # Compute date_from
+        date_from = fields.Datetime.now().replace(
+            day=1, month=int(month), year=int(year), hour=0, minute=0, second=0
+        )
+
+        # Compute date_to by adding one month and then subtracting one day
+        date_to = date_from + relativedelta(months=1) - relativedelta(days=1)
+
+        # Format the dates
+        date_from_formatted = date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)
+        date_to_formatted = date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)
+
+        # Convert date_from and date_to to datetime objects once for better performance
+        dt_from = fields.Date.to_date(date_from_formatted)
+        dt_to = fields.Date.to_date(date_to_formatted)
+
+        return dt_from, dt_to
+
     def action_confirm(self):
+        self.ensure_one()
+
         self.line_ids = False
         list_line_ids = []
-        # compute date
-        date_from = "01-" + self.month + "-" + self.year
-        date_from = datetime.strptime(date_from, "%d-%m-%Y")
-        if self.month == "12":
-            date_to = "31-" + self.month + "-" + self.year
-        else:
-            date_to = "01-" + str(int(self.month) + 1) + "-" + self.year
-        date_to = datetime.strptime(date_to, "%d-%m-%Y")
+        date_from, date_to = self._compute_dates(self.month, self.year)
 
-        # domain lọc dữ liệu sale trong tháng
-        domain = [
-            ("date_invoice", ">=", date_from),
-            ("date_invoice", "<", date_to),
-            ("state", "in", ["sale"]),
-        ]
-        sale_ids = self.env["sale.order"].search(domain)
-
+        # Lấy danh sách SO đã chốt đơn và có xuất hoá đơn theo ngày Bắt Đầu/Kết Thúc
+        sale_ids = self.env["sale.order"].search(
+            [
+                ("state", "=", "sale"),
+                ("date_invoice", ">=", date_from),
+                ("date_invoice", "<", date_to),
+            ]
+        )
         if not sale_ids:
             raise UserError(
                 _("Hiện tại không có đơn hàng nào đã chốt trong tháng %s") % self.month
@@ -159,15 +197,27 @@ class MvComputeDiscount(models.Model):
 
         # lấy tất cả đơn hàng trong tháng, có mua lốp xe có category 19
         order_line = sale_ids.order_line.filtered(
-            lambda x: x.order_id.partner_id.is_agency
-            and x.product_id.detailed_type == "product"
-            and x.qty_delivered > 0
-            and x.order_id.check_category_product(x.product_id.categ_id)
+            lambda order: order.order_id.partner_id.is_agency
+            and order.order_id.check_category_product(order.product_id.categ_id)
+            and order.product_id.detailed_type == "product"
+            and order.qty_delivered > 0
+        )
+        # Lấy ra danh sách Khách hàng/Đại lý theo Order Line
+        partner_ids = order_line.order_id.mapped("partner_id") or []
+
+        # Lấy ra danh sách Khách hàng/Đại lý được cấu hình trong Chiết Khấu theo ngày Tháng/Năm
+        partners_use_for_discount = self._get_partner_for_discount_only(
+            self.month, self.year
+        )
+        partner_for_discount = (
+            self.env["res.partner"].sudo().browse(partners_use_for_discount)
+            if partners_use_for_discount
+            else []
         )
 
-        # lấy tất cả đại lý trong tháng
-        partner_ids = order_line.order_id.mapped("partner_id")
-        for partner_id in partner_ids:
+        for partner_id in partner_ids.filtered(
+            lambda p: p.id in partner_for_discount.ids
+        ):
             # giá trị ban đầu:
             discount_line_id = False
             amount_total = False
@@ -192,7 +242,7 @@ class MvComputeDiscount(models.Model):
                 lambda x: x.order_id.partner_id == partner_id and x.price_unit > 0
             )
             quantity = sum(order_line_partner.mapped("product_uom_qty"))
-            # xác định số lương đơn hàng có giá = 0, hàng khuyến mãi
+            # xác định số lượng đơn hàng có giá = 0, hàng khuyến mãi
             order_line_partner_discount = order_line_total.filtered(
                 lambda x: x.order_id.partner_id == partner_id and x.price_unit == 0
             )
