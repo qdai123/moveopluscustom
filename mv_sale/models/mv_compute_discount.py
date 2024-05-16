@@ -205,7 +205,7 @@ class MvComputeDiscount(models.Model):
         # Lấy ra danh sách Khách hàng/Đại lý theo Order Line
         partner_ids = order_line.order_id.mapped("partner_id") or []
 
-        # Lấy ra danh sách Khách hàng/Đại lý được cấu hình trong Chiết Khấu theo ngày Tháng/Năm
+        # Lấy ra danh sách Khách hàng/Đại lý được cấu hình trong Chiết Khấu theo Tháng/Năm
         partners_use_for_discount = self._get_partner_for_discount_only(
             self.month, self.year
         )

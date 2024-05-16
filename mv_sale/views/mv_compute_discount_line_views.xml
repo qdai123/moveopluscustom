@@ -72,7 +72,7 @@
                         </group>
                         <group>
                             <field name="amount_total" widget="monetary"/>
-                            <field name="total_money" widget="monetary"/>
+                            <field name="total_money" string="Tổng tiền C/Khấu" widget="monetary"/>
                         </group>
                         <group/>
                     </group>
@@ -98,8 +98,8 @@
                             </group>
                         </group>
                         <group name="group_percentage_promote_discount" string="(%) Khuyến Khích">
-                            <field name="promote_discount_percentage" string="(%) CK Khuyến Khích"/>
-                            <field name="promote_discount_money" string="Tiền CK Khuyến Khích" widget="monetary" readonly="True"/>
+                            <field name="promote_discount_percentage" string="(%) CK K/Khích"/>
+                            <field name="promote_discount_money" string="Tiền CK K/Khích" widget="monetary" readonly="True"/>
                         </group>
                         <group/>
                     </group>
