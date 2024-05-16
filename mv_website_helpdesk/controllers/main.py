@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import requests
+
 try:
     import phonenumbers
 except ImportError:
@@ -7,7 +9,7 @@ except ImportError:
 from markupsafe import Markup
 
 from odoo import http, _
-from odoo.http import request
+from odoo.http import request, Response
 from odoo.addons.phone_validation.tools import phone_validation
 from odoo.exceptions import ValidationError
 from odoo.addons.website.controllers import form
@@ -27,7 +29,14 @@ INTERNAL_USER = "base.group_user"
 
 class MVWebsiteHelpdesk(http.Controller):
 
-    @http.route("/kich-hoat-bao-hanh", type="http", auth="public", website=True)
+    @http.route(
+        "/kich-hoat-bao-hanh",
+        type="http",
+        auth="public",
+        website=True,
+        csrf=False,
+        save_session=False,
+    )
     def warranty_activation_form_public(self, **kwargs):
         HelpdeskTeam = request.env["helpdesk.team"]
         HelpdeskTicketType = request.env["helpdesk.ticket.type"]
@@ -66,7 +75,13 @@ class MVWebsiteHelpdesk(http.Controller):
             or False,
         }
 
-        return http.request.render(HELPDESK_WARRANTY_ACTIVATION_FORM, values)
+        template = http.request.render(HELPDESK_WARRANTY_ACTIVATION_FORM, values)
+
+        # TODO: Remove these "print" after fixed
+        print(f"Request Session Headers: {requests.Session().headers}")
+        print(f"Request Cookies: {request.httprequest.cookies}")
+
+        return template
 
     @http.route(
         "/mv_website_helpdesk/validate_partner_phonenumber", type="json", auth="public"
