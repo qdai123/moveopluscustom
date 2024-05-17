@@ -27,10 +27,11 @@
                             class="btn btn-secondary"
                             invisible="not id"
                     />
+                    <field invisible="True" name="portal_lot_serial_number"/>
                     <field mode="tree"
                            name="helpdesk_ticket_product_move_ids"
                            context="{'default_helpdesk_ticket_id': id}"
-                           domain="[('lot_name', '!=', '')]"
+                           domain="[('stock_move_line_id', '!=', False)]"
                            options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
                         <tree string="Ticket &amp; Product Moves" create="false" edit="false" delete="false">
                             <field name="lot_name" string="Lot/Serial Number"/>
@@ -64,10 +65,6 @@
                 <field name="sub_dealer_name" invisible="not is_sub_dealer or not ticket_type_id"/>
                 <field name="license_plates" invisible="not is_end_user or not ticket_type_id"/>
                 <field name="mileage" invisible="not is_end_user or not ticket_type_id"/>
-            </xpath>
-            <xpath expr="//field[@name='email_cc']" position="after">
-                <field invisible="True" readonly="True" name="portal_lot_serial_number" string="Input Lot/Serial Number Or Scanner"/>
-                <button invisible="True" class="btn btn-primary" type="object" name="action_scan_lot_serial_number" string="Scan"/>
             </xpath>
         </field>
     </record>

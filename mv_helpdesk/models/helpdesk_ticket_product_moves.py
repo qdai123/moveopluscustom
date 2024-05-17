@@ -30,6 +30,14 @@ class HelpdeskTicketProductMoves(models.Model):
         readonly=True,
         index=True,
     )
+    partner_id = fields.Many2one(
+        comodel_name="res.partner",
+        string="Partner",
+        compute="_compute_partner_id",
+        store=True,
+        precompute=True,
+        ondelete="restrict",
+    )
 
     # ==== RELATED Fields
     # Description: These fields helps to search and trace data of Stock Move Line
@@ -59,6 +67,16 @@ class HelpdeskTicketProductMoves(models.Model):
         readonly=True,
         string="Product",
     )
+
+    @api.depends("helpdesk_ticket_id")
+    def _compute_partner_id(self):
+        for record in self:
+            if record.helpdesk_ticket_id:
+                record.partner_id = (
+                    record.helpdesk_ticket_id.partner_id
+                    and record.helpdesk_ticket_id.partner_id.id
+                    or False
+                )
 
     @api.model_create_multi
     def create(self, vals_list):

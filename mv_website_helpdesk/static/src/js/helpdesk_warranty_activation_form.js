@@ -130,6 +130,22 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const is_partnerEmail_empty = !$partnerEmail.val().trim();
         const is_portalLotSerialNumber_empty = !$portalLotSerialNumber.val().trim();
 
+        if ($portalLotSerialNumber.val()) {
+            const codes = $portalLotSerialNumber.val();
+            const listCode = this._cleanAndConvertCodesToArray(codes);
+            const res = await this.rpc("/mv_website_helpdesk/validate_scanned_code", { codes: listCode });
+
+            if (!res || res.length === 0) return;
+
+            for (const [keyName, keyMessage] of res) {
+                if (["is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
+                    return this.notification.add(_t(keyMessage), {
+                        type: "warning",
+                    });
+                }
+            }
+        }
+
         if (is_partnerName_empty && is_partnerEmail_empty && is_portalLotSerialNumber_empty) {
             $partnerName.attr("required", true);
             $partnerEmail.attr("required", true);
@@ -141,7 +157,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             $portalLotSerialNumber.attr("required", is_portalLotSerialNumber_empty);
 
             if (is_partnerName_empty) {
-                $partnerName.addClass("border-danger");
+                $partnerName.addClass("border-danger");``
             } else if (is_partnerEmail_empty) {
                 $partnerEmail.addClass("border-danger");
             } else if (is_portalLotSerialNumber_empty) {
@@ -150,25 +166,9 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         }
 
         if (is_partnerName_empty || is_partnerEmail_empty || is_portalLotSerialNumber_empty) {
-            this.notification.add(_t("Vui lòng nhập vào đủ thông tin yêu cầu!"), {
+            return this.notification.add(_t("Vui lòng nhập vào đủ thông tin yêu cầu!"), {
                 type: "danger",
             });
-        }
-
-        if ($portalLotSerialNumber.val()) {
-            const codes = $portalLotSerialNumber.val();
-            const listCode = this._cleanAndConvertCodesToArray(codes);
-            const res = await this.rpc("/mv_website_helpdesk/validate_scanned_code", { codes: listCode });
-
-            if (!res || res.length === 0) return;
-
-            for (const [keyName, keyMessage] of res) {
-                if (["is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
-                    this.notification.add(_t(keyMessage), {
-                        type: "warning",
-                    });
-                }
-            }
         }
     },
 

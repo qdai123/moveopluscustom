@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import json
+import logging
+import requests
+
 try:
     import phonenumbers
 except ImportError:
@@ -7,13 +11,15 @@ except ImportError:
 from markupsafe import Markup
 
 from odoo import http, _
-from odoo.http import request
+from odoo.http import request, Response
 from odoo.addons.phone_validation.tools import phone_validation
 from odoo.exceptions import ValidationError
 from odoo.addons.website.controllers import form
 
 from werkzeug.utils import redirect
 from werkzeug.exceptions import HTTPException, BadRequest
+
+_logger = logging.getLogger(__name__)
 
 # BASE Templates Website Helpdesk:
 HELPDESK_WARRANTY_ACTIVATION_FORM = (
@@ -27,7 +33,14 @@ INTERNAL_USER = "base.group_user"
 
 class MVWebsiteHelpdesk(http.Controller):
 
-    @http.route("/kich-hoat-bao-hanh", type="http", auth="public", website=True)
+    @http.route(
+        "/kich-hoat-bao-hanh",
+        type="http",
+        auth="public",
+        website=True,
+        csrf=False,
+        save_session=False,
+    )
     def warranty_activation_form_public(self, **kwargs):
         HelpdeskTeam = request.env["helpdesk.team"]
         HelpdeskTicketType = request.env["helpdesk.ticket.type"]
@@ -66,7 +79,15 @@ class MVWebsiteHelpdesk(http.Controller):
             or False,
         }
 
-        return http.request.render(HELPDESK_WARRANTY_ACTIVATION_FORM, values)
+        template = http.request.render(HELPDESK_WARRANTY_ACTIVATION_FORM, values)
+
+        # TODO: Remove these "print" after fixed
+        _logger.debug(
+            f"######### Request Session Headers: {requests.Session().headers}"
+        )
+        _logger.debug(f"######### Request Cookies: {request.httprequest.cookies}")
+
+        return template
 
     @http.route(
         "/mv_website_helpdesk/validate_partner_phonenumber", type="json", auth="public"
@@ -233,8 +254,7 @@ class WebsiteForm(form.WebsiteForm):
                         .search([("email", "=", email)], limit=1)
                     )
                 if not partner:
-                    # return HTTPException(description=_("Partner not found!"))
-                    raise ValidationError(_("Partner not found!"))
+                    return json.dumps({"error": _(_("Partner not found!"))})
                 else:
                     request.params["partner_id"] = partner.id
 
@@ -249,7 +269,6 @@ class WebsiteForm(form.WebsiteForm):
                 if tickets_by_codes:
                     for ticket in tickets_by_codes:
                         if ticket[0] in ["code_not_found", "code_already_registered"]:
-                            # return HTTPException(description=_(ticket[1]))
-                            raise ValidationError(_(ticket[1]))
+                            return json.dumps({"error": _(ticket[1])})
 
         return super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
