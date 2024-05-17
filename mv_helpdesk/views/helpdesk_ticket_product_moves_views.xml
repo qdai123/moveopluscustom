@@ -8,6 +8,7 @@
             <field name="model">mv.helpdesk.ticket.product.moves</field>
             <field name="arch" type="xml">
                 <tree string="Helpdesk Ticket &amp; Product Moves LIST" create="false" edit="false" delete="true">
+                    <field name="partner_id" optional="hidden"/>
                     <field name="helpdesk_ticket_id" optional="hidden"/>
                     <field name="product_id" options="{'no_create': True, 'no_create_edit': True, 'no_open': True}" optional="show"/>
                     <field name="lot_name" string="Lot/Serial Number"/>
@@ -28,6 +29,7 @@
                     <field name="qr_code" filter_domain="['|', ('qr_code', 'ilike', self), ('stock_move_line_id.qr_code', 'ilike', self)]"/>
                     <field name="product_id"/>
                     <field name="helpdesk_ticket_id"/>
+                    <field name="partner_id"/>
                     <filter string="Current Month" name="current_month" domain="[('create_date', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('create_date', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
                     <filter string="Previous Month" name="previous_month" domain="[('create_date', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')), ('create_date', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
                     <separator/>
@@ -36,6 +38,7 @@
                         <filter string="Product" name="groupby_product" context="{'group_by':'product_id'}"/>
                         <separator/>
                         <filter string="Ticket" name="groupby_ticket" context="{'group_by':'helpdesk_ticket_id'}"/>
+                        <filter string="Customer" name="groupby_partner" context="{'group_by':'partner_id'}"/>
                     </group>
                 </search>
             </field>
@@ -49,7 +52,7 @@
             <field name="search_view_id" ref="mv_helpdesk_ticket_product_moves_search_view"/>
             <field name="view_id" ref="mv_helpdesk_ticket_product_moves_tree_view"/>
             <field name="domain" eval="[('lot_name', '!=', '')]"/>
-            <field name="context">{'search_default_filter_ticket_registered': True}</field>
+            <field name="context">{'search_default_filter_ticket_registered': True, 'search_default_groupby_partner': True}</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_empty_folder">
                     No data yet!
