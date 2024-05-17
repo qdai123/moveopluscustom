@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 import requests
 
@@ -253,8 +254,7 @@ class WebsiteForm(form.WebsiteForm):
                         .search([("email", "=", email)], limit=1)
                     )
                 if not partner:
-                    # return HTTPException(description=_("Partner not found!"))
-                    raise ValidationError(_("Partner not found!"))
+                    return json.dumps({"error": _(_("Partner not found!"))})
                 else:
                     request.params["partner_id"] = partner.id
 
@@ -269,7 +269,6 @@ class WebsiteForm(form.WebsiteForm):
                 if tickets_by_codes:
                     for ticket in tickets_by_codes:
                         if ticket[0] in ["code_not_found", "code_already_registered"]:
-                            # return HTTPException(description=_(ticket[1]))
-                            raise ValidationError(_(ticket[1]))
+                            return json.dumps({"error": _(ticket[1])})
 
         return super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
