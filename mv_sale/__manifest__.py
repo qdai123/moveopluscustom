@@ -28,6 +28,7 @@
         # VIEWS
         "views/mv_discount_views.xml",
         "views/mv_promote_discount_line_views.xml",
+        "views/mv_white_place_discount_line_views.xml",
         "views/res_partner_views.xml",
         "views/sale_order_views.xml",
         "views/mv_compute_discount_view.xml",

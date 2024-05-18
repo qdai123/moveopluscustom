@@ -7,12 +7,13 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group[@name='order_details']" position="inside">
-                <field name="check_discount_10" invisible="1"/>
-                <field name="bonus_order" invisible="1"/>
+                <field name="check_discount_10" invisible="True"/>
+                <field name="check_discount_agency_white_place" invisible="True"/>
+                <field name="bonus_order" invisible="True"/>
             </xpath>
             <xpath expr="//header" position="inside">
-                <field name="flag_delivery" invisible="1"/>
-                <field name="is_sales_manager" invisible="1"/>
+                <field name="flag_delivery" invisible="True"/>
+                <field name="is_sales_manager" invisible="True"/>
                 <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or flag_delivery"/>
                 <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Nhập chiết khấu sản lượng" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or not flag_delivery"/>
             </xpath>
