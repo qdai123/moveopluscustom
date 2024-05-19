@@ -9,9 +9,9 @@ class MvWizardDiscount(models.TransientModel):
     currency_symbol = fields.Char(compute="_compute_currency_symbol")
     sale_id = fields.Many2one("sale.order", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
-    amount = fields.Float("Tiền sẽ chiết khấu", digits="Product Price")
+    amount = fields.Float("Số tiền sẽ chiết khấu", digits="Product Price")
     amount_partner = fields.Integer(
-        "Tiền chiết khấu hiện có",
+        "Số tiền chiết khấu hiện có",
         related="partner_id.amount",
         digits="Product Price",
     )
