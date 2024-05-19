@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<record id="mv_white_place_discount_line_tree_view" model="ir.ui.view">
+		<field name="name">mv.white.place.discount.line.tree</field>
+		<field name="model">mv.white.place.discount.line</field>
+		<field name="arch" type="xml">
+			<tree string="White Place Discount (%) Line TREE">
+				<field column_invisible="True" name="parent_id"/>
+				<field column_invisible="True" name="pricelist_id" string="Pricelist"/>
+				<field name="quantity"/>
+				<field name="discount"/>
+			</tree>
+		</field>
+	</record>
+
+</odoo>

@@ -73,11 +73,9 @@ class StockMove(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        print(f"Move Creating: {vals_list}")
         return super(StockMove, self).create(vals_list)
 
     def write(self, vals):
-        print(f"Move Writing: {vals}")
         return super(StockMove, self).write(vals)
 
     # ===============================

@@ -12,11 +12,11 @@ class MvComputeDiscountLine(models.Model):
     _rec_name = "partner_id"
 
     def _get_company_currency(self):
-        for partner in self:
-            if partner.company_id:
-                partner.currency_id = partner.sudo().company_id.currency_id
+        for record in self:
+            if record.partner_id.company_id:
+                record.currency_id = record.partner_id.sudo().company_id.currency_id
             else:
-                partner.currency_id = self.env.company.currency_id
+                record.currency_id = self.env.company.currency_id
 
     # Parent Model Fields:
     parent_id = fields.Many2one("mv.compute.discount")
