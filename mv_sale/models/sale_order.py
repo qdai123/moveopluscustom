@@ -385,7 +385,6 @@ class SaleOrder(models.Model):
             self.partner_id.write({"amount": self.partner_id.amount - bonus})
         except Exception as e:
             _logger.error("Failed to compute discount for partner: %s", e)
-            raise
 
     def action_compute_discount_month(self):
         if not self.order_line:
@@ -547,7 +546,6 @@ class SaleOrder(models.Model):
                     )
         except Exception as e:
             _logger.error("Failed to create discount for agency in white place: %s", e)
-            raise
 
     def _handle_agency_white_place_discount(self):
         if self.check_discount_agency_white_place:
@@ -619,7 +617,6 @@ class SaleOrder(models.Model):
             return super(SaleOrder, self).action_draft()
         except Exception as e:
             _logger.error("Failed to transition sale order back to draft state: %s", e)
-            raise
 
     def action_confirm(self):
         if self.partner_id.is_agency:
@@ -631,7 +628,6 @@ class SaleOrder(models.Model):
             return super(SaleOrder, self).action_confirm()
         except Exception as e:
             _logger.error("Failed to confirm sale order: %s", e)
-            raise
 
     def action_cancel(self):
         """
@@ -658,4 +654,3 @@ class SaleOrder(models.Model):
             return super(SaleOrder, self).action_cancel()
         except Exception as e:
             _logger.error("Failed to cancel sale order: %s", e)
-            raise
