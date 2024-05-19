@@ -83,7 +83,7 @@ class SaleOrderLine(models.Model):
         return super(SaleOrderLine, self).unlink()
 
     def write(self, vals):
-        res = super().write(vals)
+        res = super(SaleOrderLine, self).write(vals)
         for record in self:
             if record.hidden_show_qty or record.reward_id:
                 return res
