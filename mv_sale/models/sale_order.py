@@ -184,6 +184,25 @@ class SaleOrder(models.Model):
         res = super(SaleOrder, self)._get_order_lines_to_report()
         return res.sorted(key=lambda r: r.product_id.detailed_type)
 
+    # ==================================
+
+    def field_exists(self, model_name, field_name):
+        """
+        Check if a field exists on the model.
+
+        Args:
+            model_name (str): The name of Model to check.
+            field_name (str): The name of the field to check.
+
+        Returns:
+            bool: True if the field exists, False otherwise.
+        """
+        # Get the definition of each field on the model
+        f = self.env[model_name].fields_get()
+
+        # Check if the field name is in the keys of the fields dictionary
+        return field_name in f.keys()
+
     @api.depends("order_line", "order_line.product_uom_qty", "order_line.product_id")
     def _compute_discount(self):
         for record in self:
@@ -192,9 +211,12 @@ class SaleOrder(models.Model):
 
             # [!] Kiểm tra có là Đại Lý hay Đại lý vùng trắng không?
             is_partner_agency = record.partner_id.is_agency
-            is_partner_agency_white_place = (
-                is_partner_agency and record.partner_id.is_white_agency
-            )
+            if self.field_exists("res.partner", "is_white_agency"):
+                # The field exists, it's safe to access it
+                is_partner_agency_white_place = record.partner_id.is_white_agency
+            else:
+                # The field does not exist, handle accordingly
+                is_partner_agency_white_place = False
 
             if is_partner_agency_white_place:
                 record.check_discount_10 = False
@@ -438,8 +460,10 @@ class SaleOrder(models.Model):
                         )
                     )
                 url = http.request.httprequest.full_path
-                if url.find("/shop/cart") > -1 or self._context.get(
-                    "bank_guarantee", False
+                if (
+                    url
+                    and url.find("/shop/cart") > -1
+                    or self._context.get("bank_guarantee", False)
                 ):
                     order_line_id = self.env["sale.order.line"].create(
                         {
@@ -518,8 +542,12 @@ class SaleOrder(models.Model):
                             )
                         )
                     current_url = http.request.httprequest.full_path
-                    if current_url.find("/shop/cart") > -1 or self._context.get(
-                        "compute_discount_for_agency_white_place", False
+                    if (
+                        current_url
+                        and current_url.find("/shop/cart") > -1
+                        or self._context.get(
+                            "compute_discount_for_agency_white_place", False
+                        )
                     ):
                         order_line_id = self.env["sale.order.line"].create(
                             {
