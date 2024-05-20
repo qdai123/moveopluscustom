@@ -210,7 +210,7 @@ class SaleOrder(models.Model):
             record._reset_discount_values()
 
             # [!] Kiểm tra có là Đại Lý hay Đại lý vùng trắng không?
-            # is_partner_agency = record.partner_id.is_agency
+            is_partner_agency = record.partner_id.is_agency
             # if self.field_exists("res.partner", "is_white_agency"):
             #     # The field exists, it's safe to access it
             #     is_partner_agency_white_place = record.partner_id.is_white_agency
