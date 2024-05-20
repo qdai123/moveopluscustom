@@ -289,7 +289,8 @@ class SaleOrder(models.Model):
                 / DISCOUNT_PERCENTAGE_DIVISOR
             )
             if self.discount_bank_guarantee > 0:
-                self.create_discount_bank_guarantee()
+                pass
+                # self.create_discount_bank_guarantee()
         self.after_discount_bank_guarantee = (
             self.total_price_after_discount - self.discount_bank_guarantee
         )
@@ -437,7 +438,7 @@ class SaleOrder(models.Model):
 
     def create_discount_bank_guarantee(self, url=None):
         if not url:
-            url = http.request.httprequest.full_path
+            url = http.request.httprequest.full_path or ""
 
         order_line = self.order_line.filtered(
             lambda x: x.product_id.detailed_type == "product"
