@@ -207,7 +207,7 @@ class SaleOrder(models.Model):
     def _compute_discount(self):
         for record in self:
             # RESET all discount values
-            record._reset_discount_values()
+            record.reset_discount_values()
 
             # [!] Kiểm tra có là Đại Lý hay Đại lý vùng trắng không?
             is_partner_agency = record.partner_id.is_agency
@@ -224,19 +224,19 @@ class SaleOrder(models.Model):
             # else:
             # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
             if is_partner_agency and len(record.order_line) > 0:
-                record.check_discount_10 = record._check_discount_applicable()
+                record.check_discount_10 = record.check_discount_applicable()
 
             # Tính tổng tiền giá sản phẩm không bao gồm hàng dịch vụ,
             # tính giá gốc ban đầu, không bao gồm thuế phí
             if len(record.order_line) > 0:
-                record._calculate_discount_values()
+                record.calculate_discount_values()
 
                 # Nếu đơn hàng không còn lốp xe nữa thì xóa:
                 # - "Chiết Khấu Tháng" (CKT)
                 # - "Chiết Khấu Bảo Lãnh" (CKBL)
-                record._handle_discount_lines()
+                record.handle_discount_lines()
 
-    def _reset_discount_values(self):
+    def reset_discount_values(self):
         self.check_discount_10 = False
         self.total_price_no_service = 0
         self.total_price_discount = 0
@@ -249,7 +249,7 @@ class SaleOrder(models.Model):
         self.discount_bank_guarantee = 0
         self.total_price_after_discount_month = 0
 
-    def _check_discount_applicable(self):
+    def check_discount_applicable(self):
         order_line = self.order_line.filtered(
             lambda sol: sol.product_id.detailed_type == "product"
             and self.check_category_product(sol.product_id.categ_id)
@@ -259,7 +259,7 @@ class SaleOrder(models.Model):
             and sum(order_line.mapped("product_uom_qty")) >= DISCOUNT_QUANTITY_THRESHOLD
         )
 
-    def _calculate_discount_values(self):
+    def calculate_discount_values(self):
         total_price_no_service = 0
         total_price_discount = 0
         percentage = 0
@@ -314,7 +314,7 @@ class SaleOrder(models.Model):
             - self.discount_bank_guarantee
         ) / 2
 
-    def _handle_discount_lines(self):
+    def handle_discount_lines(self):
         order_line_ctk = self.order_line.filtered(
             lambda sol: sol.product_id
             and sol.product_id.default_code
