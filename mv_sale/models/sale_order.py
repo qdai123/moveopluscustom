@@ -192,7 +192,7 @@ class SaleOrder(models.Model):
 
         Args:
             model_name (str): The name of Model to check.
-            field_name (str): The name of the field to check.
+            field_name (str): The name of Field to check.
 
         Returns:
             bool: True if the field exists, False otherwise.
@@ -210,21 +210,21 @@ class SaleOrder(models.Model):
             record._reset_discount_values()
 
             # [!] Kiểm tra có là Đại Lý hay Đại lý vùng trắng không?
-            is_partner_agency = record.partner_id.is_agency
-            if self.field_exists("res.partner", "is_white_agency"):
-                # The field exists, it's safe to access it
-                is_partner_agency_white_place = record.partner_id.is_white_agency
-            else:
-                # The field does not exist, handle accordingly
-                is_partner_agency_white_place = False
+            # is_partner_agency = record.partner_id.is_agency
+            # if self.field_exists("res.partner", "is_white_agency"):
+            #     # The field exists, it's safe to access it
+            #     is_partner_agency_white_place = record.partner_id.is_white_agency
+            # else:
+            #     # The field does not exist, handle accordingly
+            #     is_partner_agency_white_place = False
 
-            if is_partner_agency_white_place:
-                record.check_discount_10 = False
-                record.check_discount_agency_white_place = is_partner_agency_white_place
-            else:
-                # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
-                if is_partner_agency and len(record.order_line) > 0:
-                    record.check_discount_10 = record._check_discount_applicable()
+            # if is_partner_agency_white_place:
+            #     record.check_discount_10 = False
+            #     record.check_discount_agency_white_place = is_partner_agency_white_place
+            # else:
+            # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
+            if is_partner_agency and len(record.order_line) > 0:
+                record.check_discount_10 = record._check_discount_applicable()
 
             # Tính tổng tiền giá sản phẩm không bao gồm hàng dịch vụ,
             # tính giá gốc ban đầu, không bao gồm thuế phí
@@ -407,6 +407,7 @@ class SaleOrder(models.Model):
             self.partner_id.write({"amount": self.partner_id.amount - bonus})
         except Exception as e:
             _logger.error("Failed to compute discount for partner: %s", e)
+            pass
 
     def action_compute_discount_month(self):
         if not self.order_line:
@@ -574,6 +575,7 @@ class SaleOrder(models.Model):
                     )
         except Exception as e:
             _logger.error("Failed to create discount for agency in white place: %s", e)
+            pass
 
     def _handle_agency_white_place_discount(self):
         if self.check_discount_agency_white_place:
@@ -645,6 +647,7 @@ class SaleOrder(models.Model):
             return super(SaleOrder, self).action_draft()
         except Exception as e:
             _logger.error("Failed to transition sale order back to draft state: %s", e)
+            pass
 
     def action_confirm(self):
         if self.partner_id.is_agency:
@@ -656,6 +659,7 @@ class SaleOrder(models.Model):
             return super(SaleOrder, self).action_confirm()
         except Exception as e:
             _logger.error("Failed to confirm sale order: %s", e)
+            pass
 
     def action_cancel(self):
         """
@@ -682,3 +686,4 @@ class SaleOrder(models.Model):
             return super(SaleOrder, self).action_cancel()
         except Exception as e:
             _logger.error("Failed to cancel sale order: %s", e)
+            pass
