@@ -211,20 +211,20 @@ class SaleOrder(models.Model):
 
             # [!] Kiểm tra có là Đại Lý hay Đại lý vùng trắng không?
             is_partner_agency = record.partner_id.is_agency
-            # if self.field_exists("res.partner", "is_white_agency"):
-            #     # The field exists, it's safe to access it
-            #     is_partner_agency_white_place = record.partner_id.is_white_agency
-            # else:
-            #     # The field does not exist, handle accordingly
-            #     is_partner_agency_white_place = False
+            if self.field_exists("res.partner", "is_white_agency"):
+                # The field exists, it's safe to access it
+                is_partner_agency_white_place = record.partner_id.is_white_agency
+            else:
+                # The field does not exist, handle accordingly
+                is_partner_agency_white_place = False
 
-            # if is_partner_agency_white_place:
-            #     record.check_discount_10 = False
-            #     record.check_discount_agency_white_place = is_partner_agency_white_place
-            # else:
-            # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
-            if is_partner_agency and len(record.order_line) > 0:
-                record.check_discount_10 = record.check_discount_applicable()
+            if is_partner_agency_white_place:
+                record.check_discount_10 = False
+                record.check_discount_agency_white_place = is_partner_agency_white_place
+            else:
+                # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
+                if is_partner_agency and len(record.order_line) > 0:
+                    record.check_discount_10 = record.check_discount_applicable()
 
             # Tính tổng tiền giá sản phẩm không bao gồm hàng dịch vụ,
             # tính giá gốc ban đầu, không bao gồm thuế phí
@@ -288,9 +288,8 @@ class SaleOrder(models.Model):
                 * self.partner_id.discount_bank_guarantee
                 / DISCOUNT_PERCENTAGE_DIVISOR
             )
-            if self.discount_bank_guarantee > 0:
-                pass
-                # self.create_discount_bank_guarantee()
+            if self and self.discount_bank_guarantee > 0:
+                self.create_discount_bank_guarantee()
         self.after_discount_bank_guarantee = (
             self.total_price_after_discount - self.discount_bank_guarantee
         )
