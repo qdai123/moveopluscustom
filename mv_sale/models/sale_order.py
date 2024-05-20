@@ -435,7 +435,10 @@ class SaleOrder(models.Model):
 
         return self._handle_discount_confirmation()
 
-    def create_discount_bank_guarantee(self):
+    def create_discount_bank_guarantee(self, url=None):
+        if not url:
+            url = http.request.httprequest.full_path
+
         order_line = self.order_line.filtered(
             lambda x: x.product_id.detailed_type == "product"
             and x.order_id.check_category_product(x.product_id.categ_id)
@@ -460,7 +463,6 @@ class SaleOrder(models.Model):
                             }
                         )
                     )
-                url = http.request.httprequest.full_path
                 if (
                     url
                     and url.find("/shop/cart") > -1
