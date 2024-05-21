@@ -234,9 +234,9 @@
 															Gửi kích hoạt bảo hành
 														</a>
 													</div>
-<!--													<div t-if="not anonymous" class="mb-0 py-2 col-12">-->
-<!--														<span id="s_website_form_result"/>-->
-<!--													</div>-->
+													<div t-if="not anonymous" class="mb-0 py-2 col-12">
+														<span id="s_website_form_result"/>
+													</div>
 												</div>
 											</form>
 										</div>
