@@ -244,7 +244,6 @@ class MvComputeDiscountLine(models.Model):
 
         total_year = 0
         for i in range(12):
-            print(i)
             name = str(i + 1) + "/" + self.parent_id.year
             domain = [("name", "=", name), ("partner_id", "=", self.partner_id.id)]
             line_ids = self.env["mv.compute.discount.line"].search(domain)
@@ -341,7 +340,7 @@ class MvComputeDiscountLine(models.Model):
         domain = [("partner_id", "=", self.partner_id.id), ("name", "=", list_name)]
         line_ids = self.search(domain)
         return {
-            "name": "Chiếu khấu theo theo năm %s" % (year),
+            "name": "Chiết khấu theo theo năm %s" % year,
             "view_mode": "tree,form",
             "res_model": "mv.compute.discount.line",
             "type": "ir.actions.act_window",
@@ -360,7 +359,8 @@ class MvComputeDiscountLine(models.Model):
 
     @api.model
     def format_value(self, amount, currency=False, blank_if_zero=False):
-        """Format amount to have a monetary display (with a currency symbol).
+        """
+        Format amount => monetary display (with a currency symbol).
         E.g: 1000 => 1000.0 $
 
         :param amount:          A number.

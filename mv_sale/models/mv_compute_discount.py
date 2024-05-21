@@ -190,9 +190,6 @@ class MvComputeDiscount(models.Model):
 
         # Fetch partners at once
         partner_ids = order_lines.order_id.mapped("partner_id") or []
-        child_of_partner_agency = self.env["res.partner"].search(
-            [("parent_id", "in", partner_ids.ids)]
-        )
         partners_use_for_discount = self._get_partner_for_discount_only(
             self.month, self.year
         )
@@ -201,10 +198,11 @@ class MvComputeDiscount(models.Model):
             if partners_use_for_discount
             else []
         )
-
-        for partner_id in partner_ids.filtered(
+        partner_ids = partner_ids.filtered(
             lambda partner: partner.id in partner_for_discount.ids
-        ):
+        )
+
+        for partner_id in partner_ids:
             # Initial values
             discount_line_id = False
             amount_total = 0
@@ -220,6 +218,18 @@ class MvComputeDiscount(models.Model):
             is_year = False
             year = 0
             year_money = 0
+
+            # Get all SO for Partner is parent_id in partner_for_discount
+            childs_of_partner = self.env["res.partner"].search(
+                [("parent_id", "=", partner_id.id)]
+            )
+            orders_by_child_of_partner_agency = sale_orders.search(
+                [("partner_id", "in", childs_of_partner.ids)]
+            ).order_line.filtered(
+                lambda sol: sol.order_id.check_category_product(sol.product_id.categ_id)
+                and sol.product_id.detailed_type == "product"
+                and sol.qty_delivered > 0
+            )
 
             # Filter order lines for the current partner
             order_line_total = order_lines.filtered(
@@ -337,6 +347,12 @@ class MvComputeDiscount(models.Model):
                             year_money = total_year * discount_line_id.year / 100
 
             if discount_line_id.level:
+                sale_ids = order_line_total.order_id.ids
+                order_line_ids = order_line_total.ids
+                if orders_by_child_of_partner_agency:
+                    sale_ids += orders_by_child_of_partner_agency.mapped("order_id").ids
+                    order_line_ids += orders_by_child_of_partner_agency.ids
+
                 list_line_ids.append(
                     (
                         0,
@@ -347,8 +363,8 @@ class MvComputeDiscount(models.Model):
                             "month_parent": int(self.month),
                             "partner_id": partner_id.id,
                             "level": discount_line_id.level,
-                            "sale_ids": order_line_total.order_id.ids,
-                            "order_line_ids": order_line_total.ids,
+                            "sale_ids": sale_ids,
+                            "order_line_ids": order_line_ids,
                             "currency_id": order_line_total[0].order_id.currency_id.id,
                             "quantity": quantity,
                             "quantity_discount": quantity_discount,

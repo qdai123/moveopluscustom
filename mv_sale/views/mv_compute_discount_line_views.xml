@@ -73,23 +73,24 @@
                     <notebook>
                         <page string="Đơn hàng">
                             <field name="sale_ids" nolabel="1">
-                                <tree create="False" edit="False">
+                                <tree create="false" edit="false" delete="false">
                                     <field name="currency_id" column_invisible="True"/>
-                                    <field name="name"/>
+                                    <field name="name" string="Order"/>
+                                    <field name="partner_id" string="Dealer/Sub-Dealer/Customer"/>
                                     <field name="amount_total" sum="Price" widget="monetary"/>
                                 </tree>
                             </field>
                         </page>
                         <page string="Chi tiết sản phẩm lốp">
                             <field name="order_line_ids" nolabel="1">
-                                <tree create="False" edit="False" decoration-danger = "price_unit == 0">
+                                <tree create="false" edit="false" delete="false" decoration-danger="price_unit == 0">
                                     <field name="currency_id" column_invisible="True"/>
-                                    <field name="order_id"/>
+                                    <field name="order_id" string="Order"/>
                                     <field name="product_id"/>
-                                    <field name="product_uom_qty" sum="Quantity"/>
-                                    <field name="qty_delivered" sum="Quantity Delivered"/>
-                                    <field name="price_unit" widget="monetary"/>
-                                    <field name="price_subtotal" sum="Price" widget="monetary"/>
+                                    <field name="product_uom_qty" sum="Quantity" decoration-danger="product_uom_qty &lt; 1"/>
+                                    <field name="qty_delivered" sum="Quantity Delivered" decoration-danger="product_uom_qty &lt; 1"/>
+                                    <field name="price_unit" widget="monetary" sum="Price"/>
+                                    <field name="price_subtotal"  widget="monetary" sum="Price Subtotal"/>
                                 </tree>
                             </field>
                         </page>

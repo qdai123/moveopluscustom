@@ -7,16 +7,12 @@
 			<form>
 				<header>
 					<field invisible="True" name="do_readonly"/>
-					<button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info"
-					        invisible="state not in ['confirm', 'done']"/>
-					<button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight"
-					        invisible="state!='draft'"/>
+					<button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info" invisible="state not in ['confirm', 'done']"/>
+					<button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state!='draft'"/>
 					<button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
-					<button name="action_done" string="Duyệt" type="object" class="oe_highlight"
-					        invisible="state!='confirm'"/>
-					<button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'"
-					        confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
-					<!--                        <button name="action_reset_to_draft" string="Trả về nháp" type="object" invisible="state!='done'"/>-->
+					<button name="action_done" string="Duyệt" type="object" class="oe_highlight" invisible="state!='confirm'"/>
+					<button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
+					<!--<button name="action_reset_to_draft" string="Trả về nháp" type="object" invisible="state!='done'"/>-->
 					<field name="state" widget="statusbar" statusbar_visible="draft,confirm,done"/>
 				</header>
 				<sheet>
@@ -106,11 +102,10 @@
 		<field name="name">mv_compute_discount_tree</field>
 		<field name="model">mv.compute.discount</field>
 		<field name="arch" type="xml">
-			<tree>
+			<tree default_order="report_date desc">
 				<field name="name"/>
 				<field column_invisible="True" name="report_date"/>
-				<field name="state" decoration-success="state == 'done'" decoration-info="state == 'confirm'"
-				       decoration-muted="state == 'draft'" widget="badge"/>
+				<field name="state" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'" widget="badge"/>
 			</tree>
 		</field>
 	</record>
@@ -121,10 +116,7 @@
 		<field name="view_mode">tree,form</field>
 		<field name="help" type="html">
 			<p class="o_view_nocontent_smiling_face">
-				No Tags found ! Let's create one
-			</p>
-			<p>
-				Use tags to categorize your Employees.
+				No Compute Discount (%) found ! Let's create one
 			</p>
 		</field>
 	</record>
