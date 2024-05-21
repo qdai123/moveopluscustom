@@ -231,10 +231,11 @@ class SaleOrder(models.Model):
             if len(record.order_line) > 0:
                 record.calculate_discount_values()
 
-                # Nếu đơn hàng không còn lốp xe nữa thì xóa:
-                # - "Chiết Khấu Tháng" (CKT)
-                # - "Chiết Khấu Bảo Lãnh" (CKBL)
-                record.handle_discount_lines()
+            # Nếu đơn hàng không còn lốp xe nữa thì xóa:
+            # - "Chiết Khấu Tháng" (CKT)
+            # - "Chiết Khấu Bảo Lãnh" (CKBL)
+            # - "Chiết khấu Vùng Trắng" (CKSLVT) (IF EXISTS)
+            record.handle_discount_lines()
 
     def reset_discount_values(self):
         self.check_discount_10 = False
@@ -315,16 +316,28 @@ class SaleOrder(models.Model):
         ) / 2
 
     def handle_discount_lines(self):
-        order_line_ctk = self.order_line.filtered(
-            lambda sol: sol.product_id
-            and sol.product_id.default_code
-            and sol.product_id.default_code in ["CKT", "CKBL"]
-        )
-        order_line_product = self.order_line.filtered(
-            lambda sol: sol.product_id.detailed_type == "product"
-        )
-        if len(order_line_ctk) > 0 and len(order_line_product) == 0:
-            order_line_ctk.unlink()
+        """
+        Removes discount lines from the order if there are no more products in the order.
+        Specifically, it checks for the existence of order lines with product codes "CKT" and "CKBL"
+        and removes them if there are no more products in the order.
+        """
+        try:
+            product_ref = ["CKT", "CKBL"]
+            if self.check_discount_agency_white_place:
+                product_ref.append("CKSLVT")  # CKSLVT: Chiết khấu Đại lý vùng trắng
+
+            order_line_ctk = self.order_line.filtered(
+                lambda sol: sol.product_id.default_code in product_ref
+            )
+            order_line_product = self.order_line.filtered(
+                lambda sol: sol.product_id.detailed_type == "product"
+            )
+
+            if order_line_ctk and not order_line_product:
+                order_line_ctk.unlink()
+        except Exception as e:
+            _logger.error("Failed to handle discount lines: %s", e)
+            pass
 
     # ==================================
     # ORM Methods
@@ -543,6 +556,15 @@ class SaleOrder(models.Model):
                                     "default_code": "CKSLVT",
                                 }
                             )
+                        )
+                    else:
+                        product_tmpl_id.write(
+                            {
+                                "name": "Chiết khấu Đại lý vùng trắng (SL tối thiểu {quantity} lốp) ({discount}%)".format(
+                                    quantity=discount_quantity_required or 8,
+                                    discount=discount_for_white_place or 1.5,
+                                )
+                            }
                         )
                     current_url = http.request.httprequest.full_path
                     if (

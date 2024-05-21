@@ -19,9 +19,10 @@
 							<field name="discount_bank_guarantee" invisible="bank_guarantee == False"/>
 						</div>
 					</group>
-					<field name="line_ids" nolabel="1" context="{'default_parent_id': discount_id}">
-						<tree default_order="partner_id desc level" editable="bottom">
-							<field name="parent_id" string="Khách hàng / Đại lý" readonly="True"/>
+					<field name="line_ids" nolabel="1" context="{'default_parent_id': discount_id, 'default_partner_id': id}">
+						<tree default_order="partner_id desc level" create="false" edit="false" delete="false">
+							<field name="parent_id" string="Chính sách chiết khấu"/>
+							<field name="partner_id" string="Khách hàng / Đại lý"/>
 							<field name="date" string="Ngày hiệu lực"/>
 							<field name="level" string="Cấp bậc"/>
 							<field name="min_debt"/>
