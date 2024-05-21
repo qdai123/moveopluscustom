@@ -137,24 +137,44 @@ class MvComputeDiscount(models.Model):
     # =================================
 
     def action_reset_to_draft(self):
-        self.filtered(lambda r: r.state != "draft").write({"state": "draft"})
+        """
+        Resets the state of the current record to 'draft'.
+        """
+        try:
+            self.ensure_one()
+            if self.state != "draft":
+                self.state = "draft"
+        except Exception as e:
+            _logger.error("Failed to reset to draft: %s", e)
+            pass
 
     def _get_partner_for_discount_only(self, month, year):
-        self.env["mv.discount.partner"].flush_model()
-        query = """
-            WITH date_params AS (SELECT %s::INT    AS target_year,
-                                                        %s::INT    AS target_month)
-                    SELECT dp.parent_id AS mv_discount_id,
-                               dp.partner_id,
-                               dp.level
-                    FROM mv_discount_partner dp
-                             JOIN date_params AS d ON (EXTRACT(YEAR FROM dp.date) = d.target_year)
-                    GROUP BY 1, dp.partner_id, dp.level
-                    ORDER BY dp.partner_id, dp.level;
         """
-        self.env.cr.execute(query, [year, month])
-        res = [r[1] for r in self.env.cr.fetchall()]
-        return res
+            Fetches the partners who are eligible for discounts in a given month and year.
+
+        Args:
+            month (str): The target month.
+            year (str): The target year.
+
+        Returns:
+            recordset: A recordset of partners who are eligible for discounts.
+        """
+        try:
+            self.env["mv.discount.partner"].flush_model()
+            query = """
+                WITH date_params AS (SELECT %s::INT AS target_year, %s::INT AS target_month)
+                SELECT dp.parent_id AS mv_discount_id, dp.partner_id, dp.level
+                FROM mv_discount_partner dp
+                    JOIN date_params AS d ON (EXTRACT(YEAR FROM dp.date) = d.target_year)
+                GROUP BY 1, dp.partner_id, dp.level
+                ORDER BY dp.partner_id, dp.level;
+            """
+            self.env.cr.execute(query, [year, month])
+            partner_ids = [r[1] for r in self.env.cr.fetchall()]
+            return self.env["res.partner"].browse(partner_ids)
+        except Exception as e:
+            _logger.error("Failed to fetch partners for discount: %s", e)
+            return self.env["res.partner"]
 
     def _compute_dates(self, month, year):
         # Compute date_from

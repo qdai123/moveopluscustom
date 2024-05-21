@@ -379,34 +379,31 @@ class SaleOrder(models.Model):
                 if total_bonus > self.bonus_max:
                     return total_bonus
                 order_line_id = self.order_line.filtered(
-                    lambda x: x.product_id.default_code == "CKT"
+                    lambda sol: sol.product_id.default_code == "CKT"
                 )
                 if len(order_line_id) == 0:
-                    product_tmpl_id = self.env["product.template"].search(
+                    PRODUCT_TEMPLATE = self.env["product.template"]
+                    product_discount = PRODUCT_TEMPLATE.search(
                         [("default_code", "=", "CKT")]
                     )
-                    if not product_tmpl_id:
-                        product_tmpl_id = (
-                            self.env["product.template"]
-                            .sudo()
-                            .create(
-                                {
-                                    "name": "Chiết khấu tháng",
-                                    "detailed_type": "service",
-                                    "categ_id": 1,
-                                    "taxes_id": False,
-                                    "default_code": "CKT",
-                                }
-                            )
+                    if not product_discount:
+                        product_discount = PRODUCT_TEMPLATE.sudo().create(
+                            {
+                                "name": "Chiết khấu tháng",
+                                "detailed_type": "service",
+                                "categ_id": 1,
+                                "taxes_id": False,
+                                "default_code": "CKT",
+                            }
                         )
                     order_line_id = self.env["sale.order.line"].create(
                         {
-                            "product_id": product_tmpl_id.product_variant_ids[0].id,
                             "order_id": self.id,
+                            "product_id": product_discount.product_variant_ids[0].id,
+                            "code_product": "CKT",
                             "product_uom_qty": 1,
                             "price_unit": 0,
                             "hidden_show_qty": True,
-                            "code_product": "CKT",
                         }
                     )
                     _logger.info("Created discount line for partner.")
@@ -519,53 +516,38 @@ class SaleOrder(models.Model):
             order_line = self.order_line.filtered(
                 lambda sol: sol.product_id.detailed_type == "product"
             )
-            discount_quantity_required = (
-                self.env["mv.white.place.discount.line"]
-                .search(
-                    [("parent_id", "=", self.partner_id.discount_id.id)],
-                    limit=1,
-                )
-                .quantity
+            partner_discount = self.env["mv.white.place.discount.line"].search(
+                [("parent_id", "=", self.partner_id.discount_id.id)],
+                limit=1,
             )
-            discount_for_white_place = (
-                self.env["mv.white.place.discount.line"]
-                .search(
-                    [("parent_id", "=", self.partner_id.discount_id.id)],
-                    limit=1,
-                )
-                .discount
+            discount_quantity_required = partner_discount.quantity or 8
+            discount_for_white_place = partner_discount.discount or 1.5
+            product_discount_name = "Chiết khấu giao hàng (SL tối thiểu {quantity} lốp) ({discount}%)".format(
+                quantity=discount_quantity_required,
+                discount=discount_for_white_place,
             )
             if len(order_line) > 0:
                 order_line_id = self.order_line.filtered(
-                    lambda sol: sol.code_product == "CKSLVT"
+                    lambda sol: sol.product_id.active
+                    and sol.product_id.default_code == "CKSLVT"
                 )
                 if len(order_line_id) == 0:
-                    product_tmpl_id = self.env["product.template"].search(
+                    PRODUCT_TEMPLATE = self.env["product.template"]
+                    product_discount = PRODUCT_TEMPLATE.search(
                         [("default_code", "=", "CKSLVT")]
                     )
-                    if not product_tmpl_id:
-                        product_tmpl_id = (
-                            self.env["product.template"]
-                            .sudo()
-                            .create(
-                                {
-                                    "name": "Chiết khấu Đại lý vùng trắng (SL tối thiểu 8 lốp) (1.5%)",
-                                    "detailed_type": "service",
-                                    "categ_id": 1,
-                                    "taxes_id": False,
-                                    "default_code": "CKSLVT",
-                                }
-                            )
-                        )
-                    else:
-                        product_tmpl_id.write(
+                    if not product_discount:
+                        product_discount = PRODUCT_TEMPLATE.sudo().create(
                             {
-                                "name": "Chiết khấu Đại lý vùng trắng (SL tối thiểu {quantity} lốp) ({discount}%)".format(
-                                    quantity=discount_quantity_required or 8,
-                                    discount=discount_for_white_place or 1.5,
-                                )
+                                "name": product_discount_name,
+                                "detailed_type": "service",
+                                "categ_id": 1,
+                                "taxes_id": False,
+                                "default_code": "CKSLVT",
                             }
                         )
+                    else:
+                        product_discount.sudo().write({"name": product_discount_name})
                     current_url = http.request.httprequest.full_path
                     if (
                         current_url
@@ -576,12 +558,14 @@ class SaleOrder(models.Model):
                     ):
                         order_line_id = self.env["sale.order.line"].create(
                             {
-                                "product_id": product_tmpl_id.product_variant_ids[0].id,
                                 "order_id": self.id,
+                                "code_product": "CKSLVT",
+                                "product_id": product_discount.product_variant_ids[
+                                    0
+                                ].id,
                                 "product_uom_qty": 1,
                                 "price_unit": 0,
                                 "hidden_show_qty": True,
-                                "code_product": "CKSLVT",
                             }
                         )
                         _logger.info("Created discount line for agency in white place.")
