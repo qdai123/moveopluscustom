@@ -26,7 +26,7 @@ class MvPromoteDiscountLine(models.Model):
     pricelist_id = fields.Many2one("product.pricelist", "Chính sách giá")
     quantity_minimum = fields.Integer("Số lượng Min")
     quantity_maximum = fields.Integer("Số lượng Max")
-    promote_discount = fields.Float("Chiết khấu khuyến khích (%)")
+    promote_discount = fields.Float("Chiết khấu khuyến khích (%)", digits=(16, 1))
 
     @api.onchange("pricelist_id")
     def _onchange_pricelist(self):

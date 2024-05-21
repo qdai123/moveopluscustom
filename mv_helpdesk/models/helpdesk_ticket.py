@@ -268,7 +268,7 @@ class HelpdeskTicket(models.Model):
             if type(codes) is list:
                 list_codes = codes
             else:
-                list_codes = [c.strip() for c in codes.split(",")]
+                list_codes = [c.strip() for c in codes.split(",") if c]
             existing_codes = move_line_env.search(
                 [("lot_name", "in", list_codes)]
             ).mapped("lot_name")
@@ -343,7 +343,7 @@ class HelpdeskTicket(models.Model):
         if type(codes) is list:
             codes_convert_to_list = codes
         else:
-            codes_convert_to_list = [c.strip() for c in codes.split(",")]
+            codes_convert_to_list = [c.strip() for c in codes.split(",") if c]
         return move_line_env.search(
             [
                 ("qr_code", "in", codes_convert_to_list),

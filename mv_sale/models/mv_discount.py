@@ -7,10 +7,12 @@ class MvDiscount(models.Model):
     _name = "mv.discount"
     _description = _("Moveo PLus Discount (%)")
 
+    active = fields.Boolean("Active", default=True)
     name = fields.Char("Chính sách chiết khấu")
     line_ids = fields.One2many("mv.discount.line", "parent_id")
     level_promote_apply = fields.Integer("Level")
     line_promote_ids = fields.One2many("mv.promote.discount.line", "parent_id")
+    line_white_place_ids = fields.One2many("mv.white.place.discount.line", "parent_id")
     partner_ids = fields.One2many("mv.discount.partner", "parent_id")
 
     @api.constrains("line_ids", "level_promote_apply")
