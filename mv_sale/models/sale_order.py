@@ -26,10 +26,13 @@ class SaleOrder(models.Model):
 
     @api.depends_context("uid")
     def _compute_is_sales_manager(self):
+        """
+        Compute the value of the 'is_sales_manager' field for each record.
+        The field value is True if the current user belongs to the 'Sales Manager' group, False otherwise.
+        """
         is_manager = self.env.user.has_group("sales_team.group_sale_manager")
-
-        for user in self:
-            user.is_sales_manager = is_manager
+        for record in self:
+            record.is_sales_manager = is_manager
 
     discount_line_id = fields.Many2one(
         "mv.compute.discount.line"
@@ -756,15 +759,21 @@ class SaleOrder(models.Model):
             _logger.error("Failed to transition sale order back to draft state: %s", e)
 
     def action_confirm(self):
-        if self.partner_id.is_agency:
-            self.with_context(confirm=True).action_compute_discount_month()
-            delivery_lines = self.order_line.filtered(lambda x: x.is_delivery)
-            if not delivery_lines:
-                raise UserError(_("No delivery lines found in the order."))
+        """
+        Confirm the sale order.
+        It checks if the quantity of the product in the order line is greater than the available quantity for the day.
+        If it is, it raises a validation error.
+        If the partner is an agency, it computes the discount for the month.
+        If there are no delivery lines in the order, it raises a user error.
+        Then it confirms the sale order and logs any exceptions that occur during this process.
+        """
         try:
-            return super(SaleOrder, self).action_confirm()
+            self._check_order_not_free_qty()  # Constrains
+            self._handle_agency_discount()
+            self._check_delivery_lines()
+            return super().action_confirm()
         except Exception as e:
-            _logger.error("Failed to confirm sale order: %s", e)
+            _logger.error(f"Failed to confirm sale order: {e}")
 
     def action_cancel(self):
         """
@@ -791,3 +800,44 @@ class SaleOrder(models.Model):
             return super(SaleOrder, self).action_cancel()
         except Exception as e:
             _logger.error("Failed to cancel sale order: %s", e)
+
+    # ==================================
+    # CONSTRAINS / VALIDATION Methods
+    # ==================================
+
+    @api.constrains("order_line")
+    def _check_order_not_free_qty(self):
+        """
+        Check if the quantity of the product in the order line is greater than the available quantity for the day.
+        If it is, raise a validation error.
+        """
+        for so in self.filtered(lambda rec: rec.state in ["draft", "sent"]):
+            product_order_lines = so.order_line.filtered(
+                lambda sol: sol.product_id.detailed_type == "product"
+            )
+            if product_order_lines:
+                for so_line in product_order_lines:
+                    if so_line.product_uom_qty > so_line.free_qty_today:
+                        error_message = (
+                            f"Bạn không được phép đặt quá số lượng hiện tại:"
+                            f"\n- Sản phẩm: {so_line.product_template_id.name}"
+                            f"\n- Số lượng hiện tại có thể đặt: {int(so_line.free_qty_today)} Cái"
+                            f"\n\nVui lòng kiểm tra lại số lượng còn lại trong kho."
+                        )
+                        raise ValidationError(error_message)
+
+    def _handle_agency_discount(self):
+        """
+        Handle the discount for the agency.
+        """
+        if self.partner_id.is_agency:
+            self.with_context(confirm=True).action_compute_discount_month()
+
+    def _check_delivery_lines(self):
+        """
+        Check if there are delivery lines in the order.
+        If there are no delivery lines, raise a user error.
+        """
+        delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
+        if not delivery_lines:
+            raise UserError(_("No delivery lines were found in the order."))
