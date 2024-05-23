@@ -122,6 +122,9 @@
                 <field name="partner_agency" invisible="True"/>
                 <field name="partner_white_agency" invisible="True"/>
             </xpath>
+            <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="after">
+                <field name="price_subtotal_before_discount" widget="monetary" sum="Total price_subtotal_before_discount" optional="hidden"/>
+            </xpath>
         </field>
     </record>
 
