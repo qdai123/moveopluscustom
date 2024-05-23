@@ -90,7 +90,8 @@
                                     <field name="product_uom_qty" sum="Quantity" decoration-danger="product_uom_qty &lt; 1"/>
                                     <field name="qty_delivered" sum="Quantity Delivered" decoration-danger="product_uom_qty &lt; 1"/>
                                     <field name="price_unit" widget="monetary" sum="Price"/>
-                                    <field name="price_subtotal"  widget="monetary" sum="Price Subtotal"/>
+                                    <field name="price_subtotal"  widget="monetary" sum="Price Subtotal" optional="hidden"/>
+                                    <field name="price_subtotal_before_discount" string="Amount"  widget="monetary" sum="Price Subtotal before Discount"/>
                                 </tree>
                             </field>
                         </page>

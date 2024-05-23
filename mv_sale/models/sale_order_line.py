@@ -24,6 +24,26 @@ class SaleOrderLine(models.Model):
     )
     discount_line_id = fields.Many2one("mv.compute.discount.line")
     code_product = fields.Char(help="Do not recompute discount")
+    price_subtotal_before_discount = fields.Monetary(
+        "Price sub-total before discount",
+        currency_field="currency_id",
+        compute="_compute_price_subtotal_before_discount",
+        store=True,
+    )
+
+    @api.depends("price_unit", "qty_delivered")
+    def _compute_price_subtotal_before_discount(self):
+        for order_line in self:
+            if order_line.price_unit and order_line.qty_delivered:
+                total = order_line.price_unit * order_line.qty_delivered
+                total_discount = (
+                    (order_line.price_unit * order_line.qty_delivered)
+                    * order_line.discount
+                    / 100
+                )
+                order_line.price_subtotal_before_discount = total - total_discount
+            else:
+                order_line.price_subtotal_before_discount = 0
 
     def _is_not_sellable_line(self):
         return self.hidden_show_qty or super()._is_not_sellable_line()

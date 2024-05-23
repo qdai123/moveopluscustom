@@ -273,7 +273,7 @@ class MvComputeDiscount(models.Model):
                 total_sales += sum(
                     order_by_partner_agency.filtered(
                         lambda line: line.price_unit > 0
-                    ).mapped("price_subtotal")
+                    ).mapped("price_subtotal_before_discount")
                 )
                 vals["amount_total"] = total_sales
 
