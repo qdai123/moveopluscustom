@@ -44,6 +44,12 @@ class SaleOrder(models.Model):
     quantity_change = fields.Float(copy=False)
     flag_delivery = fields.Boolean(compute="compute_flag_delivery")
 
+    # [res.partner] Fields:
+    partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
+    partner_white_agency = fields.Boolean(
+        related="partner_id.is_white_agency", store=True
+    )
+
     def compute_flag_delivery(self):
         for record in self:
             record.flag_delivery = False
@@ -744,19 +750,16 @@ class SaleOrder(models.Model):
         Reset the bonus order to 0.
         Then call the parent class's action_draft method.
         """
-        try:
-            if self.bonus_order > 0:
-                if self.partner_id:
-                    _logger.info("Adding bonus order amount back to partner's amount.")
-                    self.partner_id.write(
-                        {"amount": self.partner_id.amount + self.bonus_order}
-                    )
-                else:
-                    _logger.warning("No partner found for this order.")
-                self.write({"bonus_order": 0})
-            return super(SaleOrder, self).action_draft()
-        except Exception as e:
-            _logger.error("Failed to transition sale order back to draft state: %s", e)
+        if self.bonus_order > 0:
+            if self.partner_id:
+                _logger.info("Adding bonus order amount back to partner's amount.")
+                self.partner_id.write(
+                    {"amount": self.partner_id.amount + self.bonus_order}
+                )
+            else:
+                _logger.warning("No partner found for this order.")
+            self.write({"bonus_order": 0})
+        return super(SaleOrder, self).action_draft()
 
     def action_confirm(self):
         """
@@ -767,13 +770,10 @@ class SaleOrder(models.Model):
         If there are no delivery lines in the order, it raises a user error.
         Then it confirms the sale order and logs any exceptions that occur during this process.
         """
-        try:
-            self._check_order_not_free_qty()  # Constrains
-            self._handle_agency_discount()
-            self._check_delivery_lines()
-            return super().action_confirm()
-        except Exception as e:
-            _logger.error(f"Failed to confirm sale order: {e}")
+        self._check_order_not_free_qty()
+        self._handle_agency_discount()
+        self._check_delivery_lines()
+        return super(SaleOrder, self).action_confirm()
 
     def action_cancel(self):
         """
@@ -782,30 +782,26 @@ class SaleOrder(models.Model):
         Reset the bonus order and quantity change to 0.
         Then call the parent class's action_cancel method.
         """
-        try:
-            if self.bonus_order > 0:
-                if self.partner_id:
-                    _logger.info("Adding bonus order amount back to partner's amount.")
-                    self.partner_id.write(
-                        {"amount": self.partner_id.amount + self.bonus_order}
-                    )
-                else:
-                    _logger.warning("No partner found for this order.")
-                self.write(
-                    {
-                        "bonus_order": 0,
-                        "quantity_change": 0,
-                    }
+        if self.bonus_order > 0:
+            if self.partner_id:
+                _logger.info("Adding bonus order amount back to partner's amount.")
+                self.partner_id.write(
+                    {"amount": self.partner_id.amount + self.bonus_order}
                 )
-            return super(SaleOrder, self).action_cancel()
-        except Exception as e:
-            _logger.error("Failed to cancel sale order: %s", e)
+            else:
+                _logger.warning("No partner found for this order.")
+            self.write(
+                {
+                    "bonus_order": 0,
+                    "quantity_change": 0,
+                }
+            )
+        return super(SaleOrder, self).action_cancel()
 
     # ==================================
     # CONSTRAINS / VALIDATION Methods
     # ==================================
 
-    @api.constrains("order_line")
     def _check_order_not_free_qty(self):
         """
         Check if the quantity of the product in the order line is greater than the available quantity for the day.
@@ -825,6 +821,8 @@ class SaleOrder(models.Model):
                             f"\n\nVui lòng kiểm tra lại số lượng còn lại trong kho."
                         )
                         raise ValidationError(error_message)
+
+        return False
 
     def _handle_agency_discount(self):
         """

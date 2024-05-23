@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- ====== MOVEO PLUS INHERIT: VIEWS ====== -->
 <odoo>
+    <record id="mv_sale_inherit_sale_order_tree" model="ir.ui.view">
+        <field name="name">mv_sale.inherit.sale.order.tree</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="partner_agency" optional="hidden"/>
+                <field name="partner_white_agency" optional="hidden"/>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_order_form_mv_sale" model="ir.ui.view">
         <field name="name">view_order_form_mv_sale</field>
         <field name="model">sale.order</field>
@@ -105,6 +118,25 @@
                 <attribute name="sum">Total price_total</attribute>
             </xpath>
             <!-- ===== [END] Readonly by Groups of Sales for Order Lines ===== -->
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="partner_agency" column_invisible="True"/>
+                <field name="partner_white_agency" column_invisible="True"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="mv_sale_inherit_view_sales_order_filter" model="ir.ui.view">
+        <field name="name">mv_sale.inherit.view.sales.order.filter</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                <separator/>
+                <filter string="Partner Agency" domain="[('partner_agency', '=', True)]" name="partner_agency_filter"/>
+                <filter string="Partner White Agency" domain="[('partner_white_agency', '=', True)]" name="partner_white_agency_filter"/>
+                <separator/>
+            </xpath>
         </field>
     </record>
 
