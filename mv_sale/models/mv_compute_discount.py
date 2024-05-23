@@ -385,7 +385,7 @@ class MvComputeDiscount(models.Model):
                             vals["year"] = discount_for_year
                             vals["year_money"] = total_year * discount_for_year / 100
 
-                if discount_line_id and discount_line_id.level:
+                if discount_line_id and discount_line_id.level >= 0:
                     sale_ids = order_by_partner_agency.order_id.ids
                     order_line_ids = order_by_partner_agency.ids
 
