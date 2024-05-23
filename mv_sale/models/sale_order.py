@@ -414,15 +414,13 @@ class SaleOrder(models.Model):
 
                 # Filter order lines for products
                 product_order_lines = self.order_line.filtered(
-                    lambda sol: sol.product_id.product_tmpl_id.default_code
-                    == PRODUCT_DISCOUNT_CODE
+                    lambda sol: sol.product_id.default_code == PRODUCT_DISCOUNT_CODE
                 )
 
-                if product_order_lines:
+                if not product_order_lines:
                     # Check for existing discount line
                     discount_order_line = self.order_line.filtered(
-                        lambda sol: sol.product_id.product_tmpl_id.default_code
-                        or sol.code_product == PRODUCT_DISCOUNT_CODE
+                        lambda sol: sol.product_id.default_code == PRODUCT_DISCOUNT_CODE
                     )
 
                     if not discount_order_line:
