@@ -1,124 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
+	<record model="ir.ui.view" id="mv_compute_discount_form">
+		<field name="name">mv_compute_discount_form</field>
+		<field name="model">mv.compute.discount</field>
+		<field name="arch" type="xml">
+			<form>
+				<header>
+					<field invisible="True" name="do_readonly"/>
+					<button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info" invisible="state not in ['confirm', 'done']"/>
+					<button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state!='draft'"/>
+					<button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
+					<button name="action_done" string="Duyệt" type="object" class="oe_highlight" invisible="state!='confirm'"/>
+					<button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
+					<!--<button name="action_reset_to_draft" string="Trả về nháp" type="object" invisible="state!='done'"/>-->
+					<field name="state" widget="statusbar" statusbar_visible="draft,confirm,done"/>
+				</header>
+				<sheet>
+					<group>
+						<group>
+							<field name="name" invisible="1" readonly="do_readonly"/>
+							<label for="month"/>
+							<div class="o_row">
+								<field name="month" required="1" readonly="do_readonly"/>
+								/
+								<field name="year" required="1" readonly="do_readonly"/>
+							</div>
+						</group>
+					</group>
+					<notebook>
+						<page string="Chi tiết">
+							<field invisible="True" name="level_promote_apply_for"/>
+							<field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': id}">
+								<tree default_order="partner_id">
+									<field column_invisible="True" name="currency_id"/>
+									<field column_invisible="True" name="month_parent"/>
+									<field name="partner_id"/>
+									<field name="level" optional="show"/>
+									<field name="quantity_from" optional="hidden"/>
+									<field column_invisible="True" name="quantity_to"/>
+									<field name="quantity" optional="show"/>
+									<field name="amount_total" string="Doanh thu" widget="monetary"/>
+									<field column_invisible="True" name="basic"/>
+									<field name="month" optional="hidden"/>
+									<field column_invisible="True" name="is_month"/>
+									<field name="month_money" widget="monetary"/>
+									<field name="two_month" optional="hidden"/>
+									<field name="two_money" widget="monetary"/>
+									<field column_invisible="True" name="is_quarter"/>
+									<field name="quarter" optional="hidden"/>
+									<field name="quarter_money" widget="monetary"/>
+									<field column_invisible="True" name="is_year"/>
+									<field name="year" optional="hidden"/>
+									<field name="year_money" widget="monetary"/>
+									<field column_invisible="True" name="is_promote_discount"/>
+									<field name="promote_discount_percentage" optional="hidden"/>
+									<field name="promote_discount_money" widget="monetary"/>
+									<field name="total_money" string="Tổng số tiền" widget="monetary"/>
+									<button name="action_approve_for_month"
+									        class="btn btn-success"
+									        type="object"
+									        invisible="(quantity &gt; quantity_from) or is_month or parent.state == 'done'"
+									        string="Duyệt tháng"
+									        groups="mv_sale.group_mv_compute_discount_approver"
+									        confirm="Cho phép đại lý hưởng chiết khấu theo Tháng?"/>
+									<button name="action_quarter"
+									        class="btn btn-success"
+									        type="object"
+									        invisible="month_parent not in [3, 6, 9 ,12] or is_quarter or parent.state == 'done'"
+									        string="Duyệt Quý"
+									        groups="mv_sale.group_mv_compute_discount_approver"
+									        confirm="Cho phép đại lý hưởng chiết khấu theo Quý?"/>
+									<button name="action_year"
+									        class="btn btn-success"
+									        type="object"
+									        invisible="month_parent not in [12] or is_year or parent.state == 'done'"
+									        string="Duyệt Năm"
+									        groups="mv_sale.group_mv_compute_discount_approver"
+									        confirm="Cho phép đại lý hưởng chiết khấu theo Năm?"/>
+									<button name="action_approve_for_promote"
+									        class="btn btn-warning"
+									        type="object"
+									        invisible="is_promote_discount or level != parent.level_promote_apply_for or parent.state == 'done'"
+									        string="Duyệt Khuyến Khích"
+									        groups="mv_sale.group_mv_compute_discount_approver"
+									        confirm="Cho phép đại lý hưởng chiết khấu Khuyến Khích?"/>
+								</tree>
+							</field>
+						</page>
+					</notebook>
+				</sheet>
+				<div class="oe_chatter">
+					<field name="message_follower_ids"/>
+					<field name="activity_ids"/>
+					<field name="message_ids"/>
+				</div>
+			</form>
+		</field>
+	</record>
 
-        <record model="ir.ui.view" id="mv_compute_discount_tree">
-            <field name="name">mv_compute_discount_tree</field>
-            <field name="model">mv.compute.discount</field>
-            <field name="arch" type="xml">
-                <tree>
-                    <field name="name"/>
-                    <field column_invisible="True" name="report_date"/>
-                    <field name="state" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'" widget="badge"/>
-                </tree>
-            </field>
-        </record>
+	<record model="ir.ui.view" id="mv_compute_discount_tree">
+		<field name="name">mv_compute_discount_tree</field>
+		<field name="model">mv.compute.discount</field>
+		<field name="arch" type="xml">
+			<tree default_order="report_date desc">
+				<field name="name"/>
+				<field column_invisible="True" name="report_date"/>
+				<field name="state" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'" widget="badge"/>
+			</tree>
+		</field>
+	</record>
 
-        <record model="ir.ui.view" id="mv_compute_discount_form">
-            <field name="name">mv_compute_discount_form</field>
-            <field name="model">mv.compute.discount</field>
-            <field name="arch" type="xml">
-                <form>
-                    <header>
-                        <field invisible="True" name="do_readonly"/>
-                        <button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info" invisible="state not in ['confirm', 'done']"/>
-                        <button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state!='draft'"/>
-                        <button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
-                        <button name="action_done" string="Duyệt" type="object" class="oe_highlight" invisible="state!='confirm'"/>
-                        <button name="action_undo" string="Hủy" type="object" invisible="state!='confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
-<!--                        <button name="action_reset_to_draft" string="Trả về nháp" type="object" invisible="state!='done'"/>-->
-                        <field name="state" widget="statusbar" statusbar_visible="draft,confirm,done"/>
-                    </header>
-                    <sheet>
-                        <group>
-                            <group>
-                                <field name="name" invisible="1" readonly="do_readonly"/>
-                                <label for="month"/>
-                                <div class="o_row">
-                                    <field name="month" required="1" readonly="do_readonly"/>
-                                    /
-                                    <field name="year" required="1" readonly="do_readonly"/>
-                                </div>
-                            </group>
-                        </group>
-                        <notebook>
-                            <page string="Chi tiết">
-                                <field invisible="True" name="level_promote_apply_for"/>
-                                <field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': id}">
-                                    <tree default_order="partner_id">
-                                        <field column_invisible="True" name="currency_id"/>
-                                        <field column_invisible="True" name="month_parent"/>
-                                        <field name="partner_id"/>
-                                        <field name="level" optional="show"/>
-                                        <field name="quantity_from" optional="hidden"/>
-                                        <field column_invisible="True" name="quantity_to"/>
-                                        <field name="quantity" optional="show"/>
-                                        <field name="amount_total" string="Doanh thu" widget="monetary"/>
-                                        <field column_invisible="True" name="basic"/>
-                                        <field name="month" optional="hidden"/>
-                                        <field column_invisible="True" name="is_month"/>
-                                        <field name="month_money" widget="monetary"/>
-                                        <field name="two_month" optional="hidden"/>
-                                        <field name="two_money" widget="monetary"/>
-                                        <field column_invisible="True" name="is_quarter"/>
-                                        <field name="quarter" optional="hidden"/>
-                                        <field name="quarter_money" widget="monetary"/>
-                                        <field column_invisible="True" name="is_year"/>
-                                        <field name="year" optional="hidden"/>
-                                        <field name="year_money" widget="monetary"/>
-                                        <field column_invisible="True" name="is_promote_discount"/>
-                                        <field name="promote_discount_percentage" optional="hidden"/>
-                                        <field name="promote_discount_money" widget="monetary"/>
-                                        <field name="total_money" string="Tổng số tiền" widget="monetary"/>
-                                        <button name="action_approve_for_month"
-                                                class="btn btn-success"
-                                                type="object"
-                                                invisible="(quantity &gt; quantity_from) or is_month or parent.state == 'done'"
-                                                string="Duyệt tháng"
-                                                groups="mv_sale.group_mv_compute_discount_approver"
-                                                confirm="Cho phép đại lý hưởng chiết khấu theo Tháng?"/>
-                                        <button name="action_quarter"
-                                                class="btn btn-success"
-                                                type="object"
-                                                invisible="month_parent not in [3, 6, 9 ,12] or is_quarter or parent.state == 'done'"
-                                                string="Duyệt Quý"
-                                                groups="mv_sale.group_mv_compute_discount_approver"
-                                                confirm="Cho phép đại lý hưởng chiết khấu theo Quý?"/>
-                                        <button name="action_year"
-                                                class="btn btn-success"
-                                                type="object"
-                                                invisible="month_parent not in [12] or is_year or parent.state == 'done'"
-                                                string="Duyệt Năm"
-                                                groups="mv_sale.group_mv_compute_discount_approver"
-                                                confirm="Cho phép đại lý hưởng chiết khấu theo Năm?"/>
-                                        <button name="action_approve_for_promote"
-                                                class="btn btn-warning"
-                                                type="object"
-                                                    invisible="is_promote_discount or level != parent.level_promote_apply_for or parent.state == 'done'"
-                                                string="Duyệt Khuyến Khích"
-                                                groups="mv_sale.group_mv_compute_discount_approver"
-                                                confirm="Cho phép đại lý hưởng chiết khấu Khuyến Khích?"/>
-                                    </tree>
-                                </field>
-                            </page>
-                        </notebook>
-                    </sheet>
-                    <div class="oe_chatter">
-                        <field name="message_follower_ids"/>
-                        <field name="activity_ids"/>
-                        <field name="message_ids"/>
-                    </div>
-                </form>
-            </field>
-        </record>
+	<record model="ir.actions.act_window" id="mv_compute_discount_action">
+		<field name="name">Tính chiết khấu</field>
+		<field name="res_model">mv.compute.discount</field>
+		<field name="view_mode">tree,form</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_smiling_face">
+				No Compute Discount (%) found ! Let's create one
+			</p>
+		</field>
+	</record>
 
-        <record model="ir.actions.act_window" id="mv_compute_discount_action">
-            <field name="name">Tính chiết khấu</field>
-            <field name="res_model">mv.compute.discount</field>
-            <field name="view_mode">tree,form</field>
-        </record>
-
-        <menuitem id="mv_compute_discount_menu" name="Tính chiết khấu" action="mv_compute_discount_action" parent="sale.menu_sales_config" sequence="0"/>
-
-    </data>
+	<menuitem id="mv_compute_discount_menu" name="Tính chiết khấu" action="mv_compute_discount_action" parent="sale.menu_sales_config" sequence="0"/>
 </odoo>

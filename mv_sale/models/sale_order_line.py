@@ -6,13 +6,7 @@ from odoo.exceptions import ValidationError
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
 
-    hidden_show_qty = fields.Boolean(
-        help="Do not show change qty in website", default=False, copy=False
-    )
-    discount_line_id = fields.Many2one("mv.compute.discount.line")
-    code_product = fields.Char(help="Do not recompute discount")
-
-    # SUPPORT Fields:
+    # ACCESS/RULE Fields:
     is_sales_manager = fields.Boolean(
         compute="_compute_is_sales_manager",
         default=lambda self: self.env.user.has_group("sales_team.group_sale_manager"),
@@ -24,6 +18,12 @@ class SaleOrderLine(models.Model):
 
         for user in self:
             user.is_sales_manager = is_manager
+
+    hidden_show_qty = fields.Boolean(
+        help="Do not show change qty in website", default=False, copy=False
+    )
+    discount_line_id = fields.Many2one("mv.compute.discount.line")
+    code_product = fields.Char(help="Do not recompute discount")
 
     def _is_not_sellable_line(self):
         return self.hidden_show_qty or super()._is_not_sellable_line()

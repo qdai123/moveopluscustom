@@ -33,4 +33,4 @@ class MvWizardDiscount(models.TransientModel):
             record.currency_symbol = symbol
 
     def button_confirm(self):
-        self.sudo().sale_id.compute_discount_for_partner(self.amount)
+        self.sudo().sale_id.compute_discount_for_partner(bonus=self.amount)
