@@ -118,7 +118,7 @@ class MvComputeDiscount(models.Model):
         (
             "month_year_uniq",
             "unique (month, year)",
-            "Tháng và năm này đã tồn tại không được tạo nữa",
+            "Tháng và năm này đã tồn tại không được tạo nữa!",
         )
     ]
 
@@ -162,25 +162,30 @@ class MvComputeDiscount(models.Model):
         """
         self.ensure_one()
 
+        date_from, date_to = self._get_dates(self.month, self.year)
         self.line_ids = False
         list_line_ids = []
-        date_from, date_to = self._compute_dates(self.month, self.year)
 
         # Fetch all sale orders at once
         sale_orders = self.env["sale.order"].search(
             [
                 ("state", "=", "sale"),
                 ("date_invoice", ">=", date_from),
-                ("date_invoice", "<", date_to),
+                ("date_invoice", "<=", date_to),
             ]
         )
 
         if not sale_orders:
             raise UserError(
-                _("Hiện tại không có đơn hàng nào đã chốt trong tháng %s") % self.month
+                _("Hiện tại không có đơn hàng nào đã thanh toán trong tháng %s")
+                % self.month
             )
 
-        # Filter order lines at once
+        # Filter order lines at once with the following conditions:
+        # - Partner is an agency
+        # - Product category is eligible for discount
+        # - Product type is 'product'
+        # - Quantity delivered is greater than 0
         order_lines = sale_orders.order_line.filtered(
             lambda order: order.order_id.partner_id.is_agency
             and order.order_id.check_category_product(order.product_id.categ_id)
@@ -189,39 +194,42 @@ class MvComputeDiscount(models.Model):
         )
 
         # Fetch partners at once
-        partner_ids = order_lines.order_id.mapped("partner_id") or []
         partners_use_for_discount = self._get_partner_for_discount_only(
             self.month, self.year
         )
-        partner_for_discount = (
-            self.env["res.partner"].sudo().browse(partners_use_for_discount.ids)
-            if partners_use_for_discount
-            else []
-        )
-        partner_ids = partner_ids.filtered(
-            lambda partner: partner.id in partner_for_discount.ids
+        partners = order_lines.order_id.mapped("partner_id").filtered(
+            lambda rec: (
+                rec.id
+                in self.env["res.partner"]
+                .sudo()
+                .browse(partners_use_for_discount.ids)
+                .ids
+                if partners_use_for_discount
+                else []
+            )
         )
 
-        for partner_id in partner_ids:
-            # Initial values
-            discount_line_id = False
-            amount_total = 0
-            is_month = False
-            month_money = 0
-            is_two_month = False
-            amount_two_month = 0
-            two_month = 0
-            two_money = 0
-            is_quarter = False
-            quarter = 0
-            quarter_money = 0
-            is_year = False
-            year = 0
-            year_money = 0
+        for partner_id in partners:
+            total_quantity_minimum = 0
+            total_quantity_maximum = 0
+            total_quantity_delivered = 0
+            total_quantity_for_discount = 0
+            total_sales = 0
+            total_discount = 0
+            total_sales_after_discount = 0
 
-            # Get all SO for Partner is parent_id in partner_for_discount
+            vals = self._prepare_values_for_confirmation(partner_id, self.report_date)
+            partner = self.env["res.partner"].sudo().browse(partner_id.id)
+
+            # [GET] All Orders of Partner
+            order_by_partner_agency = order_lines.filtered(
+                lambda sol: sol.order_id.partner_id == partner
+            )
+            vals["currency_id"] = order_by_partner_agency[0].order_id.currency_id.id
+
+            # [GET] All Orders of Partner has (parent_id = partner_id)
             childs_of_partner = self.env["res.partner"].search(
-                [("parent_id", "=", partner_id.id)]
+                [("parent_id", "=", partner.id)]
             )
             orders_by_child_of_partner_agency = sale_orders.search(
                 [("partner_id", "in", childs_of_partner.ids)]
@@ -230,203 +238,211 @@ class MvComputeDiscount(models.Model):
                 and sol.product_id.detailed_type == "product"
                 and sol.qty_delivered > 0
             )
+            if orders_by_child_of_partner_agency:
+                order_by_partner_agency += orders_by_child_of_partner_agency
 
-            # Filter order lines for the current partner
-            order_line_total = order_lines.filtered(
-                lambda sol: sol.order_id.partner_id == partner_id
+            # [UP] Update Quantity (Get only with [qty_delivered] field)
+            total_quantity_delivered += sum(
+                order_by_partner_agency.filtered(
+                    lambda line: line.price_unit > 0
+                ).mapped("qty_delivered")
             )
-            order_line_partner = order_line_total.filtered(
-                lambda sol: sol.order_id.partner_id == partner_id and sol.price_unit > 0
+            vals["quantity"] = total_quantity_delivered
+
+            # [UP] Update Quantity Discount (Get only with [qty_delivered] field)
+            total_quantity_for_discount += sum(
+                order_by_partner_agency.filtered(
+                    lambda line: line.price_unit == 0
+                ).mapped("qty_delivered")
             )
-            quantity = sum(order_line_partner.mapped("product_uom_qty"))
-            # Filter order lines for discount
-            order_line_partner_discount = order_line_total.filtered(
-                lambda sol: sol.order_id.partner_id == partner_id
-                and sol.price_unit == 0
-            )
-            quantity_discount = sum(
-                order_line_partner_discount.mapped("product_uom_qty")
-            )
-            # Determine partner level
-            line_ids = partner_id.line_ids.filtered(
-                lambda partner_discount: (
-                    date.today() >= partner_discount.date
-                    if partner_discount.date
-                    else not partner_discount.date
+            vals["quantity_discount"] = total_quantity_for_discount
+
+            # [!] Determine Partner Discount Level
+            line_ids = partner.line_ids.filtered(
+                lambda discount: (
+                    date.today() >= discount.date
+                    if discount.date
+                    else not discount.date
                 )
             ).sorted("level")
+
             if line_ids:
+                compute_discount_line = self.env["mv.compute.discount.line"]
+
+                # [UP] Update Total Sales
+                total_sales += sum(
+                    order_by_partner_agency.filtered(
+                        lambda line: line.price_unit > 0
+                    ).mapped("price_subtotal")
+                )
+                vals["amount_total"] = total_sales
+
                 level = line_ids[-1].level
                 discount_id = line_ids[-1].parent_id
                 discount_line_id = discount_id.line_ids.filtered(
                     lambda line: line.level == level
                 )
-                amount_total = sum(order_line_partner.mapped("price_subtotal"))
+                vals["level"] = discount_line_id.level
+                total_quantity_minimum += discount_line_id.quantity_from
+                vals["quantity_from"] = total_quantity_minimum
+                total_quantity_maximum += discount_line_id.quantity_to
+                vals["quantity_to"] = total_quantity_maximum
+
                 quantity_required_to_discount = (
-                    quantity >= discount_line_id.quantity_from
+                    total_quantity_delivered >= total_quantity_minimum
                 )
                 if quantity_required_to_discount:
-                    # đạt được chỉ tiêu tháng 1 chỉ cần thỏa số lượng trong tháng
-                    is_month = True
-                    month_money = amount_total * discount_line_id.month / 100
-                    # để đạt kết quả 2 tháng:
-                    # 1- tháng này phải đạt chỉ tiêu tháng
+                    # [>] Để đạt được chỉ tiêu 1 tháng => Chỉ cần thỏa số lượng trong tháng
+                    discount_for_a_month = discount_line_id.month
+                    vals["is_month"] = True
+                    vals["month"] = discount_for_a_month
+                    vals["month_money"] = total_sales * discount_for_a_month / 100
+
+                    # [>] Để đạt kết quả 2 tháng:
+                    # 1 - tháng này phải đạt chỉ tiêu tháng
                     # 2 - tháng trước phải đạt chỉ tiêu tháng và chưa đạt chỉ tiêu 2 tháng
                     if self.month == "1":
                         name = "12" + "/" + str(int(self.year) - 1)
                     else:
                         name = str(int(self.month) - 1) + "/" + self.year
-                    domain = [
-                        ("name", "=", name),
-                        ("is_month", "=", True),
-                        ("is_two_month", "=", False),
-                        ("partner_id", "=", partner_id.id),
-                    ]
-                    line_two_month_id = self.env["mv.compute.discount.line"].search(
-                        domain
+
+                    line_two_month_id = compute_discount_line.search(
+                        [
+                            ("partner_id", "=", partner.id),
+                            ("name", "=", name),
+                            ("is_month", "=", True),
+                            ("is_two_month", "=", False),
+                        ]
                     )
-                    if len(line_two_month_id) > 0:
-                        is_two_month = True
-                        two_month = discount_line_id.two_month
-                        amount_two_month = line_two_month_id.amount_total + amount_total
-                        two_money = amount_two_month * discount_line_id.two_month / 100
-                    # để đạt kết quả quý [1, 2, 3] [4, 5, 6] [7, 8, 9] [10, 11, 12]:
-                    # chỉ xét quý vào các tháng 3 6 9 12, chỉ cần kiểm tra 2 tháng trước đó có đạt chỉ tiêu tháng ko
+                    if line_two_month_id:
+                        discount_for_two_month = discount_line_id.two_month
+                        vals["is_two_month"] = True
+                        vals["two_month"] = discount_for_two_month
+                        vals["amount_two_month"] = (
+                            line_two_month_id.amount_total + total_sales
+                        )
+                        vals["two_money"] = (
+                            (line_two_month_id.amount_total + total_sales)
+                            * discount_for_two_month
+                            / 100
+                        )
+
+                    # [>] Để đạt kết quả quý [1, 2, 3] [4, 5, 6] [7, 8, 9] [10, 11, 12]:
+                    # [>] Chỉ xét quý vào các tháng 3 6 9 12, chỉ cần kiểm tra 2 tháng trước đó có đạt chỉ tiêu tháng ko
                     if self.month in QUARTER_OF_YEAR:
                         name_one = str(int(self.month) - 1) + "/" + self.year
                         name_two = str(int(self.month) - 2) + "/" + self.year
-                        domainone = [
-                            ("name", "=", name_one),
-                            ("is_month", "=", True),
-                            ("partner_id", "=", partner_id.id),
-                        ]
-                        line_name_one = self.env["mv.compute.discount.line"].search(
-                            domainone
+                        line_name_one = compute_discount_line.search(
+                            [
+                                ("partner_id", "=", partner.id),
+                                ("name", "=", name_one),
+                                ("is_month", "=", True),
+                            ]
                         )
-                        domain_two = [
-                            ("name", "=", name_two),
-                            ("is_month", "=", True),
-                            ("partner_id", "=", partner_id.id),
-                        ]
-                        line_name_two = self.env["mv.compute.discount.line"].search(
-                            domain_two
+                        line_name_two = compute_discount_line.search(
+                            [
+                                ("partner_id", "=", partner.id),
+                                ("name", "=", name_two),
+                                ("is_month", "=", True),
+                            ]
                         )
-                        if len(line_name_one) >= 1 and len(line_name_two) >= 1:
-                            is_quarter = True
-                            quarter = discount_line_id.quarter
-                            quarter_money = (
+                        if line_name_one and line_name_two:
+                            discount_for_two_month = discount_line_id.two_month
+                            discount_for_quarter = discount_line_id.quarter
+                            vals["is_quarter"] = True
+                            vals["quarter"] = discount_for_quarter
+                            vals["quarter_money"] = (
                                 (
-                                    amount_total
+                                    total_sales
                                     + line_name_one.amount_total
                                     + line_name_two.amount_total
                                 )
-                                * discount_line_id.two_month
+                                * discount_for_two_month
                                 / 100
                             )
-                    # để đạt kết quả năm thì tháng đang xet phai la 12
-                    # kiểm tra 11 tháng trước đó đã được chỉ tiêu tháng chưa
-                    if self.month in ["12"]:
+
+                    # [>] Để đạt kết quả năm thì tháng đang xét phải là 12
+                    # [>] Kiểm tra 11 tháng trước đó đã được chỉ tiêu tháng chưa
+                    if self.month == DECEMBER:
                         flag = True
                         total_year = 0
                         for i in range(12):
                             name = str(i + 1) + "/" + self.year
-                            domain = [
-                                ("name", "=", name),
-                                ("is_month", "=", True),
-                                ("partner_id", "=", partner_id.id),
-                            ]
-                            line_name = self.env["mv.compute.discount.line"].search(
-                                domain
+                            line_name = compute_discount_line.search(
+                                [
+                                    ("partner_id", "=", partner.id),
+                                    ("name", "=", name),
+                                    ("is_month", "=", True),
+                                ]
                             )
-                            if len(line_name) == 0:
+                            if not line_name:
                                 flag = False
                             total_year += line_name.amount_total
+
                         if flag:
-                            is_year = True
-                            year = discount_line_id.quarter
-                            year_money = total_year * discount_line_id.year / 100
+                            discount_for_year = discount_line_id.quarter
+                            vals["is_year"] = True
+                            vals["year"] = discount_for_year
+                            vals["year_money"] = total_year * discount_for_year / 100
 
-            if discount_line_id.level:
-                sale_ids = order_line_total.order_id.ids
-                order_line_ids = order_line_total.ids
-                if orders_by_child_of_partner_agency:
-                    sale_ids += orders_by_child_of_partner_agency.mapped("order_id").ids
-                    order_line_ids += orders_by_child_of_partner_agency.ids
+                if discount_line_id and discount_line_id.level:
+                    sale_ids = order_by_partner_agency.order_id.ids
+                    order_line_ids = order_by_partner_agency.ids
 
-                list_line_ids.append(
-                    (
-                        0,
-                        0,
-                        {
-                            # Compute data for the current month
-                            "discount_line_id": discount_line_id.id,
-                            "month_parent": int(self.month),
-                            "partner_id": partner_id.id,
-                            "level": discount_line_id.level,
-                            "sale_ids": sale_ids,
-                            "order_line_ids": order_line_ids,
-                            "currency_id": order_line_total[0].order_id.currency_id.id,
-                            "quantity": quantity,
-                            "quantity_discount": quantity_discount,
-                            "quantity_from": discount_line_id.quantity_from,
-                            "quantity_to": discount_line_id.quantity_to,
-                            "amount_total": amount_total,
-                            "is_month": is_month,
-                            "month": discount_line_id.month,
-                            "month_money": month_money,
-                            # Compute for 2 months
-                            "is_two_month": is_two_month,
-                            "amount_two_month": amount_two_month,
-                            "two_month": two_month,
-                            "two_money": two_money,
-                            # Compute for quarter
-                            "is_quarter": is_quarter,
-                            "quarter": quarter,
-                            "quarter_money": quarter_money,
-                            # Compute for year
-                            "is_year": is_year,
-                            "year": year,
-                            "year_money": year_money,
-                        },
-                    )
-                )
+                    if orders_by_child_of_partner_agency:
+                        sale_ids += orders_by_child_of_partner_agency.mapped(
+                            "order_id"
+                        ).ids
+                        order_line_ids += orders_by_child_of_partner_agency.ids
+
+                    vals["sale_ids"] = sale_ids
+                    vals["order_line_ids"] = order_line_ids
+                    vals["discount_line_id"] = discount_line_id.id
+
+                list_line_ids.append((0, 0, vals))
 
         if not list_line_ids:
             raise UserError(
                 _("Không có dữ liệu để tính chiết khấu cho tháng %s") % self.month
             )
 
-        self.write(
-            {
-                "line_ids": list_line_ids,
-                "state": "confirm",
-            }
-        )
+        self.write({"line_ids": list_line_ids, "state": "confirm"})
 
-    def _compute_dates(self, month, year):
-        """
-        Computes the start and end dates of a given month and year.
+    def _prepare_values_for_confirmation(self, partner_id, report_date):
+        """Gets the data and returns it the right format for render."""
+        self.ensure_one()
 
-        Args:
-            month (str): The target month.
-            year (str): The target year.
-
-        Returns:
-            tuple: A tuple containing the start and end dates of the given month and year.
-        """
-        try:
-            # Compute date_from
-            date_from = fields.Datetime.now().replace(
-                day=1, month=int(month), year=int(year), hour=0, minute=0, second=0
-            )
-
-            # Compute date_to by adding one month and then subtracting one day
-            date_to = date_from + relativedelta(months=1) - relativedelta(days=1)
-
-            return date_from, date_to
-        except Exception as e:
-            _logger.error("Failed to compute dates: %s", e)
-            return None, None
+        return {
+            "month_parent": int(report_date.month),
+            "partner_id": partner_id.id,
+            "discount_line_id": False,
+            "currency_id": False,
+            "level": 0,
+            "sale_ids": [],
+            "order_line_ids": [],
+            "quantity": 0,
+            "quantity_discount": 0,
+            "quantity_from": 0,
+            "quantity_to": 0,
+            "amount_total": 0,
+            # Compute for a month
+            "is_month": False,
+            "month": 0.0,  # % chiết khấu tháng
+            "month_money": 0.0,
+            # Compute for 2 months
+            "is_two_month": False,
+            "amount_two_month": 0.0,
+            "two_month": 0.0,  # % chiết khấu 2 tháng
+            "two_money": 0,
+            # Compute for quarter
+            "is_quarter": False,
+            "quarter": 0.0,  # % chiết khấu quý
+            "quarter_money": 0,
+            # Compute for year
+            "is_year": False,
+            "year": 0.0,  # % chiết khấu năm
+            "year_money": 0,
+        }
 
     def action_done(self):
         if not self._access_approve():
@@ -434,14 +450,14 @@ class MvComputeDiscount(models.Model):
 
         for rec in self:
             if rec.line_ids:
-                for discount_line in self.line_ids:
+                for discount_line in rec.line_ids:
                     discount_line.partner_id.write(
                         {
                             "amount": discount_line.partner_id.amount
                             + discount_line.total_money
                         }
                     )
-            rec.write({"state": "done"})
+            rec.state = "done"
 
     def action_undo(self):
         self.write(
@@ -481,8 +497,33 @@ class MvComputeDiscount(models.Model):
         }
 
     # =================================
-    # HELPER/PRIVATE Methods
+    # HELPER / PRIVATE Methods
     # =================================
+
+    def _get_dates(self, month, year):
+        """
+        Computes the start and end dates of a given month and year.
+
+        Args:
+            month (str): The target month.
+            year (str): The target year.
+
+        Returns:
+            tuple: A tuple containing the start and end dates of the given month and year.
+        """
+        try:
+            # Compute date_from
+            date_from = fields.Datetime.now().replace(
+                day=1, month=int(month), year=int(year), hour=0, minute=0, second=0
+            )
+
+            # Compute date_to by adding one month and then subtracting one day
+            date_to = date_from + relativedelta(months=1) - relativedelta(days=1)
+
+            return date_from, date_to
+        except Exception as e:
+            _logger.error("Failed to compute dates: %s", e)
+            return None, None
 
     def _get_partner_for_discount_only(self, month, year):
         """

@@ -170,7 +170,7 @@ class MvComputeDiscountLine(models.Model):
                     ("name", "=", previous_month),
                 ]
             )
-            if len(discount_line_previous_month) > 0:
+            if discount_line_previous_month:
                 for line in discount_line_previous_month:
                     amount_by_two_month += line.amount_total
 

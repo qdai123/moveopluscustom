@@ -26,10 +26,13 @@ class SaleOrder(models.Model):
 
     @api.depends_context("uid")
     def _compute_is_sales_manager(self):
+        """
+        Compute the value of the 'is_sales_manager' field for each record.
+        The field value is True if the current user belongs to the 'Sales Manager' group, False otherwise.
+        """
         is_manager = self.env.user.has_group("sales_team.group_sale_manager")
-
-        for user in self:
-            user.is_sales_manager = is_manager
+        for record in self:
+            record.is_sales_manager = is_manager
 
     discount_line_id = fields.Many2one(
         "mv.compute.discount.line"
@@ -40,6 +43,12 @@ class SaleOrder(models.Model):
     # Giữ số lượng lại, để khi thay đổi thì xóa dòng delivery, chiết khấu tự động, chiết khấu sản lượng
     quantity_change = fields.Float(copy=False)
     flag_delivery = fields.Boolean(compute="compute_flag_delivery")
+
+    # [res.partner] Fields:
+    partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
+    partner_white_agency = fields.Boolean(
+        related="partner_id.is_white_agency", store=True
+    )
 
     def compute_flag_delivery(self):
         for record in self:
@@ -405,15 +414,13 @@ class SaleOrder(models.Model):
 
                 # Filter order lines for products
                 product_order_lines = self.order_line.filtered(
-                    lambda sol: sol.product_id.product_tmpl_id.default_code
-                    == PRODUCT_DISCOUNT_CODE
+                    lambda sol: sol.product_id.default_code == PRODUCT_DISCOUNT_CODE
                 )
 
-                if product_order_lines:
+                if not product_order_lines:
                     # Check for existing discount line
                     discount_order_line = self.order_line.filtered(
-                        lambda sol: sol.product_id.product_tmpl_id.default_code
-                        or sol.code_product == PRODUCT_DISCOUNT_CODE
+                        lambda sol: sol.product_id.default_code == PRODUCT_DISCOUNT_CODE
                     )
 
                     if not discount_order_line:
@@ -468,14 +475,15 @@ class SaleOrder(models.Model):
         if not self.order_line:
             return
 
-        self._update_programs_and_rewards()
-        self._auto_apply_rewards()
-
-        # [!] Thêm chiết khấu bảo lãnh ngân hàng
-        self._handle_bank_guarantee_discount()
+        if not self.check_discount_agency_white_place:
+            self._update_programs_and_rewards()
+            self._auto_apply_rewards()
 
         # [!] Thêm chiết khấu cho Đại lý vùng trắng
         self._handle_agency_white_place_discount()
+
+        # [!] Thêm chiết khấu bảo lãnh ngân hàng
+        self._handle_bank_guarantee_discount()
 
         quantity_change = self._calculate_quantity_change()
 
@@ -741,30 +749,30 @@ class SaleOrder(models.Model):
         Reset the bonus order to 0.
         Then call the parent class's action_draft method.
         """
-        try:
-            if self.bonus_order > 0:
-                if self.partner_id:
-                    _logger.info("Adding bonus order amount back to partner's amount.")
-                    self.partner_id.write(
-                        {"amount": self.partner_id.amount + self.bonus_order}
-                    )
-                else:
-                    _logger.warning("No partner found for this order.")
-                self.write({"bonus_order": 0})
-            return super(SaleOrder, self).action_draft()
-        except Exception as e:
-            _logger.error("Failed to transition sale order back to draft state: %s", e)
+        if self.bonus_order > 0:
+            if self.partner_id:
+                _logger.info("Adding bonus order amount back to partner's amount.")
+                self.partner_id.write(
+                    {"amount": self.partner_id.amount + self.bonus_order}
+                )
+            else:
+                _logger.warning("No partner found for this order.")
+            self.write({"bonus_order": 0})
+        return super(SaleOrder, self).action_draft()
 
     def action_confirm(self):
-        if self.partner_id.is_agency:
-            self.with_context(confirm=True).action_compute_discount_month()
-            delivery_lines = self.order_line.filtered(lambda x: x.is_delivery)
-            if not delivery_lines:
-                raise UserError(_("No delivery lines found in the order."))
-        try:
-            return super(SaleOrder, self).action_confirm()
-        except Exception as e:
-            _logger.error("Failed to confirm sale order: %s", e)
+        """
+        Confirm the sale order.
+        It checks if the quantity of the product in the order line is greater than the available quantity for the day.
+        If it is, it raises a validation error.
+        If the partner is an agency, it computes the discount for the month.
+        If there are no delivery lines in the order, it raises a user error.
+        Then it confirms the sale order and logs any exceptions that occur during this process.
+        """
+        self._check_order_not_free_qty()
+        self._handle_agency_discount()
+        self._check_delivery_lines()
+        return super(SaleOrder, self).action_confirm()
 
     def action_cancel(self):
         """
@@ -773,21 +781,60 @@ class SaleOrder(models.Model):
         Reset the bonus order and quantity change to 0.
         Then call the parent class's action_cancel method.
         """
-        try:
-            if self.bonus_order > 0:
-                if self.partner_id:
-                    _logger.info("Adding bonus order amount back to partner's amount.")
-                    self.partner_id.write(
-                        {"amount": self.partner_id.amount + self.bonus_order}
-                    )
-                else:
-                    _logger.warning("No partner found for this order.")
-                self.write(
-                    {
-                        "bonus_order": 0,
-                        "quantity_change": 0,
-                    }
+        if self.bonus_order > 0:
+            if self.partner_id:
+                _logger.info("Adding bonus order amount back to partner's amount.")
+                self.partner_id.write(
+                    {"amount": self.partner_id.amount + self.bonus_order}
                 )
-            return super(SaleOrder, self).action_cancel()
-        except Exception as e:
-            _logger.error("Failed to cancel sale order: %s", e)
+            else:
+                _logger.warning("No partner found for this order.")
+            self.write(
+                {
+                    "bonus_order": 0,
+                    "quantity_change": 0,
+                }
+            )
+        return super(SaleOrder, self).action_cancel()
+
+    # ==================================
+    # CONSTRAINS / VALIDATION Methods
+    # ==================================
+
+    def _check_order_not_free_qty(self):
+        """
+        Check if the quantity of the product in the order line is greater than the available quantity for the day.
+        If it is, raise a validation error.
+        """
+        for so in self.filtered(lambda rec: rec.state in ["draft", "sent"]):
+            product_order_lines = so.order_line.filtered(
+                lambda sol: sol.product_id.detailed_type == "product"
+            )
+            if product_order_lines:
+                for so_line in product_order_lines:
+                    if so_line.product_uom_qty > so_line.free_qty_today:
+                        error_message = (
+                            f"Bạn không được phép đặt quá số lượng hiện tại:"
+                            f"\n- Sản phẩm: {so_line.product_template_id.name}"
+                            f"\n- Số lượng hiện tại có thể đặt: {int(so_line.free_qty_today)} Cái"
+                            f"\n\nVui lòng kiểm tra lại số lượng còn lại trong kho."
+                        )
+                        raise ValidationError(error_message)
+
+        return False
+
+    def _handle_agency_discount(self):
+        """
+        Handle the discount for the agency.
+        """
+        if self.partner_id.is_agency:
+            self.with_context(confirm=True).action_compute_discount_month()
+
+    def _check_delivery_lines(self):
+        """
+        Check if there are delivery lines in the order.
+        If there are no delivery lines, raise a user error.
+        """
+        delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
+        if not delivery_lines:
+            raise UserError(_("No delivery lines were found in the order."))

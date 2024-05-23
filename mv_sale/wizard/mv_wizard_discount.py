@@ -32,5 +32,8 @@ class MvWizardDiscount(models.TransientModel):
             symbol = "{symbol}".format(symbol=record.currency_id.symbol or "")
             record.currency_symbol = symbol
 
-    def button_confirm(self):
-        self.sudo().sale_id.compute_discount_for_partner(bonus=self.amount)
+    def action_confirm(self):
+        sale_order = self.env["sale.order"].sudo().browse(self.sale_id.id)
+        return sale_order.with_context(
+            wizard_compute_discount=True
+        ).compute_discount_for_partner(bonus=self.amount)
