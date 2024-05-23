@@ -95,19 +95,3 @@ class SaleOrderLine(models.Model):
                 if vals.get("product_uom_qty", False) and len(order_line) > 0:
                     order_line.unlink()
                 return res
-
-    @api.constrains("product_uom_qty")
-    def _check_order_not_free_qty_today(self):
-        for so_line in self.filtered(
-            lambda line: (line.order_id.state != "draft" or line.state != "draft")
-            and line.product_template_id.detailed_type != "service"
-        ):
-            if so_line.product_uom_qty > so_line.free_qty_today:
-                error_message = (
-                    "Bạn không được phép đặt quá số lượng hiện tại:"
-                    "\n- Sản phẩm: %s"
-                    "\n- Số lượng hiện tại: %s Cái"
-                    "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho."
-                    % (so_line.product_template_id.name, int(so_line.free_qty_today))
-                )
-                raise ValidationError(error_message)
