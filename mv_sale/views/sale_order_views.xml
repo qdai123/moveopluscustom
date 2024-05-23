@@ -119,8 +119,8 @@
             </xpath>
             <!-- ===== [END] Readonly by Groups of Sales for Order Lines ===== -->
             <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="partner_agency" column_invisible="True"/>
-                <field name="partner_white_agency" column_invisible="True"/>
+                <field name="partner_agency" invisible="True"/>
+                <field name="partner_white_agency" invisible="True"/>
             </xpath>
         </field>
     </record>

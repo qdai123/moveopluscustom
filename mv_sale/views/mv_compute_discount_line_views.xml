@@ -73,7 +73,7 @@
                     <notebook>
                         <page string="Đơn hàng">
                             <field name="sale_ids" nolabel="1">
-                                <tree create="false" edit="false" delete="false">
+                                <tree create="false" edit="false" delete="false" default_order="id">
                                     <field name="currency_id" column_invisible="True"/>
                                     <field name="name" string="Order"/>
                                     <field name="partner_id" string="Dealer/Sub-Dealer/Customer"/>
@@ -83,7 +83,7 @@
                         </page>
                         <page string="Chi tiết sản phẩm lốp">
                             <field name="order_line_ids" nolabel="1">
-                                <tree create="false" edit="false" delete="false" decoration-danger="price_unit == 0">
+                                <tree create="false" edit="false" delete="false" default_order="id" decoration-danger="price_unit == 0">
                                     <field name="currency_id" column_invisible="True"/>
                                     <field name="order_id" string="Order"/>
                                     <field name="product_id"/>

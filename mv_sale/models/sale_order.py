@@ -477,14 +477,15 @@ class SaleOrder(models.Model):
         if not self.order_line:
             return
 
-        self._update_programs_and_rewards()
-        self._auto_apply_rewards()
-
-        # [!] Thêm chiết khấu bảo lãnh ngân hàng
-        self._handle_bank_guarantee_discount()
+        if not self.check_discount_agency_white_place:
+            self._update_programs_and_rewards()
+            self._auto_apply_rewards()
 
         # [!] Thêm chiết khấu cho Đại lý vùng trắng
         self._handle_agency_white_place_discount()
+
+        # [!] Thêm chiết khấu bảo lãnh ngân hàng
+        self._handle_bank_guarantee_discount()
 
         quantity_change = self._calculate_quantity_change()
 
