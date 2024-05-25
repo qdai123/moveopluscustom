@@ -62,7 +62,7 @@
 	</record>
 
 	<record id="mv_helpdesk_stock_move_line_report_action_view" model="ir.actions.act_window">
-		<field name="name">Ticket &amp; Product Moves Analysis</field>
+		<field name="name">Ticket Registered Analysis</field>
 		<field name="res_model">mv.helpdesk.stock.move.line.report</field>
 		<field name="search_view_id" ref="mv_helpdesk_stock_move_line_report_search_view"/>
 		<field name="view_id" ref="mv_helpdesk_stock_move_line_report_tree_view"/>

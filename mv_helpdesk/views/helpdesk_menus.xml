@@ -2,14 +2,14 @@
 <odoo>
 
     <menuitem id="helpdesk_ticket_product_moves_menu"
-              name="Helpdesk Ticket &amp; Product Moves"
+              name="Helpdesk Ticket Registered"
               action="mv_helpdesk_ticket_product_moves_action_overview"
               parent="helpdesk.helpdesk_menu_config"
               sequence="1"
               groups="base.group_no_one"/>
 
     <menuitem id="helpdesk_stock_move_line_report_menu"
-              name="Tickets &amp; Product Moves"
+              name="Tickets Registered Analysis"
               action="mv_helpdesk_stock_move_line_report_action_view"
               parent="helpdesk.helpdesk_ticket_report_menu_main"
               sequence="11"/>

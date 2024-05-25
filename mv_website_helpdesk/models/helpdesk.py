@@ -4,8 +4,8 @@ from odoo.exceptions import ValidationError
 from odoo.addons.http_routing.models.ir_http import slug
 
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
-    ticket_type_sub_dealer,
-    ticket_type_end_user,
+    SUB_DEALER_CODE,
+    END_USER_CODE,
 )
 
 
@@ -180,43 +180,39 @@ class HelpdeskTicket(models.Model):
         store=True,
     )
 
-    @api.onchange("team_id")
-    def onchange_team_id(self):
-        if self.team_id and self.team_id.use_website_helpdesk_warranty_activation:
-            ticket_type_for_warranty = (
-                self.env["helpdesk.ticket.type"]
-                .sudo()
-                .search(
-                    [
-                        "|",
-                        ("name", "in", [ticket_type_sub_dealer, ticket_type_end_user]),
-                        ("code", "=", "BH"),
-                    ],
-                    limit=2,
-                )
-                or []
-            )
-            domain = [("id", "in", ticket_type_for_warranty.ids)]
-        else:
-            ticket_type_not_for_warranty = (
-                self.env["helpdesk.ticket.type"]
-                .sudo()
-                .search(
-                    [("name", "not in", [ticket_type_sub_dealer, ticket_type_end_user])]
-                )
-                or []
-            )
-            domain = [("id", "in", ticket_type_not_for_warranty.ids)]
-
-        return {"domain": {"ticket_type_id": domain}}
-
     @api.depends("team_id", "team_id.use_website_helpdesk_warranty_activation")
     def _compute_ticket_warranty_activation(self):
+        """
+        Compute the ticket_warranty_activation field based on the team_id's use_website_helpdesk_warranty_activation field.
+        Sets the ticket_warranty_activation field to True if the team_id is set and the team uses website helpdesk warranty activation.
+        """
         for ticket in self:
-            ticket.ticket_warranty_activation = False
-            if (
+            ticket.ticket_warranty_activation = (
                 ticket.team_id
                 and ticket.team_id.use_website_helpdesk_warranty_activation
-            ):
-                ticket.ticket_warranty_activation = True
-                ticket.sudo().onchange_team_id()
+            )
+
+    @api.onchange("team_id")
+    def onchange_team_id(self):
+        if not self.team_id:
+            self.write({"ticket_type_id": False})
+            return {"domain": {"ticket_type_id": []}}
+
+        ticket_type_domain = [
+            (
+                "user_for_warranty_activation",
+                "=",
+                self.team_id.use_website_helpdesk_warranty_activation,
+            ),
+            (
+                "code",
+                (
+                    "in"
+                    if self.team_id.use_website_helpdesk_warranty_activation
+                    else "not in"
+                ),
+                [SUB_DEALER_CODE, END_USER_CODE],
+            ),
+        ]
+
+        return {"domain": {"ticket_type_id": ticket_type_domain}}

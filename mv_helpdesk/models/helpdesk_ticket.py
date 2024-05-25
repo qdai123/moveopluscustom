@@ -9,88 +9,88 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
-# Default Ticket Type Data for Moveoplus (Name Only)
-ticket_type_sub_dealer = "Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)"
-ticket_type_end_user = "Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)"
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # Access Groups:
 HELPDESK_USER = "helpdesk.group_helpdesk_user"
 HELPDESK_MANAGER = "helpdesk.group_helpdesk_manager"
 
+# Ticket Type Codes:
+SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
+END_USER_CODE = "kich_hoat_bao_hanh_nguoi_dung_cuoi"
+
 
 class HelpdeskTicket(models.Model):
     _inherit = "helpdesk.ticket"
 
-    helpdesk_ticket_product_move_ids = fields.One2many(
-        comodel_name="mv.helpdesk.ticket.product.moves",
-        inverse_name="helpdesk_ticket_id",
-        string="Lot/Serial Number",
+    @api.depends_context("uid")
+    def _is_helpdesk_manager(self):
+        for record in self:
+            record.is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
+
+    # ACCESS / RULE Fields:
+    is_helpdesk_manager = fields.Boolean(
+        "Helpdesk Manager", compute="_is_helpdesk_manager"
     )
 
     # INHERIT Fields:
     name = fields.Char(
         compute="_compute_name",
         store=True,
-        readonly=False,
         required=False,
-        tracking=False,
-    )
-    ticket_type_id = fields.Many2one(
-        comodel_name="helpdesk.ticket.type",
-        string="Type",
-        tracking=True,
     )
 
-    # ================== PORTAL WARRANTY ACTIVATION FORM
+    # ==================================================
+
+    # Type with Sub-Dealer
+    is_sub_dealer = fields.Boolean(compute="_compute_ticket_type")
+    sub_dealer_name = fields.Char("Sub-Dealer")
+    # Type with End-User
+    is_end_user = fields.Boolean(compute="_compute_ticket_type")
+    license_plates = fields.Char("License plates")
+    mileage = fields.Integer("Mileage (Km)", default=0)
+
+    # ==================================================
+
+    # PORTAL WARRANTY ACTIVATION FORM
     portal_lot_serial_number = fields.Text(string="Input Lot/Serial Number")
     can_import_lot_serial_number = fields.Boolean(string="Can Import?", readonly=True)
 
-    # For Ticket Type is Sub-Dealer
-    is_sub_dealer = fields.Boolean(compute="_compute_ticket_type")
-    sub_dealer_name = fields.Char(string="Sub-Dealer")
+    # ==================================================
 
-    # For Ticket Type is End User
-    is_end_user = fields.Boolean(compute="_compute_ticket_type")
-    license_plates = fields.Char(string="License plates")
-    mileage = fields.Integer(default=0, string="Mileage (Km)")
-
-    # ACCESS Fields:
-    is_helpdesk_manager = fields.Boolean(
-        compute="_compute_is_helpdesk_manager",
-        default=lambda self: self.env.user.has_group(HELPDESK_MANAGER),
+    ticket_update_date = fields.Datetime(
+        "Update Date", default=lambda self: fields.Datetime.now(), readonly=True
     )
-
-    @api.depends_context("uid")
-    def _compute_is_helpdesk_manager(self):
-        is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
-
-        for user in self:
-            user.is_helpdesk_manager = is_helpdesk_manager
+    helpdesk_ticket_product_move_ids = fields.One2many(
+        comodel_name="mv.helpdesk.ticket.product.moves",
+        inverse_name="helpdesk_ticket_id",
+        string="Lot/Serial Number",
+    )
 
     @api.depends("partner_id", "ticket_type_id")
     def _compute_name(self):
         for rec in self:
-            if rec.partner_id and rec.ticket_type_id:
-                user_tz = self.env.user.tz or self.env.context.get("tz")
-                user_pytz = pytz.timezone(user_tz) if user_tz else pytz.utc
-                now_dt = datetime.now().astimezone(user_pytz).replace(tzinfo=None)
-                rec.name = "{}/{}/{}".format(
-                    rec.partner_id.name.upper() if rec.partner_id else "-",
-                    rec.ticket_type_id.name,
-                    now_dt.strftime("%Y-%m-%d %H:%M:%S"),
-                )
+            partner_name = rec.partner_id.name.upper() if rec.partner_id else "-"
+            ticket_type_name = rec.ticket_type_id.name if rec.ticket_type_id else "-"
+
+            now_dt = fields.Datetime.now()
+            formatted_date = now_dt.strftime(DATE_FORMAT)
+
+            rec.name = f"{partner_name}/{ticket_type_name}/{formatted_date}"
 
     @api.depends("ticket_type_id")
     def _compute_ticket_type(self):
-        for rec in self:
-            rec.is_sub_dealer = False
-            rec.is_end_user = False
-            if rec.ticket_type_id and rec.ticket_type_id.name == ticket_type_sub_dealer:
-                rec.is_sub_dealer = True
-                rec.is_end_user = False
-            elif rec.ticket_type_id and rec.ticket_type_id.name == ticket_type_end_user:
-                rec.is_end_user = True
-                rec.is_sub_dealer = False
+        """
+        Compute the ticket type based on the ticket_type_id's code.
+        Sets the is_sub_dealer and is_end_user fields.
+        """
+        for ticket in self:
+            if ticket.ticket_type_id:
+                ticket.is_sub_dealer = ticket.ticket_type_id.code == SUB_DEALER_CODE
+                ticket.is_end_user = ticket.ticket_type_id.code == END_USER_CODE
+            else:
+                ticket.is_sub_dealer = False
+                ticket.is_end_user = False
 
     # ==================================
     # ORM Methods
@@ -100,100 +100,99 @@ class HelpdeskTicket(models.Model):
     def create(self, list_value):
         tickets = super(HelpdeskTicket, self).create(list_value)
 
-        if tickets:
-            for ticket in tickets:
-                for vals in list_value:
-                    if vals.get("name") == "new":
-                        tickets._compute_name()
-
-                    if "portal_lot_serial_number" in vals and vals.get(
-                        "portal_lot_serial_number"
-                    ):
-                        codes = vals["portal_lot_serial_number"]
-                        scanning_pass = self.action_scan_lot_serial_number(codes)
-                        if scanning_pass:
-                            ticket_product_moves_env = self.env[
-                                "mv.helpdesk.ticket.product.moves"
-                            ]
-                            move_line_env = self.env["stock.move.line"]
-
-                            messages_list = self._validation_portal_lot_serial_number(
-                                self._format_portal_lot_serial_number(
-                                    vals.get("portal_lot_serial_number")
-                                )
-                            )
-                            stock_move_line_ids = [
-                                move_line[0]
-                                for move_line in messages_list
-                                if isinstance(move_line[0], int)
-                            ]
-
-                            for stock_move_line in move_line_env.browse(
-                                stock_move_line_ids
-                            ):
-                                ticket_stock_move_line_exist = (
-                                    ticket_product_moves_env.search(
-                                        [
-                                            (
-                                                "stock_move_line_id",
-                                                "=",
-                                                stock_move_line.id,
-                                            ),
-                                            ("helpdesk_ticket_id", "=", False),
-                                        ],
-                                        limit=1,
-                                    )
-                                )
-
-                                if ticket_stock_move_line_exist:
-                                    ticket_stock_move_line_exist.sudo().unlink()
-                                    ticket_product_moves_env.sudo().create(
-                                        {
-                                            "stock_move_line_id": stock_move_line.id,
-                                            "helpdesk_ticket_id": ticket.id,
-                                        }
-                                    )
-                                else:
-                                    ticket_product_moves_env.sudo().create(
-                                        {
-                                            "stock_move_line_id": stock_move_line.id,
-                                            "helpdesk_ticket_id": ticket.id,
-                                        }
-                                    )
-
-                        # Clear Lot/Serial Number Input when data Import is DONE
-                        ticket.clear_portal_lot_serial_number_input()
+        for ticket in tickets:
+            self._process_ticket(ticket, list_value)
 
         return tickets
 
     def write(self, vals):
+        if vals:
+            vals["ticket_update_date"] = fields.Datetime.now()
         return super(HelpdeskTicket, self).write(vals)
 
     def unlink(self):
-        is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
+        NEW_STATE = "New"
+        NOT_ASSIGNED_ERROR = (
+            "You are not assigned to the ticket or don't have sufficient permissions!"
+        )
+        NOT_NEW_STATE_ERROR = "You can only delete a ticket when it is in 'New' state."
 
-        for record in self:
-            not_helpdesk_manager = (
-                not record.is_helpdesk_manager or not is_helpdesk_manager
+        for ticket in self:
+            is_not_helpdesk_manager = (
+                not ticket.is_helpdesk_manager
+                or not self.env.user.has_group(HELPDESK_MANAGER)
             )
-            not_assigned_to_user = record.user_id != self.env.user
+            not_assigned_to_user = ticket.user_id != self.env.user
 
-            if not_helpdesk_manager and not_assigned_to_user:
-                raise AccessError(
-                    _(
-                        "You are not assigned to the ticket or don't have sufficient permissions!"
-                    )
-                )
-            elif not_helpdesk_manager and record.stage_id.name != "New":
-                raise ValidationError(
-                    _("You can only delete a ticket when it is in 'New' state.")
-                )
+            if is_not_helpdesk_manager and not_assigned_to_user:
+                raise AccessError(_(NOT_ASSIGNED_ERROR))
+            elif is_not_helpdesk_manager and ticket.stage_id.name != NEW_STATE:
+                raise ValidationError(_(NOT_NEW_STATE_ERROR))
+
+            # Unlink all related ticket product moves
+            ticket.helpdesk_ticket_product_move_ids.unlink()
 
         return super(HelpdeskTicket, self).unlink()
 
     # ==================================
     # BUSINESS Methods
     # ==================================
+
+    def _process_ticket(self, ticket, list_value):
+        for vals in list_value:
+            if vals.get("name") == "new":
+                ticket._compute_name()
+
+            if "portal_lot_serial_number" in vals and vals.get(
+                "portal_lot_serial_number"
+            ):
+                self._process_lot_serial_number(
+                    ticket, vals["portal_lot_serial_number"]
+                )
+
+        ticket.clear_portal_lot_serial_number_input()
+
+    def _process_lot_serial_number(self, ticket, lot_serial_number):
+        scanning_pass = self.action_scan_lot_serial_number(lot_serial_number)
+        if not scanning_pass:
+            return
+
+        ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
+        move_line_env = self.env["stock.move.line"]
+
+        messages_list = self._validation_portal_lot_serial_number(
+            self._format_portal_lot_serial_number(lot_serial_number)
+        )
+
+        stock_move_line_ids = [
+            move_line[0] for move_line in messages_list if isinstance(move_line[0], int)
+        ]
+
+        for stock_move_line in move_line_env.browse(stock_move_line_ids):
+            self._create_ticket_product_move(
+                ticket, ticket_product_moves_env, stock_move_line
+            )
+
+    def _create_ticket_product_move(
+        self, ticket, ticket_product_moves_env, stock_move_line
+    ):
+        ticket_stock_move_line_exist = ticket_product_moves_env.search(
+            [
+                ("stock_move_line_id", "=", stock_move_line.id),
+                ("helpdesk_ticket_id", "=", False),
+            ],
+            limit=1,
+        )
+
+        if ticket_stock_move_line_exist:
+            ticket_stock_move_line_exist.sudo().unlink()
+
+        ticket_product_moves_env.sudo().create(
+            {
+                "stock_move_line_id": stock_move_line.id,
+                "helpdesk_ticket_id": ticket.id,
+            }
+        )
 
     @api.model
     def convert_to_list_codes(self, codes):
@@ -358,7 +357,7 @@ class HelpdeskTicket(models.Model):
     def action_wizard_import_lot_serial_number(self):
         self.ensure_one()
         return {
-            "name": _("Wizard: Import Lot/Serial Number"),
+            "name": _("Import Lot/Serial Number or QR-Code"),
             "type": "ir.actions.act_window",
             "res_model": "wizard.import.lot.serial.number",
             "view_mode": "form",

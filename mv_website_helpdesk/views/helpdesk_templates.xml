@@ -109,7 +109,7 @@
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdeskWarrantyInputPartnerName" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="anonymous"/>
+																<input id="helpdeskWarrantyInputPartnerName" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="true"/>
 															</div>
 														</div>
 													</div>
@@ -121,7 +121,7 @@
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="anonymous"/>
+																<input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="true"/>
 															</div>
 														</div>
 													</div>

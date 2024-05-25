@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <odoo>
-
     <!-- INHERIT: FORM VIEWS -->
     <record id="mv_helpdesk_inherit_helpdesk_ticket_form_view" model="ir.ui.view">
         <field name="name">mv.helpdesk.inherit.helpdesk.ticket.form</field>
@@ -20,19 +19,9 @@
             </xpath>
             <xpath expr="//notebook//page[@name='description']" position="before">
                 <page string="Lot/Serial Number" name="ticket_product_moves_tab">
-                    <button name="action_wizard_import_lot_serial_number"
-                            string="Import Lot/Serial Number"
-                            type="object"
-                            groups="helpdesk.group_helpdesk_manager"
-                            class="btn btn-secondary"
-                            invisible="not id"
-                    />
+                    <button name="action_wizard_import_lot_serial_number" string="Import Lot/Serial Number" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary" invisible="not id"/>
                     <field invisible="True" name="portal_lot_serial_number"/>
-                    <field mode="tree"
-                           name="helpdesk_ticket_product_move_ids"
-                           context="{'default_helpdesk_ticket_id': id}"
-                           domain="[('stock_move_line_id', '!=', False)]"
-                           options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
+                    <field mode="tree" name="helpdesk_ticket_product_move_ids" context="{'default_helpdesk_ticket_id': id}" domain="[('stock_move_line_id', '!=', False)]" options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
                         <tree string="Ticket &amp; Product Moves" create="false" edit="false" delete="false">
                             <field name="lot_name" string="Lot/Serial Number"/>
                             <field name="qr_code" string="QR-Code" optional="show"/>
@@ -68,5 +57,4 @@
             </xpath>
         </field>
     </record>
-
 </odoo>
