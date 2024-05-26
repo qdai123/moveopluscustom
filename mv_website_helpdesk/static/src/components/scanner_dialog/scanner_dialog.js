@@ -1,10 +1,10 @@
 /** @odoo-module **/
 
-import { _t } from "@web/core/l10n/translation";
-import { Component } from "@odoo/owl";
-import { Dialog } from "@web/core/dialog/dialog";
-import { useRef, useBus, useService, useChildRef } from "@web/core/utils/hooks";
-import { isBarcodeScannerSupported, scanBarcode } from "@web/webclient/barcode/barcode_scanner";
+import {_t} from "@web/core/l10n/translation";
+import {Component} from "@odoo/owl";
+import {Dialog} from "@web/core/dialog/dialog";
+import {useBus, useService, useChildRef} from "@web/core/utils/hooks";
+import {isBarcodeScannerSupported} from "@web/webclient/barcode/barcode_scanner";
 import * as BarcodeScanner from "@web/webclient/barcode/barcode_scanner";
 
 export class ScannerDialog extends Component {
@@ -26,7 +26,7 @@ export class ScannerDialog extends Component {
     async openMobileScanner() {
         const barcode = await BarcodeScanner.scanBarcode(this.env);
         if (barcode) {
-            this.barcodeService.bus.trigger("barcode_scanned", { barcode });
+            this.barcodeService.bus.trigger("barcode_scanned", {barcode});
             if ("vibrate" in window.navigator) {
                 window.navigator.vibrate(100);
             }
@@ -41,7 +41,7 @@ export class ScannerDialog extends Component {
         if (!code) return;
 
         const listCode = this._cleanAndConvertCodesToArray(code);
-        const res = await this.rpc("/mv_website_helpdesk/validate_scanned_code", { codes: listCode });
+        const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {codes: listCode});
 
         if (!res || res.length === 0) return;
 
@@ -109,10 +109,10 @@ export class ScannerDialog extends Component {
 }
 
 ScannerDialog.template = "mv_website_helpdesk.ScannerDialog";
-ScannerDialog.components = { Dialog };
+ScannerDialog.components = {Dialog};
 ScannerDialog.props = {
     close: Function,
-    onBarcodeScanned: { type: Function },
+    onBarcodeScanned: {type: Function},
     title: {
         validate: (m) => {
             return typeof m === "string" || (typeof m === "object" && typeof m.toString === "function");
@@ -120,15 +120,15 @@ ScannerDialog.props = {
         optional: true,
     },
     body: String,
-    confirm: { type: Function, optional: true },
-    confirmLabel: { type: String, optional: true },
-    confirmClass: { type: String, optional: true },
-    cancel: { type: Function, optional: true },
-    cancelLabel: { type: String, optional: true },
+    confirm: {type: Function, optional: true},
+    confirmLabel: {type: String, optional: true},
+    confirmClass: {type: String, optional: true},
+    cancel: {type: Function, optional: true},
+    cancelLabel: {type: String, optional: true},
 };
 ScannerDialog.defaultProps = {
     confirmLabel: _t("Xác nhận"),
     cancelLabel: _t("Huỷ bỏ"),
     confirmClass: "btn-primary",
-    title: _t("Quét Mã Vạch Hoặc QR-Code  Sản Phẩm"),
+    title: _t("Quét Mã Vạch Hoặc QR-Code Sản Phẩm"),
 };

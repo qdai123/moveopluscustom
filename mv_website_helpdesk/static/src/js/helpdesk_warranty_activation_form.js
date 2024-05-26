@@ -30,17 +30,9 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         this.rpc = this.bindService("rpc");
         this.dialogService = this.bindService("dialog");
         this.notification = this.bindService("notification");
-
-        // Parameters:
-        this.$inputSearchPhoneNumber = false;
-        this.$inputPartnerName = false;
-        this.$inputPartnerEmail = false;
     },
 
     async willStart() {
-        this.$inputSearchPhoneNumber = this.el.querySelector(".o_website_helpdesk_search_phone_number");
-        this.$inputPartnerName = this.el.querySelector("#helpdeskWarrantyInputPartnerName");
-        this.$inputPartnerEmail = this.el.querySelector("#helpdeskWarrantyInputPartnerEmail");
         return Promise.all([this._super()]);
     },
 
@@ -96,7 +88,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 return;
             }
 
-            const data = await this.rpc("/mv_website_helpdesk/validate_partner_phonenumber", {
+            const data = await this.rpc("/mv_website_helpdesk/check_partner_phone", {
                 phone_number: phoneNumber,
             });
 
@@ -125,7 +117,12 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $phoneNumber = $(".o_website_helpdesk_search_phone_number");
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
+        const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
         const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
+
+        // GET Activation Data
+        const $telActivationNumber = $("#helpdesk_warranty_input_tel_activation");
+        const $licensePlatesActivation = $("#helpdesk_warranty_input_license_plates");
 
         const is_partnerName_empty = !$partnerName.val().trim();
         const is_partnerEmail_empty = !$partnerEmail.val().trim();
@@ -134,7 +131,13 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         if ($portalLotSerialNumber.val()) {
             const codes = $portalLotSerialNumber.val();
             const listCode = this._cleanAndConvertCodesToArray(codes);
-            const res = await this.rpc("/mv_website_helpdesk/validate_scanned_code", {codes: listCode});
+            const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {
+                partner_email: $partnerEmail.val(),
+                tel_activation: $telActivationNumber.val(),
+                license_plates: $licensePlatesActivation.val(),
+                ticket_type: $ticketType.val(),
+                codes: listCode
+            });
 
             if (!res || res.length === 0) return;
 
@@ -146,6 +149,8 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 }
             }
         }
+
+        debugger
 
         if (is_partnerName_empty && is_partnerEmail_empty && is_portalLotSerialNumber_empty) {
             $partnerName.attr("required", true);

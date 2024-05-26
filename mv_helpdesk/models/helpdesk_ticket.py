@@ -15,9 +15,13 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 HELPDESK_USER = "helpdesk.group_helpdesk_user"
 HELPDESK_MANAGER = "helpdesk.group_helpdesk_manager"
 
-# Ticket Type Codes:
+# Ticket Type Codes for Warranty Activation:
 SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
 END_USER_CODE = "kich_hoat_bao_hanh_nguoi_dung_cuoi"
+
+IS_EMPTY = "is_empty"
+CODE_NOT_FOUND = "code_not_found"
+CODE_ALREADY_REGISTERED = "code_already_registered"
 
 
 class HelpdeskTicket(models.Model):
@@ -33,40 +37,6 @@ class HelpdeskTicket(models.Model):
         "Helpdesk Manager", compute="_is_helpdesk_manager"
     )
 
-    # INHERIT Fields:
-    name = fields.Char(
-        compute="_compute_name",
-        store=True,
-        required=False,
-    )
-
-    # ==================================================
-
-    # Type with Sub-Dealer
-    is_sub_dealer = fields.Boolean(compute="_compute_ticket_type")
-    sub_dealer_name = fields.Char("Sub-Dealer")
-    # Type with End-User
-    is_end_user = fields.Boolean(compute="_compute_ticket_type")
-    license_plates = fields.Char("License plates")
-    mileage = fields.Integer("Mileage (Km)", default=0)
-
-    # ==================================================
-
-    # PORTAL WARRANTY ACTIVATION FORM
-    portal_lot_serial_number = fields.Text(string="Input Lot/Serial Number")
-    can_import_lot_serial_number = fields.Boolean(string="Can Import?", readonly=True)
-
-    # ==================================================
-
-    ticket_update_date = fields.Datetime(
-        "Update Date", default=lambda self: fields.Datetime.now(), readonly=True
-    )
-    helpdesk_ticket_product_move_ids = fields.One2many(
-        comodel_name="mv.helpdesk.ticket.product.moves",
-        inverse_name="helpdesk_ticket_id",
-        string="Lot/Serial Number",
-    )
-
     @api.depends("partner_id", "ticket_type_id")
     def _compute_name(self):
         for rec in self:
@@ -77,6 +47,35 @@ class HelpdeskTicket(models.Model):
             formatted_date = now_dt.strftime(DATE_FORMAT)
 
             rec.name = f"{partner_name}/{ticket_type_name}/{formatted_date}"
+
+    # INHERIT Fields:
+    name = fields.Char(compute="_compute_name", store=True, required=False)
+
+    # ==================================================
+
+    portal_lot_serial_number = fields.Text("Input Lot/Serial Number")
+    ticket_update_date = fields.Datetime(
+        "Update Date", default=lambda self: fields.Datetime.now(), readonly=True
+    )
+    helpdesk_ticket_product_move_ids = fields.One2many(
+        comodel_name="mv.helpdesk.ticket.product.moves",
+        inverse_name="helpdesk_ticket_id",
+        string="Lot/Serial Number",
+    )
+
+    # Type with Sub-Dealer
+    is_sub_dealer = fields.Boolean(compute="_compute_ticket_type")
+    sub_dealer_name = fields.Char("Sub-Dealer")
+
+    # Type with End-User
+    is_end_user = fields.Boolean(compute="_compute_ticket_type")
+    tel_activation = fields.Char("Phone")
+    license_plates = fields.Char("License plates")
+    mileage = fields.Integer("Mileage (Km)", default=0)
+
+    # ==================================
+    # COMPUTE / CONSTRAINS Methods
+    # ==================================
 
     @api.depends("ticket_type_id")
     def _compute_ticket_type(self):
@@ -92,16 +91,47 @@ class HelpdeskTicket(models.Model):
                 ticket.is_sub_dealer = False
                 ticket.is_end_user = False
 
+    def _check_not_empty_portal_lot_serial_number(self):
+        for record in self:
+            if not record.portal_lot_serial_number:
+                raise UserError(
+                    "Vui lòng nhập vào Số lô/Mã vạch hoặc mã QR-Code để kiểm tra!"
+                )
+
+    def _check_codes_already_exist(self):
+        for record in self:
+            # Format portal lot serial numbers if needed
+            codes = (
+                record.portal_lot_serial_number
+                if isinstance(record.portal_lot_serial_number, list)
+                else self._format_portal_lot_serial_number(
+                    record.portal_lot_serial_number
+                )
+            )
+
+            # Get all lot names and QR codes from helpdesk_ticket_product_move_ids
+            lot_names = set(record.helpdesk_ticket_product_move_ids.mapped("lot_name"))
+            qr_codes = set(record.helpdesk_ticket_product_move_ids.mapped("qr_code"))
+
+            # Check if any code already exists
+            existing_codes = lot_names.union(qr_codes)
+            conflicting_codes = [code for code in codes if code in existing_codes]
+
+            if conflicting_codes:
+                raise ValidationError(
+                    f"The following codes are already registered for this ticket: {', '.join(conflicting_codes)}. Please select different codes."
+                )
+
     # ==================================
     # ORM Methods
     # ==================================
 
     @api.model_create_multi
-    def create(self, list_value):
-        tickets = super(HelpdeskTicket, self).create(list_value)
+    def create(self, vals_list):
+        tickets = super(HelpdeskTicket, self).create(vals_list)
 
         for ticket in tickets:
-            self._process_ticket(ticket, list_value)
+            self._process_ticket(ticket, vals_list)
 
         return tickets
 
@@ -138,220 +168,326 @@ class HelpdeskTicket(models.Model):
     # BUSINESS Methods
     # ==================================
 
-    def _process_ticket(self, ticket, list_value):
-        for vals in list_value:
+    def _process_ticket(self, ticket, vals_list):
+        for vals in vals_list:
             if vals.get("name") == "new":
                 ticket._compute_name()
 
             if "portal_lot_serial_number" in vals and vals.get(
                 "portal_lot_serial_number"
             ):
-                self._process_lot_serial_number(
-                    ticket, vals["portal_lot_serial_number"]
-                )
+                barcode = vals["portal_lot_serial_number"]
+                ticket_type = ticket.ticket_type_id
+                self._process_ticket_barcode(ticket, ticket_type, barcode)
 
-        ticket.clear_portal_lot_serial_number_input()
+        ticket.clean_data()
 
-    def _process_lot_serial_number(self, ticket, lot_serial_number):
-        scanning_pass = self.action_scan_lot_serial_number(lot_serial_number)
-        if not scanning_pass:
-            return
+    def _process_ticket_barcode(self, ticket, ticket_type, barcode):
+        res_ids = self._scanning(ticket, ticket_type, barcode)
+        for move_line in self.env["stock.move.line"].browse(res_ids):
+            self._registering_ticket_product_move(ticket, ticket_type, move_line)
 
-        ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
-        move_line_env = self.env["stock.move.line"]
+    def _scanning(self, ticket, ticket_type, codes):
+        """
+        Validate the input codes. If the codes are not provided, raise a ValidationError.
+        If the codes are provided, format them and validate them. If there are any error messages,
+        raise a ValidationError with these messages. If there are no error messages, return IDs of Stock Move Line.
+        """
+        if not codes:
+            raise ValidationError("Vui lòng nhập hoặc quét mã để quá trình tiếp tục.")
 
-        messages_list = self._validation_portal_lot_serial_number(
-            self._format_portal_lot_serial_number(lot_serial_number)
+        # Convert to list of codes
+        codes = self.convert_to_list_codes(codes)
+        list_codes = list(set(codes)) if codes else []
+        res, error_messages = self._prepare_validated_data(
+            ticket, ticket_type, list_codes
         )
 
-        stock_move_line_ids = [
-            move_line[0] for move_line in messages_list if isinstance(move_line[0], int)
-        ]
-
-        for stock_move_line in move_line_env.browse(stock_move_line_ids):
-            self._create_ticket_product_move(
-                ticket, ticket_product_moves_env, stock_move_line
+        if error_messages:
+            raise ValidationError(
+                "\n".join(
+                    [
+                        err_msg[1]
+                        for err_msg in error_messages
+                        if err_msg[0]
+                        in [IS_EMPTY, CODE_NOT_FOUND, CODE_ALREADY_REGISTERED]
+                    ]
+                )
             )
 
-    def _create_ticket_product_move(
-        self, ticket, ticket_product_moves_env, stock_move_line
-    ):
-        ticket_stock_move_line_exist = ticket_product_moves_env.search(
+        return res
+
+    def _registering_ticket_product_move(self, ticket, ticket_type, stock_move_line):
+        ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"].sudo()
+        existing_product_none_registered = ticket_product_moves_env.search(
             [
-                ("stock_move_line_id", "=", stock_move_line.id),
                 ("helpdesk_ticket_id", "=", False),
+                ("stock_move_line_id", "=", stock_move_line.id),
             ],
             limit=1,
         )
 
-        if ticket_stock_move_line_exist:
-            ticket_stock_move_line_exist.sudo().unlink()
+        if existing_product_none_registered:
+            existing_product_none_registered.unlink()
+        else:
+            if ticket_type.code == END_USER_CODE:
+                ticket_product_moves_env.create(
+                    {
+                        "helpdesk_ticket_id": ticket.id,
+                        "stock_move_line_id": stock_move_line.id,
+                        "customer_phone_activation": ticket.tel_activation,
+                        "customer_date_activation": fields.Date.today(),
+                        "customer_license_plates_activation": ticket.license_plates,
+                        "customer_mileage_activation": ticket.mileage,
+                    }
+                )
+            elif ticket_type.code == SUB_DEALER_CODE:
+                ticket_product_moves_env.create(
+                    {
+                        "helpdesk_ticket_id": ticket.id,
+                        "stock_move_line_id": stock_move_line.id,
+                    }
+                )
 
-        ticket_product_moves_env.sudo().create(
-            {
-                "stock_move_line_id": stock_move_line.id,
-                "helpdesk_ticket_id": ticket.id,
-            }
+    def _validate_qr_code(self, codes):
+        """
+        Validate the input codes against existing QR codes.
+        If the input is a string, split it into a list of codes.
+        If the input is already a list, use it directly.
+        Return the list of validated QR codes.
+        """
+        if isinstance(codes, str):
+            valid_codes = [code.strip() for code in codes.split(",") if code]
+        elif isinstance(codes, list):
+            valid_codes = [str(code) for code in codes if isinstance(code, (int, str))]
+        else:
+            valid_codes = []
+
+        return self.env["stock.move.line"].search([("qr_code", "in", valid_codes)])
+
+    def _validate_lot_serial_number(self, codes):
+        """
+        Validate the input codes against existing lot serial numbers.
+        If the input is a string, split it into a list of codes.
+        If the input is already a list, use it directly.
+        Return the list of validated lot serial numbers.
+        """
+        if isinstance(codes, str):
+            valid_codes = [code.strip() for code in codes.split(",") if code]
+        elif isinstance(codes, list):
+            valid_codes = [str(code) for code in codes if isinstance(code, (int, str))]
+        else:
+            valid_codes = []
+
+        stock_lot_serial_number = self.env["stock.lot"].search(
+            [("name", "in", valid_codes)]
+        )
+        return self.env["stock.move.line"].search(
+            [("lot_id", "in", stock_lot_serial_number.ids), ("lot_name", "!=", False)]
         )
 
-    @api.model
-    def convert_to_list_codes(self, codes):
-        # If codes is a string, extract numbers using regex
-        if isinstance(codes, str):
-            lst_codes = re.findall(r"\b\d+\b", codes)
-        # If codes is already a list, use it directly
-        elif isinstance(codes, list):
-            lst_codes = codes
-        else:
-            lst_codes = []
-
-        return lst_codes
-
-    def clear_portal_lot_serial_number_input(self):
-        self.write({"portal_lot_serial_number": ""})
-
-    def action_scan_lot_serial_number(self, codes):
-        """Scan lot serial numbers and validate them"""
-
-        if not codes:
-            return False
-
-        codes_data = self._format_portal_lot_serial_number(codes)
-        messages_list = self._validation_portal_lot_serial_number(codes_data)
-
-        error_messages = [
-            message[1]
-            for message in messages_list
-            if message[0] in ["is_empty", "code_not_found", "code_already_registered"]
-        ]
-
-        if error_messages:
-            raise ValidationError("\n".join(error_messages))
-
-        return True
-
-    def _format_portal_lot_serial_number(self, codes):
-        if not codes:
-            return []
-
-        codes = self.convert_to_list_codes(codes)
-        # Remove duplicates and return
-        return list(set(codes)) if codes else []
-
-    def _validation_portal_lot_serial_number(self, codes):
+    def _prepare_validated_data(self, ticket, ticket_type, codes):
         """
-        Return a list of error messages or stock move line IDs for the given Serial Numbers
+        Validate the input codes. If the codes are not provided, raise a ValueError.
+        If the codes are provided, format them and validate them. If there are any error messages,
+        raise a ValidationError with these messages. If there are no error messages, return IDs of Stock Move Line.
         """
+        results = set()
+        error_messages = []
 
-        messages_list = []
-        ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"]
-        move_line_env = self.env["stock.move.line"]
-
+        # [!] Validate empty codes
         if not codes:
-            messages_list.append(
+            error_messages.append(
                 (
-                    "is_empty",
+                    IS_EMPTY,
                     "Vui lòng nhập vào Số lô/Mã vạch hoặc mã QR-Code để kiểm tra!",
                 )
             )
-            return messages_list
 
-        is_qrcode = self._is_qrcode(codes)
-        if is_qrcode:
-            list_codes = is_qrcode
-            existing_codes = move_line_env.search(
-                [("qr_code", "in", list_codes)]
-            ).mapped("qr_code")
-            domain_search = [("qr_code", "in", list_codes)]
-        else:
-            if type(codes) is list:
-                list_codes = codes
-            else:
-                list_codes = [c.strip() for c in codes.split(",") if c]
-            existing_codes = move_line_env.search(
-                [("lot_name", "in", list_codes)]
-            ).mapped("lot_name")
-            domain_search = [("lot_name", "in", existing_codes)]
+        validated_qr_code = self._validate_qr_code(codes)
+        validated_lot_serial_number = self._validate_lot_serial_number(codes)
 
-        existing_tickets = ticket_product_moves_env.search(domain_search)
+        # [!] Validate codes are not found on system
+        if codes and not validated_qr_code and not validated_lot_serial_number:
+            error_messages.append(
+                (
+                    CODE_NOT_FOUND,
+                    f"Mã {', '.join(codes) if len(codes) > 1 else codes[0]} không tồn tại trên hệ thống hoặc chưa cập nhật.",
+                )
+            )
 
-        for code in list_codes:
-            if code not in existing_codes:
-                messages_list.append(
-                    (
-                        "code_not_found",
-                        f"Mã {code} không tồn tại trên hệ thống hoặc chưa cập nhật.",
+        # [!] Validate codes has been registered on other tickets
+        qr_codes = list(set(validated_qr_code.mapped("qr_code")))
+        lot_serial_numbers = list(set(validated_lot_serial_number.mapped("lot_name")))
+
+        if qr_codes or lot_serial_numbers:
+            # QR-Codes
+            for code in qr_codes:
+                conflicting_ticket_sub_dealer = (
+                    self.env["mv.helpdesk.ticket.product.moves"]
+                    .sudo()
+                    .search(
+                        [
+                            ("helpdesk_ticket_id", "!=", False),
+                            ("helpdesk_ticket_type_id.code", "=", SUB_DEALER_CODE),
+                            "|",
+                            ("stock_move_line_id.qr_code", "=", code),
+                            ("qr_code", "=", code),
+                        ],
+                        limit=1,
                     )
                 )
-            else:
-                if is_qrcode:
-                    conflicting_ticket = existing_tickets.filtered(
-                        lambda r: r.stock_move_line_id.qr_code == code
-                        and r.helpdesk_ticket_id
+                conflicting_ticket_end_user = (
+                    self.env["mv.helpdesk.ticket.product.moves"]
+                    .sudo()
+                    .search(
+                        [
+                            ("customer_date_activation", "!=", False),
+                            ("customer_phone_activation", "=", ticket.tel_activation),
+                            (
+                                "customer_license_plates_activation",
+                                "=",
+                                ticket.license_plates,
+                            ),
+                            ("helpdesk_ticket_id", "!=", False),
+                            ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
+                            "|",
+                            ("stock_move_line_id.qr_code", "=", code),
+                            ("qr_code", "=", code),
+                        ],
+                        limit=1,
                     )
+                )
+                if (
+                    len(conflicting_ticket_sub_dealer) > 0
+                    and len(conflicting_ticket_end_user) > 0
+                ):
+                    message = f"Mã {code} đã trùng với Tickets khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, #{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                    error_messages.append((CODE_ALREADY_REGISTERED, message))
                 else:
-                    conflicting_ticket = existing_tickets.filtered(
-                        lambda r: r.lot_name == code and r.helpdesk_ticket_id
-                    )
+                    if ticket_type.code == SUB_DEALER_CODE:
+                        if (
+                            len(conflicting_ticket_sub_dealer) > 0
+                            and (
+                                conflicting_ticket_sub_dealer.partner_id.id
+                                == ticket.partner_id.id
+                                or conflicting_ticket_sub_dealer.partner_id.id
+                                != ticket.partner_id.id
+                            )
+                        ) and not conflicting_ticket_end_user:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                    elif ticket_type.code == END_USER_CODE:
+                        if (
+                            len(conflicting_ticket_end_user) > 0
+                            and (
+                                conflicting_ticket_end_user.partner_id.id
+                                == ticket.partner_id.id
+                                or conflicting_ticket_end_user.partner_id.id
+                                != ticket.partner_id.id
+                            )
+                        ) and not conflicting_ticket_sub_dealer:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
 
-                if conflicting_ticket:
-                    ticket_id = (
-                        conflicting_ticket.helpdesk_ticket_id
-                        and conflicting_ticket.helpdesk_ticket_id.id
-                        or False
+            # Lot/Serial Number
+            for code in lot_serial_numbers:
+                conflicting_ticket_sub_dealer = (
+                    self.env["mv.helpdesk.ticket.product.moves"]
+                    .sudo()
+                    .search(
+                        [
+                            ("helpdesk_ticket_id", "!=", False),
+                            ("helpdesk_ticket_type_id.code", "=", SUB_DEALER_CODE),
+                            "|",
+                            ("stock_move_line_id.lot_name", "=", code),
+                            ("lot_name", "=", code),
+                        ],
+                        limit=1,
                     )
-                    messages_list.append(
-                        (
-                            "code_already_registered",
-                            f"Mã {code} đã trùng với Ticket khác có mã là (#{ticket_id}).",
-                        )
+                )
+                conflicting_ticket_end_user = (
+                    self.env["mv.helpdesk.ticket.product.moves"]
+                    .sudo()
+                    .search(
+                        [
+                            ("customer_date_activation", "!=", False),
+                            ("customer_phone_activation", "=", ticket.tel_activation),
+                            (
+                                "customer_license_plates_activation",
+                                "=",
+                                ticket.license_plates,
+                            ),
+                            ("helpdesk_ticket_id", "!=", False),
+                            ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
+                            "|",
+                            ("stock_move_line_id.lot_name", "=", code),
+                            ("lot_name", "=", code),
+                        ]
                     )
+                )
+                if (
+                    len(conflicting_ticket_sub_dealer) > 0
+                    and len(conflicting_ticket_end_user) > 0
+                ):
+                    message = f"Mã {code} đã trùng với Tickets khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, #{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                    error_messages.append((CODE_ALREADY_REGISTERED, message))
                 else:
-                    if is_qrcode:
-                        move_line = move_line_env.search(
-                            [("qr_code", "=", code)], limit=1
-                        )
-                    else:
-                        move_line = move_line_env.search(
-                            [("lot_name", "=", code)], limit=1
-                        )
-
-                    if move_line:
-                        if is_qrcode:
-                            messages_list.append(
-                                (
-                                    move_line.id,
-                                    f"{move_line.qr_code} - {move_line.product_id.name if move_line.product_id else ''}",
-                                )
+                    if ticket_type.code == SUB_DEALER_CODE:
+                        if (
+                            len(conflicting_ticket_sub_dealer) > 0
+                            and (
+                                conflicting_ticket_sub_dealer.partner_id.id
+                                == ticket.partner_id.id
+                                or conflicting_ticket_sub_dealer.partner_id.id
+                                != ticket.partner_id.id
                             )
-                        else:
-                            messages_list.append(
-                                (
-                                    move_line.id,
-                                    f"{move_line.lot_name} - {move_line.product_id.name if move_line.product_id else ''}",
-                                )
+                            and not conflicting_ticket_end_user
+                        ):
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                    elif ticket_type.code == END_USER_CODE:
+                        if (
+                            len(conflicting_ticket_end_user) > 0
+                            and (
+                                conflicting_ticket_end_user.partner_id.id
+                                == ticket.partner_id.id
+                                or conflicting_ticket_end_user.partner_id.id
+                                != ticket.partner_id.id
                             )
+                            and not conflicting_ticket_sub_dealer
+                        ):
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
 
-        return messages_list
+        # Merge the results and remove duplicates by using a set
+        results.update(validated_qr_code.ids)
+        results.update(validated_lot_serial_number.ids)
 
-    def _is_qrcode(self, codes):
-        if not codes:
-            return False
+        # Convert the set back to a list
+        results = list(results)
+        error_messages = list(set(error_messages))
 
-        move_line_env = self.env["stock.move.line"]
-        if type(codes) is list:
-            codes_convert_to_list = codes
-        else:
-            codes_convert_to_list = [c.strip() for c in codes.split(",") if c]
-        return move_line_env.search(
-            [
-                ("qr_code", "in", codes_convert_to_list),
-                ("inventory_period_id", "!=", False),
-            ]
-        ).mapped("qr_code")
+        return results, error_messages
+
+    @staticmethod
+    def convert_to_list_codes(codes):
+        """
+        Convert the input codes into a list of codes.
+        If the input is a string, extract numbers using regex.
+        If the input is already a list, use it directly.
+        """
+        if isinstance(codes, str):
+            return re.findall(r"\b\d+\b", codes)
+        elif isinstance(codes, list):
+            return [str(code) for code in codes if isinstance(code, (int, str))]
+        return []
+
+    def clean_data(self):
+        self.write({"portal_lot_serial_number": ""})
 
     # ==================================
-    # WIZARDS Methods
+    # WIZARD Methods
     # ==================================
 
     def action_wizard_import_lot_serial_number(self):
@@ -364,33 +500,9 @@ class HelpdeskTicket(models.Model):
             "view_id": self.env.ref(
                 "mv_helpdesk.mv_helpdesk_wizard_import_lot_serial_number_form_view"
             ).id,
-            "context": {"default_helpdesk_ticket_id": self.id},
+            "context": {
+                "default_helpdesk_ticket_id": self.id,
+                "default_helpdesk_ticket_type_id": self.ticket_type_id.id,
+            },
             "target": "new",
         }
-
-    # ==================================
-    # CONSTRAINS Methods
-    # ==================================
-
-    @api.constrains("portal_lot_serial_number", "helpdesk_ticket_product_move_ids")
-    def _check_codes_already_exist(self):
-        for record in self:
-            # Format portal lot serial numbers if needed
-            codes = (
-                record.portal_lot_serial_number
-                if isinstance(record.portal_lot_serial_number, list)
-                else self._format_portal_lot_serial_number(
-                    record.portal_lot_serial_number
-                )
-            )
-
-            # Get all lot names and QR codes from helpdesk_ticket_product_move_ids
-            lot_names = set(record.helpdesk_ticket_product_move_ids.mapped("lot_name"))
-            qr_codes = set(record.helpdesk_ticket_product_move_ids.mapped("qr_code"))
-
-            # Check if any code already exists
-            for code in codes:
-                if code in lot_names or code in qr_codes:
-                    raise ValidationError(
-                        f"Mã {code} đã được đăng ký cho phiếu này.\nVui lòng chọn một mã khác."
-                    )

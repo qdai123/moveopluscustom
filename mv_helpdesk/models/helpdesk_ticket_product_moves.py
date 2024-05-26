@@ -4,7 +4,10 @@ import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, ValidationError
 
-from odoo.addons.mv_helpdesk.models.helpdesk_ticket import HELPDESK_MANAGER
+from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
+    HELPDESK_MANAGER,
+    END_USER_CODE,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -13,7 +16,7 @@ class HelpdeskTicketProductMoves(models.Model):
     _name = "mv.helpdesk.ticket.product.moves"
     _description = _("Helpdesk Ticket & Product Moves (Stock Move Line)")
     _rec_name = "lot_name"
-    _order = "lot_name desc, helpdesk_ticket_id"
+    _order = "partner_id, helpdesk_ticket_id"
 
     # HELPDESK TICKET Fields
     helpdesk_ticket_id = fields.Many2one(
@@ -37,10 +40,10 @@ class HelpdeskTicketProductMoves(models.Model):
         ondelete="restrict",
     )
     # HELPDESK TICKET Customer Activation Information (End-User Case)
-    customer_phone_activation = fields.Char("Phone")
-    customer_license_plates_activation = fields.Char("License Plates")
-    customer_mileage_activation = fields.Char("Mileage")
+    customer_phone_activation = fields.Char("Activation Phone")
     customer_date_activation = fields.Date("Activation Date")
+    customer_license_plates_activation = fields.Char("License Plates")
+    customer_mileage_activation = fields.Integer("Mileage (Km)", default=0)
     customer_warranty_date_activation = fields.Date("Warranty Date")
     customer_warranty_mileage_activation = fields.Date("Warranty Mileage")
 
@@ -78,17 +81,18 @@ class HelpdeskTicketProductMoves(models.Model):
         NOT_NEW_STATE_ERROR = "You can only delete a ticket when it is in 'New' state."
 
         for record in self:
-            is_not_helpdesk_manager = (
-                not record.is_helpdesk_manager or not is_helpdesk_manager
-            )
-            not_assigned_to_user = record.user_id != self.env.user
+            not_system_user = not (self.env.is_admin() or self.env.is_superuser())
+            is_not_manager = self.env.user.has_group(HELPDESK_MANAGER)
+            not_assigned_to_user = record.helpdesk_ticket_id.user_id != self.env.user
 
-            if is_not_helpdesk_manager and not_assigned_to_user:
+            if not_system_user and is_not_manager and not_assigned_to_user:
                 raise AccessError(_(NOT_ASSIGNED_ERROR))
-            elif is_not_helpdesk_manager and record.stage_id.name != NEW_STATE:
+            elif (
+                not_system_user and is_not_manager and record.stage_id.name != NEW_STATE
+            ):
                 raise ValidationError(_(NOT_NEW_STATE_ERROR))
 
-        return super(HelpdeskTicket, self).unlink()
+        return super(HelpdeskTicketProductMoves, self).unlink()
 
     # ==================================
     # COMPUTE / INVERSE Methods

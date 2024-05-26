@@ -1,35 +1,29 @@
 <?xml version="1.0"?>
 <odoo>
-    <!-- INHERIT: FORM VIEWS -->
     <record id="mv_helpdesk_inherit_helpdesk_ticket_form_view" model="ir.ui.view">
         <field name="name">mv.helpdesk.inherit.helpdesk.ticket.form</field>
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
         <field name="priority">30</field>
         <field name="arch" type="xml">
-            <xpath expr="//notebook[last()]" position="inside">
-                <page name="helpdesk_ticket_settings_page" string="Settings" invisible="True">
-                    <group>
-                        <group name="group_access_fields" string="Fields base on Group Access">
-                            <field name="is_helpdesk_manager" string="Helpdesk Manager" help="Access for Helpdesk Manager"/>
-                        </group>
-                        <group name="group_conditions_fields" string="Fields base on Condition"/>
-                    </group>
-                </page>
-            </xpath>
             <xpath expr="//notebook//page[@name='description']" position="before">
-                <page string="Lot/Serial Number" name="ticket_product_moves_tab">
-                    <button name="action_wizard_import_lot_serial_number" string="Import Lot/Serial Number" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary" invisible="not id"/>
+                <page string="Details" name="ticket_product_moves_tab">
+                    <button name="action_wizard_import_lot_serial_number" string="Import Data" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary" invisible="not id"/>
                     <field invisible="True" name="portal_lot_serial_number"/>
-                    <field mode="tree" name="helpdesk_ticket_product_move_ids" context="{'default_helpdesk_ticket_id': id}" domain="[('stock_move_line_id', '!=', False)]" options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
-                        <tree string="Ticket &amp; Product Moves" create="false" edit="false" delete="false">
+                    <field mode="tree" name="helpdesk_ticket_product_move_ids" context="{'default_helpdesk_ticket_id': id}" domain="[('stock_move_line_id', '!=', False)]">
+                        <tree string="Ticket Registered" create="false" edit="false" delete="false" default_order="helpdesk_ticket_id">
                             <field name="lot_name" string="Lot/Serial Number"/>
-                            <field name="qr_code" string="QR-Code" optional="show"/>
-                            <button class="btn btn-secondary" name="action_open_stock" string="Open Stock" type="object" icon="fa-arrows"/>
+                            <field name="qr_code" string="QR-Code"/>
+                            <field name="customer_date_activation" optional="hidden"/>
+                            <field name="customer_phone_activation" optional="hidden"/>
+                            <field name="customer_license_plates_activation" optional="hidden"/>
+                            <field name="customer_mileage_activation" optional="hidden"/>
+                            <field name="customer_warranty_date_activation" optional="hidden"/>
+                            <field name="customer_warranty_mileage_activation" optional="hidden"/>
                             <field name="stock_move_line_id" column_invisible="True"/>
                             <field name="stock_move_id" column_invisible="True"/>
                             <field name="product_id" column_invisible="True"/>
-                            <button name="unlink" type="object" icon="fa-trash" title="Remove" class="btn-secondary float-end d-none d-md-inline" close="1" invisible="not id" groups="helpdesk.group_helpdesk_manager" data-hotkey="d"/>
+                            <button class="btn btn-secondary" name="action_open_stock" string="Open Stock" type="object" icon="fa-arrows"/>
                         </tree>
                     </field>
                 </page>
@@ -50,10 +44,22 @@
             </xpath>
             <xpath expr="//field[@name='ticket_type_id']" position="after">
                 <field invisible="True" name="is_sub_dealer"/>
-                <field invisible="True" name="is_end_user"/>
                 <field name="sub_dealer_name" invisible="not is_sub_dealer or not ticket_type_id"/>
-                <field name="license_plates" invisible="not is_end_user or not ticket_type_id"/>
-                <field name="mileage" invisible="not is_end_user or not ticket_type_id"/>
+                <field invisible="True" name="is_end_user"/>
+                <field name="tel_activation" string="Phone Activation" invisible="not is_end_user or not ticket_type_id" required="ticket_type_id and is_end_user"/>
+                <field name="license_plates" invisible="not is_end_user or not ticket_type_id" required="ticket_type_id and is_end_user"/>
+                <field name="mileage" invisible="not is_end_user or not ticket_type_id" required="ticket_type_id and is_end_user"/>
+            </xpath>
+            <!-- Page: SETTINGS -->
+            <xpath expr="//notebook[last()]" position="inside">
+                <page name="helpdesk_ticket_settings_page" string="Settings" invisible="True">
+                    <group>
+                        <group name="group_access_fields" string="Fields base on Group Access">
+                            <field name="is_helpdesk_manager" string="Helpdesk Manager" help="Access for Helpdesk Manager"/>
+                        </group>
+                        <group name="group_conditions_fields" string="Fields base on Condition"/>
+                    </group>
+                </page>
             </xpath>
         </field>
     </record>
