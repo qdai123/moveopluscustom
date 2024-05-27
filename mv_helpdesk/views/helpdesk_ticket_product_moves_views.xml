@@ -11,10 +11,10 @@
                 <field name="helpdesk_ticket_id" optional="hidden"/>
                 <field name="helpdesk_ticket_type_id" optional="show"/>
                 <field name="partner_id" string="Customer"/>
+                <field name="customer_date_activation" optional="hidden"/>
                 <field name="customer_phone_activation" optional="hidden"/>
                 <field name="customer_license_plates_activation" optional="hidden"/>
                 <field name="customer_mileage_activation" optional="hidden"/>
-                <field name="customer_date_activation" optional="hidden"/>
                 <field name="customer_warranty_date_activation" optional="hidden"/>
                 <field name="customer_warranty_mileage_activation" optional="hidden"/>
                 <field name="stock_move_line_id" column_invisible="True"/>

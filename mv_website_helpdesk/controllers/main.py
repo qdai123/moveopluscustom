@@ -2,6 +2,7 @@
 import json
 import logging
 import requests
+import re
 
 try:
     import phonenumbers
@@ -88,7 +89,9 @@ class MVWebsiteHelpdesk(http.Controller):
             },
         )
 
-    @http.route("/mv_website_helpdesk/check_partner_phone", type="json", auth="public")
+    @http.route(
+        "/mv_website_helpdesk/check_partner_phone", type="json", auth="public", cors="*"
+    )
     def check_partner_phonenumber(self, phone_number):
         try:
             partner_info = (
@@ -112,22 +115,29 @@ class MVWebsiteHelpdesk(http.Controller):
             _logger.error("Failed to validate partner phone number: %s", e)
             return PARTNER_NOT_FOUND_ERROR
 
-    @http.route("/mv_website_helpdesk/check_scanned_code", type="json", auth="public")
-    def check_scanned_code(
-        self, partner_email, tel_activation, license_plates, ticket_type, codes
-    ):
+    @http.route(
+        "/mv_website_helpdesk/check_scanned_code", type="json", auth="public", cors="*"
+    )
+    def check_scanned_code(self, codes, ticket_type, partner_email, tel_activation):
         Ticket = request.env["helpdesk.ticket"].sudo()
         error_messages = []
-
-        partner = False
-        if partner_email:
-            partner = self._get_partner_by_email(partner_email)
 
         if ticket_type:
             ticket_type = (
                 request.env["helpdesk.ticket.type"].sudo().browse(int(ticket_type))
             )
             _logger.debug(f"Ticket Type: {ticket_type}")
+
+        partner = False
+        if partner_email and self.is_valid_email(partner_email):
+            partner = (
+                request.env["res.partner"]
+                .sudo()
+                .search([("email", "=", partner_email)], limit=1)
+            )
+
+        if tel_activation:
+            _logger.debug(f"Tel Activation: {tel_activation}")
 
         # [!] Validate empty codes
         if not codes:
@@ -181,13 +191,6 @@ class MVWebsiteHelpdesk(http.Controller):
                     .sudo()
                     .search(
                         [
-                            ("customer_date_activation", "!=", False),
-                            ("customer_phone_activation", "=", tel_activation),
-                            (
-                                "customer_license_plates_activation",
-                                "=",
-                                license_plates,
-                            ),
                             ("helpdesk_ticket_id", "!=", False),
                             ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
                             "|",
@@ -217,16 +220,15 @@ class MVWebsiteHelpdesk(http.Controller):
                         ):
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if (
-                            len(conflicting_ticket_end_user) > 0
-                            and (
-                                conflicting_ticket_end_user.partner_id.id == partner.id
-                                or conflicting_ticket_end_user.partner_id.id
-                                != partner.id
-                            )
-                        ) and not conflicting_ticket_sub_dealer:
+                        elif len(conflicting_ticket_end_user) > 0:
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                    elif ticket_type.code == END_USER_CODE:
+                        if len(conflicting_ticket_end_user) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                        elif len(conflicting_ticket_sub_dealer) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
 
             # Lot/Serial Number
@@ -250,13 +252,6 @@ class MVWebsiteHelpdesk(http.Controller):
                     .sudo()
                     .search(
                         [
-                            ("customer_date_activation", "!=", False),
-                            ("customer_phone_activation", "=", tel_activation),
-                            (
-                                "customer_license_plates_activation",
-                                "=",
-                                license_plates,
-                            ),
                             ("helpdesk_ticket_id", "!=", False),
                             ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
                             "|",
@@ -286,17 +281,15 @@ class MVWebsiteHelpdesk(http.Controller):
                         ):
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if (
-                            len(conflicting_ticket_end_user) > 0
-                            and (
-                                conflicting_ticket_end_user.partner_id.id == partner.id
-                                or conflicting_ticket_end_user.partner_id.id
-                                != partner.id
-                            )
-                            and not conflicting_ticket_sub_dealer
-                        ):
+                        elif len(conflicting_ticket_end_user) > 0:
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                    elif ticket_type.code == END_USER_CODE:
+                        if len(conflicting_ticket_end_user) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                        elif len(conflicting_ticket_sub_dealer) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
 
         # Convert the set back to a list
@@ -308,24 +301,18 @@ class MVWebsiteHelpdesk(http.Controller):
     # HELPER / PRIVATE Methods
     # =================================
 
-    def _get_partner_by_email(self, email):
+    def is_valid_email(self, email):
         """
-        Fetches the partner by email.
+        Check if the input string is a valid email address.
 
         Args:
-            email (str): The email of the partner.
+            email (str): The email address to validate.
 
         Returns:
-            recordset: A recordset of the partner.
+            bool: True if the email address is valid, False otherwise.
         """
-        if request.env.user.email == email:
-            return request.env.user.partner_id
-        else:
-            return (
-                request.env["res.partner"]
-                .sudo()
-                .search([("email", "=", email)], limit=1)
-            )
+        regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+        return re.search(regex, email) is not None
 
     def _is_anonymous(self):
         """
@@ -340,20 +327,46 @@ class WebsiteForm(form.WebsiteForm):
 
     # =============== MOVEOPLUS Override ===============
     def _handle_website_form(self, model_name, **kwargs):
+        """
+        Handle the website form submission. If the model is 'helpdesk.ticket' and a team_id is provided,
+        it checks if the team uses the website helpdesk warranty activation. If so, it fetches the partner
+        based on the provided email and sets the partner_id in the request parameters.
+
+        Args:
+            model_name (str): The name of the model.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            The result of the parent method call.
+        """
         model = model_name or request.params.get("model_name")
         team_id = request.params.get("team_id")
+
         if model == "helpdesk.ticket" and team_id:
-            team = request.env["helpdesk.team"].sudo().browse(int(team_id))
-            if team and team.use_website_helpdesk_warranty_activation:
-                email = request.params.get("partner_email")
-                if email:
-                    partner = self._get_partner_by_email(email)
-                    if not partner:
-                        return json.dumps({"error": _("Partner not found!")})
-                    else:
-                        request.params["partner_id"] = partner.id
+            self._handle_helpdesk_ticket_form(team_id)
 
         return super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
+
+    def _handle_helpdesk_ticket_form(self, team_id):
+        """
+        Handle the form submission for 'helpdesk.ticket'. If the team uses the website helpdesk warranty activation,
+        it fetches the partner based on the provided email and sets the partner_id in the request parameters.
+
+        Args:
+            team_id (int): The ID of the helpdesk team.
+        """
+        team = request.env["helpdesk.team"].sudo().browse(int(team_id))
+
+        if team and team.use_website_helpdesk_warranty_activation:
+            email = request.params.get("partner_email")
+
+            if email:
+                partner = self._get_partner_by_email(email)
+
+                if not partner:
+                    return json.dumps({"error": _("Partner not found!")})
+                else:
+                    request.params["partner_id"] = partner.id
 
     def _get_partner_by_email(self, email):
         """

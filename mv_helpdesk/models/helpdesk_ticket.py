@@ -342,13 +342,6 @@ class HelpdeskTicket(models.Model):
                     .sudo()
                     .search(
                         [
-                            ("customer_date_activation", "!=", False),
-                            ("customer_phone_activation", "=", ticket.tel_activation),
-                            (
-                                "customer_license_plates_activation",
-                                "=",
-                                ticket.license_plates,
-                            ),
                             ("helpdesk_ticket_id", "!=", False),
                             ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
                             "|",
@@ -377,17 +370,15 @@ class HelpdeskTicket(models.Model):
                         ) and not conflicting_ticket_end_user:
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if (
-                            len(conflicting_ticket_end_user) > 0
-                            and (
-                                conflicting_ticket_end_user.partner_id.id
-                                == ticket.partner_id.id
-                                or conflicting_ticket_end_user.partner_id.id
-                                != ticket.partner_id.id
-                            )
-                        ) and not conflicting_ticket_sub_dealer:
+                        elif len(conflicting_ticket_end_user) > 0:
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                    elif ticket_type.code == END_USER_CODE:
+                        if len(conflicting_ticket_end_user) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                        elif len(conflicting_ticket_sub_dealer) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
 
             # Lot/Serial Number
@@ -411,13 +402,6 @@ class HelpdeskTicket(models.Model):
                     .sudo()
                     .search(
                         [
-                            ("customer_date_activation", "!=", False),
-                            ("customer_phone_activation", "=", ticket.tel_activation),
-                            (
-                                "customer_license_plates_activation",
-                                "=",
-                                ticket.license_plates,
-                            ),
                             ("helpdesk_ticket_id", "!=", False),
                             ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
                             "|",
@@ -446,18 +430,15 @@ class HelpdeskTicket(models.Model):
                         ):
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if (
-                            len(conflicting_ticket_end_user) > 0
-                            and (
-                                conflicting_ticket_end_user.partner_id.id
-                                == ticket.partner_id.id
-                                or conflicting_ticket_end_user.partner_id.id
-                                != ticket.partner_id.id
-                            )
-                            and not conflicting_ticket_sub_dealer
-                        ):
+                        elif len(conflicting_ticket_end_user) > 0:
                             message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                    elif ticket_type.code == END_USER_CODE:
+                        if len(conflicting_ticket_end_user) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+                        elif len(conflicting_ticket_sub_dealer) > 0:
+                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
                             error_messages.append((CODE_ALREADY_REGISTERED, message))
 
         # Merge the results and remove duplicates by using a set
