@@ -30,17 +30,9 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         this.rpc = this.bindService("rpc");
         this.dialogService = this.bindService("dialog");
         this.notification = this.bindService("notification");
-
-        // Parameters:
-        this.$inputSearchPhoneNumber = false;
-        this.$inputPartnerName = false;
-        this.$inputPartnerEmail = false;
     },
 
     async willStart() {
-        this.$inputSearchPhoneNumber = this.el.querySelector(".o_website_helpdesk_search_phone_number");
-        this.$inputPartnerName = this.el.querySelector("#helpdeskWarrantyInputPartnerName");
-        this.$inputPartnerEmail = this.el.querySelector("#helpdeskWarrantyInputPartnerEmail");
         return Promise.all([this._super()]);
     },
 
@@ -48,70 +40,112 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     // Handlers
     //--------------------------------------------------------------------------
 
+    /**
+     * Opens the scanner dialog.
+     * It creates a new ScannerDialog instance and adds it to the dialog service.
+     * The dialog prompts the user to scan their Lot/Serial Number.
+     * Once a barcode is scanned, it is added to the input field for Lot/Serial Number.
+     */
     openScannerDialog() {
-        this.dialogService.add(ScannerDialog, {
-            body: _t("Please, scanning your Lot/Serial Number here!"),
-            onBarcodeScanned: async (scannedCode) => {
-                return scannedCode || "";
-            },
-            confirm: (codes) => {
-                const inputPortalSerialNumber = document.getElementById(
-                    "helpdesk_warranty_input_portal_lot_serial_number",
-                );
-                for (let i = 0; i < codes.length; ++i) {
-                    if (!inputPortalSerialNumber.value.includes(codes[i])) {
-                        inputPortalSerialNumber.value += codes[i] + ",";
+        try {
+            this.dialogService.add(ScannerDialog, {
+                body: _t("Please, scanning your Lot/Serial Number here!"),
+                onBarcodeScanned: async (scannedCode) => {
+                    // Ensure the scanned code is valid before returning it
+                    return scannedCode ? scannedCode.trim() : "";
+                },
+                confirm: (codes) => {
+                    const inputPortalSerialNumber = document.getElementById(
+                        "helpdesk_warranty_input_portal_lot_serial_number",
+                    );
+                    for (let i = 0; i < codes.length; ++i) {
+                        // Only add the code if it's not already in the input field
+                        if (!inputPortalSerialNumber.value.includes(codes[i])) {
+                            inputPortalSerialNumber.value += codes[i] + ",";
+                        }
                     }
-                }
-            },
-            cancel: () => {
-            },
-        });
+                },
+                cancel: () => {
+                    // Handle the cancel event if necessary
+                },
+            });
+        } catch (e) {
+            console.error("Failed to open scanner dialog: ", e);
+        }
     },
 
     /**
-     * @private
-     * @param {Event} ev
+     * Handles the search button click event. It validates the phone number and fetches the partner's information.
+     *
+     * @param {Event} ev - The click event.
      */
-
     async _onSearchButton(ev) {
-        /**
-         * Handles the search button click event. It validates the phone number and fetches the partner's information.
-         *
-         * @param {Event} ev - The click event.
-         */
-        let phoneRegex = /^(?:(?:\+|00)([1-9]\d{0,2}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$/;
-        const phoneNumber = $(".o_website_helpdesk_search_phone_number").val();
+        const $phoneNumber = $("#o_website_helpdesk_search_phone_number");
         const $searchButton = $(ev.currentTarget);
         const $errorMessage = $("#phonenumber-error-message");
 
-        try {
-            if (!phoneNumber) {
-                $errorMessage.text(ERROR_MESSAGES.EMPTY_PHONE_NUMBER).addClass("alert-warning").show();
-                $searchButton.addClass("border-warning");
-                return;
-            } else if (phoneNumber && !phoneRegex.test(phoneNumber)) {
-                $errorMessage.text(ERROR_MESSAGES.INVALID_PHONE_NUMBER).addClass("alert-warning").show();
-                $searchButton.addClass("border-warning");
-                return;
-            }
+        // Validate the phone number
+        const isValidPhoneNumber = this._validatePhoneNumber($phoneNumber.val(), $searchButton, $errorMessage);
+        if (!isValidPhoneNumber) {
+            return;
+        } else {
+            $errorMessage.hide();
+            $phoneNumber.removeClass("border-danger is-invalid");
+        }
 
-            const data = await this.rpc("/mv_website_helpdesk/validate_partner_phonenumber", {
+        // Fetch the partner's information
+        await this._fetchPartnerInfo($phoneNumber.val(), $searchButton, $errorMessage);
+    },
+
+    /**
+     * Validates the phone number.
+     *
+     * @param {string} phoneNumber - The phone number to validate.
+     * @param {jQuery} $searchButton - The search button element.
+     * @param {jQuery} $errorMessage - The error message element.
+     * @returns {boolean} - True if the phone number is valid, false otherwise.
+     */
+    _validatePhoneNumber(phoneNumber, $searchButton, $errorMessage) {
+        let phoneRegex = /^(?:(?:\+|00)([1-9]\d{0,2}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$/;
+
+        if (!phoneNumber) {
+            $errorMessage.text(ERROR_MESSAGES.EMPTY_PHONE_NUMBER).addClass("invalid-feedback").show();
+            $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
+            return false;
+        } else if (phoneNumber && !phoneRegex.test(phoneNumber)) {
+            $errorMessage.text(ERROR_MESSAGES.INVALID_PHONE_NUMBER).addClass("invalid-feedback").show();
+            $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
+            return false;
+        }
+
+        return true;
+    },
+
+    /**
+     * Fetches the partner's information.
+     *
+     * @param {string} phoneNumber - The phone number to use for fetching the partner's information.
+     * @param {jQuery} $searchButton - The search button element.
+     * @param {jQuery} $errorMessage - The error message element.
+     */
+    async _fetchPartnerInfo(phoneNumber, $searchButton, $errorMessage) {
+        try {
+            const data = await this.rpc("/mv_website_helpdesk/check_partner_phone", {
                 phone_number: phoneNumber,
             });
 
-            if (data.partner_not_found) {
-                $errorMessage.text(ERROR_MESSAGES.PARTNER_NOT_FOUND).addClass("alert-warning").show();
-                $searchButton.addClass("border-warning");
+            if (data["partner_not_found"]) {
+                $errorMessage.text(ERROR_MESSAGES.PARTNER_NOT_FOUND).addClass("invalid-feedback").show();
+                $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
             } else {
                 $errorMessage.hide();
-                $searchButton.removeClass("border-warning");
-                $(".o_website_helpdesk_search_phone_number, #helpdeskWarrantyInputPartnerName, #helpdeskWarrantyInputPartnerEmail").removeClass("border-danger");
+                $("#o_website_helpdesk_search_phone_number").removeClass("border-danger is-invalid");
+                $("#o_website_helpdesk_search_phone_number, #helpdeskWarrantyInputPartnerName, #helpdeskWarrantyInputPartnerEmail").removeClass("border-danger");
                 $("#helpdeskWarrantyInputPartnerName").val(data.partner_name || "");
                 $("#helpdeskWarrantyInputPartnerEmail").val(data.partner_email || "");
             }
         } catch (e) {
-            console.error("Failed to handle search button click: ", e);
+            console.error("Failed to fetch partner info: ", e);
         }
     },
 
@@ -122,19 +156,58 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     async _onSubmitButton(ev) {
         ev.preventDefault();
 
-        const $phoneNumber = $(".o_website_helpdesk_search_phone_number");
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        // const forms = document.querySelectorAll('.needs-validation');
+        // console.log(forms);
+
+        // Get form fields
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
         const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
 
-        const is_partnerName_empty = !$partnerName.val().trim();
-        const is_partnerEmail_empty = !$partnerEmail.val().trim();
-        const is_portalLotSerialNumber_empty = !$portalLotSerialNumber.val().trim();
+        // Validate form fields
+        const validationErrors = this._validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber);
+        if (validationErrors.length > 0) {
+            this.notification.add(_t("Vui lòng nhập vào đủ thông tin yêu cầu!"), {
+                type: "danger",
+            });
+            return;
+        } else {
+            $partnerName.removeClass("border-danger");
+            $partnerEmail.removeClass("border-danger");
+            $portalLotSerialNumber.removeClass("border-danger");
+        }
 
+        const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
+        const $licensePlatesActivation = $("#helpdesk_warranty_input_license_plates");
+        const $mileageActivation = $("#helpdesk_warranty_input_mileage");
+
+        const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
+        const ticketTypeObj = await this.orm.call("helpdesk.ticket.type", "search_read", [], {
+            fields: ["id", "name", "code"],
+            domain: [["user_for_warranty_activation", "=", true], ["id", "=", +$ticketType.val() || false]],
+        });
+
+        if (ticketTypeObj[0] && ticketTypeObj[0].code === "kich_hoat_bao_hanh_nguoi_dung_cuoi") {
+            // Validate form fields for Ticket Type
+            const validationTicketTypeErrors = this._validateFormTicketTypeFields($telNumberActivation, $licensePlatesActivation, $mileageActivation);
+            if (validationTicketTypeErrors.length > 0) {
+                this.notification.add(_t("Vui lòng nhập vào đủ thông tin yêu cầu!"), {
+                    type: "danger",
+                });
+                return;
+            }
+        }
+
+        // Check scanned codes
         if ($portalLotSerialNumber.val()) {
-            const codes = $portalLotSerialNumber.val();
-            const listCode = this._cleanAndConvertCodesToArray(codes);
-            const res = await this.rpc("/mv_website_helpdesk/validate_scanned_code", {codes: listCode});
+            const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
+            const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {
+                codes: codes,
+                ticket_type: $ticketType.val() || ticketTypeObj[0].id,
+                partner_email: $partnerEmail.val(),
+                tel_activation: $telNumberActivation.val(),
+            });
 
             if (!res || res.length === 0) return;
 
@@ -145,34 +218,68 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                     });
                 }
             }
-        }
-
-        if (is_partnerName_empty && is_partnerEmail_empty && is_portalLotSerialNumber_empty) {
-            $partnerName.attr("required", true);
-            $partnerEmail.attr("required", true);
-            $portalLotSerialNumber.attr("required", true);
-            $phoneNumber.addClass("border-danger");
-        } else {
-            $partnerName.attr("required", is_partnerName_empty);
-            $partnerEmail.attr("required", is_partnerEmail_empty);
-            $portalLotSerialNumber.attr("required", is_portalLotSerialNumber_empty);
-
-            if (is_partnerName_empty) {
-                $partnerName.addClass("border-danger");
-            } else if (is_partnerEmail_empty) {
-                $partnerEmail.addClass("border-danger");
-            } else if (is_portalLotSerialNumber_empty) {
-                $portalLotSerialNumber.addClass("border-danger");
-            }
-        }
-
-        if (is_partnerName_empty || is_partnerEmail_empty || is_portalLotSerialNumber_empty) {
-            return this.notification.add(_t("Vui lòng nhập vào đủ thông tin yêu cầu!"), {
-                type: "danger",
-            });
+            debugger
         }
     },
 
+    /**
+     * Validate form fields
+     * @param {jQuery} $partnerName
+     * @param {jQuery} $partnerEmail
+     * @param {jQuery} $portalLotSerialNumber
+     * @returns {Array} validationErrors
+     */
+    _validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber) {
+        const validationErrors = [];
+
+        if (!$partnerName.val().trim()) {
+            $partnerName.attr("required", true).addClass("border-danger");
+            validationErrors.push("Partner name is required");
+        }
+
+        if (!$partnerEmail.val().trim()) {
+            $partnerEmail.attr("required", true).addClass("border-danger");
+            validationErrors.push("Partner email is required");
+        }
+
+        if (!$portalLotSerialNumber.val().trim()) {
+            $portalLotSerialNumber.attr("required", true).addClass("border-danger");
+            validationErrors.push("Portal lot serial number is required");
+        }
+
+        return validationErrors;
+    },
+
+    /**
+     * Validate form fields
+     * @param {jQuery} $telNumberActivation
+     * @param {jQuery} $licensePlatesActivation
+     * @param {jQuery} $mileageActivation
+     * @returns {Array} validationErrors
+     */
+    _validateFormTicketTypeFields($telNumberActivation, $licensePlatesActivation, $mileageActivation) {
+        const validationTicketTypeErrors = [];
+
+        if (!$telNumberActivation.val().trim()) {
+            validationTicketTypeErrors.push("Phone Activation is required");
+        }
+
+        if (!$licensePlatesActivation.val().trim()) {
+            validationTicketTypeErrors.push("License plates is required");
+        }
+
+        if (!$mileageActivation.val().trim()) {
+            validationTicketTypeErrors.push("Mileage (Km) is required");
+        }
+
+        return validationTicketTypeErrors;
+    },
+
+    /**
+     * Clean and convert codes to array
+     * @param {string} codes
+     * @returns {Array} codes
+     */
     _cleanAndConvertCodesToArray(codes) {
         codes = codes.replace(/\s+/g, ""); // Remove all spaces
         codes = codes.replace(/,$/, ""); // Remove the trailing comma if it exists

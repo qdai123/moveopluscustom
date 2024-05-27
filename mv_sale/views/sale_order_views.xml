@@ -136,8 +136,8 @@
         <field name="arch" type="xml">
             <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
                 <separator/>
-                <filter string="Partner Agency" domain="[('partner_agency', '=', True)]" name="partner_agency_filter"/>
-                <filter string="Partner White Agency" domain="[('partner_white_agency', '=', True)]" name="partner_white_agency_filter"/>
+                <filter string="Đại lý" domain="[('partner_agency', '=', True)]" name="partner_agency_filter"/>
+                <filter string="Đại lý Vùng Trắng" domain="[('partner_white_agency', '=', True)]" name="partner_white_agency_filter"/>
                 <separator/>
             </xpath>
         </field>
