@@ -71,6 +71,7 @@ export class ScannerDialog extends Component {
                 codes: listCode,
                 ticket_type: $ticketType.val(),
                 partner_email: $partnerEmail.val(),
+                by_pass_check_partner_agency: true,
                 tel_activation: $telNumberActivation.val(),
             });
 

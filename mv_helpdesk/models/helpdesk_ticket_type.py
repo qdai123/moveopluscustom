@@ -87,6 +87,6 @@ class HelpdeskTicketType(models.Model):
             if record_exists > 1:
                 raise ValidationError(
                     _(
-                        f"Another type with the same name '{record_exists[0].name}' already exists."
+                        f"Another type with the same name '{record.name}' already exists."
                     )
                 )

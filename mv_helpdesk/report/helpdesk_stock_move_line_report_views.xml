@@ -1,5 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<record id="mv_helpdesk_stock_move_line_report_form_view" model="ir.ui.view">
+		<field name="name">mv.helpdesk.stock.move.line.report.form</field>
+		<field name="model">mv.helpdesk.stock.move.line.report</field>
+		<field name="arch" type="xml">
+			<form string="Tickets &amp; Product Moves Analysis FORM" duplicate="false" edit="false">
+                <sheet>
+	                <div class="oe_title pe-0">
+                        <h1 class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100">
+                                <field name="ticket_id" options="{'no_open': True}"/>
+                            </div>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Ticket" name="group_ticket_info">
+	                        <field name="ticket_stage" decoration-info="ticket_stage in ['New', 'In Progress']" decoration-success="ticket_stage == 'Done'" decoration-muted="ticket_stage == 'Canceled'" widget="badge"/>
+	                        <field name="ticket_type"/>
+	                        <field name="ticket_create_date"/>
+	                        <field name="ticket_write_date"/>
+                        </group>
+                        <group string="Customer" name="group_customer_info">
+                            <field name="parent_partner_id" invisible="not parent_partner_id"/>
+                            <field name="partner_id"/>
+                            <field name="partner_email" widget="email"/>
+                            <field name="partner_phone" widget="phone"/>
+                        </group>
+	                    <group string="Product" name="group_product_info">
+		                    <field name="product_template_id"/>
+                            <field name="product_country_of_origin" options="{'no_open': True}"/>
+                            <field name="product_barcode"/>
+                            <field name="product_att_size_lop"/>
+                            <field name="product_att_ma_gai"/>
+                            <field name="serial_number"/>
+                            <field name="qrcode"/>
+                            <field name="week_number"/>
+	                    </group>
+                    </group>
+                </sheet>
+            </form>
+		</field>
+	</record>
+
 	<record id="mv_helpdesk_stock_move_line_report_tree_view" model="ir.ui.view">
 		<field name="name">mv.helpdesk.stock.move.line.report.tree</field>
 		<field name="model">mv.helpdesk.stock.move.line.report</field>
@@ -13,14 +55,15 @@
 				<field name="product_barcode" optional="show"/>
 				<field name="qrcode" optional="show"/>
 				<field name="week_number" optional="show"/>
-				<field string="Customer" name="partner_id" widget="res_partner_many2one"/>
+				<field name="parent_partner_id" string="Parent Customer" widget="res_partner_many2one" optional="hidden"/>
+				<field name="partner_id" string="Customer" widget="res_partner_many2one"/>
 				<field name="partner_email" optional="hidden"/>
 				<field name="partner_phone" optional="hidden"/>
 				<field name="ticket_id" column_invisible="True"/>
 				<field name="ticket_type" optional="show"/>
-				<field name="ticket_stage" decoration-info="ticket_stage in ['New', 'In Progress']" decoration-success="ticket_stage == 'Done'" decoration-muted="ticket_stage == 'Canceled'" widget="badge" optional="show"/>
-				<field name="ticket_create_date" optional="show"/>
-				<field name="ticket_write_date" optional="show"/>
+				<field name="ticket_stage" decoration-info="ticket_stage in ['New', 'In Progress']" decoration-success="ticket_stage == 'Done'" decoration-muted="ticket_stage == 'Canceled'" widget="badge"/>
+				<field name="ticket_create_date"/>
+				<field name="ticket_write_date"/>
 			</tree>
 		</field>
 	</record>
@@ -64,6 +107,7 @@
 	<record id="mv_helpdesk_stock_move_line_report_action_view" model="ir.actions.act_window">
 		<field name="name">Ticket Registered Analysis</field>
 		<field name="res_model">mv.helpdesk.stock.move.line.report</field>
+		<field name="view_mode">tree,form</field>
 		<field name="search_view_id" ref="mv_helpdesk_stock_move_line_report_search_view"/>
 		<field name="view_id" ref="mv_helpdesk_stock_move_line_report_tree_view"/>
 		<field name="domain">[]</field>

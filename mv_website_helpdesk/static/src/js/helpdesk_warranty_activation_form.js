@@ -7,7 +7,7 @@ import {ScannerDialog} from "../components/scanner_dialog/scanner_dialog";
 const ERROR_MESSAGES = {
     EMPTY_PHONE_NUMBER: "Vui lòng nhập số điện thoại của bạn.",
     INVALID_PHONE_NUMBER: "Số điện thoại không hợp lệ.",
-    PARTNER_NOT_FOUND: "Không tìm thấy thông tin theo số điện thoại của bạn.\n\n Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
+    PARTNER_NOT_FOUND: "Không tìm thấy thông tin theo số điện thoại của bạn hoặc bạn không phải là Đại lý của Moveo Plus.\n\n Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
 };
 
 /**
@@ -106,13 +106,16 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
      * @returns {boolean} - True if the phone number is valid, false otherwise.
      */
     _validatePhoneNumber(phoneNumber, $searchButton, $errorMessage) {
-        let phoneRegex = /^(?:(?:\+|00)([1-9]\d{0,2}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$/;
+        // Regular expression for mobile phone numbers
+        let mobilePhoneRegex = /^(?:(?:\+|00)([1-9]\d{0,2}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$/;
+        // Regular expression for desk phone numbers starting with "028"
+        let deskPhoneRegex = /^0(1[2-9]|2[03478])\d{8}$/;
 
         if (!phoneNumber) {
             $errorMessage.text(ERROR_MESSAGES.EMPTY_PHONE_NUMBER).addClass("invalid-feedback").show();
             $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
             return false;
-        } else if (phoneNumber && !phoneRegex.test(phoneNumber)) {
+        } else if (phoneNumber && !mobilePhoneRegex.test(phoneNumber) && !deskPhoneRegex.test(phoneNumber)) {
             $errorMessage.text(ERROR_MESSAGES.INVALID_PHONE_NUMBER).addClass("invalid-feedback").show();
             $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
             return false;
@@ -183,12 +186,17 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $mileageActivation = $("#helpdesk_warranty_input_mileage");
 
         const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
-        const ticketTypeObj = await this.orm.call("helpdesk.ticket.type", "search_read", [], {
-            fields: ["id", "name", "code"],
-            domain: [["user_for_warranty_activation", "=", true], ["id", "=", +$ticketType.val() || false]],
-        });
+        let ticketTypeObj;
+        try {
+            ticketTypeObj = await this.orm.call("helpdesk.ticket.type", "search_read", [], {
+                fields: ["id", "name", "code"],
+                domain: [["user_for_warranty_activation", "=", true], ["id", "=", +$ticketType.val() || false]],
+            });
+        } catch (e) {
+            console.error("Failed to fetch ticket type: ", e);
+        }
 
-        if (ticketTypeObj[0] && ticketTypeObj[0].code === "kich_hoat_bao_hanh_nguoi_dung_cuoi") {
+        if (ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code === "kich_hoat_bao_hanh_nguoi_dung_cuoi") {
             // Validate form fields for Ticket Type
             const validationTicketTypeErrors = this._validateFormTicketTypeFields($telNumberActivation, $licensePlatesActivation, $mileageActivation);
             if (validationTicketTypeErrors.length > 0) {
@@ -204,21 +212,21 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
             const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {
                 codes: codes,
-                ticket_type: $ticketType.val() || ticketTypeObj[0].id,
+                ticket_type: $ticketType.val(),
                 partner_email: $partnerEmail.val(),
+                by_pass_check_partner_agency: false,
                 tel_activation: $telNumberActivation.val(),
             });
 
             if (!res || res.length === 0) return;
 
             for (const [keyName, keyMessage] of res) {
-                if (["is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
+                if (["is_not_agency", "is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
                     return this.notification.add(_t(keyMessage), {
                         type: "warning",
                     });
                 }
             }
-            debugger
         }
     },
 

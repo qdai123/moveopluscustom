@@ -22,22 +22,17 @@ class HelpdeskTicketProductMoves(models.Model):
     helpdesk_ticket_id = fields.Many2one(
         comodel_name="helpdesk.ticket", string="Ticket", index=True
     )
+    helpdesk_ticket_ref = fields.Char(
+        "Ticket Ref.", related="helpdesk_ticket_id.ticket_ref", store=True
+    )
     helpdesk_ticket_type_id = fields.Many2one(
         comodel_name="helpdesk.ticket.type",
         compute="_compute_helpdesk_ticket_id",
-        inverse="_inverse_helpdesk_ticket_id",
         store=True,
-        precompute=True,
-        ondelete="restrict",
         string="Ticket Type",
     )
     partner_id = fields.Many2one(
-        comodel_name="res.partner",
-        compute="_compute_helpdesk_ticket_id",
-        inverse="_inverse_helpdesk_ticket_id",
-        store=True,
-        precompute=True,
-        ondelete="restrict",
+        comodel_name="res.partner", compute="_compute_helpdesk_ticket_id", store=True
     )
     # HELPDESK TICKET Customer Activation Information (End-User Case)
     customer_phone_activation = fields.Char("Activation Phone")
@@ -98,42 +93,47 @@ class HelpdeskTicketProductMoves(models.Model):
     # COMPUTE / INVERSE Methods
     # ==================================
 
-    @api.depends(
-        "helpdesk_ticket_id",
-        "helpdesk_ticket_id.partner_id",
-        "helpdesk_ticket_id.ticket_type_id",
-    )
+    @api.depends("helpdesk_ticket_id")
     def _compute_helpdesk_ticket_id(self):
         """
         Compute the partner_id and helpdesk_ticket_type_id fields based on the helpdesk_ticket_id field.
         Sets the partner_id and helpdesk_ticket_type_id fields to the corresponding fields of the helpdesk_ticket_id if it is set, otherwise sets them to False.
         """
         for record in self:
-            record.partner_id = (
-                record.helpdesk_ticket_id.partner_id.id
-                if record.helpdesk_ticket_id
-                else False
-            )
-            record.helpdesk_ticket_type_id = (
-                record.helpdesk_ticket_id.ticket_type_id.id
-                if record.helpdesk_ticket_id
-                else False
-            )
-
-    @api.onchange("helpdesk_ticket_id")
-    def _inverse_helpdesk_ticket_id(self):
-        """
-        Inverse method for helpdesk_ticket_id field.
-        Sets the partner_id and helpdesk_ticket_type_id fields to False if helpdesk_ticket_id is not set.
-        """
-        for record in self:
-            no_ticket = not record.helpdesk_ticket_id
-            record.partner_id = no_ticket
-            record.helpdesk_ticket_type_id = no_ticket
+            if record.helpdesk_ticket_id:
+                record.partner_id = (
+                    record.helpdesk_ticket_id.partner_id
+                    and record.helpdesk_ticket_id.partner_id.id
+                )
+                record.helpdesk_ticket_type_id = (
+                    record.helpdesk_ticket_id.ticket_type_id
+                    and record.helpdesk_ticket_id.ticket_type_id.id
+                )
+            else:
+                record.partner_id = False
+                record.helpdesk_ticket_type_id = False
 
     # ==================================
     # ACTION / BUTTON ACTION Methods
     # ==================================
+
+    def action_reload(self):
+        for line in self:
+            if line.helpdesk_ticket_id:
+                line._compute_helpdesk_ticket_id()
+                line.customer_phone_activation = line.helpdesk_ticket_id.tel_activation
+                line.customer_date_activation = (
+                    line.helpdesk_ticket_id.ticket_update_date
+                )
+                line.customer_license_plates_activation = (
+                    line.helpdesk_ticket_id.license_plates
+                )
+                line.customer_mileage_activation = line.helpdesk_ticket_id.mileage
+            else:
+                line.customer_phone_activation = False
+                line.customer_date_activation = False
+                line.customer_license_plates_activation = False
+                line.customer_mileage_activation = False
 
     def action_open_stock(self):
         self.ensure_one()

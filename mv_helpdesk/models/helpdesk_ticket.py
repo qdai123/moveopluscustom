@@ -263,7 +263,9 @@ class HelpdeskTicket(models.Model):
         else:
             valid_codes = []
 
-        return self.env["stock.move.line"].search([("qr_code", "in", valid_codes)])
+        return self.env["stock.move.line"].search(
+            [("qr_code", "in", valid_codes), ("is_specify_qrcode", "=", True)]
+        )
 
     def _validate_lot_serial_number(self, codes):
         """
@@ -295,7 +297,7 @@ class HelpdeskTicket(models.Model):
         results = set()
         error_messages = []
 
-        # [!] Validate empty codes
+        # [!] ===== Validate empty codes =====
         if not codes:
             error_messages.append(
                 (
@@ -307,7 +309,7 @@ class HelpdeskTicket(models.Model):
         validated_qr_code = self._validate_qr_code(codes)
         validated_lot_serial_number = self._validate_lot_serial_number(codes)
 
-        # [!] Validate codes are not found on system
+        # [!] ===== Validate codes are not found on system =====
         if codes and not validated_qr_code and not validated_lot_serial_number:
             error_messages.append(
                 (
@@ -316,130 +318,25 @@ class HelpdeskTicket(models.Model):
                 )
             )
 
-        # [!] Validate codes has been registered on other tickets
+        # [!] ===== Validate codes has been registered on other tickets =====
         qr_codes = list(set(validated_qr_code.mapped("qr_code")))
         lot_serial_numbers = list(set(validated_lot_serial_number.mapped("lot_name")))
 
-        if qr_codes or lot_serial_numbers:
-            # QR-Codes
-            for code in qr_codes:
-                conflicting_ticket_sub_dealer = (
-                    self.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", SUB_DEALER_CODE),
-                            "|",
-                            ("stock_move_line_id.qr_code", "=", code),
-                            ("qr_code", "=", code),
-                        ],
-                        limit=1,
-                    )
-                )
-                conflicting_ticket_end_user = (
-                    self.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
-                            "|",
-                            ("stock_move_line_id.qr_code", "=", code),
-                            ("qr_code", "=", code),
-                        ],
-                        limit=1,
-                    )
-                )
-                if (
-                    len(conflicting_ticket_sub_dealer) > 0
-                    and len(conflicting_ticket_end_user) > 0
-                ):
-                    message = f"Mã {code} đã trùng với Tickets khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, #{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                    error_messages.append((CODE_ALREADY_REGISTERED, message))
-                else:
-                    if ticket_type.code == SUB_DEALER_CODE:
-                        if (
-                            len(conflicting_ticket_sub_dealer) > 0
-                            and (
-                                conflicting_ticket_sub_dealer.partner_id.id
-                                == ticket.partner_id.id
-                                or conflicting_ticket_sub_dealer.partner_id.id
-                                != ticket.partner_id.id
-                            )
-                        ) and not conflicting_ticket_end_user:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_sub_dealer) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+        # QR-Codes VALIDATION
+        if qr_codes:
+            self._validate_codes(
+                qr_codes, ticket_type, ticket.partner_id, error_messages, "qr_code"
+            )
 
-            # Lot/Serial Number
-            for code in lot_serial_numbers:
-                conflicting_ticket_sub_dealer = (
-                    self.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", SUB_DEALER_CODE),
-                            "|",
-                            ("stock_move_line_id.lot_name", "=", code),
-                            ("lot_name", "=", code),
-                        ],
-                        limit=1,
-                    )
-                )
-                conflicting_ticket_end_user = (
-                    self.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
-                            "|",
-                            ("stock_move_line_id.lot_name", "=", code),
-                            ("lot_name", "=", code),
-                        ]
-                    )
-                )
-                if (
-                    len(conflicting_ticket_sub_dealer) > 0
-                    and len(conflicting_ticket_end_user) > 0
-                ):
-                    message = f"Mã {code} đã trùng với Tickets khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, #{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                    error_messages.append((CODE_ALREADY_REGISTERED, message))
-                else:
-                    if ticket_type.code == SUB_DEALER_CODE:
-                        if (
-                            len(conflicting_ticket_sub_dealer) > 0
-                            and (
-                                conflicting_ticket_sub_dealer.partner_id.id
-                                == ticket.partner_id.id
-                                or conflicting_ticket_sub_dealer.partner_id.id
-                                != ticket.partner_id.id
-                            )
-                            and not conflicting_ticket_end_user
-                        ):
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_sub_dealer) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+        # Lot/Serial Number VALIDATION
+        if lot_serial_numbers:
+            self._validate_codes(
+                lot_serial_numbers,
+                ticket_type,
+                ticket.partner_id,
+                error_messages,
+                "lot_name",
+            )
 
         # Merge the results and remove duplicates by using a set
         results.update(validated_qr_code.ids)
@@ -450,6 +347,88 @@ class HelpdeskTicket(models.Model):
         error_messages = list(set(error_messages))
 
         return results, error_messages
+
+    def _validate_codes(self, codes, ticket_type, partner, error_messages, field_name):
+        TicketProductMoves = self.env["mv.helpdesk.ticket.product.moves"].sudo()
+
+        for code in codes:
+            conflicting_ticket_sub_dealer = TicketProductMoves.search(
+                self._get_domain(SUB_DEALER_CODE, code, field_name), limit=1
+            )
+            conflicting_ticket_end_user = TicketProductMoves.search(
+                self._get_domain(END_USER_CODE, code, field_name), limit=1
+            )
+
+            if (
+                len(conflicting_ticket_sub_dealer) > 0
+                and len(conflicting_ticket_end_user) > 0
+            ):
+                message = (
+                    f"Mã {code} đã trùng với Tickets khác có mã là "
+                    f"(#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, "
+                    f"#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                )
+                error_messages.append((CODE_ALREADY_REGISTERED, message))
+            else:
+                if ticket_type.code in [SUB_DEALER_CODE, END_USER_CODE]:
+                    self._handle_code(
+                        conflicting_ticket_sub_dealer,
+                        conflicting_ticket_end_user,
+                        code,
+                        partner,
+                        error_messages,
+                        ticket_type.code,
+                    )
+
+    def _get_domain(self, ticket_type_code, code, field_name):
+        return [
+            ("helpdesk_ticket_id", "!=", False),
+            ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
+            (f"stock_move_line_id.{field_name}", "=", code),
+        ]
+
+    def _handle_code(
+        self,
+        conflicting_ticket_sub_dealer,
+        conflicting_ticket_end_user,
+        code,
+        partner,
+        error_messages,
+        ticket_type_code,
+    ):
+        validate_different_partner_for_sub = (
+            len(conflicting_ticket_sub_dealer) > 0
+            and conflicting_ticket_sub_dealer.partner_id.id != partner.id
+        )
+        validate_different_partner_for_end = (
+            len(conflicting_ticket_end_user) > 0
+            and conflicting_ticket_end_user.partner_id.id != partner.id
+        )
+        # Validate if the code is already registered on other tickets by different Partners
+        if validate_different_partner_for_sub or validate_different_partner_for_end:
+            conflicting_ticket = (
+                conflicting_ticket_sub_dealer
+                if validate_different_partner_for_sub
+                else conflicting_ticket_end_user
+            )
+            message = (
+                f"Mã {code} đã được đăng ký cho đơn vị khác, "
+                f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
+            )
+            error_messages.append((CODE_ALREADY_REGISTERED, message))
+        # Validate if the code is already registered on other tickets with specific ticket type by current Partner
+        else:
+            conflicting_ticket = (
+                conflicting_ticket_sub_dealer
+                if ticket_type_code == SUB_DEALER_CODE
+                else conflicting_ticket_end_user
+            )
+            if len(conflicting_ticket) > 0:
+                message = (
+                    f"Mã {code} đã trùng với Ticket khác, "
+                    f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
+                )
+                error_messages.append((CODE_ALREADY_REGISTERED, message))
 
     @staticmethod
     def convert_to_list_codes(codes):

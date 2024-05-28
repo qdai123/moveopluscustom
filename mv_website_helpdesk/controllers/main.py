@@ -14,8 +14,9 @@ from markupsafe import Markup
 from odoo import http, _
 from odoo.http import request, Response
 from odoo.addons.phone_validation.tools import phone_validation
-from odoo.exceptions import ValidationError
 from odoo.addons.website.controllers import form
+from odoo.exceptions import ValidationError
+from odoo.osv import expression
 
 from werkzeug.utils import redirect
 from werkzeug.exceptions import HTTPException, BadRequest
@@ -37,6 +38,7 @@ SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
 END_USER_CODE = "kich_hoat_bao_hanh_nguoi_dung_cuoi"
 
 PARTNER_NOT_FOUND_ERROR = {"partner_not_found": True}
+IS_NOT_AGENCY = "is_not_agency"
 IS_EMPTY = "is_empty"
 CODE_NOT_FOUND = "code_not_found"
 CODE_ALREADY_REGISTERED = "code_already_registered"
@@ -44,9 +46,7 @@ CODE_ALREADY_REGISTERED = "code_already_registered"
 
 class MVWebsiteHelpdesk(http.Controller):
 
-    @http.route(
-        "/kich-hoat-bao-hanh", type="http", auth="public", website=True, sitemap=True
-    )
+    @http.route("/kich-hoat-bao-hanh", type="http", auth="public", website=True)
     def website_helpdesk_warranty_activation_teams(self, **kwargs):
         WarrantyActivationTeam = (
             request.env["helpdesk.team"]
@@ -89,9 +89,7 @@ class MVWebsiteHelpdesk(http.Controller):
             },
         )
 
-    @http.route(
-        "/mv_website_helpdesk/check_partner_phone", type="json", auth="public", cors="*"
-    )
+    @http.route("/mv_website_helpdesk/check_partner_phone", type="json", auth="public")
     def check_partner_phonenumber(self, phone_number):
         try:
             partner_info = (
@@ -115,10 +113,15 @@ class MVWebsiteHelpdesk(http.Controller):
             _logger.error("Failed to validate partner phone number: %s", e)
             return PARTNER_NOT_FOUND_ERROR
 
-    @http.route(
-        "/mv_website_helpdesk/check_scanned_code", type="json", auth="public", cors="*"
-    )
-    def check_scanned_code(self, codes, ticket_type, partner_email, tel_activation):
+    @http.route("/mv_website_helpdesk/check_scanned_code", type="json", auth="public")
+    def check_scanned_code(
+        self,
+        codes,
+        ticket_type,
+        partner_email,
+        by_pass_check_partner_agency,
+        tel_activation,
+    ):
         Ticket = request.env["helpdesk.ticket"].sudo()
         error_messages = []
 
@@ -135,11 +138,23 @@ class MVWebsiteHelpdesk(http.Controller):
                 .sudo()
                 .search([("email", "=", partner_email)], limit=1)
             )
+            if not by_pass_check_partner_agency and partner and not partner.is_agency:
+                _logger.debug(
+                    f"{IS_NOT_AGENCY}: Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
+                )
+                # error_messages.append(
+                #     (
+                #         IS_NOT_AGENCY,
+                #         "Bạn không phải là Đại lý của Moveo Plus."
+                #         "Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin.",
+                #     )
+                # )
+                # return error_messages
 
         if tel_activation:
             _logger.debug(f"Tel Activation: {tel_activation}")
 
-        # [!] Validate empty codes
+        # [!] ===== Validate empty codes =====
         if not codes:
             error_messages.append(
                 (
@@ -156,7 +171,7 @@ class MVWebsiteHelpdesk(http.Controller):
         valid_qr_code = Ticket._validate_qr_code(codes_val)
         valid_lot_serial_number = Ticket._validate_lot_serial_number(codes_val)
 
-        # [!] Validate codes are not found on system
+        # [!] ===== Validate codes are not found on system =====
         if not valid_qr_code and not valid_lot_serial_number:
             error_messages.append(
                 (
@@ -165,137 +180,114 @@ class MVWebsiteHelpdesk(http.Controller):
                 )
             )
 
-        # [!] Validate codes has been registered on other tickets
+        # [!] ===== Validate codes has been registered on other tickets =====
         qrcodes = list(set(valid_qr_code.mapped("qr_code")))
         serial_numbers = list(set(valid_lot_serial_number.mapped("lot_name")))
 
-        if qrcodes or serial_numbers:
-            # QR-Codes
-            for code in qrcodes:
-                conflicting_ticket_sub_dealer = (
-                    request.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", SUB_DEALER_CODE),
-                            "|",
-                            ("stock_move_line_id.qr_code", "=", code),
-                            ("qr_code", "=", code),
-                        ],
-                        limit=1,
-                    )
-                )
-                conflicting_ticket_end_user = (
-                    request.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
-                            "|",
-                            ("stock_move_line_id.qr_code", "=", code),
-                            ("qr_code", "=", code),
-                        ],
-                        limit=1,
-                    )
-                )
-                if (
-                    len(conflicting_ticket_sub_dealer) > 0
-                    and len(conflicting_ticket_end_user) > 0
-                ):
-                    message = f"Mã {code} đã trùng với Tickets khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, #{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                    error_messages.append((CODE_ALREADY_REGISTERED, message))
-                else:
-                    if ticket_type.code == SUB_DEALER_CODE:
-                        if (
-                            len(conflicting_ticket_sub_dealer) > 0
-                            and (
-                                conflicting_ticket_sub_dealer.partner_id.id
-                                == partner.id
-                                or conflicting_ticket_sub_dealer.partner_id.id
-                                != partner.id
-                            )
-                            and not conflicting_ticket_end_user
-                        ):
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_sub_dealer) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+        # QR-Codes VALIDATION
+        if qrcodes:
+            self._validate_codes(
+                qrcodes, ticket_type, partner, error_messages, "qr_code"
+            )
 
-            # Lot/Serial Number
-            for code in serial_numbers:
-                conflicting_ticket_sub_dealer = (
-                    request.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", SUB_DEALER_CODE),
-                            "|",
-                            ("stock_move_line_id.lot_name", "=", code),
-                            ("lot_name", "=", code),
-                        ],
-                        limit=1,
-                    )
-                )
-                conflicting_ticket_end_user = (
-                    request.env["mv.helpdesk.ticket.product.moves"]
-                    .sudo()
-                    .search(
-                        [
-                            ("helpdesk_ticket_id", "!=", False),
-                            ("helpdesk_ticket_type_id.code", "=", END_USER_CODE),
-                            "|",
-                            ("stock_move_line_id.lot_name", "=", code),
-                            ("lot_name", "=", code),
-                        ],
-                        limit=1,
-                    )
-                )
-                if (
-                    len(conflicting_ticket_sub_dealer) > 0
-                    and len(conflicting_ticket_end_user) > 0
-                ):
-                    message = f"Mã {code} đã trùng với Tickets khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, #{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                    error_messages.append((CODE_ALREADY_REGISTERED, message))
-                else:
-                    if ticket_type.code == SUB_DEALER_CODE:
-                        if (
-                            len(conflicting_ticket_sub_dealer) > 0
-                            and (
-                                conflicting_ticket_sub_dealer.partner_id.id
-                                == partner.id
-                                or conflicting_ticket_sub_dealer.partner_id.id
-                                != partner.id
-                            )
-                            and not conflicting_ticket_end_user
-                        ):
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                    elif ticket_type.code == END_USER_CODE:
-                        if len(conflicting_ticket_end_user) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
-                        elif len(conflicting_ticket_sub_dealer) > 0:
-                            message = f"Mã {code} đã trùng với Ticket khác có mã là (#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id})."
-                            error_messages.append((CODE_ALREADY_REGISTERED, message))
+        # Lot/Serial Number VALIDATION
+        if serial_numbers:
+            self._validate_codes(
+                serial_numbers, ticket_type, partner, error_messages, "lot_name"
+            )
 
         # Convert the set back to a list
         error_messages = list(set(error_messages))
 
         return error_messages
+
+    def _validate_codes(self, codes, ticket_type, partner, error_messages, field_name):
+        TicketProductMoves = request.env["mv.helpdesk.ticket.product.moves"].sudo()
+
+        for code in codes:
+            conflicting_ticket_sub_dealer = TicketProductMoves.search(
+                self._get_domain(SUB_DEALER_CODE, code, field_name), limit=1
+            )
+            conflicting_ticket_end_user = TicketProductMoves.search(
+                self._get_domain(END_USER_CODE, code, field_name), limit=1
+            )
+
+            if (
+                len(conflicting_ticket_sub_dealer) > 0
+                and len(conflicting_ticket_end_user) > 0
+            ):
+                message = (
+                    f"Mã {code} đã trùng với Tickets khác có mã là "
+                    f"(#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, "
+                    f"#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                )
+                error_messages.append((CODE_ALREADY_REGISTERED, message))
+            else:
+                if ticket_type.code in [SUB_DEALER_CODE, END_USER_CODE]:
+                    self._handle_code(
+                        conflicting_ticket_sub_dealer,
+                        conflicting_ticket_end_user,
+                        code,
+                        partner,
+                        error_messages,
+                        ticket_type.code,
+                    )
+
+    def _get_domain(self, ticket_type_code, code, field_name):
+        return [
+            ("helpdesk_ticket_id", "!=", False),
+            ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
+            (f"stock_move_line_id.{field_name}", "=", code),
+        ]
+
+    def _handle_code(
+        self,
+        conflicting_ticket_sub_dealer,
+        conflicting_ticket_end_user,
+        code,
+        partner,
+        error_messages,
+        ticket_type_code,
+    ):
+        validate_different_partner_for_sub = (
+            len(conflicting_ticket_sub_dealer) > 0
+            and conflicting_ticket_sub_dealer.partner_id.id != partner.id
+        )
+        validate_different_partner_for_end = (
+            len(conflicting_ticket_end_user) > 0
+            and conflicting_ticket_end_user.partner_id.id != partner.id
+        )
+        # Validate if the code is already registered on other tickets by different Partners
+        if validate_different_partner_for_sub or validate_different_partner_for_end:
+            if self._is_anonymous():
+                message = f"Mã {code} đã được đăng ký cho đơn vị khác!"
+            else:
+                conflicting_ticket = (
+                    conflicting_ticket_sub_dealer
+                    if validate_different_partner_for_sub
+                    else conflicting_ticket_end_user
+                )
+                message = (
+                    f"Mã {code} đã được đăng ký cho đơn vị khác, "
+                    f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
+                )
+            error_messages.append((CODE_ALREADY_REGISTERED, message))
+        # Validate if the code is already registered on other tickets with specific ticket type by current Partner
+        else:
+            conflicting_ticket = (
+                conflicting_ticket_sub_dealer
+                if ticket_type_code == SUB_DEALER_CODE
+                else conflicting_ticket_end_user
+            )
+            if len(conflicting_ticket) > 0:
+                if self._is_anonymous():
+                    message = f"Mã {code} đã trùng với Ticket khác!"
+                else:
+                    message = (
+                        f"Mã {code} đã trùng với Ticket khác, "
+                        f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
+                    )
+                error_messages.append((CODE_ALREADY_REGISTERED, message))
 
     # =================================
     # HELPER / PRIVATE Methods
@@ -316,11 +308,16 @@ class MVWebsiteHelpdesk(http.Controller):
 
     def _is_anonymous(self):
         """
-        Check if the user is anonymous.
+        Check if the user is anonymous or public user.
         :return: True if the user is anonymous, False otherwise.
         """
         user = request.env.user
-        return not user.has_group(PORTAL_USER) and not user.has_group(INTERNAL_USER)
+        is_public_user = user == request.env.ref("base.public_user")
+        is_not_portal_or_internal_user = not user.has_group(
+            PORTAL_USER
+        ) and not user.has_group(INTERNAL_USER)
+
+        return is_public_user and is_not_portal_or_internal_user
 
 
 class WebsiteForm(form.WebsiteForm):

@@ -5,10 +5,14 @@
         <field name="model">mv.helpdesk.ticket.product.moves</field>
         <field name="arch" type="xml">
             <tree string="Ticket Registered LIST" create="false" edit="false" duplicate="false" delete="true" import="false" export_xlsx="false">
+                <header>
+                    <button name="action_reload" string="RELOAD" type="object" class="oe_highlight" groups="base.group_system"/>
+                </header>
                 <field name="lot_name" string="Lot/Serial Number"/>
                 <field name="qr_code" string="QR-Code"/>
                 <field name="product_id"/>
                 <field name="helpdesk_ticket_id" optional="hidden"/>
+                <field name="helpdesk_ticket_ref" optional="hidden"/>
                 <field name="helpdesk_ticket_type_id" optional="show"/>
                 <field name="partner_id" string="Customer"/>
                 <field name="customer_date_activation" optional="hidden"/>
