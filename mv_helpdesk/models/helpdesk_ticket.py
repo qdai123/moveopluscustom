@@ -418,15 +418,22 @@ class HelpdeskTicket(models.Model):
             error_messages.append((CODE_ALREADY_REGISTERED, message))
         # Validate if the code is already registered on other tickets with specific ticket type by current Partner
         else:
-            conflicting_ticket = (
-                conflicting_ticket_sub_dealer
-                if ticket_type_code == SUB_DEALER_CODE
-                else conflicting_ticket_end_user
-            )
-            if len(conflicting_ticket) > 0:
+            if (
+                ticket_type_code == SUB_DEALER_CODE
+                and len(conflicting_ticket_end_user) > 0
+            ):
                 message = (
                     f"Mã {code} đã trùng với Ticket khác, "
-                    f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
+                    f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                )
+                error_messages.append((CODE_ALREADY_REGISTERED, message))
+            elif (
+                ticket_type_code == END_USER_CODE
+                and len(conflicting_ticket_end_user) > 0
+            ):
+                message = (
+                    f"Mã {code} đã trùng với Ticket khác, "
+                    f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
                 )
                 error_messages.append((CODE_ALREADY_REGISTERED, message))
 
