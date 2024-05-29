@@ -43,6 +43,7 @@ class SaleOrder(models.Model):
     # Giữ số lượng lại, để khi thay đổi thì xóa dòng delivery, chiết khấu tự động, chiết khấu sản lượng
     quantity_change = fields.Float(copy=False)
     flag_delivery = fields.Boolean(compute="compute_flag_delivery")
+    is_order_returns = fields.Boolean("Đổi trả hàng", default=False)
 
     # [res.partner] Fields:
     partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
@@ -472,7 +473,7 @@ class SaleOrder(models.Model):
             _logger.error("Failed to compute discount for partner: %s", e)
 
     def action_compute_discount_month(self):
-        if not self.order_line:
+        if not self.order_line or self.is_order_returns:
             return
 
         if not self.check_discount_agency_white_place:
@@ -802,24 +803,33 @@ class SaleOrder(models.Model):
     # ==================================
 
     def _check_order_not_free_qty(self):
-        """
-        Check if the quantity of the product in the order line is greater than the available quantity for the day.
-        If it is, raise a validation error.
-        """
-        for so in self.filtered(lambda rec: rec.state in ["draft", "sent"]):
-            product_order_lines = so.order_line.filtered(
-                lambda sol: sol.product_id.detailed_type == "product"
-            )
+        for so in self:
+            if so.state not in ["draft", "sent"]:
+                continue
+
+            # Use list comprehension instead of filtered method
+            product_order_lines = [
+                line
+                for line in so.order_line
+                if line.product_id.detailed_type == "product"
+            ]
+
+            error_messages = []
             if product_order_lines:
+                error_product_message = ""
                 for so_line in product_order_lines:
                     if so_line.product_uom_qty > so_line.free_qty_today:
-                        error_message = (
-                            f"Bạn không được phép đặt quá số lượng hiện tại:"
-                            f"\n- Sản phẩm: {so_line.product_template_id.name}"
-                            f"\n- Số lượng hiện tại có thể đặt: {int(so_line.free_qty_today)} Cái"
-                            f"\n\nVui lòng kiểm tra lại số lượng còn lại trong kho."
-                        )
-                        raise ValidationError(error_message)
+                        error_product_message += f"\n- {so_line.product_template_id.name}. [ Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái) ]"
+                error_message = (
+                    "Bạn không được phép đặt quá số lượng hiện tại:"
+                    + error_product_message
+                    + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
+                )
+                error_messages.append(error_message)
+
+                # Raise all errors at once
+                if error_messages:
+                    raise ValidationError("\n".join(error_messages))
 
         return False
 
@@ -827,7 +837,7 @@ class SaleOrder(models.Model):
         """
         Handle the discount for the agency.
         """
-        if self.partner_id.is_agency:
+        if not self.is_order_returns and self.partner_id.is_agency:
             self.with_context(confirm=True).action_compute_discount_month()
 
     def _check_delivery_lines(self):

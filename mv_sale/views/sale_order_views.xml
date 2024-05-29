@@ -27,8 +27,11 @@
             <xpath expr="//header" position="inside">
                 <field name="flag_delivery" invisible="True"/>
                 <field name="is_sales_manager" invisible="True"/>
-                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or flag_delivery"/>
-                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Nhập chiết khấu sản lượng" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or not flag_delivery"/>
+                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or flag_delivery or is_order_returns"/>
+                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Nhập chiết khấu sản lượng" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or not flag_delivery or is_order_returns"/>
+            </xpath>
+            <xpath expr="//field[@name='payment_term_id']" position="after">
+                <field name="is_order_returns" invisible="not is_sales_manager" readonly="not is_sales_manager or state in ['sale', 'cancel']"/>
             </xpath>
             <xpath expr="//field[@name='date_order']" position="attributes">
                 <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
