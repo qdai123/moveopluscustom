@@ -845,4 +845,4 @@ class SaleOrder(models.Model):
         """
         delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
         if not delivery_lines:
-            raise UserError(_("No delivery lines were found in the order."))
+            raise UserError(_("Không tìm thấy dòng giao hàng nào trong đơn hàng."))
