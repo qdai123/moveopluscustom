@@ -169,6 +169,7 @@ class MvComputeDiscount(models.Model):
         # Fetch all sale orders at once
         sale_orders = self.env["sale.order"].search(
             [
+                ("is_order_returns", "=", False),
                 ("state", "=", "sale"),
                 ("date_invoice", ">=", date_from),
                 ("date_invoice", "<=", date_to),
