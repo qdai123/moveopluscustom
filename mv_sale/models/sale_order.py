@@ -814,24 +814,22 @@ class SaleOrder(models.Model):
                 if line.product_id.detailed_type == "product"
             ]
 
-            error_messages = []
             if product_order_lines:
-                error_product_message = ""
+                error_products = []
                 for so_line in product_order_lines:
                     if so_line.product_uom_qty > so_line.free_qty_today:
-                        error_product_message += f"\n- {so_line.product_template_id.name}. [ Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái) ]"
-                error_message = (
-                    "Bạn không được phép đặt quá số lượng hiện tại:"
-                    + error_product_message
-                    + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
-                )
-                error_messages.append(error_message)
+                        error_products.append(
+                            f"\n- {so_line.product_template_id.name}. [ Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái) ]"
+                        )
 
                 # Raise all errors at once
-                if error_messages:
-                    raise ValidationError("\n".join(error_messages))
-
-        return False
+                if error_products:
+                    error_message = (
+                        "Bạn không được phép đặt quá số lượng hiện tại:"
+                        + "".join(error_products)
+                        + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
+                    )
+                    raise ValidationError(error_message)
 
     def _handle_agency_discount(self):
         """
