@@ -15,8 +15,8 @@
 								<t t-set="ticket" t-value="request.website._website_form_last_record()"/>
 							</t>
 							<h1 class="text-center">
-								<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
-								<t t-if="ticket">
+								<t t-if="ticket and request.session.uid">
+									<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
 									<span>Mã số phiếu yêu cầu của bạn là
 										<a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
 											#
@@ -74,7 +74,7 @@
 								<div id="helpdesk_warranty_activation_section">
 									<section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
 										<div class="container">
-											<form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/kich-hoat-bao-hanh-xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
+											<form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/kich-hoat-bao-hanh-xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
 												<div class="s_website_form_rows row s_col_no_bgcolor">
 													<!-- Field: team_id (Default Value == "Kích hoạt bảo hành") -->
 													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable" data-type="many2one" data-name="Field">
@@ -89,39 +89,39 @@
 															</div>
 														</div>
 													</div>
-													<!-- Field: Validation Partner Phone Number -->
+													<!-- [!] Validation Partner Phone Number -->
 													<t t-if="anonymous">
 														<div class="mb-0 py-2 s_website_form_field col-12">
-															<div class="o_search input-group col-sm" style="height: 80%;" role="search">
-													            <input type="search" name="search" class="form-control border-info o_website_helpdesk_search_phone_number" placeholder="Nhập số điện thoại..."/>
+															<div class="o_search input-group col-sm has-validation" style="height: 80%;">
+													            <input type="search" name="search" id="o_website_helpdesk_search_phone_number" class="form-control hide-focus" placeholder="Nhập số điện thoại..."/>
 													            <a href="#" role="button" id="search-btn" class="btn btn-primary btn-lg" style="background-color: #461885; border-color: #461885;">
-																	<i class="fa fa-search" style="vertical-align: super;"/>
+														            <i class="fa fa-search" style="vertical-align: super;"/>
 																</a>
 													        </div>
 														</div>
-														<div role="alert" class="alert alert-warning mt-2 col-sm" id="phonenumber-error-message" style="display:none; margin: 0 16px 16px 16px;"></div>
+														<div role="alert" id="phonenumber-error-message" style="font-size: 1rem; display:none; margin-bottom: 0.25rem;"/>
 													</t>
 													<!-- Field: partner_name (Required) -->
-													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
+													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
 															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdeskWarrantyInputPartnerName">
 																<span class="s_website_form_label_content">Họ &amp; Tên</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdeskWarrantyInputPartnerName" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="anonymous"/>
+																<input id="helpdeskWarrantyInputPartnerName" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="true"/>
 															</div>
 														</div>
 													</div>
 													<!-- Field: partner_email (Required) -->
-													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="email" data-name="Field">
+													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="email" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
 															<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdeskWarrantyInputPartnerEmail">
 																<span class="s_website_form_label_content">Email</span>
 																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="anonymous"/>
+																<input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="true"/>
 															</div>
 														</div>
 													</div>
@@ -169,48 +169,39 @@
 															</div>
 														</div>
 													</div>
-													<!-- Field: license_plates (None Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_field_hidden_if"
-													     data-visibility-dependency="ticket_type_id"
-													     t-att-data-visibility-condition="type_is_end_user_id"
-													     data-visibility-comparator="selected"
-													     data-type="char"
-													     data-name="Field">
+													<!-- Field: tel_activation (Required) -->
+													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id" data-visibility-comparator="selected" data-type="tel" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
-															<label class="col-form-label col-sm-auto s_website_form_label"
-															       style="width: 200px"
-															       for="helpdesk_warranty_input_license_plates">
-																<span class="s_website_form_label_content">Biển số xe
-																</span>
+															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_tel_activation">
+																<span class="s_website_form_label_content">Số điện thoại</span>
+																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_license_plates"
-																       class="form-control s_website_form_input"
-																       type="text"
-																       name="license_plates"
-																       data-fill-with="undefined"
-																/>
+																<input id="helpdesk_warranty_input_tel_activation" class="form-control s_website_form_input" type="tel" name="tel_activation" data-fill-with="tel_activation" t-att-required="type_is_end_user_id"/>
 															</div>
 														</div>
 													</div>
-													<!-- Field: mileage (None Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_field_hidden_if"
-													     data-visibility-dependency="ticket_type_id"
-													     t-att-data-visibility-condition="type_is_end_user_id"
-													     data-visibility-comparator="selected"
-													     data-type="char"
-													     data-name="Field">
+													<!-- Field: license_plates (Required) -->
+													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id" data-visibility-comparator="selected" data-type="char" data-name="Field">
+														<div class="row s_col_no_resize s_col_no_bgcolor">
+															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_license_plates">
+																<span class="s_website_form_label_content">Biển số xe</span>
+																<span class="s_website_form_mark">*</span>
+															</label>
+															<div class="col-sm">
+																<input id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" t-att-required="type_is_end_user_id"/>
+															</div>
+														</div>
+													</div>
+													<!-- Field: mileage (Required) -->
+													<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id" data-visibility-comparator="selected" data-type="char" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
 															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_mileage">
 																<span class="s_website_form_label_content">Số Km hiện tại</span>
+																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<input id="helpdesk_warranty_input_mileage"
-																       class="form-control s_website_form_input"
-																       type="text"
-																       name="mileage"
-																       data-fill-with="undefined"
-																/>
+																<input id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="text" name="mileage" data-fill-with="mileage" t-att-required="type_is_end_user_id"/>
 															</div>
 														</div>
 													</div>
@@ -234,7 +225,7 @@
 															Gửi kích hoạt bảo hành
 														</a>
 													</div>
-													<div t-if="not anonymous" class="mb-0 py-2 col-12">
+													<div t-if="request.env.user._is_admin()" class="mb-0 py-2 col-12">
 														<span id="s_website_form_result"/>
 													</div>
 												</div>

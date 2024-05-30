@@ -9,34 +9,6 @@ class HelpdeskStockMoveLineReport(models.Model):
     _rec_name = "product_template_id"
     _order = "serial_number desc"
 
-    @api.depends("product_template_id")
-    def _compute_by_product(self):
-        # TODO: These attributes need to be unique to the SQL query
-        size_lop = "Size lốp"
-        ma_gai = "Mã gai"
-
-        for record in self:
-            if record.product_template_id:
-                # Fetch all attribute values for the product template
-                attribute_values = self.env["product.template.attribute.value"].search(
-                    [
-                        ("product_tmpl_id", "=", record.product_template_id.id),
-                        ("attribute_id.name", "in", [size_lop, ma_gai]),
-                    ]
-                )
-
-                # Extract attribute values for "Size lốp" and "Mã gai"
-                size_lop_value = attribute_values.filtered(
-                    lambda r: r.attribute_id.name == size_lop
-                ).product_attribute_value_id.name
-                ma_gai_value = attribute_values.filtered(
-                    lambda r: r.attribute_id.name == ma_gai
-                ).product_attribute_value_id.name
-
-                # Update the record fields
-                record.product_att_size_lop = size_lop_value
-                record.product_att_ma_gai = ma_gai_value
-
     # ==== Product fields ====
     product_barcode = fields.Char("Barcode", readonly=True)
     product_template_id = fields.Many2one("product.template", "Product", readonly=True)
@@ -55,6 +27,7 @@ class HelpdeskStockMoveLineReport(models.Model):
     ticket_stage = fields.Char("Ticket Stage", readonly=True)
     ticket_create_date = fields.Date("Created On", readonly=True)
     ticket_write_date = fields.Datetime("Last Updated On", readonly=True)
+    parent_partner_id = fields.Many2one("res.partner", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
     partner_email = fields.Char("Email", readonly=True)
     partner_phone = fields.Char("Phone", readonly=True)
@@ -83,21 +56,22 @@ class HelpdeskStockMoveLineReport(models.Model):
             ",\n    " + ",\n    ".join(select)
             if select
             else """
-                SELECT ROW_NUMBER() OVER ()           AS id,
-                           product.barcode                AS product_barcode,
-                           product_tmpl.id                AS product_template_id,
-                           product_tmpl.country_of_origin AS product_country_of_origin,
-                           stock_ml.lot_name              AS serial_number,
-                           stock_ml.qr_code               AS qrcode,
-                           period.week_number_str         AS week_number,
-                           ticket.id                      AS ticket_id,
-                           ticket_type.name ->> 'en_US'   AS ticket_type,
-                           ticket_stage.name ->> 'en_US'  AS ticket_stage,
-                           ticket.create_date::DATE       AS ticket_create_date,
-                           ticket.write_date              AS ticket_write_date,
-                           ticket.partner_id,
-                           ticket.partner_email,
-                           ticket.partner_phone
+                SELECT ROW_NUMBER() OVER ()  AS id,
+                             p.barcode             AS product_barcode,
+                             pt.id                 AS product_template_id,
+                             pt.country_of_origin  AS product_country_of_origin,
+                             sml.lot_name          AS serial_number,
+                             sml.qr_code           AS qrcode,
+                             ip.week_number_str    AS week_number,
+                             ht.id                 AS ticket_id,
+                             htt.name ->> 'en_US'  AS ticket_type,
+                             hs.name ->> 'en_US'   AS ticket_stage,
+                             ht.create_date::DATE  AS ticket_create_date,
+                             ht.ticket_update_date AS ticket_write_date,
+                             partner.parent_id     AS parent_partner_id,
+                             ht.partner_id         AS partner_id,
+                             ht.partner_email,
+                             ht.partner_phone
             """
         )
 
@@ -106,18 +80,24 @@ class HelpdeskStockMoveLineReport(models.Model):
             "\n".join(join_) + "\n"
             if join_
             else """
-                FROM product_product product
-                     LEFT JOIN product_template AS product_tmpl
-                          ON (product.product_tmpl_id = product_tmpl.id AND product_tmpl.detailed_type = 'product')
-                     JOIN mv_helpdesk_ticket_product_moves AS ticket_product_moves
-                          ON (ticket_product_moves.product_id = product.id 
-                          AND ticket_product_moves.helpdesk_ticket_id IS NOT NULL)
-                     JOIN stock_move_line AS stock_ml
-                          ON (stock_ml.product_id = product.id AND stock_ml.id = ticket_product_moves.stock_move_line_id)
-                     LEFT JOIN inventory_period AS period ON (period.id = stock_ml.inventory_period_id)
-                     LEFT JOIN helpdesk_ticket AS ticket ON (ticket.id = ticket_product_moves.helpdesk_ticket_id)
-                     LEFT JOIN helpdesk_ticket_type AS ticket_type ON (ticket_type.id = ticket.ticket_type_id)
-                     LEFT JOIN helpdesk_stage AS ticket_stage ON (ticket_stage.id = ticket.stage_id)
+                FROM product_product p
+                     -- Join with product_template to get product details
+                         LEFT JOIN product_template AS pt ON (p.product_tmpl_id = pt.id AND pt.detailed_type = 'product')
+                    -- Join with mv_helpdesk_ticket_product_moves to get ticket details
+                         JOIN mv_helpdesk_ticket_product_moves AS tp ON (tp.product_id = p.id AND tp.helpdesk_ticket_id IS NOT NULL)
+                    -- Join with stock_move_line to get stock details
+                         JOIN stock_move_line AS sml ON (sml.product_id = p.id AND sml.id = tp.stock_move_line_id)
+                    -- Join with inventory_period to get inventory details
+                         LEFT JOIN inventory_period AS ip ON (ip.id = sml.inventory_period_id)
+                    -- Join with helpdesk_ticket to get ticket details
+                         LEFT JOIN helpdesk_ticket AS ht ON (ht.id = tp.helpdesk_ticket_id)
+                    -- Join with helpdesk_ticket_type to get ticket type
+                         LEFT JOIN helpdesk_ticket_type AS htt ON (htt.id = ht.ticket_type_id)
+                    -- Join with helpdesk_stage to get ticket stage
+                         LEFT JOIN helpdesk_stage AS hs ON (hs.id = ht.stage_id)
+                    -- Join with res_partner to get partner details
+                        JOIN res_partner AS partner ON (partner.id = ht.partner_id)
+                WHERE ht.id IS NOT NULL
             """
         )
 
@@ -127,18 +107,50 @@ class HelpdeskStockMoveLineReport(models.Model):
             if group_by
             else """
                 GROUP BY product_barcode,
-                              product_template_id,
-                              product_country_of_origin,
-                              serial_number,
-                              qrcode,
-                              week_number,
-                              ticket_id,
-                              ticket_type,
-                              ticket_stage,
-                              ticket_create_date,
-                              ticket_write_date,
-                              ticket.partner_id,
-                              ticket.partner_email,
-                              ticket.partner_phone
+                                  product_template_id,
+                                  product_country_of_origin,
+                                  serial_number,
+                                  qrcode,
+                                  week_number,
+                                  ticket_id,
+                                  ticket_type,
+                                  ticket_stage,
+                                  ticket_create_date,
+                                  ticket_write_date,
+                                  parent_partner_id,
+                                  ht.partner_id,
+                                  ht.partner_email,
+                                  ht.partner_phone
             """
         )
+
+    # ==================================
+    # COMPUTE Methods
+    # ==================================
+
+    @api.depends("product_template_id")
+    def _compute_by_product(self):
+        size_lop = "Size lốp"
+        ma_gai = "Mã gai"
+
+        for record in self:
+            if record.product_template_id:
+                # Fetch all attribute values for the product template
+                attribute_values = self.env["product.template.attribute.value"].search(
+                    [
+                        ("product_tmpl_id", "=", record.product_template_id.id),
+                        ("attribute_id.name", "in", [size_lop, ma_gai]),
+                    ]
+                )
+
+                # Extract attribute values for "Size lốp" and "Mã gai"
+                size_lop_value = attribute_values.filtered(
+                    lambda r: r.attribute_id.name == size_lop
+                ).product_attribute_value_id.name
+                ma_gai_value = attribute_values.filtered(
+                    lambda r: r.attribute_id.name == ma_gai
+                ).product_attribute_value_id.name
+
+                # Update the record fields
+                record.product_att_size_lop = size_lop_value
+                record.product_att_ma_gai = ma_gai_value
