@@ -4,14 +4,10 @@ from odoo import api, fields, models, _
 
 class MvPromoteDiscountLine(models.Model):
     _name = "mv.promote.discount.line"
-    _description = _("Moveo PLus Promote Discount Line (%)")
+    _description = _("MOVEO PLUS Promote Discount Line (%)")
     _order = "promote_discount"
     _rec_name = "promote_discount"
     _rec_names_search = ["promote_discount"]
-
-    @api.model
-    def name_search(self, name, args=None, operator="ilike", limit=100):
-        return super().name_search(name, args, operator, limit)
 
     @api.model
     def name_get(self):
@@ -22,7 +18,7 @@ class MvPromoteDiscountLine(models.Model):
                 res.append((item.id, name))
         return res
 
-    parent_id = fields.Many2one("mv.discount", "Compute Discount", readonly=True)
+    parent_id = fields.Many2one("mv.discount", readonly=True)
     pricelist_id = fields.Many2one("product.pricelist", "Chính sách giá")
     quantity_minimum = fields.Integer("Số lượng Min")
     quantity_maximum = fields.Integer("Số lượng Max")

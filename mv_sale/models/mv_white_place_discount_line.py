@@ -4,7 +4,7 @@ from odoo import api, fields, models, _
 
 class MvWhitePlaceDiscountLine(models.Model):
     _name = "mv.white.place.discount.line"
-    _description = _("Moveo PLus White Places Discount Line (%)")
+    _description = _("MOVE PLUS White Places Discount Line (%)")
     _order = "discount"
     _rec_name = "discount"
     _rec_names_search = ["discount"]

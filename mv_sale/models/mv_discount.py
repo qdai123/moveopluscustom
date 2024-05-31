@@ -3,9 +3,9 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 
-class MvDiscount(models.Model):
+class MvDiscountPolicy(models.Model):
     _name = "mv.discount"
-    _description = _("Moveo PLus Discount (%)")
+    _description = _("MOVEO PLUS Discount Policy")
 
     active = fields.Boolean("Active", default=True)
     name = fields.Char("Chính sách chiết khấu")
@@ -13,7 +13,11 @@ class MvDiscount(models.Model):
     level_promote_apply = fields.Integer("Level")
     line_promote_ids = fields.One2many("mv.promote.discount.line", "parent_id")
     line_white_place_ids = fields.One2many("mv.white.place.discount.line", "parent_id")
-    partner_ids = fields.One2many("mv.discount.partner", "parent_id")
+    partner_ids = fields.One2many(
+        "mv.discount.partner",
+        "parent_id",
+        domain=[("partner_id.is_agency", "=", True)],
+    )
 
     @api.constrains("line_ids", "level_promote_apply")
     def validate_out_of_current_level(self):

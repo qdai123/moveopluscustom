@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- Model: MOVEO PLUS Warranty Discount Policy -->
+	<record model="ir.ui.view" id="mv_warranty_discount_policy_tree_view">
+		<field name="name">mv.warranty.discount.policy.tree</field>
+		<field name="model">mv.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false">
+				<field name="name" string="Chính sách"/>
+				<field name="date_from" string="Ngày bắt đầu"/>
+				<field name="date_to" string="Ngày kết thúc"/>
+			</tree>
+		</field>
+	</record>
+
+	<record model="ir.ui.view" id="mv_warranty_discount_policy_form_view">
+		<field name="name">mv.warranty.discount.policy.form</field>
+		<field name="model">mv.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<form string="MOVEO PLUS Warranty Discount Policy FORM" duplicate="false">
+				<sheet string="Warranty Discount Policy Form">
+					<field name="active" invisible="True"/>
+					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<group>
+						<group>
+							<field name="name" string="Chính sách" options="{'line_breaks': False}" widget="text"/>
+						</group>
+						<group/>
+						<group>
+							<field name="date_from" string="Bắt đầu"/>
+							<field name="date_to" string="Kết thúc"/>
+						</group>
+						<group>
+							<field name="product_attribute_ids" string="Chọn thuộc tính áp dụng" widget="many2many_tags" options="{'not_delete': True}"/>
+						</group>
+					</group>
+					<notebook>
+						<page string="Cấu hình">
+							<field mode="tree" name="line_ids" nolabel="1" context="{'default_warranty_discount_policy_id': id}">
+								<tree editable="bottom">
+									<field name="warranty_discount_policy_id" column_invisible="True"/>
+									<field name="currency_id" column_invisible="True"/>
+									<field name="quantity_from"/>
+									<field name="quantity_to"/>
+									<field name="discount_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+									<field name="explanation"/>
+								</tree>
+							</field>
+						</page>
+						<page string="Khách hàng / Đại lý">
+							<field mode="tree" name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_id': id}">
+								<tree default_order="level" editable="bottom">
+									<field name="warranty_discount_policy_id" column_invisible="True"/>
+									<field name="partner_id" string="Khách hàng / Đại lý"/>
+									<field name="date" string="Ngày hiệu lực"/>
+									<field name="level" string="Cấp bậc"/>
+									<field name="min_debt"/>
+									<field name="max_debt"/>
+									<field name="number_debt"/>
+								</tree>
+							</field>
+						</page>
+					</notebook>
+				</sheet>
+			</form>
+		</field>
+	</record>
+
+	<record id="mv_warranty_discount_policy_action_view" model="ir.actions.act_window">
+		<field name="name">Chiết khấu kích hoạt</field>
+		<field name="res_model">mv.warranty.discount.policy</field>
+		<field name="view_mode">tree,form</field>
+	</record>
+</odoo>

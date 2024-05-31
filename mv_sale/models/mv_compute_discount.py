@@ -172,7 +172,7 @@ class MvComputeDiscount(models.Model):
                 ("is_order_returns", "=", False),
                 ("state", "=", "sale"),
                 ("date_invoice", ">=", date_from),
-                ("date_invoice", "<=", date_to),
+                ("date_invoice", "<", date_to + relativedelta(days=1)),
             ]
         )
 

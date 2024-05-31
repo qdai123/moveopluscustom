@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="mv_sale_inherit_attribute_tree_view" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.attribute.tree</field>
+		<field name="model">product.attribute</field>
+		<field name="inherit_id" ref="product.attribute_tree_view"/>
+		<field name="priority">30</field>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='name']" position="before">
+				<header>
+					<button string="Generate Code" name="action_generate_attribute_code" type="object" groups="base.group_system"/>
+				</header>
+			</xpath>
+			<xpath expr="//field[@name='name']" position="after">
+				<field name="attribute_code" required="True"/>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="mv_sale_inherit_product_attribute_view_form" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.product.attribute.form</field>
+		<field name="model">product.attribute</field>
+		<field name="inherit_id" ref="product.product_attribute_view_form"/>
+		<field name="priority">30</field>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='name']" position="after">
+				<field name="attribute_code"/>
+			</xpath>
+		</field>
+	</record>
+</odoo>

@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 {
     "name": "MV Sale",
-    "description": """
-        - Discount Agency
-    """,
+    "description": "Discount Agency",
     "category": "",
     "version": "17.0",
     "author": "",
     "depends": [
         # Odoo
-        "website_sale_loyalty",
         "account",
+        "website_sale_loyalty",
         "sale",
         "sale_stock",
         # Biz
@@ -28,7 +26,9 @@
         # VIEWS
         "views/mv_discount_views.xml",
         "views/mv_promote_discount_line_views.xml",
+        "views/mv_warranty_discount_policy_views.xml",
         "views/mv_white_place_discount_line_views.xml",
+        "views/product_attribute_views.xml",
         "views/res_partner_views.xml",
         "views/sale_order_views.xml",
         "views/mv_compute_discount_view.xml",
@@ -40,6 +40,8 @@
         "wizard/mv_wizard_discount_views.xml",
         "wizard/mv_report_discount_views.xml",
         "wizard/mv_wizard_promote_discount_line_views.xml",
+        # MENU
+        "views/menus.xml",
     ],
     "assets": {
         "web.assets_frontend": [
