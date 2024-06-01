@@ -20,7 +20,7 @@ class ResPartner(models.Model):
     discount_bank_guarantee = fields.Float(copy=False)
 
     # COMPUTE Fields:
-    sale_mv_ids = fields.One2many("sale.order", "partner_id", "Discount Sales Order")
+    sale_mv_ids = fields.Many2many("sale.order", string="Discount Sales Order")
     discount_id = fields.Many2one(
         "mv.discount",
         string="Chiết khấu",
@@ -41,11 +41,12 @@ class ResPartner(models.Model):
     amount = fields.Integer("Tiền chiết khấu", copy=False)
     amount_currency = fields.Monetary(
         string="Tiền chiết khấu hiện có",
-        compute="_compute_sale_order_ids",
-        store=True,
+        copy=False,
+        readonly=True,
+        currency_field="currency_id",
     )
     total_so_bonus_order = fields.Monetary(
-        "Tổng tiền chiết khấu", compute="_compute_sale_order_ids", store=True
+        compute="_compute_sale_order_ids", store=True
     )
 
     # =================================
@@ -78,11 +79,7 @@ class ResPartner(models.Model):
 
     @api.depends("sale_order_ids")
     def _compute_sale_order_ids(self):
-        for record in self.filtered(
-            lambda partner: partner.is_agency
-            and partner.discount_id
-            and partner.sale_order_ids
-        ):
+        for record in self.filtered(lambda partner: partner.is_agency):
             record.sale_mv_ids = None
             orders_discount = [
                 order
@@ -95,7 +92,10 @@ class ResPartner(models.Model):
             record.total_so_bonus_order = reduce(
                 operator.add, (order.bonus_order for order in orders_discount), 0
             )
-            record.amount_currency = record.total_so_bonus_order
+            record.amount_currency = (
+                sum(line.total_money for line in record.compute_discount_line_ids)
+                - record.total_so_bonus_order
+            )
 
     @api.onchange("discount_id")
     def _onchange_discount_id(self):
@@ -117,3 +117,29 @@ class ResPartner(models.Model):
     @api.onchange("bank_guarantee")
     def _onchange_bank_guarantee(self):
         self.discount_bank_guarantee = 0
+
+    # =================================
+    # ACTION Methods
+    # =================================
+
+    def action_update_discount_amount(self):
+        self.ensure_one()
+        if self.is_agency:
+            if self._has_order([("bonus_order", ">", 0)]):
+                orders_discount = self.env["sale.order"].search(
+                    [
+                        ("partner_id", "=", self.id),
+                        ("bonus_order", ">", 0),
+                        ("state", "in", ["sent", "sale"]),
+                    ]
+                )
+                if orders_discount:
+                    self.sale_mv_ids = [(6, 0, [order.id for order in orders_discount])]
+                    self.total_so_bonus_order = sum(
+                        order.bonus_order for order in orders_discount
+                    )
+
+            self.amount_currency = (
+                sum(line.total_money for line in self.compute_discount_line_ids)
+                - self.total_so_bonus_order
+            )

@@ -6,8 +6,8 @@ class MvDiscountPolicyPartner(models.Model):
     _name = _description = "mv.discount.partner"
     _rec_name = "partner_id"
 
-    date = fields.Date("Date Effective", default=fields.Date.today().replace(day=1))
-    level = fields.Integer("Level", default=0)
+    date = fields.Date("Ngày hiệu lực", default=fields.Date.today().replace(day=1))
+    level = fields.Integer("Cấp bậc", default=0)
     min_debt = fields.Integer("Min Debt", default=0)
     max_debt = fields.Integer("Max Debt", default=0)
     number_debt = fields.Float("Ratio Debt", default=0)
@@ -20,7 +20,7 @@ class MvDiscountPolicyPartner(models.Model):
     )
     warranty_discount_policy_id = fields.Many2one(
         "mv.warranty.discount.policy",
-        "Chính sách chiết khấu bảo hành",
+        "Chính sách chiết khấu kích hoạt",
         domain=[("active", "=", True)],
         help="Parent Model: mv.warranty.discount.policy",
     )
@@ -32,7 +32,9 @@ class MvDiscountPolicyPartner(models.Model):
     )
     partner_agency = fields.Boolean(help="Make sure this is an agency")
     partner_white_agency = fields.Boolean(help="Make sure this is a white agency")
-    needs_update = fields.Boolean(help="Warning: This record needs to be updated")
+    needs_update = fields.Boolean(
+        default=False, help="Warning: This record needs to be updated"
+    )
 
     _sql_constraints = [
         (

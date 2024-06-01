@@ -2,104 +2,31 @@
 <odoo>
 	<record id="mv_discount_partner_form_view" model="ir.ui.view">
 		<field name="name">mv.discount.partner.form</field>
-		<field name="model">res.partner</field>
-		<field name="inherit_id" ref="base.view_partner_form"/>
+		<field name="model">mv.discount.partner</field>
 		<field name="arch" type="xml">
-			<xpath expr="//notebook" position="inside">
-				<page string="Chiết khấu" name="page_partner_discount_info">
+			<form string="MOVEO PLUS Discount Partner FORM">
+				<field name="needs_update" invisible="True"/>
+				<sheet>
 					<group>
 						<group>
-							<field name="amount" invisible="True"/>
-							<field name="amount_currency" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-							<field name="is_agency"/>
-							<field name="is_white_agency"/>
+							<field name="partner_id" options="{'no_open': True}"/>
+							<field name="partner_agency" invisible="True"/>
+							<field name="partner_white_agency" invisible="True"/>
+							<field name="level"/>
 						</group>
-						<group/>
 						<group>
-							<label for="bank_guarantee"/>
-							<div class="o_row">
-								<field name="bank_guarantee"/>
-								-
-								<field name="discount_bank_guarantee" invisible="not bank_guarantee"/>
-							</div>
+							<field name="date"/>
+							<field name="parent_id" readonly="True" options="{'no_open': True}"/>
+							<field name="warranty_discount_policy_id" readonly="True" options="{'no_open': True}"/>
 						</group>
-					</group>
-					<group>
 						<group>
-							<label for="discount_id"/>
-							<div class="o_row">
-								<field class="oe_inline" name="discount_id" required="is_agency" options="{'no_open': True}"/>
-							</div>
-							<label for="warranty_discount_policy_id"/>
-							<div class="o_row">
-								<field class="oe_inline" name="warranty_discount_policy_id" options="{'no_open': True}"/>
-							</div>
-						</group>
-					</group>
-					<field mode="tree" name="line_ids" nolabel="1" readonly="True" options="{'no_open': True, 'no_create_edit': True}">
-						<tree>
-							<field name="parent_id" string="Chính sách" options="{'no_open': True}"/>
-							<field name="date" string="Ngày hiệu lực"/>
-							<field name="level" string="Cấp bậc"/>
 							<field name="min_debt"/>
 							<field name="max_debt"/>
 							<field name="number_debt"/>
-							<button string="Cập nhật chính sách"
-							        name="action_update_partner_discount"
-							        type="object"
-							        class="btn btn-info btn-sm"
-							        groups="sales_team.group_sale_salesman"
-							        confirm="Bạn muốn cập nhật chính sách cho đơn vị này?"/>
-						</tree>
-					</field>
-				</page>
-				<page string="Chiết khấu chi tiết" name="page_partner_discount_detail" invisible="not is_agency">
-					<field mode="tree" name="compute_discount_line_ids" nolabel="True" readonly="True">
-						<tree default_order="id desc">
-							<field name="partner_sales_state" decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']" decoration-warning="partner_sales_state == 'imqualified'" widget="badge" optional="hidden"/>
-							<field name="name" string="Tháng/Năm"/>
-							<field name="quantity" string="Số lượng lốp đã bán"/>
-							<field name="quantity_from" optional="hidden"/>
-							<field name="quantity_to" optional="hidden"/>
-							<field name="amount_total" string="Doanh thu" widget="monetary" sum="Total Amount of Month"/>
-							<field name="is_month" column_invisible="True"/>
-							<field name="month" column_invisible="True"/>
-							<field name="month_money" string="CK Tháng" widget="monetary" sum="Discount Month"/>
-							<field name="is_two_month" column_invisible="True"/>
-							<field name="amount_two_month" column_invisible="True"/>
-							<field name="two_month" column_invisible="True"/>
-							<field name="two_money" string="CK 2 Tháng" widget="monetary" sum="Discount Two Months"/>
-							<field name="is_quarter" column_invisible="True"/>
-							<field name="quarter" column_invisible="True"/>
-							<field name="quarter_money" string="CK Quý" widget="monetary" sum="Discount quarter"/>
-							<field name="is_year" column_invisible="True"/>
-							<field name="year" column_invisible="True"/>
-							<field name="year_money" string="CK Năm" widget="monetary" sum="Discount year"/>
-							<field name="promote_discount_percentage" column_invisible="True"/>
-							<field name="promote_discount_money" string="CK Khuyến Khích" widget="monetary" sum="Promote Discount"/>
-							<field name="total_money" string="Tổng tiền" widget="monetary" sum="Total money"/>
-							<field name="currency_id" column_invisible="True"/>
-						</tree>
-					</field>
-				</page>
-				<page string="Đơn hàng chiết khấu" name="page_partner_discount_orders" invisible="not is_agency">
-					<field mode="tree" name="sale_mv_ids" nolabel="1" options="{'no_open': True}">
-						<tree default_order="id desc" create="false" edit="false" delete="false">
-							<field name="name" string="Đơn hàng đã chiết khấu"/>
-							<field name="bonus_order" string="Tền đã chiết khấu" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-							<field name="state" string="Trạng thái" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'sale'"/>
-							<field name="currency_id" column_invisible="True"/>
-						</tree>
-					</field>
-					<group name="total_group" col="6" class="mt-2 mt-md-0">
-						<group colspan="4"/>
-						<group class="oe_subtotal_footer" colspan="2" name="sale_bonus_order_total">
-							<field name="total_so_bonus_order" colspan="2" readonly="True"/>
 						</group>
-						<div class="clearfix"/>
 					</group>
-				</page>
-			</xpath>
+				</sheet>
+			</form>
 		</field>
 	</record>
 </odoo>

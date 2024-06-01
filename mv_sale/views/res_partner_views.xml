@@ -7,15 +7,11 @@
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
 				<page string="Chiết khấu" name="page_partner_discount_info">
+					<field name="amount" invisible="True"/>
 					<group>
 						<group>
-							<field name="amount" invisible="True"/>
-							<field name="amount_currency" widget="monetary" options="{'currency_field': 'currency_id'}"/>
 							<field name="is_agency"/>
 							<field name="is_white_agency"/>
-						</group>
-						<group/>
-						<group>
 							<label for="bank_guarantee"/>
 							<div class="o_row">
 								<field name="bank_guarantee"/>
@@ -23,8 +19,15 @@
 								<field name="discount_bank_guarantee" invisible="not bank_guarantee"/>
 							</div>
 						</group>
+						<group invisible="not is_agency">
+							<label for="amount_currency"/>
+							<div class="o_row">
+								<field name="amount_currency"/>
+                                <button string="Cập nhật số tiền" class="btn btn-link" type="object" name="action_update_discount_amount" invisible="not is_agency"/>
+                            </div>
+						</group>
 					</group>
-					<group>
+					<group invisible="not is_agency">
 						<group>
 							<label for="discount_id"/>
 							<div class="o_row">
@@ -36,11 +39,13 @@
 							</div>
 						</group>
 					</group>
-					<field mode="tree" name="line_ids" nolabel="1" readonly="True" options="{'no_open': True, 'no_create_edit': True}">
-						<tree>
-							<field name="parent_id" string="Chính sách" options="{'no_open': True}"/>
-							<field name="date" string="Ngày hiệu lực"/>
-							<field name="level" string="Cấp bậc"/>
+					<field name="line_ids" nolabel="1" readonly="True" context="{'from_view_ref': 'mv_sale.mv_discount_partner_form_view'}" options="{'no_open': True, 'no_create_edit': True}" invisible="not is_agency">
+						<tree decoration-warning="needs_update">
+							<field name="needs_update" column_invisible="True"/>
+							<field name="parent_id" column_invisible="True"/>
+							<field name="warranty_discount_policy_id" column_invisible="True"/>
+							<field name="date"/>
+							<field name="level"/>
 							<field name="min_debt"/>
 							<field name="max_debt"/>
 							<field name="number_debt"/>
@@ -54,7 +59,7 @@
 					</field>
 				</page>
 				<page string="Chiết khấu chi tiết" name="page_partner_discount_detail" invisible="not is_agency">
-					<field mode="tree" name="compute_discount_line_ids" nolabel="True" readonly="True">
+					<field name="compute_discount_line_ids" nolabel="1" readonly="True" options="{'no_open': True}">
 						<tree default_order="id desc">
 							<field name="partner_sales_state" decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']" decoration-warning="partner_sales_state == 'imqualified'" widget="badge" optional="hidden"/>
 							<field name="name" string="Tháng/Năm"/>
@@ -83,10 +88,10 @@
 					</field>
 				</page>
 				<page string="Đơn hàng chiết khấu" name="page_partner_discount_orders" invisible="not is_agency">
-					<field mode="tree" name="sale_mv_ids" nolabel="1" options="{'no_open': True}">
+					<field name="sale_mv_ids" nolabel="1" readonly="True" options="{'no_open': True}">
 						<tree default_order="id desc" create="false" edit="false" delete="false">
 							<field name="name" string="Đơn hàng"/>
-							<field name="bonus_order" string="Tền đã chiết khấu" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+							<field name="bonus_order" string="Tiền chiết khấu" widget="monetary" options="{'currency_field': 'currency_id'}"/>
 							<field name="state" string="Trạng thái" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'sale'"/>
 							<field name="currency_id" column_invisible="True"/>
 						</tree>
@@ -94,7 +99,7 @@
 					<group name="total_group" col="6" class="mt-2 mt-md-0">
 						<group colspan="4"/>
 						<group class="oe_subtotal_footer" colspan="2" name="sale_bonus_order_total">
-							<field name="total_so_bonus_order" colspan="2" readonly="True"/>
+							<field name="total_so_bonus_order" string="Tổng tiền chiết khấu" colspan="2" readonly="True"/>
 						</group>
 						<div class="clearfix"/>
 					</group>
