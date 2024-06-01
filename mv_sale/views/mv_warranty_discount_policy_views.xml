@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- Model: MOVEO PLUS Warranty Discount Policy -->
+	<!-- Model: MOVEO PLUS Warranty Discount Policy (Configuration) -->
+
 	<record model="ir.ui.view" id="mv_warranty_discount_policy_tree_view">
 		<field name="name">mv.warranty.discount.policy.tree</field>
 		<field name="model">mv.warranty.discount.policy</field>
@@ -31,11 +32,11 @@
 							<field name="date_to" string="Kết thúc"/>
 						</group>
 						<group>
-							<field name="product_attribute_ids" string="Chọn thuộc tính áp dụng" widget="many2many_tags" options="{'not_delete': True}"/>
+							<field name="product_attribute_ids" string="Chọn thuộc tính áp dụng" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" options="{'not_delete': True}"/>
 						</group>
 					</group>
 					<notebook>
-						<page string="Cấu hình">
+						<page string="Cấu hình chính sách" name="page_conditions_config">
 							<field mode="tree" name="line_ids" nolabel="1" context="{'default_warranty_discount_policy_id': id}">
 								<tree editable="bottom">
 									<field name="warranty_discount_policy_id" column_invisible="True"/>
@@ -47,11 +48,11 @@
 								</tree>
 							</field>
 						</page>
-						<page string="Khách hàng / Đại lý">
+						<page string="Khách hàng / Đại lý" name="page_partner_retailer">
 							<field mode="tree" name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_id': id}">
-								<tree default_order="level" editable="bottom">
+								<tree default_order="level" editable="bottom" limit="80">
 									<field name="warranty_discount_policy_id" column_invisible="True"/>
-									<field name="partner_id" string="Khách hàng / Đại lý"/>
+									<field name="partner_id" string="Khách hàng / Đại lý" readonly="True"/>
 									<field name="date" string="Ngày hiệu lực"/>
 									<field name="level" string="Cấp bậc"/>
 									<field name="min_debt"/>
@@ -66,9 +67,25 @@
 		</field>
 	</record>
 
+	<record model="ir.ui.view" id="mv_warranty_discount_policy_search_view">
+		<field name="name">mv.warranty.discount.policy.search</field>
+		<field name="model">mv.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<search string="MOVEO PLUS Warranty Discount Policy SEARCH">
+				<field name="name" string="Chính sách"/>
+				<separator/>
+                <filter string="Current Month" name="filter_current_month" domain="[('date_from', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('date_from', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
+				<separator/>
+				<filter string="Archived" name="inactive" domain="[('active','=',False)]"/>
+			</search>
+		</field>
+	</record>
+
 	<record id="mv_warranty_discount_policy_action_view" model="ir.actions.act_window">
 		<field name="name">Chiết khấu kích hoạt</field>
 		<field name="res_model">mv.warranty.discount.policy</field>
 		<field name="view_mode">tree,form</field>
+		<field name="view_id" ref="mv_warranty_discount_policy_tree_view"/>
+		<field name="search_view_id" ref="mv_warranty_discount_policy_search_view"/>
 	</record>
 </odoo>

@@ -15,3 +15,4 @@ access_discount_report,discount.report,model_discount_report,base.group_user,1,1
 access_mv_wizard_discount,mv.wizard.discount,model_mv_wizard_discount,base.group_user,1,1,1,1
 access_mv_report_discount,mv.report.discount,model_mv_report_discount,base.group_user,1,1,1,1
 access_mv_wizard_promote_discount_line,mv.wizard.promote.discount.line,model_mv_wizard_promote_discount_line,base.group_user,1,1,1,1
+access_mv_wizard_update_partner_discount,mv.wizard.update.partner.discount,model_mv_wizard_update_partner_discount,base.group_user,1,1,1,1

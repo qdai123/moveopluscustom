@@ -2,7 +2,7 @@
 import base64
 import calendar
 import io
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 try:
@@ -109,7 +109,9 @@ class MvComputeDiscount(models.Model):
         readonly=True,
     )
     line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
-    report_date = fields.Date(compute="_compute_report_date_by_month_year", store=True)
+    report_date = fields.Datetime(
+        compute="_compute_report_date_by_month_year", store=True
+    )
     level_promote_apply_for = fields.Integer(
         "Bậc áp dụng (Khuyến khích)", compute="_get_promote_discount_level"
     )
@@ -126,14 +128,14 @@ class MvComputeDiscount(models.Model):
     def _compute_report_date_by_month_year(self):
         for rec in self:
             if rec.month and rec.year:
-                rec.report_date = date.today().replace(
+                rec.report_date = datetime.now().replace(
                     day=1, month=int(rec.month), year=int(rec.year)
                 )
             else:
-                rec.report_date = rec.create_date.date().replace(
+                rec.report_date = rec.create_date.replace(
                     day=1,
-                    month=int(rec.create_date.date().month),
-                    year=int(rec.create_date.date().year),
+                    month=int(rec.create_date.month),
+                    year=int(rec.create_date.year),
                 )
 
     # =================================
@@ -162,7 +164,7 @@ class MvComputeDiscount(models.Model):
         """
         self.ensure_one()
 
-        date_from, date_to = self._get_dates(self.month, self.year)
+        date_from, date_to = self._get_dates(self.report_date, self.month, self.year)
         self.line_ids = False
         list_line_ids = []
 
@@ -172,7 +174,7 @@ class MvComputeDiscount(models.Model):
                 ("is_order_returns", "=", False),
                 ("state", "=", "sale"),
                 ("date_invoice", ">=", date_from),
-                ("date_invoice", "<", date_to + relativedelta(days=1)),
+                ("date_invoice", "<", date_to),
             ]
         )
 
@@ -501,7 +503,9 @@ class MvComputeDiscount(models.Model):
     # HELPER / PRIVATE Methods
     # =================================
 
-    def _get_dates(self, month, year):
+    from datetime import datetime, timedelta
+
+    def _get_dates(self, report_date, month, year):
         """
         Computes the start and end dates of a given month and year.
 
@@ -514,12 +518,18 @@ class MvComputeDiscount(models.Model):
         """
         try:
             # Compute date_from
-            date_from = fields.Datetime.now().replace(
-                day=1, month=int(month), year=int(year), hour=0, minute=0, second=0
+            date_from = report_date.replace(
+                day=1,
+                month=int(month),
+                year=int(year),
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
 
             # Compute date_to by adding one month and then subtracting one day
-            date_to = date_from + relativedelta(months=1) - relativedelta(days=1)
+            date_to = date_from + relativedelta(months=1)
 
             return date_from, date_to
         except Exception as e:

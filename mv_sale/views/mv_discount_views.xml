@@ -1,41 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<record model="ir.ui.view" id="mv_discount_line_tree">
-		<field name="name">mv_discount_line_tree</field>
-		<field name="model">mv.discount.line</field>
-		<field name="arch" type="xml">
-			<tree string="MV Discount LIST">
-				<field name="level"/>
-				<field name="quantity_from"/>
-				<field name="quantity_to"/>
-				<field name="basic"/>
-				<field name="money"/>
-				<field name="month"/>
-				<field name="month_money"/>
-				<field name="two_month"/>
-				<field name="two_money"/>
-				<field name="quarter"/>
-				<field name="quarter_money"/>
-				<field name="year"/>
-				<field name="year_money"/>
-				<field name="total_discount"/>
-				<field name="total_money"/>
-				<field name="average"/>
-				<field name="min_debt"/>
-				<field name="max_debt"/>
-				<field name="number_debt"/>
-				<field name="discount_payment"/>
-				<field name="discount_guarantee"/>
-				<field name="total_all"/>
-			</tree>
-		</field>
-	</record>
-
+	<!-- Model: MOVEO PLUS Discount Policy (Configuration) -->
 	<record model="ir.ui.view" id="mv_discount_tree">
-		<field name="name">mv_discount_tree</field>
+		<field name="name">mv.discount.policy.tree</field>
 		<field name="model">mv.discount</field>
 		<field name="arch" type="xml">
-			<tree>
+			<tree string="MOVEO PLUS Discount LIST">
 				<field name="name"/>
 			</tree>
 		</field>
@@ -121,5 +91,37 @@
 		<field name="name">Chiết khấu đại lý</field>
 		<field name="res_model">mv.discount</field>
 		<field name="view_mode">tree,form</field>
+	</record>
+
+	<!-- Model: MOVEO PLUS Discount Policy Line (Configuration) -->
+	<record model="ir.ui.view" id="mv_discount_line_tree">
+		<field name="name">mv.discount.policy.line.tree</field>
+		<field name="model">mv.discount.line</field>
+		<field name="arch" type="xml">
+			<tree string="MOVEO PLUS Discount Line LIST">
+				<field name="level"/>
+				<field name="quantity_from"/>
+				<field name="quantity_to"/>
+				<field name="basic"/>
+				<field name="money"/>
+				<field name="month"/>
+				<field name="month_money"/>
+				<field name="two_month"/>
+				<field name="two_money"/>
+				<field name="quarter"/>
+				<field name="quarter_money"/>
+				<field name="year"/>
+				<field name="year_money"/>
+				<field name="total_discount"/>
+				<field name="total_money"/>
+				<field name="average"/>
+				<field name="min_debt"/>
+				<field name="max_debt"/>
+				<field name="number_debt"/>
+				<field name="discount_payment"/>
+				<field name="discount_guarantee"/>
+				<field name="total_all"/>
+			</tree>
+		</field>
 	</record>
 </odoo>

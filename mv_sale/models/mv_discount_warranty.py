@@ -42,7 +42,11 @@ class MvWarrantyDiscountPolicy(models.Model):
                     partner_ids = self.env["mv.discount.partner"].search(
                         [("partner_id.is_agency", "=", True)]
                     )
-                    record.partner_ids = [(6, 0, partner_ids.ids)]
+                    for partner in partner_ids:
+                        if not partner.warranty_discount_policy_id:
+                            partner.sudo().write(
+                                {"warranty_discount_policy_id": record.id}
+                            )
 
         return res
 

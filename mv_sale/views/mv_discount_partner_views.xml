@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<record id="view_partner_form_mv_sale" model="ir.ui.view">
-		<field name="name">view_partner_form_mv_sale</field>
+	<record id="mv_discount_partner_form_view" model="ir.ui.view">
+		<field name="name">mv.discount.partner.form</field>
 		<field name="model">res.partner</field>
 		<field name="inherit_id" ref="base.view_partner_form"/>
 		<field name="arch" type="xml">
@@ -85,7 +85,7 @@
 				<page string="Đơn hàng chiết khấu" name="page_partner_discount_orders" invisible="not is_agency">
 					<field mode="tree" name="sale_mv_ids" nolabel="1" options="{'no_open': True}">
 						<tree default_order="id desc" create="false" edit="false" delete="false">
-							<field name="name" string="Đơn hàng"/>
+							<field name="name" string="Đơn hàng đã chiết khấu"/>
 							<field name="bonus_order" string="Tền đã chiết khấu" widget="monetary" options="{'currency_field': 'currency_id'}"/>
 							<field name="state" string="Trạng thái" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'sale'"/>
 							<field name="currency_id" column_invisible="True"/>

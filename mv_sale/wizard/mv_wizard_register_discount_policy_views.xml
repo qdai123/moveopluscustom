@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mv_wizard_update_partner_discount_form_view" model="ir.ui.view">
+        <field name="name">mv.wizard.update.partner.discount.form</field>
+        <field name="model">mv.wizard.update.partner.discount</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="partner_id"/>
+                        <field name="date_effective"/>
+                        <field name="level"/>
+                    </group>
+                    <group>
+                        <field name="min_debt"/>
+                        <field name="max_debt"/>
+                        <field name="number_debt"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_update" type="object" string="Cập nhật" class="btn btn-primary"/>
+                    <button special="cancel" string="Huỷ bỏ"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
