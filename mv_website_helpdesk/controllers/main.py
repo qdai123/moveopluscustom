@@ -115,12 +115,7 @@ class MVWebsiteHelpdesk(http.Controller):
 
     @http.route("/mv_website_helpdesk/check_scanned_code", type="json", auth="public")
     def check_scanned_code(
-        self,
-        codes,
-        ticket_type,
-        partner_email,
-        by_pass_check_partner_agency,
-        tel_activation,
+        self, codes, ticket_type, partner_email, tel_activation, by_pass_check
     ):
         Ticket = request.env["helpdesk.ticket"].sudo()
         error_messages = []
@@ -138,7 +133,7 @@ class MVWebsiteHelpdesk(http.Controller):
                 .sudo()
                 .search([("email", "=", partner_email)], limit=1)
             )
-            if not by_pass_check_partner_agency and partner and not partner.is_agency:
+            if not by_pass_check and partner and not partner.is_agency:
                 _logger.debug(
                     f"{IS_NOT_AGENCY}: Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
                 )
@@ -199,7 +194,15 @@ class MVWebsiteHelpdesk(http.Controller):
         # Convert the set back to a list
         error_messages = list(set(error_messages))
 
-        return error_messages
+        if not by_pass_check:
+            return error_messages
+        else:
+            code_input = []
+            if len(qrcodes) > 0:
+                code_input = qrcodes[0]
+            elif len(serial_numbers) > 0:
+                code_input = serial_numbers[0]
+            return code_input if not error_messages else error_messages
 
     def _validate_codes(self, codes, ticket_type, partner, error_messages, field_name):
         TicketProductMoves = request.env["mv.helpdesk.ticket.product.moves"].sudo()

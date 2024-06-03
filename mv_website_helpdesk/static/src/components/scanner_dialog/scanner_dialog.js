@@ -71,8 +71,8 @@ export class ScannerDialog extends Component {
                 codes: listCode,
                 ticket_type: $ticketType.val(),
                 partner_email: $partnerEmail.val(),
-                by_pass_check_partner_agency: true,
                 tel_activation: $telNumberActivation.val(),
+                by_pass_check: true,
             });
 
             if (!res || res.length === 0) return;
@@ -84,9 +84,10 @@ export class ScannerDialog extends Component {
                     });
                     return;
                 } else {
+                    const inputData = document.getElementById("codesInputByScanner");
                     // Use the state to store the codes instead of manipulating the DOM directly
-                    if (!this.codes.includes(keyName)) {
-                        this.codes += keyName + ",";
+                    if (!inputData.value.includes(res)) {
+                        inputData.value += res + ",";
                     }
                     this.beep(50, 1000, 200);
                 }
@@ -123,7 +124,8 @@ export class ScannerDialog extends Component {
     }
 
     async _confirm() {
-        const listCode = this._cleanAndConvertCodesToArray(this.codes);
+        const getData = $("#codesInputByScanner").val();
+        const listCode = this._cleanAndConvertCodesToArray(getData);
         return this.execButton(this.props.confirm(listCode));
     }
 
