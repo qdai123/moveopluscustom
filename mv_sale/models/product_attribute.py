@@ -23,10 +23,12 @@ def format_attribute_codes(text):
 class ProductAttribute(models.Model):
     _inherit = "product.attribute"
 
-    warranty_discount_policy_id = fields.Many2one(
+    warranty_discount_policy_ids = fields.Many2many(
         "mv.warranty.discount.policy",
-        "Chính sách chiết khấu kích hoạt",
-        domain=[("active", "=", True)],
+        "mv_warranty_discount_product_attribute_rel",
+        "mv_warranty_discount_policy_id",
+        "product_attribute_id",
+        string="Chính sách chiết khấu kích hoạt",
         help="Parent Model: mv.warranty.discount.policy",
     )
     attribute_code = fields.Char("Code", copy=False)

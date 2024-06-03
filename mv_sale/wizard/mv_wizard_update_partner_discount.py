@@ -9,10 +9,6 @@ class MVWizardUpdatePartnerDiscount(models.TransientModel):
     _name = _description = "mv.wizard.update.partner.discount"
 
     partner_id = fields.Many2one("res.partner", readonly=True)
-    discount_id = fields.Many2one("mv.discount", readonly=True)
-    warranty_discount_policy_id = fields.Many2one(
-        "mv.warranty.discount.policy", readonly=True
-    )
     date_effective = fields.Date("Date Effective")
     current_level = fields.Integer("Old Level", readonly=True)
     new_level = fields.Integer("Level")

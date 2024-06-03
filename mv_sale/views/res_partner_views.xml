@@ -22,8 +22,8 @@
 						<group invisible="not is_agency">
 							<label for="amount_currency"/>
 							<div class="o_row">
-								<field class="fw-bold" name="amount_currency" decoration-info="amount_currency > 0" decoration-muted="amount_currency == 0"/>
-                                <button string="Cập nhật số tiền" class="btn btn-link" type="object" name="action_update_discount_amount" invisible="not is_agency"/>
+								<field class="fw-bold" name="amount_currency" decoration-success="amount_currency > 0" decoration-muted="amount_currency == 0"/>
+                                <button string="Cập nhật số tiền" class="btn btn-primary btn-sm" type="object" name="action_update_discount_amount" invisible="not is_agency"/>
                             </div>
 						</group>
 					</group>
@@ -33,28 +33,25 @@
 							<div class="o_row">
 								<field class="oe_inline" name="discount_id" required="is_agency" options="{'no_open': True}"/>
 							</div>
-							<label for="warranty_discount_policy_id"/>
-							<div class="o_row">
-								<field class="oe_inline" name="warranty_discount_policy_id" options="{'no_open': True}"/>
-							</div>
+							<field name="warranty_discount_policy_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}"/>
 						</group>
 					</group>
 					<field name="line_ids" nolabel="1" readonly="True" context="{'from_view_ref': 'mv_sale.mv_discount_partner_form_view'}" options="{'no_open': True, 'no_create_edit': True}" invisible="not is_agency">
 						<tree decoration-warning="needs_update">
 							<field name="needs_update" column_invisible="True"/>
 							<field name="parent_id" column_invisible="True"/>
-							<field name="warranty_discount_policy_id" column_invisible="True"/>
+							<field name="warranty_discount_policy_ids" widget="many2many_tags" options="{'no_create_edit': True}" column_invisible="True"/>
 							<field name="date"/>
 							<field name="level"/>
 							<field name="min_debt"/>
 							<field name="max_debt"/>
 							<field name="number_debt"/>
-							<button string="Cập nhật chính sách"
+							<button string="Cập nhật thông tin"
 							        name="action_update_partner_discount"
 							        type="object"
-							        class="btn btn-info btn-sm"
+							        class="btn btn-secondary btn-sm"
 							        groups="sales_team.group_sale_salesman"
-							        confirm="Bạn muốn cập nhật chính sách cho đơn vị này?"/>
+							        confirm="Bạn muốn cập nhật thông tin cho đơn vị này?"/>
 						</tree>
 					</field>
 				</page>

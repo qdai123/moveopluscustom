@@ -6,10 +6,11 @@
 		<field name="name">mv.warranty.discount.policy.tree</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false">
+			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false" decoration-muted="policy_status == 'close'">
 				<field name="name" string="Chính sách"/>
 				<field name="date_from" string="Ngày bắt đầu"/>
 				<field name="date_to" string="Ngày kết thúc"/>
+				<field name="policy_status" string="Trạng thái" widget="badge" decoration-info="policy_status == 'open'" decoration-primary="policy_status == 'applying'" decoration-muted="policy_status == 'close'"/>
 			</tree>
 		</field>
 	</record>
@@ -19,13 +20,19 @@
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
 			<form string="MOVEO PLUS Warranty Discount Policy FORM" duplicate="false">
+				<header>
+					<button class="btn btn-primary" name="action_apply" type="object" string="Áp dụng" invisible="not id or policy_status != 'open'"/>
+					<button class="btn btn-primary" name="action_close" type="object" string="Kết thúc" invisible="not id or policy_status in ['open', 'close']"/>
+					<button class="btn btn-secondary" name="action_reset_to_open" type="object" string="Mở lại chính sách" invisible="not id or policy_status != 'close'"/>
+					<field name="policy_status" widget="statusbar" statusbar_visible="open"/>
+				</header>
 				<sheet string="Warranty Discount Policy Form">
 					<field name="active" invisible="True"/>
 					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
 					<div class="oe_title pe-0">
                         <h1 class="d-flex justify-content-between align-items-center">
                             <div class="d-flex w-100">
-                                <field name="name" options="{'line_breaks': False}" widget="text" class="o_task_name text-truncate w-md-75 w-100 pe-2" placeholder="Task Title..."/>
+                                <field name="name" options="{'line_breaks': False}" widget="text" class="text-truncate w-md-75 w-100 pe-2"/>
                             </div>
                         </h1>
                     </div>
@@ -50,7 +57,7 @@
 								</tree>
 							</field>
 						</page>
-						<page string="Rim" name="page_product_attribute_config">
+						<page string="Biến thể" name="page_product_attribute_config">
 							<label for="product_attribute_ids" string="Thuộc tính áp dụng"/>
 							<!-- Note: ('attribute_code', 'ilike', 'rim_') -->
 							<div class="o_row">
@@ -58,9 +65,8 @@
 							</div>
 						</page>
 						<page string="Khách hàng / Đại lý" name="page_partner_retailer">
-							<field name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_id': active_id}">
+							<field name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_ids': active_ids}">
 								<tree default_order="level" editable="bottom" limit="80">
-									<field name="warranty_discount_policy_id" column_invisible="True"/>
 									<field name="partner_id" string="Khách hàng / Đại lý"/>
 									<field name="date" string="Ngày hiệu lực"/>
 									<field name="level" string="Cấp bậc"/>
@@ -82,8 +88,7 @@
 		<field name="arch" type="xml">
 			<search string="MOVEO PLUS Warranty Discount Policy SEARCH">
 				<field name="name" string="Chính sách"/>
-				<separator/>
-                <filter string="Current Month" name="filter_current_month" domain="[('date_from', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('date_from', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
+				<filter string="Current Year" name="filter_current_year" domain="[('date_from', '&gt;=', (context_today()).strftime('%Y-01-01')), ('date_from', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
 				<separator/>
 				<filter string="Archived" name="inactive" domain="[('active','=',False)]"/>
 			</search>
@@ -96,5 +101,6 @@
 		<field name="view_mode">tree,form</field>
 		<field name="view_id" ref="mv_warranty_discount_policy_tree_view"/>
 		<field name="search_view_id" ref="mv_warranty_discount_policy_search_view"/>
+		<field name="context">{'search_default_filter_current_year': 1}</field>
 	</record>
 </odoo>

@@ -18,9 +18,12 @@ class MvDiscountPolicyPartner(models.Model):
         domain=[("active", "=", True)],
         help="Parent Model: mv.discount",
     )
-    warranty_discount_policy_id = fields.Many2one(
+    warranty_discount_policy_ids = fields.Many2many(
         "mv.warranty.discount.policy",
-        "Chính sách chiết khấu kích hoạt",
+        "mv_warranty_discount_policy_partner_rel",
+        "mv_warranty_discount_policy_id",
+        "mv_discount_partner_id",
+        string="Chính sách chiết khấu kích hoạt",
         domain=[("active", "=", True)],
         help="Parent Model: mv.warranty.discount.policy",
     )
@@ -38,8 +41,8 @@ class MvDiscountPolicyPartner(models.Model):
 
     _sql_constraints = [
         (
-            "parent_id_warranty_discount_policy_id_partner_id_unique",
-            "unique (parent_id, warranty_discount_policy_id, partner_id)",
+            "parent_id_partner_id_unique",
+            "unique (parent_id, partner_id)",
             "This Customer/Dealer has a registered Discount Policy, please check again.",
         ),
     ]
@@ -55,12 +58,14 @@ class MvDiscountPolicyPartner(models.Model):
             for record in self:
                 if (
                     record.parent_id
-                    and record.warranty_discount_policy_id
+                    and record.warranty_discount_policy_ids
                     and record.partner_id
                 ):
                     record.partner_id.sudo().write(
                         {
-                            "warranty_discount_policy_id": record.warranty_discount_policy_id
+                            "warranty_discount_policy_ids": [
+                                (6, 0, record.warranty_discount_policy_ids.ids)
+                            ]
                         }
                     )
 
@@ -73,7 +78,7 @@ class MvDiscountPolicyPartner(models.Model):
     def action_update_partner_discount(self):
         self.ensure_one()
         return {
-            "name": _(f"Cập nhật chính sách {self.parent_id.name}"),
+            "name": _(f"Cập nhật thông tin cho {self.partner_id.name}"),
             "type": "ir.actions.act_window",
             "res_model": "mv.wizard.update.partner.discount",
             "view_mode": "form",
@@ -82,8 +87,6 @@ class MvDiscountPolicyPartner(models.Model):
             ).id,
             "context": {
                 "default_partner_id": self.partner_id.id,
-                "default_discount_id": self.partner_id.discount_id.id,
-                "default_warranty_discount_policy_id": self.partner_id.warranty_discount_policy_id.id,
                 "default_date_effective": self.date,
                 "default_current_level": self.level,
                 "default_new_level": self.level,

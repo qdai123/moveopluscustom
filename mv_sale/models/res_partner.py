@@ -13,24 +13,24 @@ class ResPartner(models.Model):
         "mv.compute.discount.line", "partner_id", domain=[("parent_id", "!=", False)]
     )
     # =================================
-    is_agency = fields.Boolean("Đại lý", copy=False)
-    is_white_agency = fields.Boolean("Đại lý vùng trắng", copy=False)
+    is_agency = fields.Boolean("Đại lý", copy=False, tracking=True)
+    is_white_agency = fields.Boolean("Đại lý vùng trắng", copy=False, tracking=True)
 
-    bank_guarantee = fields.Boolean("Bảo lãnh ngân hàng", copy=False)
-    discount_bank_guarantee = fields.Float(copy=False)
+    bank_guarantee = fields.Boolean("Bảo lãnh ngân hàng", copy=False, tracking=True)
+    discount_bank_guarantee = fields.Float(copy=False, tracking=True)
 
     # COMPUTE Fields:
-    sale_mv_ids = fields.Many2many("sale.order", string="Discount Sales Order")
-    discount_id = fields.Many2one(
-        "mv.discount",
-        string="Chiết khấu",
+    sale_mv_ids = fields.Many2many("sale.order")
+    warranty_discount_policy_ids = fields.Many2many(
+        "mv.warranty.discount.policy",
+        string="Chính sách chiết khấu kích hoạt",
         compute="_compute_discount_ids",
         store=True,
         readonly=False,
     )
-    warranty_discount_policy_id = fields.Many2one(
-        "mv.warranty.discount.policy",
-        string="Chiết khấu kích hoạt",
+    discount_id = fields.Many2one(
+        "mv.discount",
+        "Chiết khấu",
         compute="_compute_discount_ids",
         store=True,
         readonly=False,
@@ -67,15 +67,13 @@ class ResPartner(models.Model):
                 discount_line_ids[0].parent_id.id if discount_line_ids else False
             )
 
-            # Compute warranty_discount_policy_id
+            # Compute warranty_discount_policy_ids
             warranty_line_ids = [
-                line for line in record.line_ids if line.warranty_discount_policy_id
+                [(6, 0, line.warranty_discount_policy_ids.ids)]
+                for line in record.line_ids
+                if len(line.warranty_discount_policy_ids) > 0
             ]
-            record.warranty_discount_policy_id = (
-                warranty_line_ids[0].warranty_discount_policy_id.id
-                if warranty_line_ids
-                else False
-            )
+            record.warranty_discount_policy_ids = warranty_line_ids
 
     @api.depends("sale_order_ids")
     def _compute_sale_order_ids(self):
@@ -103,9 +101,9 @@ class ResPartner(models.Model):
             for line in self.line_ids.filtered(lambda r: r.partner_id.id == self.id):
                 line.write({"needs_update": True})
 
-    @api.onchange("warranty_discount_policy_id")
+    @api.onchange("warranty_discount_policy_ids")
     def _onchange_warranty_discount_policy_id(self):
-        if self.warranty_discount_policy_id:
+        if self.warranty_discount_policy_ids:
             for line in self.line_ids.filtered(lambda r: r.partner_id.id == self.id):
                 line.write({"needs_update": True})
 

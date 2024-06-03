@@ -8,6 +8,7 @@ from odoo.exceptions import ValidationError
 class MvWarrantyDiscountPolicy(models.Model):
     _name = "mv.warranty.discount.policy"
     _description = _("MOVEO PLUS Warranty Discount Policy")
+    _order = "date_from desc, date_to desc"
 
     active = fields.Boolean("Active", default=True)
     name = fields.Char(compute="_compute_name", store=True, readonly=False)
@@ -18,35 +19,40 @@ class MvWarrantyDiscountPolicy(models.Model):
         )
         - timedelta(days=1)
     )
-    product_attribute_ids = fields.One2many(
-        "product.attribute", "warranty_discount_policy_id"
+    policy_status = fields.Selection(
+        selection=[
+            ("open", "Mới"),
+            ("applying", "Đang Áp Dụng"),
+            ("close", "Đóng"),
+        ],
+        string="Status",
+        default="open",
     )
+    product_attribute_ids = fields.Many2many("product.attribute")
     line_ids = fields.One2many(
         "mv.warranty.discount.policy.line", "warranty_discount_policy_id"
     )
-    partner_ids = fields.One2many(
-        "mv.discount.partner",
-        "warranty_discount_policy_id",
-        domain=[("partner_id.is_agency", "=", True)],
+    partner_ids = fields.Many2many(
+        "mv.discount.partner", domain=[("partner_id.is_agency", "=", True)]
     )
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        res = super().create(vals_list)
+    def action_reset_to_open(self):
+        self.ensure_one()
+        self.write({"policy_status": "open"})
 
-        if res:
-            for record in res:
-                if not record.partner_ids:
-                    partner_ids = self.env["mv.discount.partner"].search(
-                        [("partner_id.is_agency", "=", True)]
-                    )
-                    for partner in partner_ids:
-                        if not partner.warranty_discount_policy_id:
-                            partner.sudo().write(
-                                {"warranty_discount_policy_id": record.id}
-                            )
+    def action_apply(self):
+        self.ensure_one()
+        if self.policy_status == "open":
+            self.write({"policy_status": "applying"})
 
-        return res
+        return True
+
+    def action_close(self):
+        self.ensure_one()
+        if self.policy_status == "applying":
+            self.write({"policy_status": "close"})
+
+        return True
 
     @api.depends("date_from", "date_to")
     def _compute_name(self):
@@ -75,11 +81,42 @@ class MvWarrantyDiscountPolicy(models.Model):
                 day=1
             ) - timedelta(days=1)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        res = super(MvWarrantyDiscountPolicy, self).create(vals_list)
+
+        if res:
+            for record in res:
+                if not record.partner_ids:
+                    partner_ids = self.env["mv.discount.partner"].search(
+                        [("partner_id.is_agency", "=", True)]
+                    )
+                    record.partner_ids = [(6, 0, partner_ids.ids)]
+                    for partner in partner_ids:
+                        partner.write(
+                            {"warranty_discount_policy_ids": [(4, record.id)]}
+                        )
+
+        return res
+
+    def write(self, vals):
+        res = super().write(vals)
+
+        if res:
+            for record in self:
+                if record.partner_ids:
+                    for partner in record.partner_ids:
+                        partner.write(
+                            {"warranty_discount_policy_ids": [(6, 0, record.ids)]}
+                        )
+
+        return res
+
     @api.constrains("date_from", "date_to")
     def _validate_already_exist_policy(self):
         for record in self:
             if record.date_from and record.date_to:
-                policy_ids_exist = self.search(
+                record_exists = self.env["mv.warranty.discount.policy"].search_count(
                     [
                         ("id", "!=", record.id),
                         ("active", "=", True),
@@ -87,9 +124,10 @@ class MvWarrantyDiscountPolicy(models.Model):
                         ("date_to", "<=", record.date_to),
                     ]
                 )
-
-                if len(policy_ids_exist) > 1:
-                    raise ValidationError(_("Chính sách chiết khấu này đã tồn tại!"))
+                if record_exists > 0:
+                    raise ValidationError(
+                        _("Chính sách này đã bị trùng, vui lòng kiểm tra lại!")
+                    )
 
 
 class MvWarrantyDiscountPolicyLine(models.Model):

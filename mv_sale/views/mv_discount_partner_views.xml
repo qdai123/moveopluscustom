@@ -17,7 +17,7 @@
 						<group>
 							<field name="date"/>
 							<field name="parent_id" string="Chiết khấu Đại lý" readonly="True" options="{'no_open': True}"/>
-							<field name="warranty_discount_policy_id" string="Chiết khấu kích hoạt" readonly="True" options="{'no_open': True}"/>
+							<field name="warranty_discount_policy_ids" string="Chiết khấu kích hoạt" readonly="True" widget="many2many_tags" options="{'no_open': True}"/>
 						</group>
 						<group>
 							<field name="min_debt"/>
