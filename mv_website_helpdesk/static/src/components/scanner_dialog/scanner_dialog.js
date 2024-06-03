@@ -78,7 +78,7 @@ export class ScannerDialog extends Component {
             if (!res || res.length === 0) return;
 
             for (const [keyName, keyMessage] of res) {
-                if (["is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
+                if (["is_empty", "code_not_found"].includes(keyName)) {
                     this.notificationService.add(_t(keyMessage), {
                         type: "warning",
                     });

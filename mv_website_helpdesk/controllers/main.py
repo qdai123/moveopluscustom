@@ -115,7 +115,7 @@ class MVWebsiteHelpdesk(http.Controller):
 
     @http.route("/mv_website_helpdesk/check_scanned_code", type="json", auth="public")
     def check_scanned_code(
-        self, codes, ticket_type, partner_email, tel_activation, by_pass_check
+        self, codes, ticket_type, partner_email, tel_activation, by_pass_check=False
     ):
         Ticket = request.env["helpdesk.ticket"].sudo()
         error_messages = []
@@ -134,17 +134,13 @@ class MVWebsiteHelpdesk(http.Controller):
                 .search([("email", "=", partner_email)], limit=1)
             )
             if not by_pass_check and partner and not partner.is_agency:
-                _logger.debug(
-                    f"{IS_NOT_AGENCY}: Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
+                error_messages.append(
+                    (
+                        IS_NOT_AGENCY,
+                        "Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin.",
+                    )
                 )
-                # error_messages.append(
-                #     (
-                #         IS_NOT_AGENCY,
-                #         "Bạn không phải là Đại lý của Moveo Plus."
-                #         "Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin.",
-                #     )
-                # )
-                # return error_messages
+                return error_messages
 
         if tel_activation:
             _logger.debug(f"Tel Activation: {tel_activation}")
@@ -180,13 +176,13 @@ class MVWebsiteHelpdesk(http.Controller):
         serial_numbers = list(set(valid_lot_serial_number.mapped("lot_name")))
 
         # QR-Codes VALIDATION
-        if qrcodes:
+        if not by_pass_check and qrcodes:
             self._validate_codes(
                 qrcodes, ticket_type, partner, error_messages, "qr_code"
             )
 
         # Lot/Serial Number VALIDATION
-        if serial_numbers:
+        if not by_pass_check and serial_numbers:
             self._validate_codes(
                 serial_numbers, ticket_type, partner, error_messages, "lot_name"
             )
@@ -202,7 +198,20 @@ class MVWebsiteHelpdesk(http.Controller):
                 code_input = qrcodes[0]
             elif len(serial_numbers) > 0:
                 code_input = serial_numbers[0]
-            return code_input if not error_messages else error_messages
+
+            filtered_error_messages = (
+                list(
+                    filter(
+                        lambda item: item[0] != CODE_ALREADY_REGISTERED, error_messages
+                    )
+                )
+                if len(error_messages) > 0
+                else []
+            )
+
+            return (
+                code_input if not filtered_error_messages else filtered_error_messages
+            )
 
     def _validate_codes(self, codes, ticket_type, partner, error_messages, field_name):
         TicketProductMoves = request.env["mv.helpdesk.ticket.product.moves"].sudo()
