@@ -120,6 +120,4 @@
 			</p>
 		</field>
 	</record>
-
-	<menuitem id="mv_compute_discount_menu" name="Tính chiết khấu" action="mv_compute_discount_action" parent="sale.menu_sales_config" sequence="0"/>
 </odoo>

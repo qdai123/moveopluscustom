@@ -22,21 +22,23 @@
 				<sheet string="Warranty Discount Policy Form">
 					<field name="active" invisible="True"/>
 					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<div class="oe_title pe-0">
+                        <h1 class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100">
+                                <field name="name" options="{'line_breaks': False}" widget="text" class="o_task_name text-truncate w-md-75 w-100 pe-2" placeholder="Task Title..."/>
+                            </div>
+                        </h1>
+                    </div>
 					<group>
 						<group>
-							<field name="name" string="Chính sách" options="{'line_breaks': False}" widget="text"/>
-						</group>
-						<group/>
-						<group>
 							<field name="date_from" string="Bắt đầu"/>
-							<field name="date_to" string="Kết thúc"/>
 						</group>
 						<group>
-							<field name="product_attribute_ids" string="Chọn thuộc tính áp dụng" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" options="{'not_delete': True}"/>
+							<field name="date_to" string="Kết thúc"/>
 						</group>
 					</group>
 					<notebook>
-						<page string="Cấu hình chính sách" name="page_conditions_config">
+						<page string="Cấu hình / Điều kiện" name="page_conditions_config">
 							<field mode="tree" name="line_ids" nolabel="1" context="{'default_warranty_discount_policy_id': id}">
 								<tree editable="bottom">
 									<field name="warranty_discount_policy_id" column_invisible="True"/>
@@ -48,11 +50,18 @@
 								</tree>
 							</field>
 						</page>
+						<page string="Rim" name="page_product_attribute_config">
+							<label for="product_attribute_ids" string="Thuộc tính áp dụng"/>
+							<!-- Note: ('attribute_code', 'ilike', 'rim_') -->
+							<div class="o_row">
+								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" options="{'not_delete': True}"/>
+							</div>
+						</page>
 						<page string="Khách hàng / Đại lý" name="page_partner_retailer">
-							<field mode="tree" name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_id': id}">
+							<field name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_id': active_id}">
 								<tree default_order="level" editable="bottom" limit="80">
 									<field name="warranty_discount_policy_id" column_invisible="True"/>
-									<field name="partner_id" string="Khách hàng / Đại lý" readonly="True"/>
+									<field name="partner_id" string="Khách hàng / Đại lý"/>
 									<field name="date" string="Ngày hiệu lực"/>
 									<field name="level" string="Cấp bậc"/>
 									<field name="min_debt"/>

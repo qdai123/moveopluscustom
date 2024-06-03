@@ -7,9 +7,10 @@
             <form>
                 <group>
                     <group>
-                        <field name="partner_id"/>
-                        <field name="date_effective"/>
-                        <field name="level"/>
+                        <field name="partner_id" string="Khách hàng / Đại lý"/>
+                        <field name="date_effective" string="Ngày hiệu lực"/>
+                        <field name="current_level" invisible="True"/>
+                        <field name="new_level" string="Cấp bậc"/>
                     </group>
                     <group>
                         <field name="min_debt"/>

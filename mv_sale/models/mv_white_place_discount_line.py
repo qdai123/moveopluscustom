@@ -9,10 +9,10 @@ class MvWhitePlaceDiscountLine(models.Model):
     _rec_name = "discount"
     _rec_names_search = ["discount"]
 
-    parent_id = fields.Many2one("mv.discount", "Compute Discount", readonly=True)
+    parent_id = fields.Many2one("mv.discount", readonly=True)
     pricelist_id = fields.Many2one("product.pricelist", "Chính sách giá")
     quantity = fields.Integer("Số lượng")
-    discount = fields.Float("Chiết khấu (%)", digits=(16, 1))
+    discount = fields.Float("Chiết khấu (%)", digits=(16, 2))
 
     @api.onchange("pricelist_id")
     def _onchange_pricelist(self):

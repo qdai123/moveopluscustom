@@ -45,6 +45,28 @@ class MvDiscountPolicyPartner(models.Model):
     ]
 
     # =================================
+    # ORM Methods
+    # =================================
+
+    def write(self, vals):
+        res = super().write(vals)
+
+        if res:
+            for record in self:
+                if (
+                    record.parent_id
+                    and record.warranty_discount_policy_id
+                    and record.partner_id
+                ):
+                    record.partner_id.sudo().write(
+                        {
+                            "warranty_discount_policy_id": record.warranty_discount_policy_id
+                        }
+                    )
+
+        return res
+
+    # =================================
     # ACTION Methods
     # =================================
 
@@ -60,8 +82,11 @@ class MvDiscountPolicyPartner(models.Model):
             ).id,
             "context": {
                 "default_partner_id": self.partner_id.id,
+                "default_discount_id": self.partner_id.discount_id.id,
+                "default_warranty_discount_policy_id": self.partner_id.warranty_discount_policy_id.id,
                 "default_date_effective": self.date,
-                "default_level": self.level,
+                "default_current_level": self.level,
+                "default_new_level": self.level,
                 "default_min_debt": self.min_debt,
                 "default_max_debt": self.max_debt,
                 "default_number_debt": self.number_debt,

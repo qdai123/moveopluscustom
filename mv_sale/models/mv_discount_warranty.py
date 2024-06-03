@@ -2,6 +2,7 @@
 from datetime import date, timedelta
 
 from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class MvWarrantyDiscountPolicy(models.Model):
@@ -17,11 +18,8 @@ class MvWarrantyDiscountPolicy(models.Model):
         )
         - timedelta(days=1)
     )
-    product_attribute_ids = fields.Many2many(
-        "product.attribute",
-        column1="warranty_discount_policy_id",
-        column2="product_attribute_id",
-        string="Product Attributes",
+    product_attribute_ids = fields.One2many(
+        "product.attribute", "warranty_discount_policy_id"
     )
     line_ids = fields.One2many(
         "mv.warranty.discount.policy.line", "warranty_discount_policy_id"
@@ -76,6 +74,22 @@ class MvWarrantyDiscountPolicy(models.Model):
             self.date_to = (self.date_from + timedelta(days=32)).replace(
                 day=1
             ) - timedelta(days=1)
+
+    @api.constrains("date_from", "date_to")
+    def _validate_already_exist_policy(self):
+        for record in self:
+            if record.date_from and record.date_to:
+                policy_ids_exist = self.search(
+                    [
+                        ("id", "!=", record.id),
+                        ("active", "=", True),
+                        ("date_from", ">=", record.date_from),
+                        ("date_to", "<=", record.date_to),
+                    ]
+                )
+
+                if len(policy_ids_exist) > 1:
+                    raise ValidationError(_("Chính sách chiết khấu này đã tồn tại!"))
 
 
 class MvWarrantyDiscountPolicyLine(models.Model):

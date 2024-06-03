@@ -22,7 +22,7 @@
 						<group invisible="not is_agency">
 							<label for="amount_currency"/>
 							<div class="o_row">
-								<field name="amount_currency"/>
+								<field class="fw-bold" name="amount_currency" decoration-info="amount_currency > 0" decoration-muted="amount_currency == 0"/>
                                 <button string="Cập nhật số tiền" class="btn btn-link" type="object" name="action_update_discount_amount" invisible="not is_agency"/>
                             </div>
 						</group>

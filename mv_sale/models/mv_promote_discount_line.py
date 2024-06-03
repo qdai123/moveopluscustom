@@ -12,17 +12,17 @@ class MvPromoteDiscountLine(models.Model):
     @api.model
     def name_get(self):
         res = []
-        for item in self:
+        for record in self:
             if self._context.get("wizard_promote_discount_search", False):
-                name = "{:.0f}%".format(item.promote_discount)
-                res.append((item.id, name))
+                name = "{:.0f}%".format(record.promote_discount)
+                res.append((record.id, name))
         return res
 
     parent_id = fields.Many2one("mv.discount", readonly=True)
     pricelist_id = fields.Many2one("product.pricelist", "Chính sách giá")
     quantity_minimum = fields.Integer("Số lượng Min")
     quantity_maximum = fields.Integer("Số lượng Max")
-    promote_discount = fields.Float("Chiết khấu khuyến khích (%)", digits=(16, 1))
+    promote_discount = fields.Float("Chiết khấu khuyến khích (%)", digits=(16, 2))
 
     @api.onchange("pricelist_id")
     def _onchange_pricelist(self):
