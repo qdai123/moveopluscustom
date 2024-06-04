@@ -118,6 +118,7 @@ class MVWebsiteHelpdesk(http.Controller):
         self, codes, ticket_type, partner_email, tel_activation, by_pass_check=False
     ):
         Ticket = request.env["helpdesk.ticket"].sudo()
+        Partner = request.env["res.partner"].sudo()
         error_messages = []
 
         if ticket_type:
@@ -128,12 +129,16 @@ class MVWebsiteHelpdesk(http.Controller):
 
         partner = False
         if partner_email and self.is_valid_email(partner_email):
-            partner = (
-                request.env["res.partner"]
-                .sudo()
-                .search([("email", "=", partner_email)], limit=1)
+            partner = Partner.search([("email", "=", partner_email)], limit=1)
+            is_partner_agency = bool(Partner.browse(partner.id).is_agency)
+            is_partner_has_parent_agency = bool(
+                Partner.browse(partner.id).parent_id.is_agency
             )
-            if not by_pass_check and partner and not partner.is_agency:
+            if (
+                not by_pass_check
+                and not is_partner_agency
+                and not is_partner_has_parent_agency
+            ):
                 error_messages.append(
                     (
                         IS_NOT_AGENCY,
