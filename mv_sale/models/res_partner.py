@@ -35,7 +35,7 @@ class ResPartner(models.Model):
     )
     warranty_discount_policy_ids = fields.Many2many(
         comodel_name="mv.warranty.discount.policy",
-        string="Chính sách chiết khấu kích hoạt",
+        string="Chiết khấu kích hoạt",
         compute="_compute_discount_ids",
         store=True,
         readonly=False,

@@ -4,6 +4,37 @@ from datetime import date, timedelta
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
+DEFAULT_SERVER_DATE_FORMAT = "%Y-%m-%d"
+DEFAULT_SERVER_TIME_FORMAT = "%H:%M:%S"
+DEFAULT_SERVER_DATETIME_FORMAT = "%s %s" % (
+    DEFAULT_SERVER_DATE_FORMAT,
+    DEFAULT_SERVER_TIME_FORMAT,
+)
+
+
+def get_years():
+    year_list = []
+    for year in range(2000, 2100):
+        year_list.append((str(year), str(year)))
+    return year_list
+
+
+def get_months():
+    return [
+        ("1", "1"),
+        ("2", "2"),
+        ("3", "3"),
+        ("4", "4"),
+        ("5", "5"),
+        ("6", "6"),
+        ("7", "7"),
+        ("8", "8"),
+        ("9", "9"),
+        ("10", "10"),
+        ("11", "11"),
+        ("12", "12"),
+    ]
+
 
 class MvWarrantyDiscountPolicy(models.Model):
     _name = "mv.warranty.discount.policy"
@@ -150,3 +181,25 @@ class MvWarrantyDiscountPolicyLine(models.Model):
     quantity_to = fields.Integer("Số lượng Max", default=0)
     discount_amount = fields.Monetary("Số tiền chiết khấu", digits=(16, 2))
     explanation = fields.Text("Diễn giải")
+
+
+class MvComputeWarrantyDiscountPolicy(models.Model):
+    _name = _description = "mv.compute.warranty.discount.policy"
+
+    warranty_discount_policy_id = fields.Many2one(
+        "mv.warranty.discount.policy",
+        domain=[("active", "=", True)],
+        readonly=True,
+        help="Parent Model: mv.warranty.discount.policy",
+    )
+
+
+class MvComputeWarrantyDiscountPolicyLine(models.Model):
+    _name = _description = "mv.compute.warranty.discount.policy.line"
+
+    warranty_discount_policy_id = fields.Many2one(
+        "mv.compute.warranty.discount.policy",
+        domain=[("active", "=", True)],
+        readonly=True,
+        help="Parent Model: mv.compute.warranty.discount.policy",
+    )
