@@ -100,7 +100,7 @@ class MvWarrantyDiscountPolicy(models.Model):
         return res
 
     def write(self, vals):
-        res = super().write(vals)
+        res = super(MvWarrantyDiscountPolicy, self).write(vals)
 
         if res:
             for record in self:
@@ -111,6 +111,10 @@ class MvWarrantyDiscountPolicy(models.Model):
                         )
 
         return res
+
+    # =================================
+    # CONSTRAINS Methods
+    # =================================
 
     @api.constrains("date_from", "date_to")
     def _validate_already_exist_policy(self):

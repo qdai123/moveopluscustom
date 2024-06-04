@@ -8,36 +8,54 @@ from odoo import api, fields, models
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    line_ids = fields.One2many("mv.discount.partner", "partner_id")
-    compute_discount_line_ids = fields.One2many(
-        "mv.compute.discount.line", "partner_id", domain=[("parent_id", "!=", False)]
+    def _get_company_currency(self):
+        for partner in self:
+            company = partner.company_id or self.env.company
+            partner.currency_id = company.sudo().currency_id
+
+    # RELATION Fields [Many2many, One2many, Many2one]:
+    line_ids = fields.One2many(
+        comodel_name="mv.discount.partner",
+        inverse_name="partner_id",
+        copy=False,
+        help="""
+            Child Model: mv.discount.partner
+            This field is used to store the discount policy of the Partner/Customer.
+        """,
     )
-    # =================================
-    is_agency = fields.Boolean("Đại lý", copy=False, tracking=True)
-    is_white_agency = fields.Boolean("Đại lý vùng trắng", copy=False, tracking=True)
-
-    bank_guarantee = fields.Boolean("Bảo lãnh ngân hàng", copy=False, tracking=True)
-    discount_bank_guarantee = fields.Float(copy=False, tracking=True)
-
-    # COMPUTE Fields:
-    sale_mv_ids = fields.Many2many("sale.order")
+    compute_discount_line_ids = fields.One2many(
+        comodel_name="mv.compute.discount.line",
+        inverse_name="partner_id",
+        domain=[("parent_id", "!=", False)],
+        copy=False,
+        help="""
+                Link Model: mv.compute.discount.line
+                This field is used to store the computed discount of the Partner/Customer.
+            """,
+    )
     warranty_discount_policy_ids = fields.Many2many(
-        "mv.warranty.discount.policy",
+        comodel_name="mv.warranty.discount.policy",
         string="Chính sách chiết khấu kích hoạt",
         compute="_compute_discount_ids",
         store=True,
         readonly=False,
     )
     discount_id = fields.Many2one(
-        "mv.discount",
-        "Chiết khấu",
+        comodel_name="mv.discount",
+        string="Chiết khấu",
         compute="_compute_discount_ids",
         store=True,
         readonly=False,
     )
+    sale_mv_ids = fields.Many2many("sale.order", copy=False, readonly=True)
+    currency_id = fields.Many2one("res.currency", compute="_get_company_currency")
+    # =================================
+    is_agency = fields.Boolean("Đại lý", copy=False, tracking=True)
+    is_white_agency = fields.Boolean("Đại lý vùng trắng", copy=False, tracking=True)
+    bank_guarantee = fields.Boolean("Bảo lãnh ngân hàng", copy=False, tracking=True)
+    discount_bank_guarantee = fields.Float(copy=False, tracking=True)
 
     # TOTAL Fields:
-    currency_id = fields.Many2one("res.currency", compute="_get_company_currency")
     amount = fields.Integer("Tiền chiết khấu", copy=False)
     amount_currency = fields.Monetary(
         string="Tiền chiết khấu hiện có",
@@ -52,11 +70,6 @@ class ResPartner(models.Model):
     # =================================
     # COMPUTE / ONCHANGE Methods
     # =================================
-
-    def _get_company_currency(self):
-        for partner in self:
-            company = partner.company_id or self.env.company
-            partner.currency_id = company.sudo().currency_id
 
     @api.depends("line_ids")
     def _compute_discount_ids(self):
@@ -123,21 +136,20 @@ class ResPartner(models.Model):
     def action_update_discount_amount(self):
         self.ensure_one()
         if self.is_agency:
-            if self._has_order([("bonus_order", ">", 0)]):
-                orders_discount = self.env["sale.order"].search(
-                    [
-                        ("partner_id", "=", self.id),
-                        ("bonus_order", ">", 0),
-                        ("state", "in", ["sent", "sale"]),
-                    ]
-                )
+            if self.sale_order_ids:
+                orders_discount = [
+                    order
+                    for order in self.sale_order_ids
+                    if order.bonus_order > 0 and order.state in ["sent", "sale"]
+                ]
                 if orders_discount:
                     self.sale_mv_ids = [(6, 0, [order.id for order in orders_discount])]
                     self.total_so_bonus_order = sum(
                         order.bonus_order for order in orders_discount
                     )
 
-            self.amount_currency = (
-                sum(line.total_money for line in self.compute_discount_line_ids)
-                - self.total_so_bonus_order
-            )
+            if self.compute_discount_line_ids:
+                self.amount_currency = (
+                    sum(line.total_money for line in self.compute_discount_line_ids)
+                    - self.total_so_bonus_order
+                )

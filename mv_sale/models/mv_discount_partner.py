@@ -51,8 +51,12 @@ class MvDiscountPolicyPartner(models.Model):
     # ORM Methods
     # =================================
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        return super(MvDiscountPolicyPartner, self).create(vals_list)
+
     def write(self, vals):
-        res = super().write(vals)
+        res = super(MvDiscountPolicyPartner, self).write(vals)
 
         if res:
             for record in self:
@@ -70,6 +74,9 @@ class MvDiscountPolicyPartner(models.Model):
                     )
 
         return res
+
+    def unlink(self):
+        return super(MvDiscountPolicyPartner, self).unlink()
 
     # =================================
     # ACTION Methods
