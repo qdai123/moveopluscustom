@@ -3,6 +3,7 @@
 import {_t} from "@web/core/l10n/translation";
 import publicWidget from "@web/legacy/js/public/public_widget";
 import {ScannerDialog} from "../components/scanner_dialog/scanner_dialog";
+import {RPCError} from "@web/core/network/rpc_service";
 
 const ERROR_MESSAGES = {
     EMPTY_PHONE_NUMBER: "Vui lòng nhập số điện thoại của bạn.",
@@ -20,7 +21,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         "click #submit-btn": "_onSubmitButton",
         "click #scanning-btn": "openScannerDialog",
     },
-
+    
     /**
      * @constructor
      */
@@ -31,15 +32,15 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         this.dialogService = this.bindService("dialog");
         this.notification = this.bindService("notification");
     },
-
+    
     async willStart() {
         return Promise.all([this._super()]);
     },
-
+    
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
-
+    
     /**
      * Opens the scanner dialog.
      * It creates a new ScannerDialog instance and adds it to the dialog service.
@@ -73,7 +74,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             console.error("Failed to open scanner dialog: ", e);
         }
     },
-
+    
     /**
      * Handles the search button click event. It validates the phone number and fetches the partner's information.
      *
@@ -83,7 +84,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $phoneNumber = $("#o_website_helpdesk_search_phone_number");
         const $searchButton = $(ev.currentTarget);
         const $errorMessage = $("#phonenumber-error-message");
-
+        
         // Validate the phone number
         const isValidPhoneNumber = this._validatePhoneNumber($phoneNumber.val(), $searchButton, $errorMessage);
         if (!isValidPhoneNumber) {
@@ -92,11 +93,11 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             $errorMessage.hide();
             $phoneNumber.removeClass("border-danger is-invalid");
         }
-
+        
         // Fetch the partner's information
         await this._fetchPartnerInfo($phoneNumber.val(), $searchButton, $errorMessage);
     },
-
+    
     /**
      * Validates the phone number.
      *
@@ -110,7 +111,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         let mobilePhoneRegex = /^(?:(?:\+|00)([1-9]\d{0,2}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$/;
         // Regular expression for desk phone numbers starting with "028"
         let deskPhoneRegex = /^0(1[2-9]|2[03478])\d{8}$/;
-
+        
         if (!phoneNumber) {
             $errorMessage.text(ERROR_MESSAGES.EMPTY_PHONE_NUMBER).addClass("invalid-feedback").show();
             $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
@@ -120,10 +121,10 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
             return false;
         }
-
+        
         return true;
     },
-
+    
     /**
      * Fetches the partner's information.
      *
@@ -136,7 +137,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             const data = await this.rpc("/mv_website_helpdesk/check_partner_phone", {
                 phone_number: phoneNumber,
             });
-
+            
             if (data["partner_not_found"]) {
                 $errorMessage.text(ERROR_MESSAGES.PARTNER_NOT_FOUND).addClass("invalid-feedback").show();
                 $("#o_website_helpdesk_search_phone_number").addClass("border-danger is-invalid");
@@ -151,23 +152,23 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             console.error("Failed to fetch partner info: ", e);
         }
     },
-
+    
     /**
      * @private
      * @param {Event} ev
      */
     async _onSubmitButton(ev) {
         ev.preventDefault();
-
+        
         // Fetch all the forms we want to apply custom Bootstrap validation styles to
         // const forms = document.querySelectorAll('.needs-validation');
         // console.log(forms);
-
+        
         // Get form fields
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
         const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
-
+        
         // Validate form fields
         const validationErrors = this._validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber);
         if (validationErrors.length > 0) {
@@ -180,11 +181,11 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             $partnerEmail.removeClass("border-danger");
             $portalLotSerialNumber.removeClass("border-danger");
         }
-
+        
         const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
         const $licensePlatesActivation = $("#helpdesk_warranty_input_license_plates");
         const $mileageActivation = $("#helpdesk_warranty_input_mileage");
-
+        
         const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
         let ticketTypeObj;
         try {
@@ -195,7 +196,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         } catch (e) {
             console.error("Failed to fetch ticket type: ", e);
         }
-
+        
         if (ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code === "kich_hoat_bao_hanh_nguoi_dung_cuoi") {
             // Validate form fields for Ticket Type
             const validationTicketTypeErrors = this._validateFormTicketTypeFields($telNumberActivation, $licensePlatesActivation, $mileageActivation);
@@ -206,20 +207,25 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 return;
             }
         }
-
+        
         // Check scanned codes
         if ($portalLotSerialNumber.val()) {
             const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
             const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {
                 codes: codes,
                 ticket_type: $ticketType.val(),
+                partner_name: $partnerName.val(),
                 partner_email: $partnerEmail.val(),
-                by_pass_check_partner_agency: false,
                 tel_activation: $telNumberActivation.val(),
+                by_pass_check: false,
             });
-
+            
+            // TODO: Handle error response
+            // const error = new RPCError();
+            // console.debug("Error: ", error);
+            
             if (!res || res.length === 0) return;
-
+            
             for (const [keyName, keyMessage] of res) {
                 if (["is_not_agency", "is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
                     return this.notification.add(_t(keyMessage), {
@@ -229,7 +235,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             }
         }
     },
-
+    
     /**
      * Validate form fields
      * @param {jQuery} $partnerName
@@ -239,25 +245,25 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
      */
     _validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber) {
         const validationErrors = [];
-
+        
         if (!$partnerName.val().trim()) {
             $partnerName.attr("required", true).addClass("border-danger");
             validationErrors.push("Partner name is required");
         }
-
+        
         if (!$partnerEmail.val().trim()) {
             $partnerEmail.attr("required", true).addClass("border-danger");
             validationErrors.push("Partner email is required");
         }
-
+        
         if (!$portalLotSerialNumber.val().trim()) {
             $portalLotSerialNumber.attr("required", true).addClass("border-danger");
             validationErrors.push("Portal lot serial number is required");
         }
-
+        
         return validationErrors;
     },
-
+    
     /**
      * Validate form fields
      * @param {jQuery} $telNumberActivation
@@ -267,22 +273,22 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
      */
     _validateFormTicketTypeFields($telNumberActivation, $licensePlatesActivation, $mileageActivation) {
         const validationTicketTypeErrors = [];
-
+        
         if (!$telNumberActivation.val().trim()) {
             validationTicketTypeErrors.push("Phone Activation is required");
         }
-
+        
         if (!$licensePlatesActivation.val().trim()) {
             validationTicketTypeErrors.push("License plates is required");
         }
-
+        
         if (!$mileageActivation.val().trim()) {
             validationTicketTypeErrors.push("Mileage (Km) is required");
         }
-
+        
         return validationTicketTypeErrors;
     },
-
+    
     /**
      * Clean and convert codes to array
      * @param {string} codes

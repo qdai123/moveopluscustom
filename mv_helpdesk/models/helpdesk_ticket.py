@@ -43,10 +43,14 @@ class HelpdeskTicket(models.Model):
             partner_name = rec.partner_id.name.upper() if rec.partner_id else "-"
             ticket_type_name = rec.ticket_type_id.name if rec.ticket_type_id else "-"
 
-            now_dt = fields.Datetime.now()
-            formatted_date = now_dt.strftime(DATE_FORMAT)
+            now_utc = datetime.utcnow()
+            now_user = now_utc.astimezone(pytz.timezone(rec.partner_id.tz or "UTC"))
+            lang = self.env["res.lang"]._lang_get(rec.partner_id.lang)
+            date_format = lang.date_format
+            time_format = lang.time_format
+            formatted_date = now_user.strftime(date_format + " " + time_format)
 
-            rec.name = f"{partner_name}/{ticket_type_name}/{formatted_date}"
+            rec.name = f"{partner_name}/{ticket_type_name}({formatted_date})"
 
     # INHERIT Fields:
     name = fields.Char(compute="_compute_name", store=True, required=False)
@@ -128,6 +132,29 @@ class HelpdeskTicket(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # TODO: Fix this case after
+        for vals in vals_list:
+            if "partner_email" in vals and "partner_name" in vals:
+                partner = (
+                    self.env["res.partner"]
+                    .sudo()
+                    .search(
+                        [
+                            ("name", "=", vals["partner_name"]),
+                            ("email", "=", vals["partner_email"]),
+                        ],
+                        limit=1,
+                    )
+                )
+                if (
+                    partner
+                    and not partner.is_agency
+                    and not partner.parent_id.is_agency
+                ):
+                    raise ValidationError(
+                        "Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
+                    )
+                vals["partner_id"] = partner.id
         tickets = super(HelpdeskTicket, self).create(vals_list)
 
         for ticket in tickets:
