@@ -135,7 +135,7 @@ class HelpdeskTicket(models.Model):
         # TODO: Fix this case after
         for vals in vals_list:
             if "partner_email" in vals and "partner_name" in vals:
-                vals["partner_id"] = (
+                partner = (
                     self.env["res.partner"]
                     .sudo()
                     .search(
@@ -145,9 +145,16 @@ class HelpdeskTicket(models.Model):
                         ],
                         limit=1,
                     )
-                    .id
-                    or False
                 )
+                if (
+                    partner
+                    and not partner.is_agency
+                    and not partner.parent_id.is_agency
+                ):
+                    raise ValidationError(
+                        "Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
+                    )
+                vals["partner_id"] = partner.id
         tickets = super(HelpdeskTicket, self).create(vals_list)
 
         for ticket in tickets:
