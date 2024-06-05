@@ -2,6 +2,7 @@
 import json
 import logging
 import requests
+import pytz
 import re
 
 try:
@@ -9,6 +10,7 @@ try:
 except ImportError:
     phonenumbers = None
 
+from datetime import datetime
 from markupsafe import Markup
 
 from odoo import http, _
@@ -115,8 +117,17 @@ class MVWebsiteHelpdesk(http.Controller):
 
     @http.route("/mv_website_helpdesk/check_scanned_code", type="json", auth="public")
     def check_scanned_code(
-        self, codes, ticket_type, partner_email, tel_activation, by_pass_check=False
+        self,
+        codes,
+        ticket_type,
+        partner_name,
+        partner_email,
+        tel_activation,
+        by_pass_check=False,
     ):
+        session_info = request.env["ir.http"].session_info()
+        _logger.debug(f"Session Info: {session_info}")
+
         Ticket = request.env["helpdesk.ticket"].sudo()
         Partner = request.env["res.partner"].sudo()
         error_messages = []
@@ -129,7 +140,13 @@ class MVWebsiteHelpdesk(http.Controller):
 
         partner = False
         if partner_email and self.is_valid_email(partner_email):
-            partner = Partner.search([("email", "=", partner_email)], limit=1)
+            partner = Partner.search(
+                [
+                    ("name", "=", partner_name),
+                    ("email", "=", partner_email),
+                ],
+                limit=1,
+            )
             is_partner_agency = bool(Partner.browse(partner.id).is_agency)
             is_partner_has_parent_agency = bool(
                 Partner.browse(partner.id).parent_id.is_agency
@@ -351,62 +368,64 @@ class WebsiteForm(form.WebsiteForm):
 
     # =============== MOVEOPLUS Override ===============
     def _handle_website_form(self, model_name, **kwargs):
-        """
-        Handle the website form submission. If the model is 'helpdesk.ticket' and a team_id is provided,
-        it checks if the team uses the website helpdesk warranty activation. If so, it fetches the partner
-        based on the provided email and sets the partner_id in the request parameters.
-
-        Args:
-            model_name (str): The name of the model.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            The result of the parent method call.
-        """
-        model = model_name or request.params.get("model_name")
-        team_id = request.params.get("team_id")
-
-        if model == "helpdesk.ticket" and team_id:
-            self._handle_helpdesk_ticket_form(team_id)
+        if model_name == "helpdesk.ticket" and request.params.get("team_id"):
+            model_record = (
+                request.env["ir.model"]
+                .sudo()
+                .search(
+                    [("model", "=", model_name), ("website_form_access", "=", True)]
+                )
+            )
+            if model_record:
+                try:
+                    data = self.extract_data(model_record, request.params)
+                except Exception as error:
+                    # no specific management, super will do it
+                    _logger.error("Failed to extract data from the form: %s", error)
+                    pass
+                else:
+                    self._handle_helpdesk_ticket_form(data.get("record", {}))
+                    return super(WebsiteForm, self)._handle_website_form(
+                        model_name, **kwargs
+                    )
 
         return super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
 
-    def _handle_helpdesk_ticket_form(self, team_id):
-        """
-        Handle the form submission for 'helpdesk.ticket'. If the team uses the website helpdesk warranty activation,
-        it fetches the partner based on the provided email and sets the partner_id in the request parameters.
+    def _handle_helpdesk_ticket_form(self, record):
+        # Environment Model with SUPER
+        TicketTeam = request.env["helpdesk.team"].sudo()
+        TicketType = request.env["helpdesk.ticket.type"].sudo()
+        Partner = request.env["res.partner"].sudo()
 
-        Args:
-            team_id (int): The ID of the helpdesk team.
-        """
-        team = request.env["helpdesk.team"].sudo().browse(int(team_id))
-
-        if team and team.use_website_helpdesk_warranty_activation:
-            email = request.params.get("partner_email")
-
-            if email:
-                partner = self._get_partner_by_email(email)
-
+        warranty_team = TicketTeam.browse(record.get("team_id"))
+        if warranty_team and warranty_team.use_website_helpdesk_warranty_activation:
+            ticket_name = record.get("name")
+            ticket_type = TicketType.browse(record.get("ticket_type_id"))
+            email = record.get("partner_email")
+            name = record.get("partner_name")
+            if email and name:
+                domain = [("name", "=", name), ("email", "=", email)]
+                partner = Partner.search(domain, limit=1)
                 if not partner:
                     return json.dumps({"error": _("Partner not found!")})
+                request.params["partner_id"] = partner.id
+
+                if ticket_type and ticket_type.code in [SUB_DEALER_CODE, END_USER_CODE]:
+                    type_name = ticket_type.name
                 else:
-                    request.params["partner_id"] = partner.id
+                    type_name = "-"
 
-    def _get_partner_by_email(self, email):
-        """
-        Fetches the partner by email.
+                if not ticket_name or ticket_name and ticket_name.lower() == "new":
+                    now_utc = datetime.utcnow()
+                    now_user = now_utc.astimezone(pytz.timezone(partner.tz or "UTC"))
+                    lang = (
+                        request.env["res.lang"].sudo()._lang_get(partner.lang)
+                        if partner
+                        else False
+                    )
+                    date_format = lang.date_format
+                    time_format = lang.time_format
+                    formatted_date = now_user.strftime(date_format + " " + time_format)
 
-        Args:
-            email (str): The email of the partner.
-
-        Returns:
-            recordset: A recordset of the partner.
-        """
-        if request.env.user.email == email:
-            return request.env.user.partner_id
-        else:
-            return (
-                request.env["res.partner"]
-                .sudo()
-                .search([("email", "=", email)], limit=1)
-            )
+                    partner_name = partner.name.upper() if partner else "-"
+                    record["name"] = f"{partner_name}/{type_name}({formatted_date})"
