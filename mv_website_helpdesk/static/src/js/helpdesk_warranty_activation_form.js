@@ -213,9 +213,10 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {
                 codes: codes,
                 ticket_type: $ticketType.val(),
+                partner_name: $partnerName.val(),
                 partner_email: $partnerEmail.val(),
-                by_pass_check_partner_agency: false,
                 tel_activation: $telNumberActivation.val(),
+                by_pass_check: false,
             });
 
             if (!res || res.length === 0) return;
