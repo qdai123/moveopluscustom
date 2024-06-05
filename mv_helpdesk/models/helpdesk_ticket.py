@@ -431,8 +431,28 @@ class HelpdeskTicket(models.Model):
             len(conflicting_ticket_end_user) > 0
             and conflicting_ticket_end_user.partner_id.id != partner.id
         )
+        validate_same_partner_for_sub = (
+            len(conflicting_ticket_sub_dealer) > 0
+            and conflicting_ticket_sub_dealer.partner_id.id == partner.id
+        )
+        validate_same_partner_for_end = (
+            len(conflicting_ticket_end_user) > 0
+            and conflicting_ticket_end_user.partner_id.id == partner.id
+        )
         # Validate if the code is already registered on other tickets by different Partners
         if validate_different_partner_for_sub or validate_different_partner_for_end:
+            conflicting_ticket = (
+                conflicting_ticket_sub_dealer
+                if validate_different_partner_for_sub
+                else conflicting_ticket_end_user
+            )
+            message = (
+                f"Mã {code} đã được đăng ký cho đơn vị khác, "
+                f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
+            )
+            error_messages.append((CODE_ALREADY_REGISTERED, message))
+        # Validate if the code is already registered on other tickets by same Partners
+        elif validate_same_partner_for_sub or validate_same_partner_for_end:
             conflicting_ticket = (
                 conflicting_ticket_sub_dealer
                 if validate_different_partner_for_sub
