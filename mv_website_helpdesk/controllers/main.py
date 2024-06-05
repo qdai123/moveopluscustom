@@ -408,6 +408,20 @@ class WebsiteForm(form.WebsiteForm):
                 partner = Partner.search(domain, limit=1)
                 if not partner:
                     return json.dumps({"error": _("Partner not found!")})
+
+                is_partner_agency = bool(Partner.browse(partner.id).is_agency)
+                is_partner_has_parent_agency = bool(
+                    Partner.browse(partner.id).parent_id.is_agency
+                )
+                if not is_partner_agency and not is_partner_has_parent_agency:
+                    return json.dumps(
+                        {
+                            "error": _(
+                                "Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
+                            )
+                        }
+                    )
+
                 request.params["partner_id"] = partner.id
 
                 if ticket_type and ticket_type.code in [SUB_DEALER_CODE, END_USER_CODE]:
