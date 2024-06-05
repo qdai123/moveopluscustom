@@ -142,7 +142,8 @@ class HelpdeskTicket(models.Model):
                         [
                             ("name", "=", vals["partner_name"]),
                             ("email", "=", vals["partner_email"]),
-                        ]
+                        ],
+                        limit=1,
                     )
                     .id
                     or False
