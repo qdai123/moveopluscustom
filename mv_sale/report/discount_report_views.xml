@@ -54,7 +54,7 @@
 	</record>
 
 	<record id="discount_report_action" model="ir.actions.act_window">
-		<field name="name">Báo cáo chiết khấu</field>
+		<field name="name">Báo cáo chiết khấu sản lượng</field>
 		<field name="res_model">discount.report</field>
 		<field name="view_mode">tree,form</field>
 	</record>

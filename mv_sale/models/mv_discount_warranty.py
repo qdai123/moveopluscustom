@@ -234,7 +234,10 @@ class MvWarrantyDiscountPolicyLine(models.Model):
     @api.depends("explanation")
     def _compute_explanation_code(self):
         for record in self:
-            record.explanation_code = convert_to_code(record.explanation)
+            if record.explanation:
+                record.explanation_code = convert_to_code(record.explanation)
+            else:
+                record.explanation_code = "_code_"
 
 
 class MvComputeWarrantyDiscountPolicy(models.Model):
@@ -255,7 +258,11 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     @api.depends("month", "year")
     def _compute_name(self):
         for rec in self:
-            rec.name = "{}/{}".format(str(rec.month), str(rec.year))
+            if rec.month and rec.year:
+                rec.name = "{}/{}".format(str(rec.month), str(rec.year))
+            else:
+                dt = datetime.now().replace(day=1)
+                rec.parent_name = "{}/{}".format(str(dt.month), str(dt.year))
 
     # BASE Fields:
     year = fields.Selection(get_years())

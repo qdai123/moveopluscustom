@@ -111,7 +111,7 @@
 	</record>
 
 	<record model="ir.actions.act_window" id="mv_compute_discount_action">
-		<field name="name">Tính chiết khấu</field>
+		<field name="name">Tính chiết khấu sản lượng</field>
 		<field name="res_model">mv.compute.discount</field>
 		<field name="view_mode">tree,form</field>
 		<field name="help" type="html">

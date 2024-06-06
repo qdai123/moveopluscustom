@@ -97,7 +97,7 @@
 	</record>
 
 	<record id="mv_warranty_discount_policy_action_view" model="ir.actions.act_window">
-		<field name="name">Chiết khấu kích hoạt</field>
+		<field name="name">Cấu hình chiết khấu kích hoạt</field>
 		<field name="res_model">mv.warranty.discount.policy</field>
 		<field name="view_mode">tree,form</field>
 		<field name="view_id" ref="mv_warranty_discount_policy_tree_view"/>
