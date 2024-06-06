@@ -32,8 +32,9 @@
         "views/product_attribute_views.xml",
         "views/res_partner_views.xml",
         "views/sale_order_views.xml",
-        "views/mv_compute_discount_view.xml",
+        "views/mv_compute_discount_views.xml",
         "views/mv_compute_discount_line_views.xml",
+        "views/mv_compute_warranty_discount_policy_views.xml",
         "views/templates.xml",
         # REPORT
         "report/discount_report_views.xml",

@@ -23,6 +23,13 @@ class ResPartner(models.Model):
             This field is used to store the discount policy of the Partner/Customer.
         """,
     )
+    discount_id = fields.Many2one(
+        comodel_name="mv.discount",
+        string="Chiết khấu",
+        compute="_compute_discount_ids",
+        store=True,
+        readonly=False,
+    )
     compute_discount_line_ids = fields.One2many(
         comodel_name="mv.compute.discount.line",
         inverse_name="partner_id",
@@ -40,12 +47,15 @@ class ResPartner(models.Model):
         store=True,
         readonly=False,
     )
-    discount_id = fields.Many2one(
-        comodel_name="mv.discount",
-        string="Chiết khấu",
-        compute="_compute_discount_ids",
-        store=True,
-        readonly=False,
+    compute_warranty_discount_line_ids = fields.One2many(
+        comodel_name="mv.compute.warranty.discount.policy.line",
+        inverse_name="partner_id",
+        domain=[("parent_id", "!=", False)],
+        copy=False,
+        help="""
+                    Link Model: mv.compute.warranty.discount.policy.line
+                    This field is used to store the computed warranty discount of the Partner/Customer.
+                """,
     )
     sale_mv_ids = fields.Many2many("sale.order", copy=False, readonly=True)
     currency_id = fields.Many2one("res.currency", compute="_get_company_currency")
@@ -66,6 +76,39 @@ class ResPartner(models.Model):
     total_so_bonus_order = fields.Monetary(
         compute="_compute_sale_order_ids", store=True
     )
+
+    # =================================
+    # BUSINESS Methods
+    # =================================
+
+    def action_update_discount_amount(self):
+        self.ensure_one()
+        if self.is_agency:
+            if self.sale_order_ids:
+                orders_discount = [
+                    order
+                    for order in self.sale_order_ids
+                    if order.bonus_order > 0 and order.state in ["sent", "sale"]
+                ]
+                if orders_discount:
+                    self.sale_mv_ids = [(6, 0, [order.id for order in orders_discount])]
+                    self.total_so_bonus_order = sum(
+                        order.bonus_order for order in orders_discount
+                    )
+
+            total_discount_money = 0
+            if self.compute_discount_line_ids:
+                total_discount_money += sum(
+                    line.total_money for line in self.compute_discount_line_ids
+                )
+
+            if self.compute_warranty_discount_line_ids:
+                total_discount_money += sum(
+                    line.total_amount_currency
+                    for line in self.compute_warranty_discount_line_ids
+                )
+
+            self.amount_currency = total_discount_money - self.total_so_bonus_order
 
     # =================================
     # COMPUTE / ONCHANGE Methods
@@ -128,28 +171,3 @@ class ResPartner(models.Model):
     @api.onchange("bank_guarantee")
     def _onchange_bank_guarantee(self):
         self.discount_bank_guarantee = 0
-
-    # =================================
-    # ACTION Methods
-    # =================================
-
-    def action_update_discount_amount(self):
-        self.ensure_one()
-        if self.is_agency:
-            if self.sale_order_ids:
-                orders_discount = [
-                    order
-                    for order in self.sale_order_ids
-                    if order.bonus_order > 0 and order.state in ["sent", "sale"]
-                ]
-                if orders_discount:
-                    self.sale_mv_ids = [(6, 0, [order.id for order in orders_discount])]
-                    self.total_so_bonus_order = sum(
-                        order.bonus_order for order in orders_discount
-                    )
-
-            if self.compute_discount_line_ids:
-                self.amount_currency = (
-                    sum(line.total_money for line in self.compute_discount_line_ids)
-                    - self.total_so_bonus_order
-                )

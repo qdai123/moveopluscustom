@@ -4,6 +4,9 @@ access_mv_discount_line,mv.discount.line,model_mv_discount_line,base.group_user,
 access_mv_warranty_discount_policy_internal_user,mv.warranty.discount.policy Internal User,model_mv_warranty_discount_policy,base.group_user,1,1,1,0
 access_mv_warranty_discount_policy_system_user,mv.warranty.discount.policy System User,model_mv_warranty_discount_policy,base.group_system,1,1,1,1
 access_mv_warranty_discount_policy_line,mv.warranty.discount.policy.line,model_mv_warranty_discount_policy_line,base.group_user,1,1,1,0
+access_mv_compute_warranty_discount_policy_internal_user,mv.compute.warranty.discount.policy Internal User,model_mv_compute_warranty_discount_policy,base.group_user,1,1,1,0
+access_mv_compute_warranty_discount_policy_system_user,mv.compute.warranty.discount.policy System User,model_mv_compute_warranty_discount_policy,base.group_system,1,1,1,1
+access_mv_compute_warranty_discount_policy_line,mv.compute.warranty.discount.policy.line,model_mv_compute_warranty_discount_policy_line,base.group_user,1,1,1,0
 access_mv_promote_discount_line,mv.promote.discount.line,model_mv_promote_discount_line,base.group_user,1,1,1,1
 access_mv_white_place_discount_line,mv.white.place.discount.line,model_mv_white_place_discount_line,base.group_user,1,1,1,1
 access_mv_discount_partner,mv.discount.partner,model_mv_discount_partner,base.group_user,1,1,1,1
@@ -12,7 +15,7 @@ access_mv_compute_discount_line_approver,mv.compute.discount.line Approver,model
 access_mv_compute_discount,mv.compute.discount,model_mv_compute_discount,base.group_user,1,1,1,0
 access_discount_report_line,discount.report.line,model_discount_report_line,base.group_user,1,1,1,1
 access_discount_report,discount.report,model_discount_report,base.group_user,1,1,1,1
-access_mv_wizard_discount,mv.wizard.discount,model_mv_wizard_discount,base.group_user,1,1,1,1
 access_mv_report_discount,mv.report.discount,model_mv_report_discount,base.group_user,1,1,1,1
+access_mv_wizard_discount,mv.wizard.discount,model_mv_wizard_discount,base.group_user,1,1,1,1
 access_mv_wizard_promote_discount_line,mv.wizard.promote.discount.line,model_mv_wizard_promote_discount_line,base.group_user,1,1,1,1
 access_mv_wizard_update_partner_discount,mv.wizard.update.partner.discount,model_mv_wizard_update_partner_discount,base.group_user,1,1,1,1

@@ -16,16 +16,22 @@
 	          parent="mv_menu_sales_discount_config"
 	          sequence="1"/>
 
+	<menuitem id="mv_compute_warranty_discount_menu"
+	          name="Tính chiết khấu kích hoạt"
+	          action="mv_compute_warranty_discount_policy_action_view"
+	          parent="mv_menu_sales_discount_config"
+	          sequence="2"/>
+
 	<menuitem id="mv_warranty_discount_policy_menu"
 	          name="Chiết khấu kích hoạt"
 	          action="mv_warranty_discount_policy_action_view"
 	          parent="mv_menu_sales_discount_config"
-	          sequence="2"/>
+	          sequence="3"/>
 
 	<menuitem id="discount_report_menu"
 	          name="Báo cáo chiết khấu"
 	          action="discount_report_action"
 	          parent="mv_menu_sales_discount_config"
-	          sequence="3"/>
+	          sequence="4"/>
 
 </odoo>

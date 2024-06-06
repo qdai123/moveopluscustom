@@ -32,21 +32,21 @@
 					<div class="oe_title pe-0">
                         <h1 class="d-flex justify-content-between align-items-center">
                             <div class="d-flex w-100">
-                                <field name="name" options="{'line_breaks': False}" widget="text" class="text-truncate w-md-75 w-100 pe-2"/>
+                                <field name="name" widget="text" class="text-truncate" readonly="policy_status in ['applying', 'close']"/>
                             </div>
                         </h1>
                     </div>
 					<group>
 						<group>
-							<field name="date_from" string="Bắt đầu"/>
+							<field name="date_from" string="Bắt đầu" readonly="policy_status in ['applying', 'close']"/>
 						</group>
 						<group>
-							<field name="date_to" string="Kết thúc"/>
+							<field name="date_to" string="Kết thúc" readonly="policy_status in ['applying', 'close']"/>
 						</group>
 					</group>
 					<notebook>
 						<page string="Cấu hình / Điều kiện" name="page_conditions_config">
-							<field mode="tree" name="line_ids" nolabel="1" context="{'default_warranty_discount_policy_id': id}">
+							<field mode="tree" name="line_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_warranty_discount_policy_id': id}">
 								<tree editable="bottom">
 									<field name="warranty_discount_policy_id" column_invisible="True"/>
 									<field name="currency_id" column_invisible="True"/>
@@ -54,6 +54,7 @@
 									<field name="quantity_to"/>
 									<field name="discount_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
 									<field name="explanation"/>
+									<field name="explanation_code" optional="hidden"/>
 								</tree>
 							</field>
 						</page>
@@ -61,12 +62,12 @@
 							<label for="product_attribute_ids" string="Thuộc tính áp dụng"/>
 							<!-- Note: ('attribute_code', 'ilike', 'rim_') -->
 							<div class="o_row">
-								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" options="{'not_delete': True}"/>
+								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" readonly="policy_status in ['applying', 'close']" options="{'not_delete': True}"/>
 							</div>
 						</page>
 						<page string="Khách hàng / Đại lý" name="page_partner_retailer">
-							<field name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_ids': active_ids}">
-								<tree default_order="level" editable="bottom" limit="80">
+							<field name="partner_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_warranty_discount_policy_ids': active_ids}">
+								<tree default_order="level" editable="bottom" delete="false" limit="80">
 									<field name="partner_id" string="Khách hàng / Đại lý"/>
 									<field name="date" string="Ngày hiệu lực"/>
 									<field name="level" string="Cấp bậc"/>
