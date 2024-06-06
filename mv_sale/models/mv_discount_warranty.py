@@ -30,27 +30,11 @@ END_USER_CODE = "kich_hoat_bao_hanh_nguoi_dung_cuoi"
 
 
 def get_years():
-    year_list = []
-    for year in range(2000, 2100):
-        year_list.append((str(year), str(year)))
-    return year_list
+    return [(str(i), str(i)) for i in range(2000, datetime.now().year + 1)]
 
 
 def get_months():
-    return [
-        ("1", "1"),
-        ("2", "2"),
-        ("3", "3"),
-        ("4", "4"),
-        ("5", "5"),
-        ("6", "6"),
-        ("7", "7"),
-        ("8", "8"),
-        ("9", "9"),
-        ("10", "10"),
-        ("11", "11"),
-        ("12", "12"),
-    ]
+    return [(str(i), str(i)) for i in range(1, 13)]
 
 
 def convert_to_code(text):
@@ -265,7 +249,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 rec.name = "{}/{}".format(str(dt.month), str(dt.year))
 
     # BASE Fields:
-    year = fields.Selection(get_years())
+    year = fields.Selection(get_years(), default=str(datetime.now().year))
     month = fields.Selection(get_months())
     name = fields.Char(compute="_compute_name", store=True)
     compute_date = fields.Datetime(compute="_compute_compute_date", store=True)
@@ -480,16 +464,60 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             self.action_reset_to_draft()
 
     # =================================
-    # CONSTRAINS Methods
+    # ORM Methods
     # =================================
 
-    @api.constrains()
-    def _validate_discount_policy_already_exist(self):
-        return
+    def unlink(self):
+        self._validate_policy_done_not_unlink()
+        return super(MvComputeWarrantyDiscountPolicy, self).unlink()
 
-    @api.constrains()
+    # =================================
+    # CONSTRAINS / VALIDATION Methods
+    # =================================
+
+    def _validate_policy_done_not_unlink(self):
+        for rec in self:
+            if rec.state == "done":
+                raise UserError(
+                    "Phần tính toán chiết khấu cho tháng này đã được Duyệt. Không thể xoá! "
+                )
+
+    @api.constrains("warranty_discount_policy_id", "month", "year")
+    def _validate_discount_policy_already_exist(self):
+        for record in self:
+            if record.warranty_discount_policy_id and record.month and record.year:
+                record_exists = self.env[
+                    "mv.compute.warranty.discount.policy"
+                ].search_count(
+                    [
+                        ("id", "!=", record.id),
+                        (
+                            "warranty_discount_policy_id",
+                            "=",
+                            record.warranty_discount_policy_id.id,
+                        ),
+                        ("month", "=", record.month),
+                        ("year", "=", record.year),
+                    ]
+                )
+                if record_exists > 0:
+                    raise ValidationError(
+                        f"Chính sách của {record.month}/{record.year} đã được tạo hoặc đã được tính toán rồi!"
+                    )
+
+    @api.constrains(
+        "compute_date",
+        "warranty_discount_policy_id.date_from",
+        "warranty_discount_policy_id.date_to",
+    )
     def _validate_time_frame_of_discount_policy(self):
-        return
+        for record in self:
+            if record.warranty_discount_policy_id and record.compute_date:
+                policy = record.warranty_discount_policy_id
+                if not policy.date_from <= record.compute_date.date() <= policy.date_to:
+                    raise ValidationError(
+                        "Tháng cần tính toán phải nằm trong khoảng thời gian quy định của chính sách!"
+                    )
 
     # =================================
     # HELPER / PRIVATE Methods
@@ -850,7 +878,9 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     parent_name = fields.Char("Name", compute="_compute_parent_name", store=True)
     parent_compute_date = fields.Datetime(readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
-    helpdesk_ticket_ids = fields.Many2many("helpdesk.ticket", readonly=True)
+    helpdesk_ticket_ids = fields.Many2many(
+        "helpdesk.ticket", readonly=True, context={"create": False, "edit": False}
+    )
     product_activation_count = fields.Integer(default=0)
     first_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
