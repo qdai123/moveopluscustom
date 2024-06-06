@@ -262,7 +262,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 rec.name = "{}/{}".format(str(rec.month), str(rec.year))
             else:
                 dt = datetime.now().replace(day=1)
-                rec.parent_name = "{}/{}".format(str(dt.month), str(dt.year))
+                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
 
     # BASE Fields:
     year = fields.Selection(get_years())
@@ -483,8 +483,13 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     # CONSTRAINS Methods
     # =================================
 
-    # TODO: Validate when Month and Year are selected not between the Date From and Date To of the Warranty Discount Policy
-    # TODO: Validate already exist record for the same Month, Year and Warranty Discount Policy
+    @api.constrains()
+    def _validate_discount_policy_already_exist(self):
+        return
+
+    @api.constrains()
+    def _validate_time_frame_of_discount_policy(self):
+        return
 
     # =================================
     # HELPER / PRIVATE Methods
