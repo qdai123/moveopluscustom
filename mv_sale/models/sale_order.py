@@ -23,6 +23,7 @@ class SaleOrder(models.Model):
         compute="_compute_is_sales_manager",
         default=lambda self: self.env.user.has_group("sales_team.group_sale_manager"),
     )
+    # TODO: Add discount in Order Line needs a field to check with conditions `action_compute_discount_month`
 
     @api.depends_context("uid")
     def _compute_is_sales_manager(self):
@@ -195,11 +196,13 @@ class SaleOrder(models.Model):
     def _compute_cart_info(self):
         super(SaleOrder, self)._compute_cart_info()
         for order in self:
-            service_lines = order.website_order_line.filtered(
-                lambda line: line.product_id.detailed_type != "product"
+            service_lines_qty = sum(
+                line.product_uom_qty
+                for line in order.website_order_line
+                if line.product_id.detailed_type != "product"
                 and not line.is_reward_line
             )
-            order.cart_quantity -= int(sum(service_lines.mapped("product_uom_qty")))
+            order.cart_quantity -= int(service_lines_qty)
 
     def _get_order_lines_to_report(self):
         res = super(SaleOrder, self)._get_order_lines_to_report()
@@ -375,6 +378,10 @@ class SaleOrder(models.Model):
     # ==================================
     # ORM Methods
     # ==================================
+
+    def write(self, vals):
+        # TODO: Recompute `compute_discount_for_partner` when SO is updated by Sales Manager
+        return super(SaleOrder, self).write(vals)
 
     def copy(self, default=None):
         # MOVEOPLUS Override

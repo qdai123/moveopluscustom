@@ -50,16 +50,19 @@
 									<field name="currency_id" column_invisible="True"/>
 									<field name="parent_compute_date" column_invisible="True"/>
 									<field name="partner_id" string="Đại lý"/>
-									<field name="product_activation_count" string="Tổng số lượng lốp kích hoạt"/>
+									<field name="product_activation_count" string="Số lượng lốp đã kích hoạt"/>
 									<field name="first_warranty_policy_requirement_id" string="Điều kiện 1"/>
-									<field name="first_warranty_policy_money" string="Tiền chiết khấu" optional="show"/>
-									<field name="first_warranty_policy_total_money" string="Thành tiền" optional="show"/>
+									<field name="first_count" string="Số lượng"/>
+									<field name="first_warranty_policy_money" string="Tiền chiết khấu" optional="hidden"/>
+									<field name="first_warranty_policy_total_money" string="Thành tiền"/>
 									<field name="second_warranty_policy_requirement_id" string="Điều kiện 2"/>
-									<field name="second_warranty_policy_money" string="Tiền chiết khấu" optional="show"/>
-									<field name="second_warranty_policy_total_money" string="Thành tiền" optional="show"/>
-									<field name="third_warranty_policy_requirement_id" string="Điều kiện 3" optional="hidden"/>
-									<field name="third_warranty_policy_money" string="Tiền chiết khấu" optional="hidden"/>
-									<field name="third_warranty_policy_total_money" string="Thành tiền" optional="hidden"/>
+									<field name="second_count" string="Số lượng"/>
+									<field name="second_warranty_policy_money" string="Tiền chiết khấu" optional="hidden"/>
+									<field name="second_warranty_policy_total_money" string="Thành tiền"/>
+									<field name="third_warranty_policy_requirement_id" string="Điều kiện 3" column_invisible="True"/>
+									<field name="third_count" string="Số lượng" column_invisible="True"/>
+									<field name="third_warranty_policy_money" string="Tiền chiết khấu" column_invisible="True"/>
+									<field name="third_warranty_policy_total_money" string="Thành tiền" column_invisible="True"/>
 									<field name="total_amount_currency" string="Tổng số tiền" widget="monetary"/>
 								</tree>
 							</field>

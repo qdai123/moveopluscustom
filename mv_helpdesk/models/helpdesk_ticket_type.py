@@ -3,7 +3,11 @@ import logging
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
-from odoo.addons.mv_helpdesk.models.helpdesk_ticket import HELPDESK_MANAGER
+from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
+    HELPDESK_MANAGER,
+    SUB_DEALER_CODE,
+    END_USER_CODE,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -77,16 +81,18 @@ class HelpdeskTicketType(models.Model):
                     (
                         "code",
                         "in",
-                        [
-                            "kich_hoat_bao_hanh_dai_ly",
-                            "kich_hoat_bao_hanh_nguoi_dung_cuoi",
-                        ],
+                        [SUB_DEALER_CODE, END_USER_CODE],
                     ),
                 ]
             )
             if record_exists > 1:
-                raise ValidationError(
-                    _(
-                        f"Another type with the same name '{record.name}' already exists."
-                    )
+                # raise ValidationError(
+                #     _(
+                #         f"Another type with the same name '{record.name}' already exists."
+                #     )
+                # )
+                _logger.error(
+                    f"Another type with the same name '{record.name}' already exists."
                 )
+                pass
+                # TODO: This functional needs to be re-check and fix
