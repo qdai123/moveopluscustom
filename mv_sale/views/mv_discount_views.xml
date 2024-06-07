@@ -1,41 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<record model="ir.ui.view" id="mv_discount_line_tree">
-		<field name="name">mv_discount_line_tree</field>
-		<field name="model">mv.discount.line</field>
-		<field name="arch" type="xml">
-			<tree string="MV Discount TREE">
-				<field name="level"/>
-				<field name="quantity_from"/>
-				<field name="quantity_to"/>
-				<field name="basic"/>
-				<field name="money"/>
-				<field name="month"/>
-				<field name="month_money"/>
-				<field name="two_month"/>
-				<field name="two_money"/>
-				<field name="quarter"/>
-				<field name="quarter_money"/>
-				<field name="year"/>
-				<field name="year_money"/>
-				<field name="total_discount"/>
-				<field name="total_money"/>
-				<field name="average"/>
-				<field name="min_debt"/>
-				<field name="max_debt"/>
-				<field name="number_debt"/>
-				<field name="discount_payment"/>
-				<field name="discount_guarantee"/>
-				<field name="total_all"/>
-			</tree>
-		</field>
-	</record>
-
+	<!-- Model: MOVEO PLUS Discount Policy (Configuration) -->
 	<record model="ir.ui.view" id="mv_discount_tree">
-		<field name="name">mv_discount_tree</field>
+		<field name="name">mv.discount.policy.tree</field>
 		<field name="model">mv.discount</field>
 		<field name="arch" type="xml">
-			<tree>
+			<tree string="MOVEO PLUS Discount LIST">
 				<field name="name"/>
 			</tree>
 		</field>
@@ -46,15 +16,16 @@
 		<field name="model">mv.discount</field>
 		<field name="arch" type="xml">
 			<form string="MV Discount FORM">
-				<sheet>
-					<group>
-						<group>
-							<field name="name"/>
-						</group>
-						<group>
-							<field name="active" groups="base.group_no_one"/>
-						</group>
-					</group>
+				<sheet string="Discount">
+					<field name="active" invisible="True"/>
+					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<div class="oe_title pe-0">
+                        <h1 class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100">
+                                <field name="name" options="{'line_breaks': False}" widget="text" class="o_task_name text-truncate w-md-75 w-100 pe-2" placeholder="Task Title..."/>
+                            </div>
+                        </h1>
+                    </div>
 					<notebook>
 						<page string="Cấu hình chính sách">
 							<field name="line_ids" nolabel="1">
@@ -74,7 +45,7 @@
 						<page string="Cấu hình chính sách Khuyến Khích">
 							<group>
 								<group>
-									<field name="level_promote_apply" string="Bậc áp dụng"/>
+									<field name="level_promote_apply" string="Cấp bậc áp dụng"/>
 								</group>
 								<group/>
 							</group>
@@ -117,16 +88,40 @@
 	</record>
 
 	<record id="mv_discount_action" model="ir.actions.act_window">
-		<field name="name">Chiết khấu đại lý</field>
+		<field name="name">Cấu hình chiết khấu Đại lý</field>
 		<field name="res_model">mv.discount</field>
 		<field name="view_mode">tree,form</field>
 	</record>
 
-	<menuitem
-			id="mv_discount_menu"
-			name="Chiết khấu đại lý"
-			action="mv_discount_action"
-			parent="sale.menu_sales_config"
-			sequence="0"
-	/>
+	<!-- Model: MOVEO PLUS Discount Policy Line (Configuration) -->
+	<record model="ir.ui.view" id="mv_discount_line_tree">
+		<field name="name">mv.discount.policy.line.tree</field>
+		<field name="model">mv.discount.line</field>
+		<field name="arch" type="xml">
+			<tree string="MOVEO PLUS Discount Line LIST">
+				<field name="level"/>
+				<field name="quantity_from"/>
+				<field name="quantity_to"/>
+				<field name="basic"/>
+				<field name="money"/>
+				<field name="month"/>
+				<field name="month_money"/>
+				<field name="two_month"/>
+				<field name="two_money"/>
+				<field name="quarter"/>
+				<field name="quarter_money"/>
+				<field name="year"/>
+				<field name="year_money"/>
+				<field name="total_discount"/>
+				<field name="total_money"/>
+				<field name="average"/>
+				<field name="min_debt"/>
+				<field name="max_debt"/>
+				<field name="number_debt"/>
+				<field name="discount_payment"/>
+				<field name="discount_guarantee"/>
+				<field name="total_all"/>
+			</tree>
+		</field>
+	</record>
 </odoo>

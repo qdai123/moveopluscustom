@@ -6,76 +6,121 @@
 		<field name="inherit_id" ref="base.view_partner_form"/>
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
-				<page string="Chiết khấu" name="page_partner_discount">
+				<page string="Chiết khấu" name="page_partner_discount_info">
+					<field name="amount" invisible="True"/>
 					<group>
-						<field name="amount" readonly="True"/>
-						<field name="is_agency"/>
-						<field name="is_white_agency"/>
-						<field name="discount_id"  options="{'no_open': True, 'no_create': True}"/>
-						<label for="bank_guarantee"/>
-						<div class="o_row">
-							<field name="bank_guarantee"/>
-							-
-							<field name="discount_bank_guarantee" invisible="bank_guarantee == False"/>
-						</div>
+						<group>
+							<field name="is_agency"/>
+							<field name="is_white_agency"/>
+							<label for="bank_guarantee"/>
+							<div class="o_row">
+								<field name="bank_guarantee"/>
+								-
+								<field name="discount_bank_guarantee" invisible="not bank_guarantee"/>
+							</div>
+						</group>
+						<group invisible="not is_agency">
+							<label for="amount_currency"/>
+							<div class="o_row">
+								<field class="fw-bold" name="amount_currency" decoration-success="amount_currency > 0" decoration-muted="amount_currency == 0"/>
+                                <button string="Cập nhật số tiền" class="btn btn-primary btn-sm" type="object" name="action_update_discount_amount" invisible="not is_agency"/>
+                            </div>
+						</group>
 					</group>
-					<field name="line_ids" nolabel="1" context="{'default_parent_id': discount_id, 'default_partner_id': id}">
-						<tree default_order="partner_id desc level" create="false" edit="false" delete="false">
-							<field name="parent_id" string="Chính sách chiết khấu"/>
-							<field name="partner_id" string="Khách hàng / Đại lý"/>
-							<field name="date" string="Ngày hiệu lực"/>
-							<field name="level" string="Cấp bậc"/>
+					<group invisible="not is_agency">
+						<group>
+							<label for="discount_id"/>
+							<div class="o_row">
+								<field class="oe_inline" name="discount_id" required="is_agency" options="{'no_open': True}"/>
+							</div>
+							<field name="warranty_discount_policy_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}"/>
+						</group>
+					</group>
+					<field name="line_ids" nolabel="1" readonly="True" context="{'from_view_ref': 'mv_sale.mv_discount_partner_form_view'}" options="{'no_open': True, 'no_create_edit': True}" invisible="not is_agency">
+						<tree decoration-warning="needs_update">
+							<field name="needs_update" column_invisible="True"/>
+							<field name="parent_id" column_invisible="True"/>
+							<field name="warranty_discount_policy_ids" widget="many2many_tags" options="{'no_create_edit': True}" column_invisible="True"/>
+							<field name="date"/>
+							<field name="level"/>
 							<field name="min_debt"/>
 							<field name="max_debt"/>
 							<field name="number_debt"/>
+							<button string="Cập nhật thông tin"
+							        name="action_update_partner_discount"
+							        type="object"
+							        class="btn btn-secondary btn-sm"
+							        groups="sales_team.group_sale_salesman"
+							        confirm="Bạn muốn cập nhật thông tin cho đơn vị này?"/>
 						</tree>
 					</field>
 				</page>
-				<page string="Chi tiết chiết khấu">
-					<field name="compute_discount_line_ids" nolabel="1" readonly="True">
-						<tree default_order="id desc">
-							<field name="partner_sales_state" decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']" decoration-warning="partner_sales_state == 'imqualified'" widget="badge" optional="hidden"/>
-							<field name="name" string="Tháng/Năm"/>
-							<field name="quantity" string="Số lượng lốp đã bán"/>
-							<field name="quantity_from" optional="hidden"/>
-							<field name="quantity_to" optional="hidden"/>
-							<field name="amount_total" string="Doanh thu" widget="monetary" sum="Total Amount of Month"/>
-							<field name="is_month" column_invisible="True"/>
-							<field name="month" optional="hidden"/>
-							<field name="month_money" string="CK Tháng" widget="monetary" sum="Discount Month"/>
-							<field name="is_two_month" column_invisible="True"/>
-							<field name="amount_two_month" optional="hidden"/>
-							<field name="two_month" optional="hidden"/>
-							<field name="two_money" string="CK 2 Tháng" widget="monetary" sum="Discount Two Months"/>
-							<field name="is_quarter" column_invisible="True"/>
-							<field name="quarter" optional="hidden"/>
-							<field name="quarter_money" string="CK Quý" widget="monetary" sum="Discount quarter"/>
-							<field name="is_year" column_invisible="True"/>
-							<field name="year" optional="hidden"/>
-							<field name="year_money" string="CK Năm" widget="monetary" sum="Discount year"/>
-							<field name="promote_discount_percentage" optional="hidden"/>
-			                <field name="promote_discount_money" string="CK Khuyến Khích" widget="monetary" sum="Promote Discount"/>
-			                <field name="total_money" string="Tổng tiền" widget="monetary" sum="Total money"/>
-                            <field name="currency_id" column_invisible="True"/>
+				<page string="Chiết khấu chi tiết" name="page_partner_discount_detail" invisible="not is_agency">
+					<group class="col-12" string="## Chiết khấu sản lượng"/>
+					<field name="compute_discount_line_ids" nolabel="1" readonly="True" options="{'no_open': True}">
+							<tree default_order="id desc">
+								<field name="partner_sales_state" decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']" decoration-warning="partner_sales_state == 'imqualified'" widget="badge" optional="hidden"/>
+								<field name="name" string="Tháng/Năm"/>
+								<field name="quantity" string="Số lượng lốp đã bán"/>
+								<field name="quantity_from" optional="hidden"/>
+								<field name="quantity_to" optional="hidden"/>
+								<field name="amount_total" string="Doanh thu" widget="monetary" sum="Total Amount of Month"/>
+								<field name="is_month" column_invisible="True"/>
+								<field name="month" column_invisible="True"/>
+								<field name="month_money" string="CK Tháng" widget="monetary" sum="Discount Month"/>
+								<field name="is_two_month" column_invisible="True"/>
+								<field name="amount_two_month" column_invisible="True"/>
+								<field name="two_month" column_invisible="True"/>
+								<field name="two_money" string="CK 2 Tháng" widget="monetary" sum="Discount Two Months"/>
+								<field name="is_quarter" column_invisible="True"/>
+								<field name="quarter" column_invisible="True"/>
+								<field name="quarter_money" string="CK Quý" widget="monetary" sum="Discount quarter"/>
+								<field name="is_year" column_invisible="True"/>
+								<field name="year" column_invisible="True"/>
+								<field name="year_money" string="CK Năm" widget="monetary" sum="Discount year"/>
+								<field name="promote_discount_percentage" column_invisible="True"/>
+								<field name="promote_discount_money" string="CK Khuyến Khích" widget="monetary" sum="Promote Discount"/>
+								<field name="total_money" string="Tổng tiền" widget="monetary" sum="Total money"/>
+								<field name="currency_id" column_invisible="True"/>
+							</tree>
+						</field>
+					<group class="col-12" string="## Chiết khấu kích hoạt"/>
+					<field name="compute_warranty_discount_line_ids" nolabel="1" readonly="True" options="{'no_open': True}">
+						<tree default_order="partner_id">
+							<field name="currency_id" column_invisible="True"/>
+							<field name="parent_compute_date" column_invisible="True"/>
+							<field name="partner_id" column_invisible="True"/>
+							<field name="parent_name" string="Tháng / Năm"/>
+							<field name="product_activation_count" string="Tổng số lượng lốp kích hoạt"/>
+							<field name="first_warranty_policy_requirement_id" string="Điều kiện 1"/>
+							<field name="first_warranty_policy_money" string="Tiền chiết khấu" optional="show"/>
+							<field name="first_warranty_policy_total_money" string="Thành tiền" optional="show" sum="First Total Money"/>
+							<field name="second_warranty_policy_requirement_id" string="Điều kiện 2"/>
+							<field name="second_warranty_policy_money" string="Tiền chiết khấu" optional="show"/>
+							<field name="second_warranty_policy_total_money" string="Thành tiền" optional="show" sum="Second Total Money"/>
+							<field name="third_warranty_policy_requirement_id" string="Điều kiện 3" column_invisible="True"/>
+							<field name="third_warranty_policy_money" string="Tiền chiết khấu" column_invisible="True"/>
+							<field name="third_warranty_policy_total_money" string="Thành tiền" column_invisible="True"/>
+							<field name="total_amount_currency" string="Tổng số tiền" widget="monetary" sum="Total Amount"/>
 						</tree>
 					</field>
 				</page>
-				<page string="Đơn hàng chiết khấu tháng">
-					<field name="sale_mv_ids" nolabel="1" readonly="True">
+				<page string="Đơn hàng chiết khấu" name="page_partner_discount_orders" invisible="not is_agency">
+					<field name="sale_mv_ids" nolabel="1" options="{'no_open': True}">
 						<tree default_order="id desc">
 							<field name="name" string="Đơn hàng"/>
-							<field name="bonus_order" string="Số tiền đã chiết khấu" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-							<field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'sale'"/>
+							<field name="bonus_order" string="Tiền chiết khấu" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+							<field name="state" string="Trạng thái" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'sale'"/>
 							<field name="currency_id" column_invisible="True"/>
 						</tree>
 					</field>
 					<group name="total_group" col="6" class="mt-2 mt-md-0">
-                        <group colspan="4"/>
-                        <group class="oe_subtotal_footer" colspan="2" name="sale_bonus_order_total">
-                            <field name="total_so_bonus_order" colspan="2" readonly="True"/>
-                        </group>
-                        <div class="clearfix"/>
-                    </group>
+						<group colspan="4"/>
+						<group class="oe_subtotal_footer" colspan="2" name="sale_bonus_order_total">
+							<field name="total_so_bonus_order" string="Tổng tiền chiết khấu" colspan="2" readonly="True"/>
+						</group>
+						<div class="clearfix"/>
+					</group>
 				</page>
 			</xpath>
 		</field>

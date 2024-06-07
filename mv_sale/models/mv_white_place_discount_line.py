@@ -4,15 +4,15 @@ from odoo import api, fields, models, _
 
 class MvWhitePlaceDiscountLine(models.Model):
     _name = "mv.white.place.discount.line"
-    _description = _("Moveo PLus White Places Discount Line (%)")
+    _description = _("MOVE PLUS White Places Discount Line (%)")
     _order = "discount"
     _rec_name = "discount"
     _rec_names_search = ["discount"]
 
-    parent_id = fields.Many2one("mv.discount", "Compute Discount", readonly=True)
+    parent_id = fields.Many2one("mv.discount", readonly=True)
     pricelist_id = fields.Many2one("product.pricelist", "Chính sách giá")
     quantity = fields.Integer("Số lượng")
-    discount = fields.Float("Chiết khấu (%)", digits=(16, 1))
+    discount = fields.Float("Chiết khấu (%)", digits=(16, 2))
 
     @api.onchange("pricelist_id")
     def _onchange_pricelist(self):

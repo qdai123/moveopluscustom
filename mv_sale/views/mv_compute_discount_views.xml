@@ -4,7 +4,7 @@
 		<field name="name">mv_compute_discount_form</field>
 		<field name="model">mv.compute.discount</field>
 		<field name="arch" type="xml">
-			<form>
+			<form duplicate="false">
 				<header>
 					<field name="do_readonly" invisible="True"/>
 					<button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info" invisible="state not in ['confirm', 'done']"/>
@@ -102,8 +102,8 @@
 		<field name="name">mv_compute_discount_tree</field>
 		<field name="model">mv.compute.discount</field>
 		<field name="arch" type="xml">
-			<tree default_order="report_date desc">
-				<field name="name"/>
+			<tree default_order="report_date desc" duplicate="false">
+				<field name="name" string="Tháng/Năm"/>
 				<field column_invisible="True" name="report_date"/>
 				<field name="state" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'" widget="badge"/>
 			</tree>
@@ -111,7 +111,7 @@
 	</record>
 
 	<record model="ir.actions.act_window" id="mv_compute_discount_action">
-		<field name="name">Tính chiết khấu</field>
+		<field name="name">Tính chiết khấu sản lượng</field>
 		<field name="res_model">mv.compute.discount</field>
 		<field name="view_mode">tree,form</field>
 		<field name="help" type="html">
@@ -120,6 +120,4 @@
 			</p>
 		</field>
 	</record>
-
-	<menuitem id="mv_compute_discount_menu" name="Tính chiết khấu" action="mv_compute_discount_action" parent="sale.menu_sales_config" sequence="0"/>
 </odoo>

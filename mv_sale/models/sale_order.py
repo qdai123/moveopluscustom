@@ -469,6 +469,9 @@ class SaleOrder(models.Model):
 
             self.write({"bonus_order": total_bonus})
             self.partner_id.write({"amount": self.partner_id.amount - bonus})
+            self.env["res.partner"].browse(
+                self.partner_id.id
+            ).sudo().action_update_discount_amount()
         except Exception as e:
             _logger.error("Failed to compute discount for partner: %s", e)
 

@@ -4,29 +4,25 @@ from odoo import api, fields, models, _
 
 class MvPromoteDiscountLine(models.Model):
     _name = "mv.promote.discount.line"
-    _description = _("Moveo PLus Promote Discount Line (%)")
+    _description = _("MOVEO PLUS Promote Discount Line (%)")
     _order = "promote_discount"
     _rec_name = "promote_discount"
     _rec_names_search = ["promote_discount"]
 
     @api.model
-    def name_search(self, name, args=None, operator="ilike", limit=100):
-        return super().name_search(name, args, operator, limit)
-
-    @api.model
     def name_get(self):
         res = []
-        for item in self:
+        for record in self:
             if self._context.get("wizard_promote_discount_search", False):
-                name = "{:.0f}%".format(item.promote_discount)
-                res.append((item.id, name))
+                name = "{:.0f}%".format(record.promote_discount)
+                res.append((record.id, name))
         return res
 
-    parent_id = fields.Many2one("mv.discount", "Compute Discount", readonly=True)
+    parent_id = fields.Many2one("mv.discount", readonly=True)
     pricelist_id = fields.Many2one("product.pricelist", "Chính sách giá")
     quantity_minimum = fields.Integer("Số lượng Min")
     quantity_maximum = fields.Integer("Số lượng Max")
-    promote_discount = fields.Float("Chiết khấu khuyến khích (%)", digits=(16, 1))
+    promote_discount = fields.Float("Chiết khấu khuyến khích (%)", digits=(16, 2))
 
     @api.onchange("pricelist_id")
     def _onchange_pricelist(self):
