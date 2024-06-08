@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import logging
 from functools import reduce
 import operator
 
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+
+_logger = logging.getLogger(__name__)
 
 
 class ResPartner(models.Model):
@@ -25,7 +28,7 @@ class ResPartner(models.Model):
     )
     discount_id = fields.Many2one(
         comodel_name="mv.discount",
-        string="Chiết khấu",
+        string="Chiết khấu sản lượng",
         compute="_compute_discount_ids",
         store=True,
         readonly=False,
@@ -83,6 +86,7 @@ class ResPartner(models.Model):
 
     def action_update_discount_amount(self):
         self.ensure_one()
+
         if self.is_agency:
             if self.sale_order_ids:
                 orders_discount = [
@@ -99,16 +103,33 @@ class ResPartner(models.Model):
             total_discount_money = 0
             if self.compute_discount_line_ids:
                 total_discount_money += sum(
-                    line.total_money for line in self.compute_discount_line_ids
+                    line.total_money
+                    for line in self.compute_discount_line_ids.filtered(
+                        lambda r: r.state == "done"
+                    )
                 )
 
             if self.compute_warranty_discount_line_ids:
                 total_discount_money += sum(
                     line.total_amount_currency
-                    for line in self.compute_warranty_discount_line_ids
+                    for line in self.compute_warranty_discount_line_ids.filtered(
+                        lambda r: r.parent_state == "done"
+                    )
                 )
 
             self.amount_currency = total_discount_money - self.total_so_bonus_order
+
+            if self.env.context.get("recompute_discount_manual", False):
+                return {
+                    "type": "ir.actions.client",
+                    "tag": "display_notification",
+                    "params": {
+                        "title": _("Successfully"),
+                        "message": "Cập nhật tiền chiết khấu thành công",
+                        "type": "success",
+                        "sticky": False,
+                    },
+                }
 
     # =================================
     # COMPUTE / ONCHANGE Methods
@@ -133,23 +154,47 @@ class ResPartner(models.Model):
 
     @api.depends("sale_order_ids")
     def _compute_sale_order_ids(self):
-        for record in self.filtered(lambda partner: partner.is_agency):
-            record.sale_mv_ids = None
-            orders_discount = [
-                order
-                for order in record.sale_order_ids
-                if order.bonus_order > 0 and order.state != "cancel"
-            ]
-            if orders_discount:
-                record.sale_mv_ids = [(6, 0, [order.id for order in orders_discount])]
+        for record in self:
+            if record.is_agency:
+                record.sale_mv_ids = None
+                total_so_bonus_money = 0
+                total_discount_money = 0
 
-            record.total_so_bonus_order = reduce(
-                operator.add, (order.bonus_order for order in orders_discount), 0
-            )
-            record.amount_currency = (
-                sum(line.total_money for line in record.compute_discount_line_ids)
-                - record.total_so_bonus_order
-            )
+                orders_discount = [
+                    order
+                    for order in record.sale_order_ids
+                    if order.bonus_order > 0 and order.state in ["sent", "sale"]
+                ]
+                if orders_discount:
+                    record.sale_mv_ids = [
+                        (6, 0, [order.id for order in orders_discount])
+                    ]
+                    total_so_bonus_money += reduce(
+                        operator.add,
+                        (order.bonus_order for order in orders_discount),
+                        0,
+                    )
+                record.total_so_bonus_order = total_so_bonus_money
+
+                if record.compute_discount_line_ids:
+                    total_discount_money += sum(
+                        line.total_money
+                        for line in record.compute_discount_line_ids.filtered(
+                            lambda r: r.state == "done"
+                        )
+                    )
+
+                if record.compute_warranty_discount_line_ids:
+                    total_discount_money += sum(
+                        line.total_amount_currency
+                        for line in record.compute_warranty_discount_line_ids.filtered(
+                            lambda r: r.parent_state == "done"
+                        )
+                    )
+
+                record.amount_currency = (
+                    total_discount_money - record.total_so_bonus_order
+                )
 
     @api.onchange("discount_id")
     def _onchange_discount_id(self):
@@ -171,3 +216,36 @@ class ResPartner(models.Model):
     @api.onchange("bank_guarantee")
     def _onchange_bank_guarantee(self):
         self.discount_bank_guarantee = 0
+
+    # ==================================
+    # CRON SERVICE Methods
+    # ==================================
+
+    @api.model
+    def _cron_recompute_partner_discount(self, limit=None):
+        """
+        Scheduled task to recompute the discount for partner agencies.
+
+        Args:
+            limit (int, optional): The maximum number of partners to process.
+                                   If not provided, defaults to 80.
+
+        Returns:
+            bool: True if the task completed successfully, False otherwise.
+        """
+        records_limit = limit if limit else 80
+        try:
+            partners = (
+                self.env["res.partner"]
+                .sudo()
+                .search([("is_agency", "=", True)], limit=records_limit)
+            )
+            for partner in partners:
+                partner.with_context(
+                    cron_service_run=True
+                ).action_update_discount_amount()
+            _logger.info(f"Recomputed discount for {len(partners)} partner agencies.")
+            return True
+        except Exception as e:
+            _logger.error(f"Failed to recompute discount for partner agencies: {e}")
+            return False

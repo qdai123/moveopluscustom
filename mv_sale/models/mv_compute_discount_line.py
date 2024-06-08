@@ -21,6 +21,7 @@ class MvComputeDiscountLine(models.Model):
     # Parent Model Fields:
     parent_id = fields.Many2one("mv.compute.discount")
     name = fields.Char(related="parent_id.name", store=True)
+    state = fields.Selection(related="parent_id.state", readonly=True)
     month_parent = fields.Integer()
 
     # Base Fields:

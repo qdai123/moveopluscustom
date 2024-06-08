@@ -21,9 +21,10 @@
 		<field name="arch" type="xml">
 			<form string="MOVEO PLUS Warranty Discount Policy FORM" duplicate="false">
 				<header>
-					<button class="btn btn-primary" name="action_apply" type="object" string="Áp dụng" invisible="not id or policy_status != 'open'"/>
-					<button class="btn btn-primary" name="action_close" type="object" string="Kết thúc" invisible="not id or policy_status in ['open', 'close']"/>
-					<button class="btn btn-secondary" name="action_reset_to_open" type="object" string="Mở lại chính sách" invisible="not id or policy_status != 'close'"/>
+					<field name="can_access" invisible="True"/>
+					<button class="btn btn-primary" name="action_apply" type="object" string="Áp dụng" invisible="not id or (can_access and policy_status != 'open') or not can_access"/>
+					<button class="btn btn-primary" name="action_close" type="object" string="Kết thúc" invisible="not id or (can_access and policy_status in ['open', 'close']) or not can_access"/>
+					<button class="btn btn-secondary" name="action_reset_to_open" type="object" string="Mở lại chính sách" invisible="not id or (can_access and policy_status != 'close') or not can_access"/>
 					<field name="policy_status" widget="statusbar" statusbar_visible="open"/>
 				</header>
 				<sheet string="Warranty Discount Policy Form">
@@ -47,9 +48,10 @@
 					<notebook>
 						<page string="Cấu hình / Điều kiện" name="page_conditions_config">
 							<field mode="tree" name="line_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_warranty_discount_policy_id': id}">
-								<tree editable="bottom">
+								<tree editable="bottom" default_order="sequence">
 									<field name="warranty_discount_policy_id" column_invisible="True"/>
 									<field name="currency_id" column_invisible="True"/>
+									<field name="sequence" widget="handle"/>
 									<field name="quantity_from"/>
 									<field name="quantity_to"/>
 									<field name="discount_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>

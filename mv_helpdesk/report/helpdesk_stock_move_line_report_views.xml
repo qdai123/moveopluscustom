@@ -85,9 +85,8 @@
                         ('product_template_id', 'ilike', self),
                         ('product_template_id.name', 'ilike', self)]"/>
 				<field name="partner_id" operator="child_of" string="Customer" filter_domain="[
-                        '|', '|',
+                        '|',
                         ('partner_id', 'ilike', self),
-                        ('partner_name', 'ilike', self),
                         ('partner_email', 'ilike', self)]"/>
 				<filter name="filter_ticket_create_date" date="ticket_create_date" default_period="this_year" string="Period"/>
 				<group expand="0" string="Group By" colspan="16">

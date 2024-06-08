@@ -2,6 +2,7 @@
 import base64
 import calendar
 import io
+import logging
 import re
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -14,6 +15,8 @@ except ImportError:
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.misc import format_date, formatLang, get_lang
+
+_logger = logging.getLogger(__name__)
 
 DEFAULT_SERVER_DATE_FORMAT = "%Y-%m-%d"
 DEFAULT_SERVER_TIME_FORMAT = "%H:%M:%S"
@@ -67,6 +70,19 @@ class MvWarrantyDiscountPolicy(models.Model):
     _description = _("Warranty Discount Policy")
     _order = "date_from desc, date_to desc"
 
+    # ACCESS/RULE Fields:
+    can_access = fields.Boolean(
+        compute="_compute_can_access",
+        default=lambda self: self.env.user.has_group(DISCOUNT_APPROVER)
+        or self.env.user._is_admin()
+        or self.env.user._is_system(),
+    )
+
+    @api.depends_context("uid")
+    def _compute_can_access(self):
+        for record in self:
+            record.can_access = self._fully_access()
+
     active = fields.Boolean(string="Active", default=True)
     name = fields.Char(compute="_compute_name", store=True, readonly=False)
     date_from = fields.Date(default=lambda self: fields.Date.today().replace(day=1))
@@ -96,10 +112,22 @@ class MvWarrantyDiscountPolicy(models.Model):
 
     def action_reset_to_open(self):
         self.ensure_one()
+
+        if not self._fully_access():
+            raise AccessError(
+                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
+            )
+
         self.write({"policy_status": "open"})
 
     def action_apply(self):
         self.ensure_one()
+
+        if not self._fully_access():
+            raise AccessError(
+                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
+            )
+
         if self.policy_status == "open":
             self.write({"policy_status": "applying"})
 
@@ -107,6 +135,12 @@ class MvWarrantyDiscountPolicy(models.Model):
 
     def action_close(self):
         self.ensure_one()
+
+        if not self._fully_access():
+            raise AccessError(
+                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
+            )
+
         if self.policy_status == "applying":
             self.write({"policy_status": "close"})
 
@@ -143,6 +177,7 @@ class MvWarrantyDiscountPolicy(models.Model):
     def create(self, vals_list):
         res = super(MvWarrantyDiscountPolicy, self).create(vals_list)
 
+        # TODO: This method should be validated for every time create new record
         if res:
             for record in res:
                 if not record.partner_ids:
@@ -160,6 +195,7 @@ class MvWarrantyDiscountPolicy(models.Model):
     def write(self, vals):
         res = super(MvWarrantyDiscountPolicy, self).write(vals)
 
+        # TODO: This method should be validated for every time update current record
         if res:
             for record in self:
                 if record.partner_ids:
@@ -169,6 +205,14 @@ class MvWarrantyDiscountPolicy(models.Model):
                         )
 
         return res
+
+    @api.constrains("line_ids")
+    def _limit_policy_conditions(self):
+        for record in self:
+            if len(record.line_ids) > 3:
+                raise ValidationError(
+                    _("Chính sách chiết khấu không được nhiều hơn 3 điều kiện!")
+                )
 
     # =================================
     # CONSTRAINS Methods
@@ -191,11 +235,24 @@ class MvWarrantyDiscountPolicy(models.Model):
                         _("Chính sách này đã bị trùng, vui lòng kiểm tra lại!")
                     )
 
+    # =================================
+    # HELPER / PRIVATE Methods
+    # =================================
+
+    def _fully_access(self):
+        access = (
+            self.env.user.has_group(DISCOUNT_APPROVER)
+            or self.env.user._is_admin()
+            or self.env.user._is_system()
+        )
+        return access
+
 
 class MvWarrantyDiscountPolicyLine(models.Model):
     _name = _description = "mv.warranty.discount.policy.line"
     _rec_name = "explanation"
 
+    sequence = fields.Integer(required=True, default=1)
     warranty_discount_policy_id = fields.Many2one(
         comodel_name="mv.warranty.discount.policy",
         domain=[("active", "=", True)],
@@ -294,160 +351,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             _logger.error("Failed to reset to draft: %s", e)
             pass
 
-    def action_calculate_discount_line(self):
-        self.ensure_one()
-        PolicyLine = self.env["mv.warranty.discount.policy.line"].sudo()
-        ProductTemplate = self.env["product.template"].sudo()
-        ProductTemplateAttributeValue = self.env[
-            "product.template.attribute.value"
-        ].sudo()
-        ProductAttributeValue = self.env["product.attribute.value"].sudo()
-
-        # Parameters
-        results = []
-        policy_used = self.warranty_discount_policy_id
-        self.line_ids = [(5, 0, 0)]  # Remove all lines
-        date_from, date_to = self._get_dates(self.compute_date, self.month, self.year)
-
-        if not policy_used:
-            raise ValidationError(_("Chưa chọn Chính sách chiết khấu!"))
-
-        # Fetch all ticket with conditions at once
-        tickets = self.env["helpdesk.ticket"].search(
-            [
-                ("ticket_type_id.code", "in", [SUB_DEALER_CODE, END_USER_CODE]),
-                ("stage_id.name", "in", ["New", "Done"]),
-                ("ticket_update_date", ">=", date_from),
-                ("ticket_update_date", "<", date_to),
-            ]
-        )
-        if not tickets:
-            raise UserError(
-                _("Hiện tại không có phiếu nào đã kích hoạt trong tháng %s")
-                % self.month
-            )
-
-        # Get ticket has product move by [tickets]
-        ticket_product_moves = self.env["mv.helpdesk.ticket.product.moves"].search(
-            [("helpdesk_ticket_id", "in", tickets.ids)]
-        )
-
-        # Fetch partners at once
-        partners = ticket_product_moves.mapped("partner_id")
-        for partner in partners.filtered(
-            lambda p: p.is_agency
-            and p.id in policy_used.partner_ids.mapped("partner_id").ids
-        ):
-            vals = self._prepare_values_to_compute_discount(partner, self.compute_date)
-
-            product_activation_count = 0
-            serial_code_already_used = []
-            qr_code_already_used = []
-            partner_tickets_registered = ticket_product_moves.filtered(
-                lambda t: t.partner_id.id == partner.id
-                or t.partner_id.parent_id.id == partner.id
-            )
-            for ticket in partner_tickets_registered:
-                if (
-                    ticket.lot_name not in serial_code_already_used
-                    and ticket.qr_code not in qr_code_already_used
-                ):
-                    serial_code_already_used.append(ticket.lot_name)
-                    qr_code_already_used.append(ticket.qr_code)
-                    product_activation_count += 1
-                    vals["helpdesk_ticket_ids"] += ticket.helpdesk_ticket_id.ids
-
-            vals["product_activation_count"] = product_activation_count
-
-            product_tmpl = ProductTemplate.search(
-                [
-                    (
-                        "id",
-                        "in",
-                        partner_tickets_registered.mapped(
-                            "product_id.product_tmpl_id"
-                        ).ids,
-                    )
-                ]
-            )
-            product_tmpl_attribute_values = ProductTemplateAttributeValue.search(
-                [("product_tmpl_id", "in", product_tmpl.ids)]
-            )
-            product_attribute_values = ProductAttributeValue.search(
-                [
-                    (
-                        "id",
-                        "in",
-                        product_tmpl_attribute_values.mapped(
-                            "product_attribute_value_id"
-                        )
-                        .filtered(
-                            lambda v: v.attribute_id.id
-                            in policy_used.product_attribute_ids.ids
-                        )
-                        .ids,
-                    )
-                ]
-            ).mapped("name")
-
-            first_warranty_policy = PolicyLine.search(
-                [("explanation_code", "=", "rim_lower_and_equal_16")], limit=1
-            )
-            vals["first_warranty_policy_requirement_id"] = first_warranty_policy.id
-            vals["first_warranty_policy_money"] = (
-                first_warranty_policy.discount_amount or 0
-            )
-            second_warranty_policy = PolicyLine.search(
-                [("explanation_code", "=", "rim_greater_and_equal_17")], limit=1
-            )
-            vals["second_warranty_policy_requirement_id"] = second_warranty_policy.id
-            vals["second_warranty_policy_money"] = (
-                second_warranty_policy.discount_amount or 0
-            )
-
-            for value in product_attribute_values:
-                # ========= First Condition (Product has RIM <= 16) =========
-                if float(value) <= 16.0:
-                    vals["first_warranty_policy_total_money"] = (
-                        first_warranty_policy.discount_amount * product_activation_count
-                    )
-                # ========= Second Condition (Product has RIM >= 17) =========
-                elif float(value) >= 17.0:
-                    vals["second_warranty_policy_total_money"] = (
-                        second_warranty_policy.discount_amount
-                        * product_activation_count
-                    )
-
-            results.append((0, 0, vals))
-
-        if not results:
-            raise UserError(
-                _("Không có dữ liệu để tính chiết khấu cho tháng %s") % self.month
-            )
-
-        self.write({"line_ids": results, "state": "confirm"})
-
-    def _prepare_values_to_compute_discount(self, partner, compute_date):
-        self.ensure_one()
-        return {
-            "parent_id": self.id,
-            "parent_compute_date": compute_date,
-            "partner_id": partner.id,
-            "currency_id": partner.company_id.sudo().currency_id.id
-            or self.env.company.sudo().currency_id.id,
-            "helpdesk_ticket_ids": [],
-            "product_activation_count": 0,
-            "first_warranty_policy_requirement_id": False,
-            "first_warranty_policy_money": 0,
-            "first_warranty_policy_total_money": 0,
-            "second_warranty_policy_requirement_id": False,
-            "second_warranty_policy_money": 0,
-            "second_warranty_policy_total_money": 0,
-            "third_warranty_policy_requirement_id": False,
-            "third_warranty_policy_money": 0,
-            "third_warranty_policy_total_money": 0,
-        }
-
     def action_done(self):
         if not self._access_approve():
             raise AccessError(_("Bạn không có quyền duyệt!"))
@@ -457,11 +360,290 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 self.env["res.partner"].sudo().browse(
                     line.partner_id.id
                 ).action_update_discount_amount()
+                line.helpdesk_ticket_product_moves_ids.mapped(
+                    "helpdesk_ticket_id"
+                ).write(
+                    {
+                        "stage_id": self.env["helpdesk.stage"]
+                        .search(
+                            [
+                                (
+                                    "id",
+                                    "=",
+                                    self.env.ref(
+                                        "mv_website_helpdesk.warranty_stage_done"
+                                    ).id,
+                                )
+                            ],
+                            limit=1,
+                        )
+                        .id
+                    }
+                )
             rec.state = "done"
 
     def action_reset(self):
         if self.state == "confirm":
             self.action_reset_to_draft()
+
+    def action_calculate_discount_line(self):
+        self.ensure_one()
+
+        if not self.warranty_discount_policy_id:
+            raise ValidationError("Chưa chọn Chính sách chiết khấu!")
+
+        # Fetch all ticket with conditions at once
+        tickets = self._fetch_tickets()
+
+        if not tickets:
+            raise UserError(
+                "Hiện tại không có phiếu nào đã kích hoạt trong tháng %s" % self.month
+            )
+
+        # Get ticket has product move by [tickets]
+        ticket_product_moves = self._fetch_ticket_product_moves(tickets)
+
+        # Fetch partners at once
+        partners = self._fetch_partners(ticket_product_moves)
+
+        results = self._calculate_discount_lines(partners, ticket_product_moves)
+
+        if not results:
+            raise UserError(
+                "Không có dữ liệu để tính chiết khấu cho tháng %s" % self.month
+            )
+
+        self.write({"line_ids": results, "state": "confirm"})
+
+    def _prepare_values_to_calculate_discount(self, partner, compute_date):
+        self.ensure_one()
+        return {
+            "parent_id": self.id,
+            "parent_compute_date": compute_date,
+            "partner_id": partner.id,
+            "currency_id": partner.company_id.sudo().currency_id.id
+            or self.env.company.sudo().currency_id.id,
+            "helpdesk_ticket_product_moves_ids": [],
+            "product_activation_count": 0,
+            "first_warranty_policy_requirement_id": False,
+            "first_count": 0,
+            "first_quantity_from": 0,
+            "first_quantity_to": 0,
+            "first_warranty_policy_money": 0,
+            "first_warranty_policy_total_money": 0,
+            "second_warranty_policy_requirement_id": False,
+            "second_count": 0,
+            "second_quantity_from": 0,
+            "second_quantity_to": 0,
+            "second_warranty_policy_money": 0,
+            "second_warranty_policy_total_money": 0,
+            "third_warranty_policy_requirement_id": False,
+            "third_count": 0,
+            "third_quantity_from": 0,
+            "third_quantity_to": 0,
+            "third_warranty_policy_money": 0,
+            "third_warranty_policy_total_money": 0,
+        }
+
+    def _calculate_discount_lines(self, partners, ticket_product_moves):
+        results = []
+        policy_used = self.warranty_discount_policy_id
+        compute_date = self.compute_date
+
+        for partner in partners.filtered(
+            lambda p: p.is_agency
+            and p.id in policy_used.partner_ids.mapped("partner_id").ids
+        ):
+            # Prepare values to calculate discount
+            vals = self._prepare_values_to_calculate_discount(partner, compute_date)
+
+            code_registered = []
+            partner_tickets_registered = ticket_product_moves.filtered(
+                lambda t: t.partner_id.id == partner.id
+                or t.partner_id.parent_id.id == partner.id
+            )
+            for ticket in partner_tickets_registered:
+                if ticket.lot_name not in [
+                    x[0] for x in code_registered
+                ] or ticket.qr_code not in [x[1] for x in code_registered]:
+                    code_registered.append((ticket.lot_name, ticket.qr_code))
+                    vals["helpdesk_ticket_product_moves_ids"] += ticket.ids
+                else:
+                    ticket.write({"product_activate_twice": True})
+                    vals["helpdesk_ticket_product_moves_ids"] += ticket.ids
+
+            vals["product_activation_count"] = len(list(set(code_registered)))
+
+            product_tmpl = self._fetch_product_template(
+                partner_tickets_registered.mapped("product_id.product_tmpl_id")
+            )
+            product_tmpl_attribute_values = (
+                self._fetch_product_template_attribute_values(product_tmpl)
+            )
+            product_attribute_values = self._fetch_product_attribute_values(
+                policy_used, product_tmpl_attribute_values
+            )
+
+            context_lines = dict(self.env.context or {})
+
+            # ========= First Condition Warranty Policy =========
+            first_count = 0
+            first_policy_code = (
+                context_lines.get("first_policy_code") or "rim_lower_and_equal_16"
+            )
+            first_warranty_policy = self._fetch_warranty_policy(first_policy_code)
+            vals["first_warranty_policy_requirement_id"] = first_warranty_policy.id
+            vals["first_quantity_from"] = first_warranty_policy.quantity_from
+            vals["first_quantity_to"] = first_warranty_policy.quantity_to
+            vals["first_warranty_policy_money"] = (
+                first_warranty_policy.discount_amount or 0
+            )
+            # ========= Second Condition Warranty Policy =========
+            second_count = 0
+            second_policy_code = (
+                context_lines.get("second_policy_code") or "rim_greater_and_equal_17"
+            )
+            second_warranty_policy = self._fetch_warranty_policy(second_policy_code)
+            vals["second_warranty_policy_requirement_id"] = second_warranty_policy.id
+            vals["second_quantity_from"] = second_warranty_policy.quantity_from
+            vals["second_quantity_to"] = second_warranty_policy.quantity_to
+            vals["second_warranty_policy_money"] = (
+                second_warranty_policy.discount_amount or 0
+            )
+            # ========= Third Condition Warranty Policy =========
+            third_count = 0
+            third_policy_code = context_lines.get("third_policy_code") or None
+            third_warranty_policy = self._fetch_warranty_policy(
+                third_policy_code,
+                [
+                    ("sequence", "=", 3),
+                    (
+                        "explanation_code",
+                        "not in",
+                        [first_policy_code, second_policy_code],
+                    ),
+                ],
+            )
+            vals["third_warranty_policy_requirement_id"] = third_warranty_policy.id
+            vals["third_quantity_from"] = third_warranty_policy.quantity_from
+            vals["third_quantity_to"] = third_warranty_policy.quantity_to
+            vals["third_warranty_policy_money"] = (
+                third_warranty_policy.discount_amount or 0
+            )
+
+            for attribute in product_attribute_values:
+                # ========= First Condition (Product has RIM <= 16) =========
+                if float(attribute.name) <= float(first_warranty_policy.quantity_to):
+                    first_count += 1
+                # ========= Second Condition (Product has RIM >= 17) =========
+                elif float(attribute.name) >= float(
+                    first_warranty_policy.quantity_from
+                ):
+                    second_count += 1
+
+            vals["first_count"] = first_count
+            vals["first_warranty_policy_total_money"] = (
+                first_warranty_policy.discount_amount * first_count
+            )
+            vals["second_count"] = second_count
+            vals["second_warranty_policy_total_money"] = (
+                second_warranty_policy.discount_amount * second_count
+            )
+
+            results.append((0, 0, vals))
+
+        return results
+
+    def _fetch_tickets(self):
+        try:
+            date_from, date_to = self._get_dates(
+                self.compute_date, self.month, self.year
+            )
+            return self.env["helpdesk.ticket"].search(
+                [
+                    ("ticket_type_id.code", "in", [SUB_DEALER_CODE, END_USER_CODE]),
+                    ("stage_id.name", "in", ["New", "Done"]),
+                    ("ticket_update_date", ">=", date_from),
+                    ("ticket_update_date", "<", date_to),
+                ]
+            )
+        except Exception as e:
+            _logger.error(f"Failed to fetch tickets: {e}")
+            return False
+
+    def _fetch_ticket_product_moves(self, tickets):
+        try:
+            if tickets:
+                return self.env["mv.helpdesk.ticket.product.moves"].search(
+                    [("helpdesk_ticket_id", "in", tickets.ids)]
+                )
+        except Exception as e:
+            _logger.error(f"Failed to fetch ticket product moves: {e}")
+            return False
+
+    def _fetch_partners(self, ticket_product_moves):
+        try:
+            if ticket_product_moves:
+                return (
+                    self.env["res.partner"]
+                    .sudo()
+                    .browse(ticket_product_moves.mapped("partner_id").ids)
+                )
+        except Exception as e:
+            _logger.error(f"Failed to fetch partners: {e}")
+            return False
+
+    def _fetch_warranty_policy(self, policy_code, domain=[]):
+        try:
+            policy_domain = domain
+            if policy_code and not domain:
+                policy_domain = [("explanation_code", "=", policy_code)]
+
+            return self.env["mv.warranty.discount.policy.line"].search(
+                policy_domain, limit=1
+            )
+        except Exception as e:
+            _logger.error(f"Failed to fetch warranty policy: {e}")
+            return False
+
+    def _fetch_product_template(self, products):
+        try:
+            if products:
+                return self.env["product.template"].search([("id", "in", products.ids)])
+        except Exception as e:
+            _logger.error(f"Failed to fetch product template: {e}")
+            return False
+
+    def _fetch_product_template_attribute_values(self, products):
+        try:
+            if products:
+                return self.env["product.template.attribute.value"].search(
+                    [("product_tmpl_id", "in", products.ids)]
+                )
+        except Exception as e:
+            _logger.error(f"Failed to fetch product template attribute values: {e}")
+            return False
+
+    def _fetch_product_attribute_values(self, policy_used, products):
+        try:
+            if products and policy_used:
+                return self.env["product.attribute.value"].search(
+                    [
+                        (
+                            "id",
+                            "in",
+                            products.mapped("product_attribute_value_id")
+                            .filtered(
+                                lambda v: v.attribute_id.id
+                                in policy_used.product_attribute_ids.ids
+                            )
+                            .ids,
+                        )
+                    ]
+                )
+        except Exception as e:
+            _logger.error(f"Failed to fetch product attribute values: {e}")
+            return False
 
     # =================================
     # ORM Methods
@@ -479,7 +661,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         for rec in self:
             if rec.state == "done":
                 raise UserError(
-                    "Phần tính toán chiết khấu cho tháng này đã được Duyệt. Không thể xoá! "
+                    f"Phần tính toán chiết khấu cho tháng {rec.month}/{rec.year} đã được Duyệt. Không thể xoá! "
                 )
 
     @api.constrains("warranty_discount_policy_id", "month", "year")
@@ -877,14 +1059,21 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     )
     parent_name = fields.Char("Name", compute="_compute_parent_name", store=True)
     parent_compute_date = fields.Datetime(readonly=True)
+    parent_state = fields.Selection(related="parent_id.state", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
-    helpdesk_ticket_ids = fields.Many2many(
-        "helpdesk.ticket", readonly=True, context={"create": False, "edit": False}
+    helpdesk_ticket_product_moves_ids = fields.Many2many(
+        "mv.helpdesk.ticket.product.moves",
+        "compute_warranty_discount_policy_ticket_product_moves_rel",
+        readonly=True,
+        context={"create": False, "edit": False},
     )
     product_activation_count = fields.Integer(default=0)
     first_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
+    first_count = fields.Integer()
+    first_quantity_from = fields.Integer()
+    first_quantity_to = fields.Integer()
     first_warranty_policy_money = fields.Monetary(
         digits=(16, 2), currency_field="currency_id"
     )
@@ -894,6 +1083,9 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     second_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
+    second_count = fields.Integer()
+    second_quantity_from = fields.Integer()
+    second_quantity_to = fields.Integer()
     second_warranty_policy_money = fields.Monetary(
         digits=(16, 2), currency_field="currency_id"
     )
@@ -903,6 +1095,9 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     third_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
+    third_count = fields.Integer()
+    third_quantity_from = fields.Integer()
+    third_quantity_to = fields.Integer()
     third_warranty_policy_money = fields.Monetary(
         digits=(16, 2), currency_field="currency_id"
     )

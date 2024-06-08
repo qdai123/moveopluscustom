@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 {
     "name": "MV Sale",
-    "description": "Discount Agency",
-    "category": "",
-    "version": "17.0",
-    "author": "",
+    "version": "17.0.1.0",
+    "category": "Moveoplus/MV Sale",
+    "description": "Base on Sale modules and Related modules to customize new features",
+    "author": "Phat Dang <phat.dangminh@moveoplus.com>",
     "depends": [
         # Odoo
         "account",
@@ -17,12 +17,12 @@
         "mv_base",
     ],
     "data": [
-        # DATA
-        "data/ir_config_parameter_view.xml",
         # SECURITY
         "security/res_groups.xml",
         "security/ir_rules.xml",
         "security/ir.model.access.csv",
+        # DATA
+        "data/ir_cron_data.xml",
         # VIEWS
         "views/mv_discount_views.xml",
         "views/mv_discount_partner_views.xml",
@@ -46,5 +46,6 @@
         # MENU
         "views/menus.xml",
     ],
+    "license": "LGPL-3",
     "application": True,
 }
