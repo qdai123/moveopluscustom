@@ -48,9 +48,10 @@
 					<notebook>
 						<page string="Cấu hình / Điều kiện" name="page_conditions_config">
 							<field mode="tree" name="line_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_warranty_discount_policy_id': id}">
-								<tree editable="bottom">
+								<tree editable="bottom" default_order="sequence">
 									<field name="warranty_discount_policy_id" column_invisible="True"/>
 									<field name="currency_id" column_invisible="True"/>
+									<field name="sequence" widget="handle"/>
 									<field name="quantity_from"/>
 									<field name="quantity_to"/>
 									<field name="discount_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>

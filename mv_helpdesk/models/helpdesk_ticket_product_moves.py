@@ -15,9 +15,25 @@ _logger = logging.getLogger(__name__)
 class HelpdeskTicketProductMoves(models.Model):
     _name = "mv.helpdesk.ticket.product.moves"
     _description = _("Helpdesk Ticket & Product Moves (Stock Move Line)")
-    _rec_name = "lot_name"
     _order = "partner_id, helpdesk_ticket_id"
 
+    @api.depends("lot_name", "qr_code")
+    def _compute_name(self):
+        for record in self:
+            try:
+                if record.lot_name and record.qr_code:
+                    record.name = f"{record.lot_name},{record.qr_code}"
+                elif record.lot_name and not record.qr_code:
+                    record.name = record.lot_name
+                elif not record.lot_name and record.qr_code:
+                    record.name = record.qr_code
+            except Exception as e:
+                _logger.error(f"Failed to compute name: {e}")
+                record.name = "N/A"
+
+    name = fields.Char(compute="_compute_name", store=True)
+    product_activate_twice = fields.Boolean()
+    # ==================================
     # HELPDESK TICKET Fields
     helpdesk_ticket_id = fields.Many2one(
         comodel_name="helpdesk.ticket", string="Ticket", index=True
@@ -65,7 +81,7 @@ class HelpdeskTicketProductMoves(models.Model):
     qr_code = fields.Char(related="stock_move_line_id.qr_code", store=True)
 
     # ==================================
-    # ORM Methods
+    # ORM / CRUD Methods
     # ==================================
 
     def unlink(self):
@@ -95,21 +111,21 @@ class HelpdeskTicketProductMoves(models.Model):
 
     @api.depends("helpdesk_ticket_id")
     def _compute_helpdesk_ticket_id(self):
-        """
-        Compute the partner_id and helpdesk_ticket_type_id fields based on the helpdesk_ticket_id field.
-        Sets the partner_id and helpdesk_ticket_type_id fields to the corresponding fields of the helpdesk_ticket_id if it is set, otherwise sets them to False.
-        """
         for record in self:
-            if record.helpdesk_ticket_id:
+            record._compute_name()
+            try:
                 record.partner_id = (
-                    record.helpdesk_ticket_id.partner_id
-                    and record.helpdesk_ticket_id.partner_id.id
+                    record.helpdesk_ticket_id.partner_id.id
+                    if record.helpdesk_ticket_id.partner_id
+                    else False
                 )
                 record.helpdesk_ticket_type_id = (
-                    record.helpdesk_ticket_id.ticket_type_id
-                    and record.helpdesk_ticket_id.ticket_type_id.id
+                    record.helpdesk_ticket_id.ticket_type_id.id
+                    if record.helpdesk_ticket_id.ticket_type_id
+                    else False
                 )
-            else:
+            except Exception as e:
+                _logger.error(f"Failed to compute helpdesk ticket id: {e}")
                 record.partner_id = False
                 record.helpdesk_ticket_type_id = False
 
@@ -138,25 +154,25 @@ class HelpdeskTicketProductMoves(models.Model):
     def action_open_stock(self):
         self.ensure_one()
         action = {
-            "name": _("Stock"),
+            "name": _("Ticket & Stock"),
             "type": "ir.actions.act_window",
             "res_model": "stock.move",
+            "res_id": self.stock_move_id.id,
             "context": {"create": False, "edit": False},
             "view_mode": "form",
             "target": "new",
-            "res_id": self.stock_move_id.id,
         }
         return action
 
     def action_open_product(self):
         self.ensure_one()
         action = {
-            "name": _("Product"),
+            "name": _("Ticket & Product"),
             "type": "ir.actions.act_window",
             "res_model": "product.template",
+            "res_id": self.product_id.id,
             "context": {"create": False, "edit": False},
             "view_mode": "form",
             "target": "new",
-            "res_id": self.product_id.id,
         }
         return action

@@ -206,6 +206,14 @@ class MvWarrantyDiscountPolicy(models.Model):
 
         return res
 
+    @api.constrains("line_ids")
+    def _limit_policy_conditions(self):
+        for record in self:
+            if len(record.line_ids) > 3:
+                raise ValidationError(
+                    _("Chính sách chiết khấu không được nhiều hơn 3 điều kiện!")
+                )
+
     # =================================
     # CONSTRAINS Methods
     # =================================
@@ -244,6 +252,7 @@ class MvWarrantyDiscountPolicyLine(models.Model):
     _name = _description = "mv.warranty.discount.policy.line"
     _rec_name = "explanation"
 
+    sequence = fields.Integer(required=True, default=1)
     warranty_discount_policy_id = fields.Many2one(
         comodel_name="mv.warranty.discount.policy",
         domain=[("active", "=", True)],
@@ -351,6 +360,26 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 self.env["res.partner"].sudo().browse(
                     line.partner_id.id
                 ).action_update_discount_amount()
+                line.helpdesk_ticket_product_moves_ids.mapped(
+                    "helpdesk_ticket_id"
+                ).write(
+                    {
+                        "stage_id": self.env["helpdesk.stage"]
+                        .search(
+                            [
+                                (
+                                    "id",
+                                    "=",
+                                    self.env.ref(
+                                        "mv_website_helpdesk.warranty_stage_done"
+                                    ).id,
+                                )
+                            ],
+                            limit=1,
+                        )
+                        .id
+                    }
+                )
             rec.state = "done"
 
     def action_reset(self):
@@ -394,18 +423,24 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             "partner_id": partner.id,
             "currency_id": partner.company_id.sudo().currency_id.id
             or self.env.company.sudo().currency_id.id,
-            "helpdesk_ticket_ids": [],
+            "helpdesk_ticket_product_moves_ids": [],
             "product_activation_count": 0,
             "first_warranty_policy_requirement_id": False,
             "first_count": 0,
+            "first_quantity_from": 0,
+            "first_quantity_to": 0,
             "first_warranty_policy_money": 0,
             "first_warranty_policy_total_money": 0,
             "second_warranty_policy_requirement_id": False,
             "second_count": 0,
+            "second_quantity_from": 0,
+            "second_quantity_to": 0,
             "second_warranty_policy_money": 0,
             "second_warranty_policy_total_money": 0,
             "third_warranty_policy_requirement_id": False,
             "third_count": 0,
+            "third_quantity_from": 0,
+            "third_quantity_to": 0,
             "third_warranty_policy_money": 0,
             "third_warranty_policy_total_money": 0,
         }
@@ -413,32 +448,31 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     def _calculate_discount_lines(self, partners, ticket_product_moves):
         results = []
         policy_used = self.warranty_discount_policy_id
+        compute_date = self.compute_date
+
         for partner in partners.filtered(
             lambda p: p.is_agency
             and p.id in policy_used.partner_ids.mapped("partner_id").ids
         ):
-            vals = self._prepare_values_to_calculate_discount(
-                partner, self.compute_date
-            )
+            # Prepare values to calculate discount
+            vals = self._prepare_values_to_calculate_discount(partner, compute_date)
 
-            product_activation_count = 0
-            serial_code_already_used = []
-            qr_code_already_used = []
+            code_registered = []
             partner_tickets_registered = ticket_product_moves.filtered(
                 lambda t: t.partner_id.id == partner.id
                 or t.partner_id.parent_id.id == partner.id
             )
             for ticket in partner_tickets_registered:
-                if (
-                    ticket.lot_name not in serial_code_already_used
-                    and ticket.qr_code not in qr_code_already_used
-                ):
-                    serial_code_already_used.append(ticket.lot_name)
-                    qr_code_already_used.append(ticket.qr_code)
-                    product_activation_count += 1
-                    vals["helpdesk_ticket_ids"] += ticket.helpdesk_ticket_id.ids
+                if ticket.lot_name not in [
+                    x[0] for x in code_registered
+                ] or ticket.qr_code not in [x[1] for x in code_registered]:
+                    code_registered.append((ticket.lot_name, ticket.qr_code))
+                    vals["helpdesk_ticket_product_moves_ids"] += ticket.ids
+                else:
+                    ticket.write({"product_activate_twice": True})
+                    vals["helpdesk_ticket_product_moves_ids"] += ticket.ids
 
-            vals["product_activation_count"] = product_activation_count
+            vals["product_activation_count"] = len(list(set(code_registered)))
 
             product_tmpl = self._fetch_product_template(
                 partner_tickets_registered.mapped("product_id.product_tmpl_id")
@@ -450,31 +484,71 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 policy_used, product_tmpl_attribute_values
             )
 
-            first_warranty_policy = self._fetch_first_warranty_policy()
+            context_lines = dict(self.env.context or {})
+
+            # ========= First Condition Warranty Policy =========
+            first_count = 0
+            first_policy_code = (
+                context_lines.get("first_policy_code") or "rim_lower_and_equal_16"
+            )
+            first_warranty_policy = self._fetch_warranty_policy(first_policy_code)
             vals["first_warranty_policy_requirement_id"] = first_warranty_policy.id
+            vals["first_quantity_from"] = first_warranty_policy.quantity_from
+            vals["first_quantity_to"] = first_warranty_policy.quantity_to
             vals["first_warranty_policy_money"] = (
                 first_warranty_policy.discount_amount or 0
             )
-            second_warranty_policy = self._fetch_second_warranty_policy()
+            # ========= Second Condition Warranty Policy =========
+            second_count = 0
+            second_policy_code = (
+                context_lines.get("second_policy_code") or "rim_greater_and_equal_17"
+            )
+            second_warranty_policy = self._fetch_warranty_policy(second_policy_code)
             vals["second_warranty_policy_requirement_id"] = second_warranty_policy.id
+            vals["second_quantity_from"] = second_warranty_policy.quantity_from
+            vals["second_quantity_to"] = second_warranty_policy.quantity_to
             vals["second_warranty_policy_money"] = (
                 second_warranty_policy.discount_amount or 0
+            )
+            # ========= Third Condition Warranty Policy =========
+            third_count = 0
+            third_policy_code = context_lines.get("third_policy_code") or None
+            third_warranty_policy = self._fetch_warranty_policy(
+                third_policy_code,
+                [
+                    ("sequence", "=", 3),
+                    (
+                        "explanation_code",
+                        "not in",
+                        [first_policy_code, second_policy_code],
+                    ),
+                ],
+            )
+            vals["third_warranty_policy_requirement_id"] = third_warranty_policy.id
+            vals["third_quantity_from"] = third_warranty_policy.quantity_from
+            vals["third_quantity_to"] = third_warranty_policy.quantity_to
+            vals["third_warranty_policy_money"] = (
+                third_warranty_policy.discount_amount or 0
             )
 
             for attribute in product_attribute_values:
                 # ========= First Condition (Product has RIM <= 16) =========
                 if float(attribute.name) <= float(first_warranty_policy.quantity_to):
-                    vals["first_warranty_policy_total_money"] = (
-                        first_warranty_policy.discount_amount * product_activation_count
-                    )
+                    first_count += 1
                 # ========= Second Condition (Product has RIM >= 17) =========
                 elif float(attribute.name) >= float(
                     first_warranty_policy.quantity_from
                 ):
-                    vals["second_warranty_policy_total_money"] = (
-                        second_warranty_policy.discount_amount
-                        * product_activation_count
-                    )
+                    second_count += 1
+
+            vals["first_count"] = first_count
+            vals["first_warranty_policy_total_money"] = (
+                first_warranty_policy.discount_amount * first_count
+            )
+            vals["second_count"] = second_count
+            vals["second_warranty_policy_total_money"] = (
+                second_warranty_policy.discount_amount * second_count
+            )
 
             results.append((0, 0, vals))
 
@@ -519,22 +593,17 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             _logger.error(f"Failed to fetch partners: {e}")
             return False
 
-    def _fetch_first_warranty_policy(self):
+    def _fetch_warranty_policy(self, policy_code, domain=[]):
         try:
-            return self.env["mv.warranty.discount.policy.line"].search(
-                [("explanation_code", "=", "rim_lower_and_equal_16")], limit=1
-            )
-        except Exception as e:
-            _logger.error(f"Failed to fetch first warranty policy: {e}")
-            return False
+            policy_domain = domain
+            if policy_code and not domain:
+                policy_domain = [("explanation_code", "=", policy_code)]
 
-    def _fetch_second_warranty_policy(self):
-        try:
             return self.env["mv.warranty.discount.policy.line"].search(
-                [("explanation_code", "=", "rim_greater_and_equal_17")], limit=1
+                policy_domain, limit=1
             )
         except Exception as e:
-            _logger.error(f"Failed to fetch second warranty policy: {e}")
+            _logger.error(f"Failed to fetch warranty policy: {e}")
             return False
 
     def _fetch_product_template(self, products):
@@ -992,14 +1061,19 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     parent_compute_date = fields.Datetime(readonly=True)
     parent_state = fields.Selection(related="parent_id.state", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
-    helpdesk_ticket_ids = fields.Many2many(
-        "helpdesk.ticket", readonly=True, context={"create": False, "edit": False}
+    helpdesk_ticket_product_moves_ids = fields.Many2many(
+        "mv.helpdesk.ticket.product.moves",
+        "compute_warranty_discount_policy_ticket_product_moves_rel",
+        readonly=True,
+        context={"create": False, "edit": False},
     )
     product_activation_count = fields.Integer(default=0)
     first_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
     first_count = fields.Integer()
+    first_quantity_from = fields.Integer()
+    first_quantity_to = fields.Integer()
     first_warranty_policy_money = fields.Monetary(
         digits=(16, 2), currency_field="currency_id"
     )
@@ -1010,6 +1084,8 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         "mv.warranty.discount.policy.line", readonly=True
     )
     second_count = fields.Integer()
+    second_quantity_from = fields.Integer()
+    second_quantity_to = fields.Integer()
     second_warranty_policy_money = fields.Monetary(
         digits=(16, 2), currency_field="currency_id"
     )
@@ -1020,6 +1096,8 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         "mv.warranty.discount.policy.line", readonly=True
     )
     third_count = fields.Integer()
+    third_quantity_from = fields.Integer()
+    third_quantity_to = fields.Integer()
     third_warranty_policy_money = fields.Monetary(
         digits=(16, 2), currency_field="currency_id"
     )
