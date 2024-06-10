@@ -466,31 +466,13 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             # Prepare values to calculate discount
             vals = self._prepare_values_to_calculate_discount(partner, compute_date)
 
-            code_registered = []
             partner_tickets_registered = ticket_product_moves.filtered(
                 lambda t: t.partner_id.id == partner.id
                 or t.partner_id.parent_id.id == partner.id
             )
-            for ticket in partner_tickets_registered:
-                if ticket.lot_name not in [
-                    x[0] for x in code_registered
-                ] or ticket.qr_code not in [x[1] for x in code_registered]:
-                    code_registered.append((ticket.lot_name, ticket.qr_code))
-                    vals["helpdesk_ticket_product_moves_ids"] += ticket.ids
-                else:
-                    ticket.write({"product_activate_twice": True})
-                    vals["helpdesk_ticket_product_moves_ids"] += ticket.ids
-
-            vals["product_activation_count"] = len(list(set(code_registered)))
-
-            product_tmpl = self._fetch_product_template(
-                partner_tickets_registered.mapped("product_id.product_tmpl_id")
-            )
-            product_tmpl_attribute_values = (
-                self._fetch_product_template_attribute_values(product_tmpl)
-            )
-            product_attribute_values = self._fetch_product_attribute_values(
-                policy_used, product_tmpl_attribute_values
+            vals["helpdesk_ticket_product_moves_ids"] += partner_tickets_registered.ids
+            vals["product_activation_count"] = len(
+                list(set(partner_tickets_registered))
             )
 
             context_lines = dict(self.env.context or {})
@@ -540,15 +522,36 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 third_warranty_policy.discount_amount or 0
             )
 
-            for attribute in product_attribute_values:
-                # ========= First Condition (Product has RIM <= 16) =========
-                if float(attribute.name) <= float(first_warranty_policy.quantity_to):
-                    first_count += 1
-                # ========= Second Condition (Product has RIM >= 17) =========
-                elif float(attribute.name) >= float(
-                    first_warranty_policy.quantity_from
-                ):
-                    second_count += 1
+            for ticket_product_move in partner_tickets_registered:
+                product_tmpl = self._fetch_product_template(
+                    ticket_product_move.product_id.product_tmpl_id
+                )
+                for product in product_tmpl:
+                    product_tmpl_attribute_lines = (
+                        self._fetch_product_template_attribute_lines(
+                            policy_used, product
+                        )
+                    )
+                    product_tmpl_attribute_values = (
+                        self._fetch_product_template_attribute_values(
+                            product_tmpl_attribute_lines
+                        )
+                    )
+                    product_attribute_values = self._fetch_product_attribute_values(
+                        policy_used, product_tmpl_attribute_values
+                    )
+
+                    for attribute in product_attribute_values:
+                        # ========= First Condition (Product has RIM <= 16) =========
+                        if float(attribute.name) <= float(
+                            first_warranty_policy.quantity_to
+                        ):
+                            first_count += 1
+                        # ========= Second Condition (Product has RIM >= 17) =========
+                        elif float(attribute.name) >= float(
+                            second_warranty_policy.quantity_from
+                        ):
+                            second_count += 1
 
             vals["first_count"] = first_count
             vals["first_warranty_policy_total_money"] = (
@@ -638,16 +641,34 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     def _fetch_product_template(self, products):
         try:
             if products:
-                return self.env["product.template"].search([("id", "in", products.ids)])
+                return self.env["product.template"].search(
+                    [("id", "in", products.ids), ("detailed_type", "=", "product")]
+                )
         except Exception as e:
             _logger.error(f"Failed to fetch product template: {e}")
-            return False
+            return self.env["product.template"]
+
+    def _fetch_product_template_attribute_lines(self, policy_used, products):
+        try:
+            if products:
+                return self.env["product.template.attribute.line"].search(
+                    [
+                        ("product_tmpl_id", "in", products.ids),
+                        ("attribute_id", "in", policy_used.product_attribute_ids.ids),
+                    ]
+                )
+        except Exception as e:
+            _logger.error(f"Failed to fetch product template attribute lines: {e}")
+            return self.env["product.template.attribute.line"]
 
     def _fetch_product_template_attribute_values(self, products):
         try:
             if products:
                 return self.env["product.template.attribute.value"].search(
-                    [("product_tmpl_id", "in", products.ids)]
+                    [
+                        ("attribute_line_id", "in", products.ids),
+                        ("ptav_active", "=", True),
+                    ]
                 )
         except Exception as e:
             _logger.error(f"Failed to fetch product template attribute values: {e}")
