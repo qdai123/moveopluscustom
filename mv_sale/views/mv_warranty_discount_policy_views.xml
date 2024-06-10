@@ -6,7 +6,7 @@
 		<field name="name">mv.warranty.discount.policy.tree</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false" decoration-muted="policy_status == 'close'">
+			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
 				<field name="name" string="Chính sách"/>
 				<field name="date_from" string="Ngày bắt đầu"/>
 				<field name="date_to" string="Ngày kết thúc"/>

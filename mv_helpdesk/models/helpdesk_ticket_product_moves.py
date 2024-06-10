@@ -32,7 +32,9 @@ class HelpdeskTicketProductMoves(models.Model):
                 record.name = "N/A"
 
     name = fields.Char(compute="_compute_name", store=True)
-    product_activate_twice = fields.Boolean()
+    product_activate_twice = fields.Boolean(
+        string="Activate Twice", compute="_compute_product_activate_twice", store=True
+    )
     # ==================================
     # HELPDESK TICKET Fields
     helpdesk_ticket_id = fields.Many2one(
@@ -81,6 +83,66 @@ class HelpdeskTicketProductMoves(models.Model):
     qr_code = fields.Char(related="stock_move_line_id.qr_code", store=True)
 
     # ==================================
+    # COMPUTE / INVERSE Methods
+    # ==================================
+
+    @api.depends("helpdesk_ticket_id")
+    def _compute_helpdesk_ticket_id(self):
+        for record in self:
+            # Compute name if required
+            record._compute_name()
+            try:
+                ticket = record.helpdesk_ticket_id
+                record.partner_id = ticket.partner_id.id if ticket.partner_id else False
+                record.helpdesk_ticket_type_id = (
+                    ticket.ticket_type_id.id if ticket.ticket_type_id else False
+                )
+            except Exception as e:
+                _logger.error(
+                    f"Failed to compute helpdesk ticket id for record {record.id}: {e}"
+                )
+                record.partner_id = False
+                record.helpdesk_ticket_type_id = False
+
+    @api.depends("stock_move_id", "lot_name", "qr_code")
+    def _compute_product_activate_twice(self):
+        tickets = self.filtered(lambda r: r.helpdesk_ticket_id)
+        if tickets:
+            ticket_activation_same_code = self.env[
+                "mv.helpdesk.ticket.product.moves"
+            ].search(
+                [
+                    ("stock_move_id", "in", tickets.mapped("stock_move_id").ids),
+                    ("lot_name", "in", tickets.mapped("lot_name")),
+                    ("qr_code", "in", tickets.mapped("qr_code")),
+                ]
+            )
+            for record in tickets:
+                ticket_create_date = record.helpdesk_ticket_id.create_date
+                ticket_type_id = record.helpdesk_ticket_type_id.id
+                ticket_stock_move_id = record.stock_move_id.id
+                same_code_ticket = ticket_activation_same_code.filtered(
+                    lambda r: r.stock_move_id.id == ticket_stock_move_id
+                    and r.helpdesk_ticket_type_id.id != ticket_type_id
+                )
+                if (
+                    same_code_ticket
+                    and same_code_ticket.helpdesk_ticket_id.create_date
+                    > ticket_create_date
+                ):
+                    record.product_activate_twice = False
+                    same_code_ticket.product_activate_twice = True
+                elif (
+                    same_code_ticket
+                    and same_code_ticket.helpdesk_ticket_id.create_date
+                    < ticket_create_date
+                ):
+                    record.product_activate_twice = True
+                    same_code_ticket.product_activate_twice = False
+                else:
+                    record.product_activate_twice = False
+
+    # ==================================
     # ORM / CRUD Methods
     # ==================================
 
@@ -106,50 +168,31 @@ class HelpdeskTicketProductMoves(models.Model):
         return super(HelpdeskTicketProductMoves, self).unlink()
 
     # ==================================
-    # COMPUTE / INVERSE Methods
-    # ==================================
-
-    @api.depends("helpdesk_ticket_id")
-    def _compute_helpdesk_ticket_id(self):
-        for record in self:
-            record._compute_name()
-            try:
-                record.partner_id = (
-                    record.helpdesk_ticket_id.partner_id.id
-                    if record.helpdesk_ticket_id.partner_id
-                    else False
-                )
-                record.helpdesk_ticket_type_id = (
-                    record.helpdesk_ticket_id.ticket_type_id.id
-                    if record.helpdesk_ticket_id.ticket_type_id
-                    else False
-                )
-            except Exception as e:
-                _logger.error(f"Failed to compute helpdesk ticket id: {e}")
-                record.partner_id = False
-                record.helpdesk_ticket_type_id = False
-
-    # ==================================
     # ACTION / BUTTON ACTION Methods
     # ==================================
 
     def action_reload(self):
         for line in self:
-            if line.helpdesk_ticket_id:
-                line._compute_helpdesk_ticket_id()
-                line.customer_phone_activation = line.helpdesk_ticket_id.tel_activation
-                line.customer_date_activation = (
-                    line.helpdesk_ticket_id.ticket_update_date
-                )
-                line.customer_license_plates_activation = (
-                    line.helpdesk_ticket_id.license_plates
-                )
-                line.customer_mileage_activation = line.helpdesk_ticket_id.mileage
-            else:
-                line.customer_phone_activation = False
-                line.customer_date_activation = False
-                line.customer_license_plates_activation = False
-                line.customer_mileage_activation = False
+            try:
+                if line.helpdesk_ticket_id:
+                    line._compute_helpdesk_ticket_id()  # Reload Ticket Information
+                    line._compute_product_activate_twice()  # Reload Product Activation
+                    line.customer_phone_activation = (
+                        line.helpdesk_ticket_id.tel_activation
+                    )
+                    line.customer_date_activation = (
+                        line.helpdesk_ticket_id.ticket_update_date
+                    )
+                    line.customer_license_plates_activation = (
+                        line.helpdesk_ticket_id.license_plates
+                    )
+                    line.customer_mileage_activation = line.helpdesk_ticket_id.mileage
+                else:
+                    line.customer_phone_activation = line.customer_date_activation = (
+                        line.customer_license_plates_activation
+                    ) = line.customer_mileage_activation = False
+            except Exception as e:
+                _logger.error(f"Failed to reload data for line {line.id}: {e}")
 
     def action_open_stock(self):
         self.ensure_one()

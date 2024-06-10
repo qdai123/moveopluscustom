@@ -46,11 +46,7 @@ class HelpdeskTicketType(models.Model):
             if (
                 not record.can_delete
                 and record.user_for_warranty_activation
-                and record.code
-                in [
-                    "kich_hoat_bao_hanh_dai_ly",
-                    "kich_hoat_bao_hanh_nguoi_dung_cuoi",
-                ]
+                and record.code in [SUB_DEALER_CODE, END_USER_CODE]
             ):
                 raise UserError(
                     _(
@@ -67,8 +63,8 @@ class HelpdeskTicketType(models.Model):
     def _compute_for_warranty_activation(self):
         for record in self:
             record.user_for_warranty_activation = record.code in [
-                "kich_hoat_bao_hanh_dai_ly",
-                "kich_hoat_bao_hanh_nguoi_dung_cuoi",
+                SUB_DEALER_CODE,
+                END_USER_CODE,
             ]
 
     @api.constrains("name", "code", "user_for_warranty_activation")

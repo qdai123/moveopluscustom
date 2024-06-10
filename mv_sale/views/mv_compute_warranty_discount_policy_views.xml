@@ -6,7 +6,7 @@
 		<field name="name">mv.compute.warranty.discount.policy.tree</field>
 		<field name="model">mv.compute.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Compute Warranty Discount Policy LIST" duplicate="false" default_order="compute_date desc">
+			<tree string="MOVEO PLUS Compute Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" default_order="compute_date desc">
 				<field name="name" string="Tháng/Năm"/>
 				<field name="state" string="Trạng thái" widget="badge" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'"/>
 			</tree>

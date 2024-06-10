@@ -306,10 +306,10 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 rec.name = "{}/{}".format(str(dt.month), str(dt.year))
 
     # BASE Fields:
-    year = fields.Selection(get_years(), default=str(datetime.now().year))
     month = fields.Selection(get_months())
-    name = fields.Char(compute="_compute_name", store=True)
+    year = fields.Selection(get_years(), default=str(datetime.now().year))
     compute_date = fields.Datetime(compute="_compute_compute_date", store=True)
+    name = fields.Char(compute="_compute_name", store=True)
     state = fields.Selection(
         selection=[("draft", "Nháp"), ("confirm", "Lưu"), ("done", "Đã Duyệt")],
         default="draft",
@@ -394,10 +394,11 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         # Fetch all ticket with conditions at once
         tickets = self._fetch_tickets()
-
         if not tickets:
             raise UserError(
-                "Hiện tại không có phiếu nào đã kích hoạt trong tháng %s" % self.month
+                "Hiện tại không có phiếu nào đã kích hoạt trong tháng {}/{}".format(
+                    self.month, self.year
+                )
             )
 
         # Get ticket has product move by [tickets]
@@ -405,12 +406,20 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         # Fetch partners at once
         partners = self._fetch_partners(ticket_product_moves)
+        if not partners:
+            raise UserError(
+                "Không tìm thấy Đại lý đăng ký trong tháng {}/{}".format(
+                    self.month, self.year
+                )
+            )
 
+        # Calculate discount lines
         results = self._calculate_discount_lines(partners, ticket_product_moves)
-
         if not results:
             raise UserError(
-                "Không có dữ liệu để tính chiết khấu cho tháng %s" % self.month
+                "Không có dữ liệu để tính chiết khấu cho tháng {}/{}".format(
+                    self.month, self.year
+                )
             )
 
         self.write({"line_ids": results, "state": "confirm"})
@@ -559,27 +568,47 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             date_from, date_to = self._get_dates(
                 self.compute_date, self.month, self.year
             )
-            return self.env["helpdesk.ticket"].search(
+
+            # Cache the stage references to avoid multiple lookups
+            stage_new_id = self.env.ref("mv_website_helpdesk.warranty_stage_new").id
+            stage_done_id = self.env.ref("mv_website_helpdesk.warranty_stage_done").id
+
+            # Define the domain for search
+            domain = [
+                ("helpdesk_ticket_product_move_ids", "!=", False),
+                ("ticket_type_id.code", "in", [SUB_DEALER_CODE, END_USER_CODE]),
+                ("stage_id", "in", [stage_new_id, stage_done_id]),
+                ("create_date", ">=", date_from),
+                ("create_date", "<", date_to),
+            ]
+
+            # Perform the search
+            return self.env["helpdesk.ticket"].search(domain)
+
+        except ValueError as ve:
+            _logger.error(f"Value error in fetching tickets: {ve}")
+        except self.env["helpdesk.ticket"]._exceptions.AccessError as ae:
+            _logger.error(f"Access error in fetching tickets: {ae}")
+        except Exception as e:
+            _logger.error(f"Unexpected error in fetching tickets: {e}")
+
+        # Return an empty recordset in case of an error
+        return self.env["helpdesk.ticket"]
+
+    def _fetch_ticket_product_moves(self, tickets):
+        if not tickets:
+            return self.env["mv.helpdesk.ticket.product.moves"]
+
+        try:
+            return self.env["mv.helpdesk.ticket.product.moves"].search(
                 [
-                    ("ticket_type_id.code", "in", [SUB_DEALER_CODE, END_USER_CODE]),
-                    ("stage_id.name", "in", ["New", "Done"]),
-                    ("ticket_update_date", ">=", date_from),
-                    ("ticket_update_date", "<", date_to),
+                    ("helpdesk_ticket_id", "in", tickets.ids),
+                    ("product_activate_twice", "=", False),
                 ]
             )
         except Exception as e:
-            _logger.error(f"Failed to fetch tickets: {e}")
-            return False
-
-    def _fetch_ticket_product_moves(self, tickets):
-        try:
-            if tickets:
-                return self.env["mv.helpdesk.ticket.product.moves"].search(
-                    [("helpdesk_ticket_id", "in", tickets.ids)]
-                )
-        except Exception as e:
             _logger.error(f"Failed to fetch ticket product moves: {e}")
-            return False
+            return self.env["mv.helpdesk.ticket.product.moves"]
 
     def _fetch_partners(self, ticket_product_moves):
         try:
@@ -591,7 +620,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 )
         except Exception as e:
             _logger.error(f"Failed to fetch partners: {e}")
-            return False
+            return self.env["res.partner"]
 
     def _fetch_warranty_policy(self, policy_code, domain=[]):
         try:
@@ -604,7 +633,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             )
         except Exception as e:
             _logger.error(f"Failed to fetch warranty policy: {e}")
-            return False
+            return self.env["mv.warranty.discount.policy.line"]
 
     def _fetch_product_template(self, products):
         try:
@@ -622,7 +651,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 )
         except Exception as e:
             _logger.error(f"Failed to fetch product template attribute values: {e}")
-            return False
+            return self.env["product.template.attribute.value"]
 
     def _fetch_product_attribute_values(self, policy_used, products):
         try:
@@ -643,7 +672,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 )
         except Exception as e:
             _logger.error(f"Failed to fetch product attribute values: {e}")
-            return False
+            return self.env["product.attribute.value"]
 
     # =================================
     # ORM Methods
