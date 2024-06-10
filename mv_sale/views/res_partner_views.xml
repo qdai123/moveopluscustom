@@ -97,13 +97,13 @@
 							<field name="parent_state" string="Trạng thái" widget="badge" decoration-success="parent_state == 'done'" decoration-info="parent_state == 'confirm'" decoration-muted="parent_state == 'draft'" optional="show"/>
 							<field name="parent_name" string="Tháng / Năm"/>
 							<field name="product_activation_count" string="Số lượng lốp đã kích hoạt"/>
-							<field name="first_warranty_policy_requirement_id" string="Điều kiện 1" widget="badge" decoration-success="first_quantity_from &lt; first_count &lt;= first_quantity_to" decoration-muted="first_count == 0"/>
+							<field name="first_warranty_policy_requirement_id" string="Điều kiện 1" widget="badge" decoration-success="first_count > 0" decoration-muted="first_count == 0"/>
 							<field name="first_quantity_from" column_invisible="True"/>
 							<field name="first_count" string="Số lượng"/>
 							<field name="first_quantity_to" column_invisible="True"/>
 							<field name="first_warranty_policy_money" string="Tiền chiết khấu" optional="hidden"/>
 							<field name="first_warranty_policy_total_money" string="Thành tiền" optional="show" sum="First Total Money"/>
-							<field name="second_warranty_policy_requirement_id" string="Điều kiện 2" widget="badge" decoration-success="second_quantity_from &lt;= second_count &lt; second_quantity_to" decoration-muted="second_count == 0"/>
+							<field name="second_warranty_policy_requirement_id" string="Điều kiện 2" widget="badge" decoration-success="second_count > 0" decoration-muted="second_count == 0"/>
 							<field name="second_quantity_from" column_invisible="True"/>
 							<field name="second_count" string="Số lượng"/>
 							<field name="second_quantity_to" column_invisible="True"/>

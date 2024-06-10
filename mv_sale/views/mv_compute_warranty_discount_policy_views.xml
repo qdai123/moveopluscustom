@@ -6,7 +6,7 @@
 		<field name="name">mv.compute.warranty.discount.policy.tree</field>
 		<field name="model">mv.compute.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Compute Warranty Discount Policy LIST" duplicate="false" default_order="compute_date desc">
+			<tree string="MOVEO PLUS Compute Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" default_order="compute_date desc">
 				<field name="name" string="Tháng/Năm"/>
 				<field name="state" string="Trạng thái" widget="badge" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'"/>
 			</tree>
@@ -51,13 +51,13 @@
 									<field name="parent_compute_date" column_invisible="True"/>
 									<field name="partner_id" string="Đại lý"/>
 									<field name="product_activation_count" string="Số lượng lốp đã kích hoạt"/>
-									<field name="first_warranty_policy_requirement_id" string="Điều kiện 1" widget="badge" decoration-success="first_quantity_from &lt; product_activation_count &lt;= first_quantity_to" decoration-muted="first_count == 0"/>
+									<field name="first_warranty_policy_requirement_id" string="Điều kiện 1" widget="badge" decoration-success="first_count > 0" decoration-muted="first_count == 0"/>
 									<field name="first_quantity_from" column_invisible="True"/>
 									<field name="first_count" string="Số lượng"/>
 									<field name="first_quantity_to" column_invisible="True"/>
 									<field name="first_warranty_policy_money" string="Tiền chiết khấu" optional="hidden"/>
 									<field name="first_warranty_policy_total_money" string="Thành tiền"/>
-									<field name="second_warranty_policy_requirement_id" string="Điều kiện 2" widget="badge" decoration-success="second_quantity_from &lt;= product_activation_count &lt; second_quantity_to" decoration-muted="second_count == 0"/>
+									<field name="second_warranty_policy_requirement_id" string="Điều kiện 2" widget="badge" decoration-success="second_count > 0" decoration-muted="second_count == 0"/>
 									<field name="second_quantity_from" column_invisible="True"/>
 									<field name="second_count" string="Số lượng"/>
 									<field name="second_quantity_to" column_invisible="True"/>
@@ -112,14 +112,16 @@
 					</group>
 					<group>
 						<group string="Điều kiện 1">
-							<field name="first_warranty_policy_requirement_id" string="Yêu cầu" widget="badge" decoration-success="first_quantity_from &lt; product_activation_count &lt;= first_quantity_to" options="{'no_open': True}"/>
+							<field name="first_warranty_policy_requirement_id" string="Yêu cầu" widget="badge" decoration-success="first_count > 0" options="{'no_open': True}"/>
+							<field name="first_count" invisible="True"/>
 							<field name="first_quantity_from" invisible="True"/>
 							<field name="first_quantity_to" invisible="True"/>
 							<field name="first_warranty_policy_money" string="Tiền chiết khấu/lốp" widget="monetary"/>
 							<field name="first_warranty_policy_total_money" string="Thành tiền" widget="monetary" readonly="True"/>
 						</group>
 						<group string="Điều kiện 2">
-							<field name="second_warranty_policy_requirement_id" string="Yêu cầu" widget="badge" decoration-success="second_quantity_from &lt; product_activation_count &lt;= second_quantity_to" options="{'no_open': True}"/>
+							<field name="second_warranty_policy_requirement_id" string="Yêu cầu" widget="badge" decoration-success="second_count > 0" options="{'no_open': True}"/>
+							<field name="second_count" invisible="True"/>
 							<field name="second_quantity_from" invisible="True"/>
 							<field name="second_quantity_to" invisible="True"/>
 							<field name="second_warranty_policy_money" string="Tiền chiết khấu/lốp" widget="monetary"/>
@@ -130,10 +132,11 @@
 						<page string="Phiếu" name="page_tickets">
 							<field name="helpdesk_ticket_product_moves_ids" nolabel="1" readonly="True" context="{'create': False, 'edit': False}" options="{'no_open': True}">
 								<tree default_order="helpdesk_ticket_ref, lot_name, qr_code" create="false" edit="false" delete="false">
-									<field name="partner_id" string="Đại lý" options="{'no_open': True}" optional="Show"/>
-									<field name="helpdesk_ticket_ref" string="Mã phiếu" column_invisible="True"/>
-									<field name="helpdesk_ticket_type_id" string="Loại phiếu" options="{'no_open': True}"/>
+									<field name="partner_id" string="Đại lý" options="{'no_open': True}" optional="show"/>
+									<field name="product_id" string="Sản phẩm" options="{'no_open': True}" optional="hidden"/>
 									<field name="product_activate_twice" column_invisible="True"/>
+									<field name="helpdesk_ticket_ref" string="Mã phiếu" column_invisible="True"/>
+									<field name="helpdesk_ticket_type_id" string="Loại phiếu" options="{'no_open': True}" optional="hidden"/>
 									<field name="lot_name" string="Mã vạch" widget="badge" decoration-info="lot_name and not product_activate_twice" decoration-warning="product_activate_twice"/>
 									<field name="qr_code" string="Mã QR-Code" widget="badge" decoration-info="qr_code and not product_activate_twice" decoration-warning="product_activate_twice"/>
 									<field name="customer_date_activation" string="Ngày kích hoạt" optional="hidden"/>

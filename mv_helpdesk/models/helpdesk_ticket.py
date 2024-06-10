@@ -85,7 +85,7 @@ class HelpdeskTicket(models.Model):
     def _compute_ticket_type(self):
         """
         Compute the ticket type based on the ticket_type_id's code.
-        Sets the is_sub_dealer and is_end_user fields.
+        Sets the 'is_sub_dealer' and 'is_end_user' fields.
         """
         for ticket in self:
             if ticket.ticket_type_id:
@@ -127,7 +127,7 @@ class HelpdeskTicket(models.Model):
                 )
 
     # ==================================
-    # ORM Methods
+    # ORM / CRUD Methods
     # ==================================
 
     @api.model_create_multi
@@ -194,6 +194,58 @@ class HelpdeskTicket(models.Model):
     # ==================================
     # BUSINESS Methods
     # ==================================
+
+    @staticmethod
+    def convert_to_list_codes(codes):
+        """
+        Convert the input codes into a list of codes.
+        If the input is a string, extract numbers using regex.
+        If the input is already a list, use it directly.
+        """
+        if isinstance(codes, str):
+            return re.findall(r"\b\d+\b", codes)
+        elif isinstance(codes, list):
+            return [str(code) for code in codes if isinstance(code, (int, str))]
+        return []
+
+    def _validate_qr_code(self, codes):
+        """
+        Validate the input codes against existing QR codes.
+        If the input is a string, split it into a list of codes.
+        If the input is already a list, use it directly.
+        Return the list of validated QR codes.
+        """
+        if isinstance(codes, str):
+            valid_codes = [code.strip() for code in codes.split(",") if code]
+        elif isinstance(codes, list):
+            valid_codes = [str(code) for code in codes if isinstance(code, (int, str))]
+        else:
+            valid_codes = []
+
+        return self.env["stock.move.line"].search(
+            [("qr_code", "in", valid_codes), ("is_specify_qrcode", "=", True)]
+        )
+
+    def _validate_lot_serial_number(self, codes):
+        """
+        Validate the input codes against existing lot serial numbers.
+        If the input is a string, split it into a list of codes.
+        If the input is already a list, use it directly.
+        Return the list of validated lot serial numbers.
+        """
+        if isinstance(codes, str):
+            valid_codes = [code.strip() for code in codes.split(",") if code]
+        elif isinstance(codes, list):
+            valid_codes = [str(code) for code in codes if isinstance(code, (int, str))]
+        else:
+            valid_codes = []
+
+        stock_lot_serial_number = self.env["stock.lot"].search(
+            [("name", "in", valid_codes)]
+        )
+        return self.env["stock.move.line"].search(
+            [("lot_id", "in", stock_lot_serial_number.ids), ("lot_name", "!=", False)]
+        )
 
     def _process_ticket(self, ticket, vals_list):
         for vals in vals_list:
@@ -275,45 +327,6 @@ class HelpdeskTicket(models.Model):
                         "stock_move_line_id": stock_move_line.id,
                     }
                 )
-
-    def _validate_qr_code(self, codes):
-        """
-        Validate the input codes against existing QR codes.
-        If the input is a string, split it into a list of codes.
-        If the input is already a list, use it directly.
-        Return the list of validated QR codes.
-        """
-        if isinstance(codes, str):
-            valid_codes = [code.strip() for code in codes.split(",") if code]
-        elif isinstance(codes, list):
-            valid_codes = [str(code) for code in codes if isinstance(code, (int, str))]
-        else:
-            valid_codes = []
-
-        return self.env["stock.move.line"].search(
-            [("qr_code", "in", valid_codes), ("is_specify_qrcode", "=", True)]
-        )
-
-    def _validate_lot_serial_number(self, codes):
-        """
-        Validate the input codes against existing lot serial numbers.
-        If the input is a string, split it into a list of codes.
-        If the input is already a list, use it directly.
-        Return the list of validated lot serial numbers.
-        """
-        if isinstance(codes, str):
-            valid_codes = [code.strip() for code in codes.split(",") if code]
-        elif isinstance(codes, list):
-            valid_codes = [str(code) for code in codes if isinstance(code, (int, str))]
-        else:
-            valid_codes = []
-
-        stock_lot_serial_number = self.env["stock.lot"].search(
-            [("name", "in", valid_codes)]
-        )
-        return self.env["stock.move.line"].search(
-            [("lot_id", "in", stock_lot_serial_number.ids), ("lot_name", "!=", False)]
-        )
 
     def _prepare_validated_data(self, ticket, ticket_type, codes):
         """
@@ -484,27 +497,15 @@ class HelpdeskTicket(models.Model):
                 )
                 error_messages.append((CODE_ALREADY_REGISTERED, message))
 
-    @staticmethod
-    def convert_to_list_codes(codes):
-        """
-        Convert the input codes into a list of codes.
-        If the input is a string, extract numbers using regex.
-        If the input is already a list, use it directly.
-        """
-        if isinstance(codes, str):
-            return re.findall(r"\b\d+\b", codes)
-        elif isinstance(codes, list):
-            return [str(code) for code in codes if isinstance(code, (int, str))]
-        return []
-
     def clean_data(self):
         self.write({"portal_lot_serial_number": ""})
 
     # ==================================
-    # WIZARD Methods
+    # ACTION / BUTTON / WIZARD Methods
     # ==================================
 
     def action_wizard_import_lot_serial_number(self):
+        # TODO: This method needs to be upgraded to support scanning with images
         self.ensure_one()
         return {
             "name": _("Import Lot/Serial Number or QR-Code"),
