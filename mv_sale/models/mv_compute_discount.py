@@ -733,9 +733,7 @@ class MvComputeDiscount(models.Model):
 
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output, {"in_memory": True})
-        sheet = workbook.add_worksheet(
-            "Discount in {}-{}".format(self.report_date.month, self.report_date.year)
-        )
+        sheet = workbook.add_worksheet()
         file_name = "Moveoplus-Partners-Discount-Detail_%s-%s.xlsx" % (
             self.report_date.month,
             self.report_date.year,

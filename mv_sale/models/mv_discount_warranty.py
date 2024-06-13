@@ -13,7 +13,7 @@ except ImportError:
     import xlsxwriter
 
 from odoo import api, fields, models, _
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError, MissingError
 from odoo.tools.misc import format_date, formatLang, get_lang
 
 _logger = logging.getLogger(__name__)
@@ -346,10 +346,11 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             self.ensure_one()
             if self.state != "draft":
                 self.state = "draft"
-                self.line_ids = [(5, 0, 0)]  # Remove all lines
+                self.line_ids.unlink()  # Remove all lines
+                return True
         except Exception as e:
             _logger.error("Failed to reset to draft: %s", e)
-            pass
+            return False
 
     def action_done(self):
         if not self._access_approve():
@@ -532,6 +533,11 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                             policy_used, product
                         )
                     )
+                    if not product_tmpl_attribute_lines:
+                        raise MissingError(
+                            "Không tìm thấy thông tin thuộc tính sản phẩm!"
+                        )
+
                     product_tmpl_attribute_values = (
                         self._fetch_product_template_attribute_values(
                             product_tmpl_attribute_lines
@@ -701,6 +707,9 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
     def unlink(self):
         self._validate_policy_done_not_unlink()
+        self.env["mv.compute.warranty.discount.policy.line"].search(
+            [("parent_id", "=", False)]
+        ).unlink()
         return super(MvComputeWarrantyDiscountPolicy, self).unlink()
 
     # =================================
@@ -793,8 +802,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     # REPORT Action/Data
     # =================================
 
-    # TODO: Update report feature for the Compute Warranty Discount Policy
-
     @api.model
     def format_value(self, amount, currency=False, blank_if_zero=False):
         """Format amount to have a monetary display (with a currency symbol).
@@ -816,85 +823,26 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             return amount
         return formatLang(self.env, amount, currency_obj=currency_id)
 
-    def _get_compute_discount_detail_data(self, report_date, pass_security=False):
-        report_lines = []
-        self.env["mv.compute.discount.line"].flush_model()
-        query = """
-                SELECT ROW_NUMBER() OVER ()                    AS row_index,
-                           partner.name                            AS sub_dealer,
-                           cdl.level                               AS level,
-                           cdl.quantity_from                       AS quantity_from,
-                           cdl.quantity                            AS quantity,
-                           cdl.quantity_discount                   AS quantity_discount,
-                           cdl.amount_total                        AS total,
-                           cdl.month_money                         AS month_money,
-                           cdl.two_money                           AS two_money,
-                           cdl.quarter_money                       AS quarter_money,
-                           cdl.year_money                          AS year_money,
-                           COALESCE(cdl.promote_discount_money, 0) AS promote_discount_money,
-                           cdl.total_money                         AS total_money
-                FROM mv_compute_discount_line cdl
-                    JOIN res_partner partner ON partner.id = cdl.partner_id
-                WHERE cdl.parent_id = %s;
-            """
-        self.env.cr.execute(query, [self.id])
-        for data in self.env.cr.dictfetchall():
-            report_lines.append(
-                {
-                    "index": data["row_index"],
-                    "partner_id": data["sub_dealer"],
-                    "level": data["level"],
-                    "quantity_from": data["quantity_from"],
-                    "quantity": data["quantity"],
-                    "quantity_discount": data["quantity_discount"],
-                    "amount_total": data["total"],
-                    "amount_month_money": data["month_money"],
-                    "amount_two_money": data["two_money"],
-                    "amount_quarter_money": data["quarter_money"],
-                    "amount_year_money": data["year_money"],
-                    "amount_promote_discount_money": data["promote_discount_money"],
-                    "amount_total_money": data["total_money"],
-                }
-            )
-        return report_lines
-
     def print_report(self):
-        months = set(self.mapped("month"))
+        if not self:
+            raise UserError(_("No data to generate the report for."))
 
+        months = set(self.mapped("month"))
         if len(months) > 1:
             raise UserError(_("Only export report in ONE MONTH!"))
 
+        self._get_discount_lines(self.warranty_discount_policy_id, self.compute_date)
+
         # DOWNLOAD Report Data
-        file_content, file_name = self.export_to_excel()
+        file_content, file_name = self._generate_excel_data(
+            self.warranty_discount_policy_id, self.compute_date
+        )
 
         # REMOVE All Excel Files by file_content:
-        attachments_to_remove = self.env["ir.attachment"].search(
-            [
-                ("res_model", "=", self._name),
-                ("res_id", "=", self.id),
-                ("create_uid", "=", self.env.uid),
-                ("create_date", "<", fields.Datetime.now()),
-                ("name", "ilike", "Moveoplus-Partners-Discount-Detail%"),
-            ]
-        )
-        if attachments_to_remove:
-            attachments_to_remove.unlink()
+        self._remove_old_attachments()
 
         # NEW Attachment to download
-        new_attachment = (
-            self.with_context(ats_penalties_fines=True)
-            .env["ir.attachment"]
-            .create(
-                {
-                    "name": file_name,
-                    "description": file_name,
-                    "datas": base64.b64encode(file_content),
-                    "res_model": self._name,
-                    "res_id": self.ids[0],
-                }
-            )
-        )
-
+        new_attachment = self._create_new_attachment(file_content, file_name)
         if len(new_attachment) == 1:
             return {
                 "type": "ir.actions.act_url",
@@ -902,24 +850,143 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 "target": "self",
             }
 
-        return False
+    def _remove_old_attachments(self):
+        attachments_to_remove = self.env["ir.attachment"].search(
+            [
+                ("res_model", "=", self._name),
+                ("res_id", "=", self.id),
+                ("create_uid", "=", self.env.uid),
+                ("create_date", "<", fields.Datetime.now()),
+                ("name", "ilike", "Moveoplus-Warranty-Discount-%"),
+            ]
+        )
+        if attachments_to_remove:
+            attachments_to_remove.unlink()
 
-    def export_to_excel(self):
+    def _create_new_attachment(self, file_content, file_name):
+        return self.env["ir.attachment"].create(
+            {
+                "name": file_name,
+                "datas": base64.b64encode(file_content),
+                "type": "binary",
+                "res_model": self._name,
+                "res_id": self.id,
+            }
+        )
+
+    def _get_policy_attributes_values(self, policy):
+        try:
+            # Initialize an empty list to store the attribute values
+            attribute_values = []
+
+            # Iterate over the product attributes of the policy
+            for attribute in policy.product_attribute_ids:
+                # Get the attribute values, convert them to float, sort them in ascending order and add them to the list
+                sorted_values = sorted(
+                    [float(value.name) for value in attribute.value_ids], reverse=False
+                )
+                for value in sorted_values:
+                    attribute_values.append(
+                        str(int(value) if value.is_integer() else value)
+                    )
+
+            return attribute_values
+
+        except ValueError as value_error:
+            _logger.error("Value error in fetching attribute values: %s", value_error)
+            raise UserError(
+                _(
+                    "Invalid attribute value. Please ensure all attribute values are numbers."
+                )
+            )
+        except Exception as general_error:
+            _logger.error(
+                "Unexpected error in fetching attribute values: %s", general_error
+            )
+            raise UserError(_("An unexpected error occurred. Please try again."))
+
+    def _get_discount_lines(self, policy, report_date):
+        ComputeLine_env = self.env["mv.compute.warranty.discount.policy.line"]
+        ComputeLine_env.flush_model()
+        lines = []
+
+        # Fetch policy lines
+        policy_lines = ComputeLine_env.search([("parent_id", "=", self.id)], order="id")
+
+        # Fetch product attributes
+        attributes = self.env["product.attribute"].browse(
+            policy.product_attribute_ids.ids
+        )
+
+        for line in policy_lines:
+            line_dict = {
+                "partner": line.partner_id.name,
+                "grand_total": line.product_activation_count,
+                "first_policy_explanation": line.first_warranty_policy_requirement_id.explanation,
+                "first_count": line.first_count,
+                "first_warranty_policy_money": line.first_warranty_policy_money,
+                "first_warranty_policy_total_money": line.first_warranty_policy_total_money,
+                "second_policy_explanation": line.second_warranty_policy_requirement_id.explanation,
+                "second_count": line.second_count,
+                "second_warranty_policy_money": line.second_warranty_policy_money,
+                "second_warranty_policy_total_money": line.second_warranty_policy_total_money,
+                "total_amount_currency": line.total_amount_currency,
+            }
+
+            # Fetch attribute values
+            attributes_values = []
+            for attribute in attributes:
+                for value in sorted(
+                    [float(val.name) for val in attribute.value_ids], reverse=False
+                ):
+                    attributes_values.append(
+                        (
+                            f"{attribute.attribute_code}_{str(int(value) if value.is_integer() else value).replace('.', '_')}",
+                            str(int(value) if value.is_integer() else value),
+                        )
+                    )
+                    line_dict.update(
+                        {
+                            f"{attribute.attribute_code}_{str(int(value) if value.is_integer() else value).replace('.', '_')}": {
+                                "name": str(
+                                    int(value) if value.is_integer() else value
+                                ),
+                                "count": 0,
+                            }
+                        }
+                    )
+
+            # Fetch attribute values for each product
+            for ticket_move in line.helpdesk_ticket_product_moves_ids:
+                line_product_att_values = (
+                    ticket_move.product_id.product_tmpl_id.attribute_line_ids.filtered(
+                        lambda r: r.attribute_id
+                        and r.attribute_id.attribute_code
+                        in attributes.mapped("attribute_code")
+                    ).value_ids.mapped("name")
+                )
+                for value in attributes_values:
+                    if value[1] in line_product_att_values:
+                        line_dict[value[0]]["count"] += 1
+
+            lines.append(line_dict)
+
+        return lines
+
+    def _generate_excel_data(self, policy, report_date):
         self.ensure_one()
 
-        if not self:
-            raise UserError(_("No data to generate the report for."))
-
         output = io.BytesIO()
-        workbook = xlsxwriter.Workbook(output, {"in_memory": True})
-        sheet = workbook.add_worksheet(
-            "Discount in {}-{}".format(self.report_date.month, self.report_date.year)
+        workbook = xlsxwriter.Workbook(
+            output,
+            {
+                "in_memory": True,
+                "strings_to_formulas": False,
+            },
         )
-        file_name = "Moveoplus-Partners-Discount-Detail_%s-%s.xlsx" % (
-            self.report_date.month,
-            self.report_date.year,
-        )
-        data_lines = self._get_compute_discount_detail_data(False, False)
+        sheet = workbook.add_worksheet()
+        discount_lines = self._get_discount_lines(policy, report_date)
+        attributes_values = self._get_policy_attributes_values(policy)
 
         # ############# [SETUP] #############
         base_format = {
@@ -931,162 +998,471 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             "border": True,
             "border_color": "black",
         }
-        DEFAULT_FORMAT = workbook.add_format(base_format)
+
+        attribute_header_from_col = 1  # Column B (B is the 2nd column, 0-indexed)
+        attribute_header_to_col = attribute_header_from_col + len(attributes_values)
+        grand_total_col = attribute_header_to_col
+        first_policy_count_col = attribute_header_to_col + 1
+        first_policy_discount_money_col = attribute_header_to_col + 2
+        second_policy_count_col = attribute_header_to_col + 3
+        second_policy_discount_money_col = attribute_header_to_col + 4
+        total_discount_amount_col = attribute_header_to_col + 5
+
+        sheet.set_row(0, 30)
+        sheet.set_row(1, 20)
+        sheet.set_row(2, 30)
+        sheet.set_column("A:A", 50)
+        sheet.set_column(attribute_header_from_col, attribute_header_to_col, 5)
+        sheet.set_column(grand_total_col, grand_total_col, 7)
+        sheet.set_column(first_policy_count_col, first_policy_count_col, 10)
+        sheet.set_column(
+            first_policy_discount_money_col, first_policy_discount_money_col, 10
+        )
+        sheet.set_column(second_policy_count_col, second_policy_count_col, 10)
+        sheet.set_column(
+            second_policy_discount_money_col, second_policy_discount_money_col, 10
+        )
+        sheet.set_column(total_discount_amount_col, total_discount_amount_col, 15)
 
         # ############# [HEADER] #############
-        sheet.set_row(0, 30)
 
-        # ////// NAME = "Chi tiết chiết khấu của Đại Lý trong tháng {month/year}"
-        sheet.merge_range("A1:M1", "", DEFAULT_FORMAT)
-        format_first_title = [
-            "Chi tiết chiết khấu của Đại Lý trong tháng ",
-            workbook.add_format(
-                {"font_name": "Arial", "font_size": 11, "color": "red", "bold": True}
-            ),
-            "{}/{}".format(self.month, self.year),
-        ]
+        # ========= [ROW-1] =========
+
+        # => "Chi tiết chiết khấu kích hoạt của Đại Lý trong tháng {month/year}"
+        base_title_format_A1 = base_format.copy()
+        base_title_format_A1.update({"border": False})
+        sheet.merge_range(
+            0,
+            0,
+            0,
+            attribute_header_to_col + 5,
+            "",
+            workbook.add_format(base_title_format_A1),
+        )
         sheet.write_rich_string(
             "A1",
-            *format_first_title,
-            DEFAULT_FORMAT,
+            *[
+                "Chi tiết chiết khấu kích hoạt của Đại Lý trong tháng ",
+                workbook.add_format(
+                    {
+                        "font_name": "Arial",
+                        "font_size": 11,
+                        "color": "red",
+                        "bold": True,
+                    }
+                ),
+                "{}/{}".format(report_date.month, report_date.year),
+            ],
+            workbook.add_format(base_title_format_A1),
         )
 
-        SUB_TITLE_FORMAT = workbook.add_format(
+        # ========= [ROW-2] =========
+
+        # => "COUNTA of Serial Number"
+        base_title_format_A2 = base_format.copy()
+        base_title_format_A2.update(
             {
-                "font_name": "Arial",
                 "font_size": 10,
-                "align": "center",
-                "valign": "vcenter",
-                "border": True,
-                "border_color": "black",
-                "bold": True,
-                "bg_color": "#71C671",
+                "bg_color": "#C4DCE0",
+                "border_color": "#D3D3D3",
+                "align": "left",
+                "italic": True,
+            }
+        )
+        sheet.write(
+            "A2", "COUNTA of Serial Number", workbook.add_format(base_title_format_A2)
+        )
+
+        # => "RIM"
+        base_title_format_B2 = base_format.copy()
+        base_title_format_B2.update(
+            {
+                "font_size": 10,
+                "bg_color": "#C4DCE0",
+                "border_color": "#D3D3D3",
+                "align": "left",
+                "italic": True,
+            }
+        )
+        sheet.merge_range(
+            1,
+            attribute_header_from_col,
+            1,
+            attribute_header_to_col,
+            "Rim",
+            workbook.add_format(base_title_format_B2),
+        )
+
+        # => "First Policy Explanation"
+        base_title_format_first_policy = base_format.copy()
+        base_title_format_first_policy.update(
+            {"font_size": 10, "font_color": "#FEFDED", "bg_color": "#430A5D"}
+        )
+        sheet.merge_range(
+            1,
+            first_policy_count_col,
+            1,
+            first_policy_discount_money_col,
+            "{} ({})".format(
+                policy.line_ids[0].explanation, int(policy.line_ids[0].discount_amount)
+            ),
+            workbook.add_format(base_title_format_first_policy),
+        )
+
+        # => "Second Policy Explanation"
+        base_title_format_second_policy = base_format.copy()
+        base_title_format_second_policy.update(
+            {"font_size": 10, "font_color": "#FEFDED", "bg_color": "#FFC700"}
+        )
+        sheet.merge_range(
+            1,
+            second_policy_count_col,
+            1,
+            second_policy_discount_money_col,
+            "{} ({})".format(
+                policy.line_ids[1].explanation, int(policy.line_ids[1].discount_amount)
+            ),
+            workbook.add_format(base_title_format_second_policy),
+        )
+
+        # => "TỔNG"
+        base_title_format_total_discount_amount = base_format.copy()
+        base_title_format_total_discount_amount.update(
+            {
+                "font_size": 10,
+                "font_color": "#FEFDED",
+                "bg_color": "#9BCF53",
+            }
+        )
+        sheet.write(
+            1,
+            total_discount_amount_col,
+            "TỔNG",
+            workbook.add_format(base_title_format_total_discount_amount),
+        )
+
+        # ========= [ROW-3] =========
+
+        # => "Đại lý"
+        base_title_format_A3 = base_format.copy()
+        base_title_format_A3.update(
+            {
+                "font_size": 10,
+                "bg_color": "#C4DCE0",
+                "border_color": "#D3D3D3",
+                "align": "left",
+                "italic": True,
+                "bottom_color": "#577B8D",
+            }
+        )
+        sheet.write("A3", "Đại lý", workbook.add_format(base_title_format_A3))
+
+        # => "Values of RIM"
+        base_title_format_rim_values = base_format.copy()
+        base_title_format_rim_values.update(
+            {"font_size": 10, "bg_color": "#577B8D", "border_color": "#D3D3D3"}
+        )
+        for col, value in enumerate(attributes_values):
+            value_format = float(value)
+            sheet.write(
+                2,
+                attribute_header_from_col + col,
+                value_format,
+                workbook.add_format(base_title_format_rim_values),
+            )
+
+        # => "Grand Total"
+        base_title_format_grand_total = base_format.copy()
+        base_title_format_grand_total.update(
+            {
+                "font_size": 10,
+                "bg_color": "#577B8D",
+                "border_color": "#D3D3D3",
                 "text_wrap": True,
             }
         )
-
-        SUB_TITLE_TOTAL_FORMAT = workbook.add_format(
-            {
-                "font_name": "Arial",
-                "font_size": 10,
-                "align": "center",
-                "valign": "vcenter",
-                "border": True,
-                "border_color": "black",
-                "bold": True,
-                "bg_color": "#FFA07A",
-                "text_wrap": True,
-            }
+        sheet.write(
+            2,
+            grand_total_col,
+            "Grand Total",
+            workbook.add_format(base_title_format_grand_total),
         )
 
-        # ////// NAME = "Thứ tự"
-        sheet.merge_range("A2:A3", "", DEFAULT_FORMAT)
-        sheet.write("A2", "#", SUB_TITLE_FORMAT)
+        # => "First Policy Explanation - Count"
+        sheet.write(
+            2,
+            first_policy_count_col,
+            "Số lượng",
+            workbook.add_format(base_title_format_first_policy.copy()),
+        )
+        # => "First Policy Explanation - Discount Money"
+        sheet.write(
+            2,
+            first_policy_discount_money_col,
+            "Số tiền",
+            workbook.add_format(base_title_format_first_policy.copy()),
+        )
 
-        sheet.set_column(1, 0, 3)
+        # => "Second Policy Explanation - Count"
+        sheet.write(
+            2,
+            second_policy_count_col,
+            "Số lượng",
+            workbook.add_format(base_title_format_second_policy.copy()),
+        )
+        # => "Second Policy Explanation - Discount Money"
+        sheet.write(
+            2,
+            second_policy_discount_money_col,
+            "Số tiền",
+            workbook.add_format(base_title_format_second_policy.copy()),
+        )
 
-        # ////// NAME = "Đại lý"
-        sheet.merge_range("B2:B3", "", DEFAULT_FORMAT)
-        sheet.write("B2", "Đại lý", SUB_TITLE_FORMAT)
-
-        sheet.set_column(1, 1, 70)
-
-        # ////// NAME = "Cấp bậc"
-        sheet.merge_range("C2:C3", "", DEFAULT_FORMAT)
-        sheet.write("C2", "Cấp bậc", SUB_TITLE_FORMAT)
-
-        # ////// NAME = "24TA"
-        sheet.merge_range("D2:D3", "", DEFAULT_FORMAT)
-        sheet.write("D2", "24TA", SUB_TITLE_FORMAT)
-
-        # ////// NAME = "Số lượng lốp đã bán (Cái)"
-        sheet.merge_range("E2:E3", "", DEFAULT_FORMAT)
-        sheet.write("E2", "SL lốp đã bán (Cái)", SUB_TITLE_FORMAT)
-
-        # ////// NAME = "Số lượng lốp Khuyến Mãi (Cái)"
-        sheet.merge_range("F2:F3", "", DEFAULT_FORMAT)
-        sheet.write("F2", "SL lốp khuyến mãi (Cái)", SUB_TITLE_FORMAT)
-
-        # ////// NAME = "Doanh thu Tháng"
-        sheet.merge_range("G2:G3", "", DEFAULT_FORMAT)
-        sheet.write("G2", "Doanh thu", SUB_TITLE_TOTAL_FORMAT)
-
-        # ////// NAME = "Số tiền chiết khấu tháng"
-        sheet.merge_range("H2:H3", "", DEFAULT_FORMAT)
-        sheet.write("H2", "Tiền CK Tháng", SUB_TITLE_TOTAL_FORMAT)
-
-        # ////// NAME = "Số tiền chiết khấu 2 tháng"
-        sheet.merge_range("I2:I3", "", DEFAULT_FORMAT)
-        sheet.write("I2", "Tiền CK 2 Tháng", SUB_TITLE_TOTAL_FORMAT)
-
-        # ////// NAME = "Số tiền chiết khấu quý"
-        sheet.merge_range("J2:J3", "", DEFAULT_FORMAT)
-        sheet.write("J2", "Tiền CK Quý", SUB_TITLE_TOTAL_FORMAT)
-
-        # ////// NAME = "Số tiền chiết khấu năm"
-        sheet.merge_range("K2:K3", "", DEFAULT_FORMAT)
-        sheet.write("K2", "Tiền CK Năm", SUB_TITLE_TOTAL_FORMAT)
-
-        # ////// NAME = "Số tiền chiết khấu khuyến khích"
-        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
-        sheet.write("L2", "Tiền CK Khuyến Khích", SUB_TITLE_TOTAL_FORMAT)
-
-        # ////// NAME = "Tổng tiền chiết khấu"
-        sheet.merge_range("M2:M3", "", DEFAULT_FORMAT)
-        sheet.write("M2", "Tổng tiền", SUB_TITLE_TOTAL_FORMAT)
-
-        sheet.set_column(4, 12, 15)
+        # => "Total Discount Money"
+        sheet.write(
+            2,
+            total_discount_amount_col,
+            "THƯỞNG",
+            workbook.add_format(base_title_format_total_discount_amount.copy()),
+        )
 
         # ############# [BODY] #############
-        BODY_CHAR_FORMAT = workbook.add_format(
+
+        base_format_for_body = base_format.copy()
+        base_format_for_body.update({"bold": False, "font_size": 10})
+        base_format_for_partner = base_format.copy()
+        base_format_for_partner.update(
             {
-                "font_name": "Arial",
+                "bold": False,
                 "font_size": 10,
-                "valign": "vcenter",
-                "border": True,
-                "border_color": "black",
+                "align": "left",
+                "text_wrap": True,
+                "border_color": "#D3D3D3",
             }
         )
-        BODY_NUM_FORMAT = workbook.add_format(
+        base_format_attribute_value = base_format_for_body.copy()
+        base_format_attribute_value.update({"border_color": "#D3D3D3"})
+        base_format_hide_value = base_format_attribute_value.copy()
+        base_format_hide_value.update({"bg_color": "#DDDDDD"})
+        base_title_format_grand_total_detail = base_format_for_body.copy()
+        base_title_format_grand_total_detail.update({"border_color": "#D3D3D3"})
+        base_format_for_total = base_format.copy()
+        base_format_for_total.update(
             {
-                "font_name": "Arial",
-                "font_size": 10,
-                "align": "center",
-                "valign": "vcenter",
-                "border": True,
-                "border_color": "black",
-            }
-        )
-        BODY_TOTAL_NUM_FORMAT = workbook.add_format(
-            {
-                "font_name": "Arial",
+                "bold": False,
                 "font_size": 10,
                 "align": "right",
-                "valign": "vcenter",
-                "border": True,
-                "border_color": "black",
                 "num_format": "#,##0.00",
             }
         )
 
-        column_headers = list(data_lines[0].keys())
-        for count, data in enumerate(data_lines, start=3):
+        column_headers = list(discount_lines[0].keys())
+        for row, data in enumerate(discount_lines, start=3):
+            attribute_col = 1
             for col, key in enumerate(column_headers):
-                if isinstance(data[key], str):
-                    sheet.write(count, col, data[key], BODY_CHAR_FORMAT)
-                elif isinstance(data[key], int) or isinstance(data[key], float):
-                    if col in [6, 7, 8, 9, 10, 11, 12]:
-                        sheet.write(count, col, data[key], BODY_TOTAL_NUM_FORMAT)
+                if key == "partner":
+                    sheet.write(
+                        row,
+                        col,
+                        data[key],
+                        workbook.add_format(base_format_for_partner),
+                    )
+                elif key.startswith("rim_"):
+                    if data[key]["count"] > 0:
+                        sheet.write(
+                            row,
+                            attribute_col,
+                            data[key]["count"],
+                            workbook.add_format(base_format_attribute_value),
+                        )
                     else:
-                        sheet.write(count, col, data[key], BODY_NUM_FORMAT)
-                else:
-                    sheet.write(count, col, data[key])
+                        sheet.write(
+                            row,
+                            attribute_col,
+                            "",
+                            workbook.add_format(base_format_hide_value),
+                        )
+                    attribute_col += 1
+                elif key in [
+                    "grand_total",
+                    "first_count",
+                    "first_warranty_policy_total_money",
+                    "second_count",
+                    "second_warranty_policy_total_money",
+                    "total_amount_currency",
+                ]:
+                    sheet.write(
+                        row,
+                        grand_total_col,
+                        data["grand_total"],
+                        workbook.add_format(base_title_format_grand_total_detail),
+                    )
+                    sheet.write(
+                        row,
+                        first_policy_count_col,
+                        data["first_count"],
+                        workbook.add_format(base_format_for_body),
+                    )
+                    sheet.write(
+                        row,
+                        first_policy_discount_money_col,
+                        data["first_warranty_policy_total_money"],
+                        workbook.add_format(base_format_for_total),
+                    )
+                    sheet.write(
+                        row,
+                        second_policy_count_col,
+                        data["second_count"],
+                        workbook.add_format(base_format_for_body),
+                    )
+                    sheet.write(
+                        row,
+                        second_policy_discount_money_col,
+                        data["second_warranty_policy_total_money"],
+                        workbook.add_format(base_format_for_total),
+                    )
+                    sheet.write(
+                        row,
+                        total_discount_amount_col,
+                        data["total_amount_currency"],
+                        workbook.add_format(base_format_for_total),
+                    )
 
-        # ############# [FOOTER] ###########################################
+        # ############# [FOOTER] #############
+
+        base_title_format_partner_last = base_format.copy()
+        base_title_format_partner_last.update(
+            {
+                "font_size": 10,
+                "bg_color": "#C4DCE0",
+                "align": "left",
+                "top": 6,
+                "top_color": "black",
+                "border_color": "#D3D3D3",
+            }
+        )
+        base_title_format_attribute_value_last = base_format.copy()
+        base_title_format_attribute_value_last.update(
+            {
+                "font_size": 10,
+                "bg_color": "#C4DCE0",
+                "top": 6,
+                "top_color": "black",
+                "border_color": "#D3D3D3",
+            }
+        )
+        base_title_format_grand_total_last = base_format.copy()
+        base_title_format_grand_total_last.update(
+            {
+                "font_size": 10,
+                "bg_color": "#C4DCE0",
+                "top": 6,
+                "top_color": "black",
+                "border_color": "#D3D3D3",
+            }
+        )
+        base_format_for_sum_last = base_format.copy()
+        base_format_for_sum_last.update({"font_size": 10, "bg_color": "#9BCF53"})
+        base_format_for_sum_last_total = base_format_for_sum_last.copy()
+        base_format_for_sum_last_total.update(
+            {
+                "align": "right",
+                "num_format": "#,##0.00",
+                "bg_color": "#9BCF53",
+            }
+        )
+
+        column_headers = list(discount_lines[0].keys())
+        attribute_col = 1
+        for col, key in enumerate(column_headers):
+            if key == "partner":
+                sheet.write(
+                    len(discount_lines) + 3,
+                    0,
+                    "Grand Total",
+                    workbook.add_format(base_title_format_partner_last),
+                )
+            elif key.startswith("rim_"):
+                sheet.write(
+                    len(discount_lines) + 3,
+                    attribute_col,
+                    sum(
+                        discount_lines[i][key]["count"]
+                        for i in range(len(discount_lines))
+                    ),
+                    workbook.add_format(base_title_format_attribute_value_last),
+                )
+                attribute_col += 1
+            elif key in [
+                "grand_total",
+                "first_count",
+                "first_warranty_policy_total_money",
+                "second_count",
+                "second_warranty_policy_total_money",
+                "total_amount_currency",
+            ]:
+                sheet.write(
+                    len(discount_lines) + 3,
+                    grand_total_col,
+                    sum(
+                        discount_lines[i]["grand_total"]
+                        for i in range(len(discount_lines))
+                    ),
+                    workbook.add_format(base_title_format_grand_total_last),
+                )
+                sheet.write(
+                    len(discount_lines) + 3,
+                    first_policy_count_col,
+                    sum(
+                        discount_lines[i]["first_count"]
+                        for i in range(len(discount_lines))
+                    ),
+                    workbook.add_format(base_format_for_sum_last),
+                )
+                sheet.write(
+                    len(discount_lines) + 3,
+                    first_policy_discount_money_col,
+                    sum(
+                        discount_lines[i]["first_warranty_policy_total_money"]
+                        for i in range(len(discount_lines))
+                    ),
+                    workbook.add_format(base_format_for_sum_last_total),
+                )
+                sheet.write(
+                    len(discount_lines) + 3,
+                    second_policy_count_col,
+                    sum(
+                        discount_lines[i]["second_count"]
+                        for i in range(len(discount_lines))
+                    ),
+                    workbook.add_format(base_format_for_sum_last),
+                )
+                sheet.write(
+                    len(discount_lines) + 3,
+                    second_policy_discount_money_col,
+                    sum(
+                        discount_lines[i]["second_warranty_policy_total_money"]
+                        for i in range(len(discount_lines))
+                    ),
+                    workbook.add_format(base_format_for_sum_last_total),
+                )
+                sheet.write(
+                    len(discount_lines) + 3,
+                    total_discount_amount_col,
+                    sum(
+                        discount_lines[i]["total_amount_currency"]
+                        for i in range(len(discount_lines))
+                    ),
+                    workbook.add_format(base_format_for_sum_last_total),
+                )
 
         workbook.close()
         output.seek(0)
 
+        file_name = "Moveoplus-Warranty-Discount-Detail_%s-%s.xlsx" % (
+            report_date.month,
+            report_date.year,
+        )
         return output.read(), file_name.replace("-", "_")
 
 
