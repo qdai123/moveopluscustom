@@ -3,10 +3,12 @@ access_mv_discount,mv.discount,model_mv_discount,base.group_user,1,1,1,0
 access_mv_discount_line,mv.discount.line,model_mv_discount_line,base.group_user,1,1,1,1
 access_mv_warranty_discount_policy_internal_user,mv.warranty.discount.policy Internal User,model_mv_warranty_discount_policy,base.group_user,1,1,1,0
 access_mv_warranty_discount_policy_system_user,mv.warranty.discount.policy System User,model_mv_warranty_discount_policy,base.group_system,1,1,1,1
-access_mv_warranty_discount_policy_line,mv.warranty.discount.policy.line,model_mv_warranty_discount_policy_line,base.group_user,1,1,1,0
+access_mv_warranty_discount_policy_line_internal_user,mv.warranty.discount.policy.line Internal User,model_mv_warranty_discount_policy_line,base.group_user,1,1,1,0
+access_mv_warranty_discount_policy_line_system_user,mv.warranty.discount.policy.line System User,model_mv_warranty_discount_policy_line,base.group_system,1,1,1,1
 access_mv_compute_warranty_discount_policy_internal_user,mv.compute.warranty.discount.policy Internal User,model_mv_compute_warranty_discount_policy,base.group_user,1,1,1,0
 access_mv_compute_warranty_discount_policy_system_user,mv.compute.warranty.discount.policy System User,model_mv_compute_warranty_discount_policy,base.group_system,1,1,1,1
-access_mv_compute_warranty_discount_policy_line,mv.compute.warranty.discount.policy.line,model_mv_compute_warranty_discount_policy_line,base.group_user,1,1,1,0
+access_mv_compute_warranty_discount_policy_line_internal_user,mv.compute.warranty.discount.policy.line Internal User,model_mv_compute_warranty_discount_policy_line,base.group_user,1,1,1,0
+access_mv_compute_warranty_discount_policy_line_system_user,mv.compute.warranty.discount.policy.line System User,model_mv_compute_warranty_discount_policy_line,base.group_system,1,1,1,1
 access_mv_promote_discount_line,mv.promote.discount.line,model_mv_promote_discount_line,base.group_user,1,1,1,1
 access_mv_white_place_discount_line,mv.white.place.discount.line,model_mv_white_place_discount_line,base.group_user,1,1,1,1
 access_mv_discount_partner,mv.discount.partner,model_mv_discount_partner,base.group_user,1,1,1,1

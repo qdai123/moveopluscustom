@@ -20,7 +20,7 @@
 			<form string="MOVEO PLUS Compute Warranty Discount Policy FORM" duplicate="false">
 				<header>
 					<field name="do_readonly" invisible="True"/>
-<!--					<button class="btn btn-info" name="print_report" string="Xuất báo cáo Excel" type="object" invisible="state not in ['confirm', 'done']"/>-->
+					<button class="btn btn-info" name="print_report" string="Xuất báo cáo Excel" type="object" invisible="state not in ['confirm', 'done']"/>
 					<button class="btn btn-primary" name="action_calculate_discount_line" type="object" string="Tính chiết khấu" invisible="state != 'draft'"/>
 					<button class="btn btn-primary" name="action_done" type="object" string="Duyệt" invisible="not id or state in ['draft', 'done']"/>
 					<button class="btn btn-secondary" name="action_reset" type="object" string="Hủy" invisible="not id or state != 'confirm'"/>
