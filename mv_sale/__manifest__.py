@@ -8,9 +8,11 @@
     "depends": [
         # Odoo
         "account",
-        "website_sale_loyalty",
         "sale",
+        "sale_management",
         "sale_stock",
+        "website_sale",
+        "website_sale_loyalty",
         # Biz
         "biz_viettel_sinvoice_v2",
         # Moveoplus

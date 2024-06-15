@@ -5,9 +5,7 @@ from odoo.addons.website_sale.controllers.main import WebsiteSale
 
 
 class WebsiteSaleMvSale(WebsiteSale):
-    @http.route(
-        ["/shop/checkout"], type="http", auth="public", website=True, sitemap=False
-    )
+    @http.route()
     def checkout(self, **post):
         # Cảnh báo mua trên 4 lốp xe
         redirect = post.get("r", "/shop/cart")
