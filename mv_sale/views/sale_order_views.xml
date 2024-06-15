@@ -26,9 +26,28 @@
             </xpath>
             <xpath expr="//header" position="inside">
                 <field name="flag_delivery" invisible="True"/>
+                <field name="is_product_service_ckt" invisible="True"/>
                 <field name="is_sales_manager" invisible="True"/>
-                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or flag_delivery or is_order_returns"/>
-                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Nhập chiết khấu sản lượng" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or not flag_delivery or is_order_returns or not is_sales_manager"/>
+                <field name="can_compute_so_discount" invisible="True"/>
+                <field name="can_compute_so_partner_discount" invisible="True"/>
+                <button name="action_compute_discount_month"
+                        id="action_compute_discount_month"
+                        string="Chiết khấu tự động"
+                        class="btn-primary"
+                        type="object"
+                        context="{'validate_analytic': True, 'auto_compute_discount': True}"
+                        invisible="not can_compute_so_discount and can_compute_so_partner_discount or (not can_compute_so_discount and not can_compute_so_partner_discount)"
+                        data-hotkey="q"
+                />
+                <button name="action_compute_discount_month"
+                        id="action_compute_discount_month"
+                        string="Nhập chiết khấu sản lượng"
+                        class="btn-primary"
+                        type="object"
+                        context="{'validate_analytic': True, 'use_partner_discount_policy': True}"
+                        invisible="can_compute_so_discount and not can_compute_so_partner_discount or (not can_compute_so_discount and not can_compute_so_partner_discount)"
+                        data-hotkey="q"
+                />
             </xpath>
             <xpath expr="//field[@name='payment_term_id']" position="after">
                 <field name="is_order_returns" invisible="not is_sales_manager" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>

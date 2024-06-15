@@ -118,6 +118,7 @@ class ResPartner(models.Model):
                 )
 
             self.amount_currency = total_discount_money - self.total_so_bonus_order
+            self.amount = self.amount_currency
 
             if self.env.context.get("recompute_discount_manual", False):
                 return {
