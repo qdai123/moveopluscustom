@@ -5,27 +5,28 @@
 		<field name="model">mv.wizard.discount</field>
 		<field name="arch" type="xml">
 			<form>
-				<sheet>
-					<field name="sale_id" invisible="True"/>
-					<field name="partner_id" invisible="True"/>
+				<field name="order_id" invisible="True"/>
+				<field name="partner_id" invisible="True"/>
+				<field name="currency_id" invisible="True"/>
+				<group>
 					<group>
-						<group>
-							<field name="currency_id" invisible="True"/>
-							<label for="amount"/>
-							<div class="o_row">
-								<field name="amount" class="oe_inline" nolabel="True"/>
-								<field name="currency_symbol" class="oe_inline" nolabel="True"/>
-							</div>
-							<field name="amount_partner" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-							<field name="bonus_max" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-							<field name="bonus_order" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-						</group>
-						<group/>
+						<label for="amount" string="Số tiền chiết khấu"/>
+						<div class="o_row">
+							<field name="amount" class="oe_inline" nolabel="True"/>
+							<field name="currency_symbol" class="oe_inline" nolabel="True"/>
+						</div>
+						<label for="amount_partner" string="Số tiền chiết khấu hiện có"/>
+						<div class="o_row o_row_readonly">
+							<field name="amount_partner" class="oe_inline" nolabel="True" readonly="True"/>
+							<field name="currency_symbol" class="oe_inline" nolabel="True"/>
+						</div>
+						<field string="Số tiền có thể chiết khấu tối đa" name="bonus_max" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+						<field string="Số tiền đã chiết khấu" name="bonus_order" widget="monetary" options="{'currency_field': 'currency_id'}"/>
 					</group>
-				</sheet>
+				</group>
 				<footer>
-					<button name="action_confirm" type="object" string="Xác nhận" class="btn-primary" data-hotkey="q"/>
-					<button string="Discard" special="cancel" data-hotkey="x"/>
+					<button name="action_confirm" type="object" string="Xác nhận" class="btn-primary"/>
+					<button string="Hủy bỏ" special="cancel"/>
 				</footer>
 			</form>
 		</field>

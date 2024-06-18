@@ -69,7 +69,7 @@ class ResPartner(models.Model):
     discount_bank_guarantee = fields.Float(copy=False, tracking=True)
 
     # TOTAL Fields:
-    amount = fields.Integer("Tiền chiết khấu", copy=False)
+    amount = fields.Float("Tiền chiết khấu", copy=False)
     amount_currency = fields.Monetary(
         string="Tiền chiết khấu hiện có",
         copy=False,

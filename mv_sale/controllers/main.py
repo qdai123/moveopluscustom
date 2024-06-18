@@ -1,70 +1,81 @@
 # -*- coding: utf-8 -*-
-from odoo import http
+import logging
+
+from odoo import http, _
 from odoo.http import request
 from odoo.addons.website_sale.controllers.main import WebsiteSale
+from odoo.addons.payment.controllers import portal as payment_portal
+from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
-class WebsiteSaleMvSale(WebsiteSale):
+class MoveoplusWebsiteSale(WebsiteSale):
+
     @http.route()
     def checkout(self, **post):
-        # Cảnh báo mua trên 4 lốp xe
+        # [!] WARNING for buying more than 4 tires
         redirect = post.get("r", "/shop/cart")
         order_sudo = request.website.sale_get_order()
-        if order_sudo.partner_id.is_agency:
-            if order_sudo.check_show_warning():
-                return request.redirect("%s?show_warning=1" % redirect)
+        if order_sudo.partner_id.is_agency and order_sudo.check_show_warning():
+            return request.redirect("%s?show_warning=1" % redirect)
         return super().checkout(**post)
 
-    @http.route(
-        ["/shop/compute_bonus_amount"],
-        type="http",
-        auth="public",
-        website=True,
-        sitemap=False,
-    )
-    def compute_bonus_amount(self, bonus, **post):
-        redirect = post.get("r", "/shop/cart")
-        # empty promo code is used to reset/remove pricelist (see `sale_get_order()`)
-        if bonus:
-            try:
-                bonus = int(bonus)
-            except:
-                return request.redirect("%s?not_available_condition=1" % redirect)
-            order_sudo = request.website.sale_get_order()
-            if order_sudo.partner_id.is_agency:
-                total_bonus = order_sudo.compute_discount_for_partner(bonus)
-                try:
-                    # tổng tiền muốn áp dụng đã vượt qua tài khoản hiện có
-                    if total_bonus > order_sudo.partner_id.amount:
-                        return request.redirect(
-                            "%s?bonus_larger_partner=%s" % (redirect, total_bonus)
-                        )
-                    # tổng tiền muốn áp dụng đã vượt qua tài khoản hiện có
-                    if total_bonus > 0:
-                        return request.redirect(
-                            "%s?bonus_more_time=%s" % (redirect, total_bonus)
-                        )
-                except:
-                    pass
-        return request.redirect(redirect)
-
-    @http.route(["/shop/cart"], type="http", auth="public", website=True, sitemap=False)
+    @http.route()
     def cart(self, access_token=None, revive="", **post):
-        order = request.website.sale_get_order()
-        if order.partner_id.bank_guarantee:
-            order.create_discount_bank_guarantee()
-        return super().cart(access_token=access_token, revive=revive, **post)
+        try:
+            order = request.website.sale_get_order()
+            if order.partner_id.is_agency:
+                if order.partner_id.is_white_agency:
+                    order.create_discount_agency_white_place()
+                if order.partner_id.bank_guarantee:
+                    order.create_discount_bank_guarantee()
 
-    @http.route(
-        "/shop/payment", type="http", auth="public", website=True, sitemap=False
-    )
+                order.partner_id.sudo().action_update_discount_amount()
+
+            return super().cart(access_token=access_token, revive=revive, **post)
+        except Exception as e:
+            _logger.error("Unexpected error: %s", e)
+            raise UserError(_("An unexpected error occurred. Please try again."))
+
+    # ------------------------------------------------------
+    # Payment (OVERRIDE)
+    # ------------------------------------------------------
+
+    def _get_shop_payment_values(self, order: "sale.order", **kwargs):
+        """
+        Get the payment values for the shop.
+
+        :param order: The sale order.
+        :param kwargs: Additional keyword arguments.
+        :return: A dictionary containing the payment values.
+        """
+        try:
+            # Call the parent method
+            res = super()._get_shop_payment_values(order, **kwargs)
+
+            # Update the submit button label (use for Moveo Plus only)
+            res["submit_button_label"] = "Đặt Hàng Ngay"
+
+            return res
+        except Exception as e:
+            _logger.error("Unexpected error: %s", e)
+            raise UserError(_("An unexpected error occurred. Please try again."))
+
+    @http.route()
     def shop_payment(self, **post):
-        order = request.website.sale_get_order()
-        if order.bonus_order > 0:
-            order.compute_discount_for_partner(0)
-        return super().shop_payment(**post)
+        """
+        Compute the discount for a partner if the order bonus is greater than 0,
+        and then call the parent method.
 
-    def _get_shop_payment_values(self, order, **kwargs):
-        res = super(WebsiteSaleMvSale, self)._get_shop_payment_values(order, **kwargs)
-        res["submit_button_label"] = "Đặt Hàng Ngay"
-        return res
+        :param post: Additional keyword arguments.
+        :return: A werkzeug.wrappers.Response object.
+        """
+        try:
+            order = request.website.sale_get_order()
+            if order.bonus_order > 0:
+                order.compute_discount_for_partner(0)
+            return super().shop_payment(**post)
+        except Exception as e:
+            _logger.error("Unexpected error: %s", e)
+            raise UserError(_("An unexpected error occurred. Please try again."))

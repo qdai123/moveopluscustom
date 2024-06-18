@@ -35,22 +35,20 @@
                         string="Chiết khấu tự động"
                         class="btn-primary"
                         type="object"
-                        context="{'validate_analytic': True, 'auto_compute_discount': True}"
+                        context="{'validate_analytic': True}"
                         invisible="not can_compute_so_discount and can_compute_so_partner_discount or (not can_compute_so_discount and not can_compute_so_partner_discount)"
-                        data-hotkey="q"
                 />
                 <button name="action_compute_discount_month"
                         id="action_compute_discount_month"
                         string="Nhập chiết khấu sản lượng"
                         class="btn-primary"
                         type="object"
-                        context="{'validate_analytic': True, 'use_partner_discount_policy': True}"
+                        context="{'validate_analytic': True, 'apply_partner_discount_amount': True}"
                         invisible="can_compute_so_discount and not can_compute_so_partner_discount or (not can_compute_so_discount and not can_compute_so_partner_discount)"
-                        data-hotkey="q"
                 />
             </xpath>
             <xpath expr="//field[@name='payment_term_id']" position="after">
-                <field name="is_order_returns" invisible="not is_sales_manager" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
+                <field string="Đổi trả hàng" name="is_order_returns" invisible="not is_sales_manager" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
             </xpath>
             <xpath expr="//field[@name='date_order']" position="attributes">
                 <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>

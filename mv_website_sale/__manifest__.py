@@ -8,11 +8,18 @@
     "depends": [
         # Odoo
         "website_sale",
+        "website_sale_loyalty",
+        # Moveoplus
     ],
     "data": [
         # VIEWS
         "views/templates.xml",
+        "views/website_sale_delivery_templates.xml",
     ],
+    "bootstrap": True,
+    "assets": {
+        "web.assets_fontend": [],
+    },
     "license": "LGPL-3",
     "application": True,
 }

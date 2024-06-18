@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
+from odoo.addons.mv_sale.models.sale_order import GROUP_SALES_MANAGER
 
 
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
 
     # ACCESS/RULE Fields:
-    is_sales_manager = fields.Boolean(
-        compute="_compute_is_sales_manager",
-        default=lambda self: self.env.user.has_group("sales_team.group_sale_manager"),
-    )
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
 
     @api.depends_context("uid")
-    def _compute_is_sales_manager(self):
-        is_manager = self.env.user.has_group("sales_team.group_sale_manager")
+    def _compute_permissions(self):
+        is_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
+        for record in self:
+            record.is_sales_manager = is_manager
 
-        for user in self:
-            user.is_sales_manager = is_manager
+    # ================================================== #
 
     hidden_show_qty = fields.Boolean(
         help="Do not show change qty in website", default=False, copy=False

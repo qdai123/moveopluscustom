@@ -9,6 +9,7 @@
         # Odoo
         "account",
         "sale",
+        "sale_loyalty",
         "sale_management",
         "sale_stock",
         "website_sale",
@@ -48,6 +49,12 @@
         # MENU
         "views/menus.xml",
     ],
+    "bootstrap": True,
+    "assets": {
+        "web.assets_backend": [
+            "mv_sale/static/src/scss/mv_sale_style.scss",
+        ],
+    },
     "license": "LGPL-3",
     "application": True,
 }
