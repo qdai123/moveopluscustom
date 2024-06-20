@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 	<record id="view_partner_form_mv_sale" model="ir.ui.view">
-		<field name="name">view_partner_form_mv_sale</field>
+		<field name="name">mv_sale.inherit.view.partner.form</field>
 		<field name="model">res.partner</field>
+		<field name="priority">30</field>
 		<field name="inherit_id" ref="base.view_partner_form"/>
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
@@ -12,6 +13,7 @@
 						<group>
 							<field name="is_agency"/>
 							<field name="is_white_agency"/>
+							<field name="is_southern_agency"/>
 							<label for="bank_guarantee" string="Bảo lãnh ngân hàng"/>
 							<div class="o_row">
 								<field name="bank_guarantee"/>
@@ -20,10 +22,10 @@
 							</div>
 						</group>
 						<group invisible="not is_agency">
-							<label for="amount_currency"/>
+							<label for="amount_currency" string="Tiền chiết khấu hiện có"/>
 							<div class="row">
 								<field class="oe_inline fw-bold" name="amount_currency" decoration-success="amount_currency > 0" decoration-muted="amount_currency == 0"/>
-								<button class="oe_inline btn-link mv-update-partner-discount" type="object" name="action_update_discount_amount" context="{'recompute_discount_manual': True}" invisible="not is_agency">
+								<button class="oe_inline btn-link mv-update-partner-discount" type="object" name="action_update_discount_amount" context="{'trigger_manual_update': True}" invisible="not is_agency">
 									<i title="Update Discount Money" role="img" aria-label="Update Discount Money" class="fa fa-fw fa-refresh"/>
 								</button>
 							</div>
@@ -52,7 +54,7 @@
 						</tree>
 					</field>
 				</page>
-				<page string="Chiết khấu chi tiết" name="page_partner_discount_detail" invisible="not is_agency">
+				<page string="Chiết khấu chi tiết" name="page_partner_discount_details" invisible="not is_agency">
 					<group class="col-12" string="## Chiết khấu sản lượng"/>
 					<field name="compute_discount_line_ids" nolabel="1" readonly="True" options="{'no_open': True}">
 							<tree default_order="id desc">

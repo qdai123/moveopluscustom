@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from odoo import api, fields, models
 from odoo import http
-from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -19,6 +19,11 @@ GROUP_SALES_MANAGER = "sales_team.group_sale_manager"
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
+
+    # === Permission Fields ===#
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
+    can_compute_so_discount = fields.Boolean(compute="_compute_permissions")
+    can_compute_so_partner_discount = fields.Boolean(compute="_compute_permissions")
 
     @api.depends(
         "state", "order_line", "order_line.product_uom_qty", "order_line.product_id"
@@ -39,7 +44,7 @@ class SaleOrder(models.Model):
 
             # If there are no order lines, or it is a return order, no need to check further
             # Notes: Should be validate 'order_line' too, if not, it will be error
-            if record.is_order_returns:
+            if record._is_order_returns():
                 continue
 
             # If the user is a sales manager, they can compute both types of discounts
@@ -65,11 +70,6 @@ class SaleOrder(models.Model):
                 and record.state in ["draft", "sent"]
             ):
                 record.can_compute_so_partner_discount = True
-
-    # ACCESS/RULE Fields:
-    is_sales_manager = fields.Boolean(compute="_compute_permissions")
-    can_compute_so_discount = fields.Boolean(compute="_compute_permissions")
-    can_compute_so_partner_discount = fields.Boolean(compute="_compute_permissions")
 
     # ================================================== #
 
@@ -113,22 +113,21 @@ class SaleOrder(models.Model):
     )
     is_order_returns = fields.Boolean(
         default=False, help="Ghi nhận: Là đơn đổi/trả hàng."
-    )
+    )  # TODO: Needs study cases for SO Returns
 
     # Ngày hóa đơn xác nhận để làm căn cứ tính discount cho đại lý
     date_invoice = fields.Datetime(readonly=True)
     # Giữ số lượng lại, để khi thay đổi thì xóa dòng delivery, chiết khấu tự động, chiết khấu sản lượng
-    quantity_change = fields.Float(copy=False)
+    quantity_change = fields.Float()
 
-    # [res.partner] Fields:
+    # === Model: [res.partner] Fields ===#
     partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
     partner_white_agency = fields.Boolean(
         related="partner_id.is_white_agency", store=True
     )
-    # [mv.compute.discount.line] Fields:
-    discount_line_id = fields.Many2one(
-        "mv.compute.discount.line", readonly=True, copy=False
-    )
+
+    # === Model: [mv.compute.discount.line] Fields ===#
+    discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
 
     check_discount_10 = fields.Boolean(
         compute="_compute_discount", store=True, copy=False
@@ -148,7 +147,7 @@ class SaleOrder(models.Model):
     after_discount_bank_guarantee = fields.Float(
         compute="_compute_discount", store=True, copy=False
     )
-    # %, DISCOUNT Fields:
+    # === Bonus, Discount FIELDS ===#
     percentage = fields.Float(
         compute="_compute_discount",
         store=True,
@@ -166,7 +165,6 @@ class SaleOrder(models.Model):
         help="""
             - Số tiền chiết khấu đang và đã áp dụng trên đơn bán.
             - Thay đổi khi và chỉ khi có hành động "Nhập Chiết Khấu Sản Lượng"
-            => Trả về mặc định = 0; Khi SO đã được duyệt.
         """,
     )
     bonus_remaining = fields.Float(
@@ -427,22 +425,24 @@ class SaleOrder(models.Model):
     def handle_discount_lines(self):
         """
         Removes discount lines from the order if there are no more products in the order.
-        Specifically, it checks for the existence of order lines with product codes "CKT", "CKBL" and "CKSLVT"
+        Specifically, it checks for the existence of order lines with provided product codes
         and removes them if there are no more products in the order.
         """
-        product_ref = ["CKT", "CKBL"]
+        discount_product_codes = {"CKT", "CKBL"}
         if self.check_discount_agency_white_place:
-            product_ref.append("CKSLVT")  # CKSLVT: Chiết khấu Đại lý vùng trắng
+            discount_product_codes.add("CKSLVT")  # CKSLVT: Chiết khấu Đại lý vùng trắng
 
-        order_line_ctk = self.order_line.filtered(
-            lambda sol: sol.product_id.default_code in product_ref
+        # [>] Separate order lines into discount lines and product lines
+        discount_lines = self.order_line.filtered(
+            lambda sol: sol.product_id.default_code in discount_product_codes
         )
-        order_line_product = self.order_line.filtered(
+        product_lines = self.order_line.filtered(
             lambda sol: sol.product_id.detailed_type == "product"
         )
 
-        if order_line_ctk and not order_line_product:
-            order_line_ctk.unlink()
+        # [>] Unlink discount lines if there are no product lines in the order
+        if discount_lines and not product_lines:
+            discount_lines.unlink()
 
     # ==================================
     # ORM / CURD Methods
@@ -459,27 +459,16 @@ class SaleOrder(models.Model):
 
     def copy(self, default=None):
         # MOVEOPLUS Override
-        res = super(SaleOrder, self).copy(default)
-        res._update_programs_and_rewards()
-        res._auto_apply_rewards()
-        return res
+        orders = super(SaleOrder, self).copy(default)
+        orders._update_programs_and_rewards()
+        orders._auto_apply_rewards()
+        return orders
 
     # ==================================
     # BUSINESS Methods
     # ==================================
 
     def compute_discount_for_partner(self, bonus):
-        """
-        Compute the discount for a partner based on the bonus.
-        If the bonus is greater than the maximum bonus, return False.
-        Otherwise, check if the bonus is greater than the partner's amount.
-        If it is, return the bonus.
-        Then calculate the total bonus and check if it is greater than the maximum bonus.
-        If it is, return the total bonus.
-        Then check if there is an order line with the product code "CKT".
-        If there isn't, create a new product template with the code "CKT" and create a new order line with this product.
-        Then update the price unit of the order line and the bonus order of the sale order and decrease the amount of the partner.
-        """
         PRODUCT_DISCOUNT_CODE = "CKT"
         try:
             bonus_max = self.bonus_max
@@ -558,9 +547,9 @@ class SaleOrder(models.Model):
             self.calculate_discount_values()
 
             # [>] Update the Partner's Amount
-            self.sudo().with_context(so_update_discount_amount=True).env[
-                "res.partner"
-            ].browse(self.partner_id.id).write(
+            self.sudo().with_context(trigger_update=True).env["res.partner"].browse(
+                self.partner_id.id
+            ).write(
                 {
                     "amount": self.bonus_remaining,
                     "amount_currency": self.bonus_remaining,
@@ -568,9 +557,10 @@ class SaleOrder(models.Model):
             )
         except Exception as e:
             _logger.error("Failed to compute discount for partner: %s", e)
+            return False
 
     def action_compute_discount_month(self):
-        if not self.order_line or self.is_order_returns:
+        if self._is_order_returns():
             return
 
         if self.locked:
@@ -859,9 +849,9 @@ class SaleOrder(models.Model):
         return super(SaleOrder, self).action_draft()
 
     def action_confirm(self):
-        self._check_order_not_free_qty()
-        self._handle_agency_discount()
         self._check_delivery_lines()
+        self._check_order_not_free_qty_today()
+        self._handle_agency_discount()
         return super(SaleOrder, self).action_confirm()
 
     def action_cancel(self):
@@ -880,7 +870,12 @@ class SaleOrder(models.Model):
     # CONSTRAINS / VALIDATION Methods
     # ==================================
 
-    def _check_order_not_free_qty(self):
+    def _check_delivery_lines(self):
+        delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
+        if not delivery_lines:
+            raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
+
+    def _check_order_not_free_qty_today(self):
         for so in self:
             if so.state not in ["draft", "sent"]:
                 continue
@@ -910,17 +905,63 @@ class SaleOrder(models.Model):
                     raise ValidationError(error_message)
 
     def _handle_agency_discount(self):
-        """
-        Handle the discount for the agency.
-        """
-        if not self.is_order_returns and self.partner_id.is_agency:
-            self.with_context(confirm=True).action_compute_discount_month()
+        # Filter out orders that are returns
+        non_return_orders = self.filtered(lambda order: not order.is_order_returns)
 
-    def _check_delivery_lines(self):
-        """
-        Check if there are delivery lines in the order.
-        If there are no delivery lines, raise a user error.
-        """
-        delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
-        if not delivery_lines:
-            raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
+        # Filter out orders that are not by partner agency
+        agency_orders = non_return_orders.filtered(
+            lambda order: order.partner_id.is_agency
+        )
+
+        # Compute discount for agency orders
+        agency_orders.with_context(confirm=True).action_compute_discount_month()
+
+    # =============================================================
+    # TRIGGER Methods (Public)
+    # These methods are called when a record is updated or deleted.
+    # =============================================================
+
+    def trigger_update(self):
+        """=== This method is called when a record is updated or deleted ==="""
+        if self._context.get("trigger_update", False):
+            try:
+                # Update the discount amount in the sale order
+                self._update_sale_order_discount_amount()
+
+                # Update the partner's discount amount
+                self._update_partner_discount_amount()
+            except Exception as e:
+                # Log any exceptions that occur
+                _logger.error("Failed to trigger update recordset: %s", e)
+
+    def _update_sale_order_discount_amount(self):
+        for order in self:
+            print(f"Write your logic code here. {order.name_get()}")
+
+        return True
+
+    def _update_partner_discount_amount(self):
+        for order in self.filtered(
+            lambda so: so.partner_id.is_agency and so.bonus_order > 0
+        ):
+            try:
+                # Calculate the total bonus
+                total_bonus = order.partner_id.amount_currency - order.bonus_order
+
+                # Update the partner's discount amount
+                order.partner_id.write(
+                    {"amount": total_bonus, "amount_currency": total_bonus}
+                )
+            except Exception as e:
+                # Log any exceptions that occur
+                _logger.error("Failed to update partner discount amount: %s", e)
+
+        return True
+
+    # ==================================
+    # TOOLING
+    # ==================================
+
+    def _is_order_returns(self):
+        self.ensure_one()
+        return self.is_order_returns

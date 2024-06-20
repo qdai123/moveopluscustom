@@ -2,7 +2,8 @@
 import base64
 import calendar
 import io
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
+
 from dateutil.relativedelta import relativedelta
 
 try:
@@ -12,7 +13,7 @@ except ImportError:
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError
-from odoo.tools.misc import format_date, formatLang, get_lang
+from odoo.tools.misc import formatLang
 
 DEFAULT_SERVER_DATE_FORMAT = "%Y-%m-%d"
 DEFAULT_SERVER_TIME_FORMAT = "%H:%M:%S"
@@ -502,8 +503,6 @@ class MvComputeDiscount(models.Model):
     # =================================
     # HELPER / PRIVATE Methods
     # =================================
-
-    from datetime import datetime, timedelta
 
     def _get_dates(self, report_date, month, year):
         """

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
 from odoo.addons.mv_sale.models.sale_order import GROUP_SALES_MANAGER
+
+from odoo import api, fields, models
 
 
 class SaleOrderLine(models.Model):

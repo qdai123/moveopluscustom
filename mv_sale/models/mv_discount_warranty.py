@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import base64
-import calendar
 import io
 import logging
 import re
 from datetime import date, datetime, timedelta
+
 from dateutil.relativedelta import relativedelta
 
 try:
@@ -14,7 +14,7 @@ except ImportError:
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError, MissingError
-from odoo.tools.misc import format_date, formatLang, get_lang
+from odoo.tools.misc import formatLang
 
 _logger = logging.getLogger(__name__)
 

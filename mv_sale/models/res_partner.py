@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
-from functools import reduce
 import operator
+from functools import reduce
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -11,130 +12,86 @@ _logger = logging.getLogger(__name__)
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    def _get_company_currency(self):
-        for partner in self:
-            company = partner.company_id or self.env.company
-            partner.currency_id = company.sudo().currency_id
-
-    # RELATION Fields [Many2many, One2many, Many2one]:
+    # === Relation from Discount Policy and Partner in Configuration ===#
     line_ids = fields.One2many(
-        comodel_name="mv.discount.partner",
-        inverse_name="partner_id",
-        copy=False,
-        help="""
-            Child Model: mv.discount.partner
-            This field is used to store the discount policy of the Partner/Customer.
-        """,
+        comodel_name="mv.discount.partner", inverse_name="partner_id"
     )
+    # === Discount Policy Configuration Fields ===#
     discount_id = fields.Many2one(
         comodel_name="mv.discount",
-        string="Chiết khấu sản lượng",
-        compute="_compute_discount_ids",
+        compute="_compute_discount_policy_ids",
         store=True,
         readonly=False,
+        string="Chiết khấu sản lượng",
+        help="Chính sách CHIẾT KHẤU SẢN LƯỢNG cho Đại Lý",
+    )  # TODO: This field needs to be set to apply multiple policies to Partners (Many2many instead of Many2one)
+    warranty_discount_policy_ids = fields.Many2many(
+        comodel_name="mv.warranty.discount.policy",
+        compute="_compute_discount_policy_ids",
+        store=True,
+        readonly=False,
+        string="Chiết khấu kích hoạt",
+        help="Chính sách CHIẾT KHẤU KÍCH HOẠT cho Đại Lý",
     )
     compute_discount_line_ids = fields.One2many(
         comodel_name="mv.compute.discount.line",
         inverse_name="partner_id",
         domain=[("parent_id", "!=", False)],
-        copy=False,
-        help="""
-                Link Model: mv.compute.discount.line
-                This field is used to store the computed discount of the Partner/Customer.
-            """,
-    )
-    warranty_discount_policy_ids = fields.Many2many(
-        comodel_name="mv.warranty.discount.policy",
-        string="Chiết khấu kích hoạt",
-        compute="_compute_discount_ids",
-        store=True,
-        readonly=False,
+        string="Chi tiết: chiết khấu sản lượng",
     )
     compute_warranty_discount_line_ids = fields.One2many(
         comodel_name="mv.compute.warranty.discount.policy.line",
         inverse_name="partner_id",
         domain=[("parent_id", "!=", False)],
-        copy=False,
-        help="""
-                    Link Model: mv.compute.warranty.discount.policy.line
-                    This field is used to store the computed warranty discount of the Partner/Customer.
-                """,
+        string="Chi tiết: chiết khấu kích hoạt",
     )
-    sale_mv_ids = fields.Many2many("sale.order", copy=False, readonly=True)
-    currency_id = fields.Many2one("res.currency", compute="_get_company_currency")
-    # =================================
-    is_agency = fields.Boolean("Đại lý", copy=False, tracking=True)
-    is_white_agency = fields.Boolean("Đại lý vùng trắng", copy=False, tracking=True)
-    bank_guarantee = fields.Boolean("Bảo lãnh ngân hàng", copy=False, tracking=True)
-    discount_bank_guarantee = fields.Float(copy=False, tracking=True)
-
-    # TOTAL Fields:
-    amount = fields.Float("Tiền chiết khấu", copy=False)
-    amount_currency = fields.Monetary(
-        string="Tiền chiết khấu hiện có",
-        copy=False,
-        readonly=True,
-        currency_field="currency_id",
+    is_agency = fields.Boolean(
+        string="Đại lý", help="Đại Lý Chính Thức của Moveo+", tracking=True
     )
+    is_white_agency = fields.Boolean(
+        string="Đại lý vùng trắng", help="Đại lý Vùng Trắng của Moveo+", tracking=True
+    )
+    is_southern_agency = fields.Boolean(
+        string="Đại lý miền Nam", help="Đại lý miền Nam của Moveo+", tracking=True
+    )
+    bank_guarantee = fields.Boolean(
+        string="Bảo lãnh ngân hàng",
+        help="Đại Lý áp dụng Bảo lãnh từ Ngân hàng",
+        tracking=True,
+    )
+    discount_bank_guarantee = fields.Float(tracking=True)
+    # === Amount/Total Fields ===#
+    amount = fields.Float(readonly=True)
+    amount_currency = fields.Monetary(readonly=True, currency_field="currency_id")
     total_so_bonus_order = fields.Monetary(
         compute="_compute_sale_order_ids", store=True
     )
+    # === Other Fields ===#
+    sale_mv_ids = fields.Many2many("sale.order", readonly=True)
+    currency_id = fields.Many2one("res.currency", compute="_get_company_currency")
 
     # =================================
-    # BUSINESS Methods
+    # CONSTRAINS Methods
     # =================================
 
-    def action_update_discount_amount(self):
-        self.ensure_one()
-
-        if self.is_agency:
-            if self.sale_order_ids:
-                orders_discount = [
-                    order
-                    for order in self.sale_order_ids
-                    if order.bonus_order > 0 and order.state in ["sent", "sale"]
-                ]
-                if orders_discount:
-                    self.sale_mv_ids = [(6, 0, [order.id for order in orders_discount])]
-                    self.total_so_bonus_order = sum(
-                        order.bonus_order for order in orders_discount
-                    )
-
-            total_discount_money = 0
-            if self.compute_discount_line_ids:
-                total_discount_money += sum(
-                    line.total_money
-                    for line in self.compute_discount_line_ids.filtered(
-                        lambda r: r.state == "done"
-                    )
+    @api.constrains("is_white_agency", "is_southern_agency")
+    def _check_white_and_southern_agency(self):
+        for partner in self:
+            if partner.is_white_agency and partner.is_southern_agency:
+                raise ValidationError(
+                    "Bạn chỉ có thể áp dụng cho một loại Đại lý (Con) duy nhất!"
                 )
-
-            if self.compute_warranty_discount_line_ids:
-                total_discount_money += sum(
-                    line.total_amount_currency
-                    for line in self.compute_warranty_discount_line_ids.filtered(
-                        lambda r: r.parent_state == "done"
-                    )
-                )
-
-            self.amount_currency = total_discount_money - self.total_so_bonus_order
-            self.amount = self.amount_currency
-
-            if self.env.context.get("recompute_discount_manual", False):
-                return {
-                    "type": "ir.actions.client",
-                    "tag": "display_notification",
-                    "params": {
-                        "title": _("Successfully"),
-                        "message": "Cập nhật tiền chiết khấu thành công",
-                        "type": "success",
-                        "sticky": False,
-                    },
-                }
 
     # =================================
     # COMPUTE / ONCHANGE Methods
     # =================================
+
+    def _get_company_currency(self):
+        for partner in self:
+            if partner.company_id:
+                partner.currency_id = partner.sudo().company_id.currency_id
+            else:
+                partner.currency_id = self.env.company.currency_id
 
     @api.depends("line_ids")
     def _compute_discount_ids(self):
@@ -214,9 +171,65 @@ class ResPartner(models.Model):
         if self.is_white_agency:
             self.is_agency = True
 
+    @api.onchange("is_southern_agency")
+    def _onchange_is_southern_agency(self):
+        if self.is_southern_agency:
+            self.is_agency = True
+
     @api.onchange("bank_guarantee")
     def _onchange_bank_guarantee(self):
         self.discount_bank_guarantee = 0
+
+    # =================================
+    # BUSINESS Methods
+    # =================================
+
+    def action_update_discount_amount(self):
+        for partner in self.filtered(lambda r: r.is_agency):
+            partner.sale_mv_ids = [(6, 0, [])]
+            partner.total_so_bonus_order = 0
+
+            # [>] Filter orders with bonus and required state
+            order_discount_confirmed = partner.sale_order_ids.filtered(
+                lambda so: so.bonus_order > 0 and so.state in ["sent", "sale"]
+            )
+            if order_discount_confirmed:
+                # [>>] Update 'sale_mv_ids' and 'total_so_bonus_order'
+                partner.sale_mv_ids = [(6, 0, order_discount_confirmed.ids)]
+                partner.total_so_bonus_order = sum(
+                    order_discount_confirmed.mapped("bonus_order")
+                )
+
+            # [>] Calculate total discount money from different sources
+            total_discount_money = sum(
+                partner.compute_discount_line_ids.filtered(
+                    lambda r: r.state == "done"
+                ).mapped("total_money")
+            ) + sum(
+                partner.compute_warranty_discount_line_ids.filtered(
+                    lambda r: r.parent_state == "done"
+                ).mapped("total_amount_currency")
+            )
+
+            # [>] Update 'amount' and 'amount_currency'
+            partner.amount = partner.amount_currency = (
+                total_discount_money - partner.total_so_bonus_order
+            )
+
+            # [>.CONTEXT] Trigger update manual notification
+            if self.env.context.get("trigger_manual_update", False):
+                return {
+                    "type": "ir.actions.client",
+                    "tag": "display_notification",
+                    "params": {
+                        "title": _("Successfully"),
+                        "message": "Cập nhật tiền chiết khấu thành công",
+                        "type": "success",
+                        "sticky": False,
+                    },
+                }
+
+        return True
 
     # ==================================
     # CRON SERVICE Methods

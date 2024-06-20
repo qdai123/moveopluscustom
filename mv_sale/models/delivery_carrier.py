@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
-from odoo.exceptions import UserError
-from odoo.tools.safe_eval import safe_eval
+from odoo import models
 
 
 class DeliveryCarrier(models.Model):

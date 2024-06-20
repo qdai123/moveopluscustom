@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import api, fields, models
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 
 class MvWizardDiscount(models.TransientModel):
-    _name = _description = "mv.wizard.discount"
+    _name = "mv.wizard.discount"
+    _description = _("Wizard: Shipping Method & Discount")
 
     order_id = fields.Many2one("sale.order", required=True, ondelete="cascade")
     currency_id = fields.Many2one("res.currency", related="order_id.currency_id")
