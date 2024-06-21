@@ -41,7 +41,7 @@
                 <!-- TODO: Needs more action to <Update Discount Amount> -->
             </xpath>
             <xpath expr="//field[@name='payment_term_id']" position="after">
-                <field string="Đổi trả hàng" name="is_order_returns" invisible="not is_sales_manager" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
+                <field string="Đổi trả hàng" name="is_order_returns" invisible="not is_sales_manager or state == 'sale'" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
             </xpath>
             <xpath expr="//field[@name='date_order']" position="attributes">
                 <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>

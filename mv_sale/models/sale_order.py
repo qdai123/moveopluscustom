@@ -856,6 +856,7 @@ class SaleOrder(models.Model):
             else:
                 _logger.warning("No partner found for this order.")
             self.write({"bonus_order": 0, "quantity_change": 0})
+
         return super(SaleOrder, self).action_cancel()
 
     # ==================================
