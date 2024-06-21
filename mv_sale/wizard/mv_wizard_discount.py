@@ -32,6 +32,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     )
 
     # === Delivery Carrier Fields ===#
+    delivery_set = fields.Boolean(compute="_compute_invisible")
     carrier_id = fields.Many2one("delivery.carrier", required=True)
     delivery_type = fields.Selection(related="carrier_id.delivery_type")
     delivery_price = fields.Float()
@@ -51,6 +52,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     weight_uom_name = fields.Char(readonly=True, default=_get_default_weight_uom)
 
     # === Discount Policy Fields ===#
+    discount_product_ckt_set = fields.Boolean(compute="_compute_invisible")
     discount_amount_apply = fields.Float()
     discount_amount_remaining = fields.Float(related="sale_order_id.bonus_remaining")
     discount_amount_maximum = fields.Float(related="sale_order_id.bonus_max")
@@ -83,6 +85,36 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     # COMPUTE / ONCHANGE Methods
     # ==================================
 
+    @api.depends("sale_order_id", "sale_order_id.order_line")
+    def _compute_invisible(self):
+        for wizard in self:
+            wizard.delivery_set = any(
+                line.is_delivery for line in wizard.sale_order_id.order_line
+            )
+            wizard.discount_product_ckt_set = any(
+                line.product_id.default_code == "CKT"
+                for line in wizard.sale_order_id.order_line
+            )
+
+    @api.depends("carrier_id")
+    def _compute_invoicing_message(self):
+        self.ensure_one()
+        self.invoicing_message = ""
+
+    @api.depends("partner_id")
+    def _compute_available_carrier(self):
+        for rec in self:
+            carriers = self.env["delivery.carrier"].search(
+                self.env["delivery.carrier"]._check_company_domain(
+                    rec.sale_order_id.company_id
+                )
+            )
+            rec.available_carrier_ids = (
+                carriers.available_carriers(rec.sale_order_id.partner_shipping_id)
+                if rec.partner_id
+                else carriers
+            )
+
     @api.onchange("carrier_id", "total_weight")
     def _onchange_carrier_id(self):
         self.delivery_message = False
@@ -110,25 +142,6 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                     "type": "notification",
                 }
                 return {"warning": warning}
-
-    @api.depends("carrier_id")
-    def _compute_invoicing_message(self):
-        self.ensure_one()
-        self.invoicing_message = ""
-
-    @api.depends("partner_id")
-    def _compute_available_carrier(self):
-        for rec in self:
-            carriers = self.env["delivery.carrier"].search(
-                self.env["delivery.carrier"]._check_company_domain(
-                    rec.sale_order_id.company_id
-                )
-            )
-            rec.available_carrier_ids = (
-                carriers.available_carriers(rec.sale_order_id.partner_shipping_id)
-                if rec.partner_id
-                else carriers
-            )
 
     # ==================================
     # BUSINESS Methods
@@ -229,7 +242,8 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                     "delivery_message": self.delivery_message,
                 }
             )
-            self._create_mv_discount_lines()
+            if not self.discount_product_ckt_set:
+                self._create_mv_discount_lines()
         except Exception as e:
             _logger.error("Unexpected error: %s", e)
             raise UserError(_("An unexpected error occurred. Please try again."))

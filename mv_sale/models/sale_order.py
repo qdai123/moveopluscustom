@@ -788,13 +788,18 @@ class SaleOrder(models.Model):
     def _handle_discount_confirmation(self):
         if not self._context.get("confirm", False):
             view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
+            delivery_order_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
             carrier = (
-                self.with_company(
-                    self.company_id
-                ).partner_shipping_id.property_delivery_carrier_id
-                or self.with_company(
-                    self.company_id
-                ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+                (
+                    self.with_company(
+                        self.company_id
+                    ).partner_shipping_id.property_delivery_carrier_id
+                    or self.with_company(
+                        self.company_id
+                    ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+                )
+                if not delivery_order_lines
+                else self.carrier_id
             )
             return {
                 "name": "Chiết khấu",

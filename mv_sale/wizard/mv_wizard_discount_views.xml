@@ -8,10 +8,12 @@
 				<field name="sale_order_id" invisible="True"/>
 				<field name="partner_id" invisible="True"/>
 				<field name="currency_id" invisible="True"/>
+				<field name="discount_product_ckt_set" invisible="True"/>
+				<field name="delivery_set" invisible="True"/>
 				<field name="delivery_type" invisible="True"/>
 				<field name="delivery_price" invisible="True"/>
 				<field name="available_carrier_ids" invisible="True"/>
-				<group class="col-8">
+				<group class="col-8" invisible="discount_product_ckt_set">
 					<field string="Số tiền chiết khấu" name="discount_amount_apply"/>
 					<field string="Tiền chiết khấu hiện có"
 					       name="discount_amount_remaining"
@@ -29,7 +31,7 @@
 					       options="{'currency_field': 'currency_id'}"
 					/>
 				</group>
-				<group class="col-8" string="# Chọn phương thức giao hàng">
+				<group class="col-8" string="# Chọn phương thức giao hàng" invisible="delivery_set">
 					<field name="carrier_id" string="Phương thức giao hàng" domain="[('id', 'in', available_carrier_ids)]"/>
 					<label name="carried_weight_label" for="total_weight" string="Tổng khối lượng đơn hàng" groups="product.group_stock_packaging"/>
 					<div name="carried_weight" class="o_row" groups="product.group_stock_packaging">
@@ -50,10 +52,10 @@
 						</button>
 					</div>
 				</group>
-				<div role="alert" class="col-8 alert alert-warning" invisible="invoicing_message == ''">
+				<div role="alert" class="col-8 alert alert-warning" invisible="delivery_set or invoicing_message == ''">
 					<field name="invoicing_message" nolabel="1"/>
 				</div>
-				<div role="alert" class="col-8 alert alert-info" invisible="not delivery_message">
+				<div role="alert" class="col-8 alert alert-info" invisible="delivery_set or not delivery_message">
 					<field name="delivery_message" nolabel="1"/>
 				</div>
 				<footer>
