@@ -8,16 +8,16 @@
     "depends": [
         # Odoo
         "account",
+        "delivery",
         "sale",
         "sale_loyalty",
         "sale_management",
         "sale_stock",
-        "website_sale",
-        "website_sale_loyalty",
         # Biz
         "biz_viettel_sinvoice_v2",
         # Moveoplus
         "mv_base",
+        "mv_helpdesk",
     ],
     "data": [
         # SECURITY
@@ -32,12 +32,12 @@
         "views/mv_promote_discount_line_views.xml",
         "views/mv_warranty_discount_policy_views.xml",
         "views/mv_white_place_discount_line_views.xml",
-        "views/product_attribute_views.xml",
-        "views/res_partner_views.xml",
-        "views/sale_order_views.xml",
         "views/mv_compute_discount_views.xml",
         "views/mv_compute_discount_line_views.xml",
         "views/mv_compute_warranty_discount_policy_views.xml",
+        "views/product_attribute_views.xml",
+        "views/res_partner_views.xml",
+        "views/sale_order_views.xml",
         "views/templates.xml",
         # REPORT
         "report/discount_report_views.xml",

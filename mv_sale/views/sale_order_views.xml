@@ -30,22 +30,15 @@
                 <field name="is_sales_manager" invisible="True"/>
                 <field name="can_compute_so_discount" invisible="True"/>
                 <field name="can_compute_so_partner_discount" invisible="True"/>
-                <button name="action_compute_discount_month"
-                        id="action_compute_discount_month"
-                        string="Chiết khấu tự động"
-                        class="btn-primary"
+                <button string="Chiết khấu tự động"
                         type="object"
+                        class="btn-primary"
+                        id="action_compute_discount_month"
+                        name="action_compute_discount_month"
                         context="{'validate_analytic': True}"
-                        invisible="not can_compute_so_discount and can_compute_so_partner_discount or (not can_compute_so_discount and not can_compute_so_partner_discount)"
+                        invisible="not can_compute_so_discount"
                 />
-                <button name="action_compute_discount_month"
-                        id="action_compute_discount_month"
-                        string="Nhập chiết khấu sản lượng"
-                        class="btn-primary"
-                        type="object"
-                        context="{'validate_analytic': True, 'apply_partner_discount_amount': True}"
-                        invisible="can_compute_so_discount and not can_compute_so_partner_discount or (not can_compute_so_discount and not can_compute_so_partner_discount)"
-                />
+                <!-- TODO: Needs more action to <Update Discount Amount> -->
             </xpath>
             <xpath expr="//field[@name='payment_term_id']" position="after">
                 <field string="Đổi trả hàng" name="is_order_returns" invisible="not is_sales_manager" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
@@ -144,6 +137,10 @@
             </xpath>
             <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="after">
                 <field name="price_subtotal_before_discount" widget="monetary" sum="Total price_subtotal_before_discount" optional="hidden"/>
+            </xpath>
+            <xpath expr="//div[@name='so_button_below_order_lines']//button[@name='action_open_discount_wizard']" position="attributes">
+                <!-- MOVEO PLUS Override: Hide Discount Button to handle new case from MOVEO PLUS Workflow on Sales -->
+                <attribute name="invisible">True</attribute>
             </xpath>
         </field>
     </record>

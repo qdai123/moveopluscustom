@@ -320,7 +320,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     warranty_discount_policy_id = fields.Many2one(
         comodel_name="mv.warranty.discount.policy",
         domain=[("active", "=", True), ("policy_status", "=", "applying")],
-        help="Parent Model: mv.warranty.discount.policy",
     )
     line_ids = fields.One2many("mv.compute.warranty.discount.policy.line", "parent_id")
 
@@ -1481,7 +1480,6 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         "mv.compute.warranty.discount.policy",
         domain=[("active", "=", True)],
         readonly=True,
-        help="Parent Model: mv.compute.warranty.discount.policy",
     )
     parent_name = fields.Char("Name", compute="_compute_parent_name", store=True)
     parent_compute_date = fields.Datetime(readonly=True)

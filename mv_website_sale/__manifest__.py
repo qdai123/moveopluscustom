@@ -10,6 +10,7 @@
         "website_sale",
         "website_sale_loyalty",
         # Moveoplus
+        "mv_sale",
     ],
     "data": [
         # VIEWS

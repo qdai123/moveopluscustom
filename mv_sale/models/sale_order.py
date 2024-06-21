@@ -30,11 +30,6 @@ class SaleOrder(models.Model):
     )
     @api.depends_context("uid")
     def _compute_permissions(self):
-        """
-        Compute the value of the 'is_sales_manager' field and the 'can_compute_so_discount' field for each record.
-        The 'is_sales_manager' field value is True if the current user belongs to the 'Sales Manager' group, False otherwise.
-        The 'can_compute_so_discount' field value is True if the user is a sales manager and the order is not a delivery and not a service product, False otherwise.
-        """
         is_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
         for record in self:
             # Initialize the flags to False
@@ -44,21 +39,13 @@ class SaleOrder(models.Model):
 
             # If there are no order lines, or it is a return order, no need to check further
             # Notes: Should be validate 'order_line' too, if not, it will be error
-            if record._is_order_returns():
-                continue
-
-            # If the user is a sales manager, they can compute both types of discounts
-            if is_manager:
-                record.can_compute_so_discount = False if record.flag_delivery else True
-                record.can_compute_so_partner_discount = (
-                    True if record.flag_delivery else False
-                )
+            if not record.order_line or record._is_order_returns():
                 continue
 
             # If the order is not a delivery and not a service product, the user can compute the discount
             if (
                 not record.flag_delivery
-                and not record.is_product_service_ckt
+                or not record.is_product_service_ckt
                 and record.state in ["draft", "sent"]
             ):
                 record.can_compute_so_discount = True
@@ -71,14 +58,17 @@ class SaleOrder(models.Model):
             ):
                 record.can_compute_so_partner_discount = True
 
-    # ================================================== #
+    # === Flags Fields ===#
+    flag_delivery = fields.Boolean(
+        compute="compute_delivery_and_discount_flags",
+        help="""Ghi nhận: Khi có bổ sung "Phương thức giao hàng" trên đơn bán.""",
+    )
+    is_product_service_ckt = fields.Boolean(
+        compute="compute_delivery_and_discount_flags",
+        help="""Ghi nhận: Khi có bổ sung "Chiết khấu" trên đơn bán.""",
+    )
 
     def compute_delivery_and_discount_flags(self):
-        """
-        Compute the value of the 'flag_delivery' and 'is_product_service_ckt' fields for each record.
-        The 'flag_delivery' field value is True if there is at least one delivery line in the order, False otherwise.
-        The 'is_product_service_ckt' field value is True if there is at least one service product with the code "CKT" in the order, False otherwise.
-        """
         for record in self:
             # Initialize the flags to False
             record.flag_delivery = False
@@ -103,113 +93,81 @@ class SaleOrder(models.Model):
             ):
                 record.is_product_service_ckt = True
 
-    flag_delivery = fields.Boolean(
-        compute="compute_delivery_and_discount_flags",
-        help="""Ghi nhận: Khi có bổ sung "Phương thức giao hàng" trên đơn bán.""",
-    )
-    is_product_service_ckt = fields.Boolean(
-        compute="compute_delivery_and_discount_flags",
-        help="""Ghi nhận: Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
-    )
-    is_order_returns = fields.Boolean(
-        default=False, help="Ghi nhận: Là đơn đổi/trả hàng."
-    )  # TODO: Needs study cases for SO Returns
-
-    # Ngày hóa đơn xác nhận để làm căn cứ tính discount cho đại lý
-    date_invoice = fields.Datetime(readonly=True)
-    # Giữ số lượng lại, để khi thay đổi thì xóa dòng delivery, chiết khấu tự động, chiết khấu sản lượng
-    quantity_change = fields.Float()
-
     # === Model: [res.partner] Fields ===#
     partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
     partner_white_agency = fields.Boolean(
         related="partner_id.is_white_agency", store=True
     )
-
+    partner_southern_agency = fields.Boolean(
+        related="partner_id.is_southern_agency", store=True
+    )
     # === Model: [mv.compute.discount.line] Fields ===#
     discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
 
-    check_discount_10 = fields.Boolean(
-        compute="_compute_discount", store=True, copy=False
-    )
+    check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
     check_discount_agency_white_place = fields.Boolean(
-        compute="_compute_discount", store=True, copy=False
+        compute="_compute_discount", store=True
     )
     discount_agency_white_place_amount = fields.Float(
-        compute="_compute_discount", store=True, copy=False
+        compute="_compute_discount", store=True
     )
-    bank_guarantee = fields.Boolean(
-        related="partner_id.bank_guarantee", store=True, copy=False
-    )
-    discount_bank_guarantee = fields.Float(
-        compute="_compute_discount", store=True, copy=False
-    )
+    bank_guarantee = fields.Boolean(related="partner_id.bank_guarantee", store=True)
+    discount_bank_guarantee = fields.Float(compute="_compute_discount", store=True)
     after_discount_bank_guarantee = fields.Float(
-        compute="_compute_discount", store=True, copy=False
+        compute="_compute_discount", store=True
     )
-    # === Bonus, Discount FIELDS ===#
-    percentage = fields.Float(
-        compute="_compute_discount",
-        store=True,
-        copy=False,
-        help="Phần trăm chiết khấu trên từng sản phẩm.",
-    )
+    # === Bonus, Discount Fields ===#
+    percentage = fields.Float(compute="_compute_discount", store=True)
     bonus_max = fields.Float(
         compute="_compute_discount",
         store=True,
-        copy=False,
         help="Số tiền tối đa mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
     bonus_order = fields.Float(
-        copy=False,
-        help="""
-            - Số tiền chiết khấu đang và đã áp dụng trên đơn bán.
-            - Thay đổi khi và chỉ khi có hành động "Nhập Chiết Khấu Sản Lượng"
-        """,
+        help="Số tiền chiết khấu đã và đang áp dụng trên đơn bán."
     )
     bonus_remaining = fields.Float(
         compute="_compute_discount",
         store=True,
-        copy=False,
         help="Số tiền còn lại mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
-    # TOTAL Fields:
+    # === Amount, Total Fields ===#
     total_price_no_service = fields.Float(
         compute="_compute_discount",
         store=True,
-        copy=False,
         help="Total price without Product Service, No Discount, No Tax",
     )
     total_price_discount = fields.Float(
         compute="_compute_discount",
         store=True,
-        copy=False,
         help="Total price discount without Product Service, No Tax",
     )
     total_price_after_discount = fields.Float(
         compute="_compute_discount",
         store=True,
-        copy=False,
         help="Total price after discount without Product Service, No Tax",
     )
     total_price_discount_10 = fields.Float(
         compute="_compute_discount",
         help="Total price discount 1% when [product_uom_qty] >= 10",
         store=True,
-        copy=False,
     )
     total_price_after_discount_10 = fields.Float(
         compute="_compute_discount",
         store=True,
-        copy=False,
         help="Total price after discount 1% when [product_uom_qty] >= 10",
     )
     total_price_after_discount_month = fields.Float(
         compute="_compute_discount",
         store=True,
-        copy=False,
         help="Total price after discount for a month",
     )
+    # === Other Fields ===#
+    is_order_returns = fields.Boolean(
+        default=False, help="Ghi nhận: Là đơn đổi/trả hàng."
+    )  # TODO: Needs study cases for SO Returns
+    date_invoice = fields.Datetime(readonly=True)
+    quantity_change = fields.Float(readonly=True)
 
     def check_category_product(self, categ_id):
         """
@@ -449,20 +407,7 @@ class SaleOrder(models.Model):
     # ==================================
 
     def write(self, vals):
-        if self.env.context.get(
-            "apply_partner_discount", False
-        ) and self.env.user.has_group(GROUP_SALES_MANAGER):
-            if "order_line" in vals and vals["order_line"]:
-                for record in self:
-                    record.compute_discount_for_partner(record.bonus_order)
         return super(SaleOrder, self).write(vals)
-
-    def copy(self, default=None):
-        # MOVEOPLUS Override
-        orders = super(SaleOrder, self).copy(default)
-        orders._update_programs_and_rewards()
-        orders._auto_apply_rewards()
-        return orders
 
     # ==================================
     # BUSINESS Methods
@@ -581,7 +526,33 @@ class SaleOrder(models.Model):
         discount_order_lines, delivery_order_lines = self._filter_order_lines()
 
         if not delivery_order_lines:
-            return self.action_open_delivery_wizard()
+            self.ensure_one()
+            carrier = (
+                self.with_company(
+                    self.company_id
+                ).partner_shipping_id.property_delivery_carrier_id
+                or self.with_company(
+                    self.company_id
+                ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+            )
+            return {
+                "name": "Chiết khấu tự động",
+                "type": "ir.actions.act_window",
+                "res_model": "mv.wizard.discount",
+                "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
+                "views": [
+                    (self.env.ref("mv_sale.mv_wiard_discount_view_form").id, "form")
+                ],
+                "target": "new",
+                "context": {
+                    "partner_id": self.partner_id.id,
+                    "default_partner_id": self.partner_id.id,
+                    "default_sale_order_id": self.id,
+                    "default_discount_amount_apply": self.bonus_remaining,
+                    "default_carrier_id": carrier.id,
+                    "default_total_weight": self._get_estimated_weight(),
+                },
+            }
 
         self._handle_quantity_change(
             quantity_change, discount_order_lines, delivery_order_lines
@@ -817,22 +788,28 @@ class SaleOrder(models.Model):
     def _handle_discount_confirmation(self):
         if not self._context.get("confirm", False):
             view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
-            if self.env.context.get("apply_partner_discount_amount"):
-                name = "Nhập chiết khấu sản lượng (Tháng/Quý/Năm)"
-            else:
-                name = "Nhập phương thức giao hàng"
+            carrier = (
+                self.with_company(
+                    self.company_id
+                ).partner_shipping_id.property_delivery_carrier_id
+                or self.with_company(
+                    self.company_id
+                ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+            )
             return {
-                "name": name,
+                "name": "Chiết khấu",
                 "type": "ir.actions.act_window",
-                "view_mode": "form",
                 "res_model": "mv.wizard.discount",
                 "view_id": view_id,
                 "views": [(view_id, "form")],
                 "target": "new",
                 "context": {
-                    "default_order_id": self.id,
-                    "default_amount": self.bonus_remaining,
-                    "default_bonus_remaining": self.bonus_remaining,
+                    "partner_id": self.partner_id.id,
+                    "default_partner_id": self.partner_id.id,
+                    "default_sale_order_id": self.id,
+                    "default_discount_amount_apply": self.bonus_remaining,
+                    "default_carrier_id": carrier.id,
+                    "default_total_weight": self._get_estimated_weight(),
                 },
             }
 
@@ -849,6 +826,16 @@ class SaleOrder(models.Model):
         return super(SaleOrder, self).action_draft()
 
     def action_confirm(self):
+        if not all(
+            order._can_be_confirmed_without_delivery_or_discount_amount()
+            for order in self
+        ):
+            error_message = (
+                "Các đơn hàng sau không có phương thức vận chuyển hoặc dòng chiết khấu sản lượng để xác nhận: %s"
+                % ", ".join(self.mapped("display_name")),
+            )
+            raise UserError(error_message)
+
         self._check_delivery_lines()
         self._check_order_not_free_qty_today()
         self._handle_agency_discount()
@@ -869,6 +856,15 @@ class SaleOrder(models.Model):
     # ==================================
     # CONSTRAINS / VALIDATION Methods
     # ==================================
+
+    def _can_be_confirmed_without_delivery_or_discount_amount(self):
+        # MOVEO PLUS OVERRIDE
+        self.ensure_one()
+        mv_product_discount = self.order_line.filtered(
+            lambda sol: sol.product_id.type == "service"
+            and sol.product_id.default_code == "CKT"
+        )
+        return self.delivery_set and mv_product_discount
 
     def _check_delivery_lines(self):
         delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
@@ -942,7 +938,9 @@ class SaleOrder(models.Model):
 
     def _update_partner_discount_amount(self):
         for order in self.filtered(
-            lambda so: so.partner_id.is_agency and so.bonus_order > 0
+            lambda so: not so._is_order_returns()
+            and so.partner_id.is_agency
+            and so.bonus_order > 0
         ):
             try:
                 # Calculate the total bonus

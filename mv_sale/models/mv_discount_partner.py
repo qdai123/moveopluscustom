@@ -10,9 +10,9 @@ class MvDiscountPolicyPartner(models.Model):
     partner_id = fields.Many2one(
         "res.partner", "Khách hàng / Đại lý", domain=[("is_agency", "=", True)]
     )
-    partner_agency = fields.Boolean(related="partner_id.is_agency")
-    partner_white_agency = fields.Boolean(related="partner_id.is_white_agency")
-    partner_southern_agency = fields.Boolean(related="partner_id.is_southern_agency")
+    partner_agency = fields.Boolean()
+    partner_white_agency = fields.Boolean()
+    partner_southern_agency = fields.Boolean()
     # === Model: [mv.discount] Fields ===#
     parent_id = fields.Many2one(
         "mv.discount", "Chính sách chiết khấu", domain=[("active", "=", True)]

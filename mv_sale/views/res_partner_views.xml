@@ -8,7 +8,6 @@
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
 				<page string="Chiết khấu" name="page_partner_discount_info">
-					<field name="amount" invisible="True"/>
 					<group>
 						<group>
 							<field name="is_agency"/>
@@ -22,6 +21,7 @@
 							</div>
 						</group>
 						<group invisible="not is_agency">
+							<field name="amount" invisible="True"/>
 							<label for="amount_currency" string="Tiền chiết khấu hiện có"/>
 							<div class="row">
 								<field class="oe_inline fw-bold" name="amount_currency" decoration-success="amount_currency > 0" decoration-muted="amount_currency == 0"/>
