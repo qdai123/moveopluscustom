@@ -12,37 +12,43 @@ class SaleOrderLine(models.Model):
 
     @api.depends_context("uid")
     def _compute_permissions(self):
-        is_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
         for record in self:
-            record.is_sales_manager = is_manager
+            record.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
 
     # ================================================== #
 
-    hidden_show_qty = fields.Boolean(
-        help="Do not show change qty in website", default=False, copy=False
-    )
-    discount_line_id = fields.Many2one("mv.compute.discount.line")
+    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
+    discount_line_id = fields.Many2one(comodel_name="mv.compute.discount.line")
     code_product = fields.Char(help="Do not recompute discount")
     price_subtotal_before_discount = fields.Monetary(
-        "Price sub-total before discount",
-        currency_field="currency_id",
         compute="_compute_price_subtotal_before_discount",
         store=True,
+        string="Price Subtotal before Discount",
+        currency_field="currency_id",
     )
 
-    @api.depends("price_unit", "qty_delivered")
+    def _filter_discount_agency_lines(self, order=False):
+        # Return an empty recordset if no order_id is provided
+        if not order:
+            return self.browse()
+
+        # Filter the order lines based on the conditions
+        discount_agency_lines = order.order_line.filtered(
+            lambda sol: sol.product_id.default_code == "CKT"
+            and sol.product_id.product_tmpl_id.detailed_type == "service"
+        )
+
+        return discount_agency_lines
+
+    @api.depends("price_unit", "qty_delivered", "discount")
     def _compute_price_subtotal_before_discount(self):
-        for order_line in self:
-            if order_line.price_unit and order_line.qty_delivered:
-                total = order_line.price_unit * order_line.qty_delivered
-                total_discount = (
-                    (order_line.price_unit * order_line.qty_delivered)
-                    * order_line.discount
-                    / 100
-                )
-                order_line.price_subtotal_before_discount = total - total_discount
+        for o_line in self:
+            if o_line.price_unit and o_line.qty_delivered and o_line.discount:
+                order_line.price_subtotal_before_discount = (
+                    o_line.price_unit * o_line.qty_delivered
+                ) - ((o_line.price_unit * o_line.qty_delivered) * o_line.discount / 100)
             else:
-                order_line.price_subtotal_before_discount = 0
+                o_line.price_subtotal_before_discount = 0
 
     def _is_not_sellable_line(self):
         return self.hidden_show_qty or super()._is_not_sellable_line()
@@ -80,6 +86,19 @@ class SaleOrderLine(models.Model):
             else:
                 line.product_updatable = True
 
+    def write(self, vals):
+        res = super(SaleOrderLine, self).write(vals)
+        for record in self:
+            if record.hidden_show_qty or record.reward_id:
+                return res
+            else:
+                order_line = record.order_id.order_line.filtered(
+                    lambda line: line.product_id.default_code == "CKT"
+                )
+                if vals.get("product_uom_qty", False) and len(order_line) > 0:
+                    order_line.unlink()
+                return res
+
     def unlink(self):
         for record in self:
             # FIXME: Need to double-check on Workflow of Sales
@@ -100,17 +119,3 @@ class SaleOrderLine(models.Model):
                 )
                 order_id.write({"bonus_order": 0})
         return super(SaleOrderLine, self).unlink()
-
-    def write(self, vals):
-        res = super(SaleOrderLine, self).write(vals)
-        for record in self:
-            if record.hidden_show_qty or record.reward_id:
-                return res
-            else:
-                order_id = record.order_id
-                order_line = order_id.order_line.filtered(
-                    lambda x: x.product_id.default_code == "CKT"
-                )
-                if vals.get("product_uom_qty", False) and len(order_line) > 0:
-                    order_line.unlink()
-                return res

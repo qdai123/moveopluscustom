@@ -37,6 +37,7 @@
         "views/mv_compute_warranty_discount_policy_views.xml",
         "views/product_attribute_views.xml",
         "views/res_partner_views.xml",
+        "views/loyalty_program_views.xml",
         "views/sale_order_views.xml",
         "views/templates.xml",
         # REPORT

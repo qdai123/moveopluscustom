@@ -19,17 +19,11 @@ class ResPartner(models.Model):
     # === Discount Policy Configuration Fields ===#
     discount_id = fields.Many2one(
         comodel_name="mv.discount",
-        compute="_compute_discount_policy_ids",
-        store=True,
-        readonly=False,
         string="Chiết khấu sản lượng",
         help="Chính sách CHIẾT KHẤU SẢN LƯỢNG cho Đại Lý",
     )  # TODO: This field needs to be set to apply multiple policies to Partners (Many2many instead of Many2one)
     warranty_discount_policy_ids = fields.Many2many(
         comodel_name="mv.warranty.discount.policy",
-        compute="_compute_discount_policy_ids",
-        store=True,
-        readonly=False,
         string="Chiết khấu kích hoạt",
         help="Chính sách CHIẾT KHẤU KÍCH HOẠT cho Đại Lý",
     )
@@ -63,9 +57,7 @@ class ResPartner(models.Model):
     # === Amount/Total Fields ===#
     amount = fields.Float(readonly=True)
     amount_currency = fields.Monetary(readonly=True, currency_field="currency_id")
-    total_so_bonus_order = fields.Monetary(
-        compute="_compute_sale_order_ids", store=True
-    )
+    total_so_bonus_order = fields.Monetary(compute="_compute_sale_order", store=True)
     # === Other Fields ===#
     sale_mv_ids = fields.Many2many("sale.order", readonly=True)
     currency_id = fields.Many2one("res.currency", compute="_get_company_currency")
@@ -75,12 +67,16 @@ class ResPartner(models.Model):
     # =================================
 
     @api.constrains("is_white_agency", "is_southern_agency")
-    def _check_white_and_southern_agency(self):
-        for partner in self:
-            if partner.is_white_agency and partner.is_southern_agency:
-                raise ValidationError(
-                    "Bạn chỉ có thể áp dụng cho một loại Đại lý (Con) duy nhất!"
+    def _check_partner_agency_child_overlap(self):
+        if any(
+            partner.is_white_agency and partner.is_southern_agency for partner in self
+        ):
+            raise ValidationError(
+                _(
+                    "A partner cannot be both a 'White Agency' and a 'Southern Agency'. "
+                    "Please check the agency type for partner(s)."
                 )
+            )
 
     # =================================
     # COMPUTE / ONCHANGE Methods
@@ -93,78 +89,40 @@ class ResPartner(models.Model):
             else:
                 partner.currency_id = self.env.company.currency_id
 
-    @api.depends("line_ids")
-    def _compute_discount_ids(self):
-        for record in self:
-            # Compute discount_id
-            discount_line_ids = [line for line in record.line_ids if line.parent_id]
-            record.discount_id = (
-                discount_line_ids[0].parent_id.id if discount_line_ids else False
+    @api.depends("sale_order_ids")
+    def _compute_sale_order(self):
+        for record in self.filtered("is_agency"):
+            record.sale_mv_ids = None
+            record.total_so_bonus_order = 0
+            record.amount = record.amount_currency = 0
+
+            orders_discount = record.sale_order_ids.filtered(
+                lambda so: so.bonus_order > 0 and so.state in ["sale"]
+            )
+            if orders_discount:
+                record.sale_mv_ids = [(6, 0, orders_discount.ids)]
+                record.total_so_bonus_order = sum(orders_discount.mapped("bonus_order"))
+
+            total_policy_discount_approved = sum(
+                line.total_money
+                for line in record.compute_discount_line_ids.filtered(
+                    lambda r: r.state == "done"
+                )
+            ) + sum(
+                line.total_amount_currency
+                for line in record.compute_warranty_discount_line_ids.filtered(
+                    lambda r: r.parent_state == "done"
+                )
             )
 
-            # Compute warranty_discount_policy_ids
-            warranty_line_ids = [
-                [(6, 0, line.warranty_discount_policy_ids.ids)]
-                for line in record.line_ids
-                if len(line.warranty_discount_policy_ids) > 0
-            ]
-            record.warranty_discount_policy_ids = warranty_line_ids
+            record.amount = record.amount_currency = (
+                total_policy_discount_approved - record.total_so_bonus_order
+            )
 
-    @api.depends("sale_order_ids")
-    def _compute_sale_order_ids(self):
-        for record in self:
-            if record.is_agency:
-                record.sale_mv_ids = None
-                total_so_bonus_money = 0
-                total_discount_money = 0
-
-                orders_discount = [
-                    order
-                    for order in record.sale_order_ids
-                    if order.bonus_order > 0 and order.state in ["sent", "sale"]
-                ]
-                if orders_discount:
-                    record.sale_mv_ids = [
-                        (6, 0, [order.id for order in orders_discount])
-                    ]
-                    total_so_bonus_money += reduce(
-                        operator.add,
-                        (order.bonus_order for order in orders_discount),
-                        0,
-                    )
-                record.total_so_bonus_order = total_so_bonus_money
-
-                if record.compute_discount_line_ids:
-                    total_discount_money += sum(
-                        line.total_money
-                        for line in record.compute_discount_line_ids.filtered(
-                            lambda r: r.state == "done"
-                        )
-                    )
-
-                if record.compute_warranty_discount_line_ids:
-                    total_discount_money += sum(
-                        line.total_amount_currency
-                        for line in record.compute_warranty_discount_line_ids.filtered(
-                            lambda r: r.parent_state == "done"
-                        )
-                    )
-
-                record.amount_currency = (
-                    total_discount_money - record.total_so_bonus_order
-                )
-
-    @api.onchange("discount_id")
-    def _onchange_discount_id(self):
-        if self.discount_id:
-            for line in self.line_ids.filtered(lambda r: r.partner_id.id == self.id):
-                line.write({"needs_update": True})
-
-    @api.onchange("warranty_discount_policy_ids")
-    def _onchange_warranty_discount_policy_id(self):
-        if self.warranty_discount_policy_ids:
-            for line in self.line_ids.filtered(lambda r: r.partner_id.id == self.id):
-                line.write({"needs_update": True})
+    @api.onchange("is_agency")
+    def _onchange_is_white_agency(self):
+        self.is_white_agency = False
+        self.is_southern_agency = False
 
     @api.onchange("is_white_agency")
     def _onchange_is_white_agency(self):
@@ -181,24 +139,61 @@ class ResPartner(models.Model):
         self.discount_bank_guarantee = 0
 
     # =================================
+    # ORM / CRUD Methods
+    # =================================
+
+    def write(self, vals):
+        if "discount_id" in vals and vals.get("discount_id"):
+            discount_id = self.env["mv.discount"].browse(vals["discount_id"])
+            if discount_id:
+                vals["line_ids"] = self.env["mv.discount.partner"].create(
+                    {
+                        "parent_id": self.discount_id.id,
+                        "partner_id": self.id,
+                        "warranty_discount_policy_ids": [
+                            (6, 0, self.warranty_discount_policy_ids.ids)
+                        ],
+                        "needs_update": True,
+                    }
+                )
+        res = super().write(vals)
+
+        if res:
+            for record in self:
+                if (
+                    record.warranty_discount_policy_ids
+                    and record.line_ids
+                    and not record.line_ids.filtered(
+                        lambda r: r.partner_id.id == record.id
+                    ).warranty_discount_policy_ids
+                ):
+                    record.line_ids.write(
+                        {
+                            "warranty_discount_policy_ids": [
+                                (6, 0, record.warranty_discount_policy_ids.ids)
+                            ]
+                        }
+                    )
+
+        return res
+
+    # =================================
     # BUSINESS Methods
     # =================================
 
     def action_update_discount_amount(self):
-        for partner in self.filtered(lambda r: r.is_agency):
+        for partner in self.filtered("is_agency"):
             partner.sale_mv_ids = [(6, 0, [])]
             partner.total_so_bonus_order = 0
 
             # [>] Filter orders with bonus and required state
-            order_discount_confirmed = partner.sale_order_ids.filtered(
-                lambda so: so.bonus_order > 0 and so.state in ["sent", "sale"]
+            order_discount = partner.sale_order_ids.filtered(
+                lambda so: so.bonus_order > 0 and so.state in ["sale"]
             )
-            if order_discount_confirmed:
+            if order_discount:
                 # [>>] Update 'sale_mv_ids' and 'total_so_bonus_order'
-                partner.sale_mv_ids = [(6, 0, order_discount_confirmed.ids)]
-                partner.total_so_bonus_order = sum(
-                    order_discount_confirmed.mapped("bonus_order")
-                )
+                partner.sale_mv_ids = [(6, 0, order_discount.ids)]
+                partner.total_so_bonus_order = sum(order_discount.mapped("bonus_order"))
 
             # [>] Calculate total discount money from different sources
             total_discount_money = sum(

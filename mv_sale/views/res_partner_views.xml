@@ -15,9 +15,7 @@
 							<field name="is_southern_agency"/>
 							<label for="bank_guarantee" string="Bảo lãnh ngân hàng"/>
 							<div class="o_row">
-								<field name="bank_guarantee"/>
-								-
-								<field name="discount_bank_guarantee" invisible="not bank_guarantee"/>
+								<field name="bank_guarantee"/>-<field name="discount_bank_guarantee" invisible="not bank_guarantee"/>
 							</div>
 						</group>
 						<group invisible="not is_agency">
@@ -40,7 +38,7 @@
 							<field name="warranty_discount_policy_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}"/>
 						</group>
 					</group>
-					<field name="line_ids" nolabel="1" readonly="True" context="{'from_view_ref': 'mv_sale.mv_discount_partner_form_view'}" options="{'no_open': True, 'no_create_edit': True}" invisible="not is_agency">
+					<field name="line_ids" nolabel="1" readonly="1" context="{'from_view_ref': 'mv_sale.mv_discount_partner_form_view'}" options="{'no_open': True, 'no_create_edit': True}" invisible="not is_agency">
 						<tree decoration-warning="needs_update">
 							<field name="needs_update" column_invisible="True"/>
 							<field name="parent_id" column_invisible="True"/>
@@ -117,7 +115,7 @@
 							<field name="currency_id" column_invisible="True"/>
 							<field string="Đơn hàng" name="name"/>
 							<field string="Tiền chiết khấu" name="bonus_order" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-							<field string="Trạng thái" name="state" widget="badge" decoration-success="state == 'sale'"/>
+							<field string="Trạng thái" name="state" widget="badge" decoration-info="state in ['draft', 'sent']" decoration-success="state == 'sale'"/>
 						</tree>
 					</field>
 					<group name="total_group" col="6" class="mt-2 mt-md-0">
