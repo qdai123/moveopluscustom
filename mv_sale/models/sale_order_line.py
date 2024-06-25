@@ -17,7 +17,6 @@ class SaleOrderLine(models.Model):
 
     # ================================================== #
 
-    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
     discount_line_id = fields.Many2one(comodel_name="mv.compute.discount.line")
     code_product = fields.Char(help="Do not recompute discount")
     price_subtotal_before_discount = fields.Monetary(
@@ -26,6 +25,7 @@ class SaleOrderLine(models.Model):
         string="Price Subtotal before Discount",
         currency_field="currency_id",
     )
+    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
 
     def _filter_discount_agency_lines(self, order=False):
         # Return an empty recordset if no order_id is provided
@@ -67,7 +67,7 @@ class SaleOrderLine(models.Model):
                 )
             )
 
-    @api.depends("product_id", "state", "qty_invoiced", "qty_delivered")
+    @api.depends("state", "product_id", "qty_delivered", "qty_invoiced")
     def _compute_product_updatable(self):
         # OVERRIDE to set access groups of Sales
         for line in self:
@@ -87,35 +87,30 @@ class SaleOrderLine(models.Model):
                 line.product_updatable = True
 
     def write(self, vals):
-        res = super(SaleOrderLine, self).write(vals)
-        for record in self:
-            if record.hidden_show_qty or record.reward_id:
-                return res
+        OrderLines = super(SaleOrderLine, self).write(vals)
+
+        for o_line in self:
+            if o_line.hidden_show_qty or o_line.reward_id:
+                return OrderLines
             else:
-                order_line = record.order_id.order_line.filtered(
-                    lambda line: line.product_id.default_code == "CKT"
-                )
-                if vals.get("product_uom_qty", False) and len(order_line) > 0:
-                    order_line.unlink()
-                return res
+                # [!] Check if the Product is CKT
+                if "product_uom_qty" in vals and vals.get("product_uom_qty"):
+                    discount_of_month_line = o_line.order_id.order_line.filtered(
+                        lambda line: line.product_id.default_code == "CKT"
+                    )
+                    if discount_of_month_line:
+                        discount_of_month_line.unlink()
+
+        return OrderLines
 
     def unlink(self):
-        for record in self:
-            # FIXME: Need to double-check on Workflow of Sales
-            # if not record.is_sales_manager and record.product_type == "service":
-            #     raise AccessError(_("Bạn không có quyền xoá các loại Sản phẩm thuộc Dịch Vụ. "
-            #                         "\nVui lòng liên hệ với Quản trị viên để được hỗ trợ!"))
-
+        for o_line in self:
             if (
-                record.product_id
-                and record.product_id.default_code
-                and record.product_id.default_code.find("Delivery_") > -1
+                o_line.product_id
+                and o_line.product_id.default_code
+                and "Delivery_" not in o_line.product_id.default_code
             ):
-                pass
-            else:
-                order_id = record.order_id
-                order_id.partner_id.write(
-                    {"amount": order_id.partner_id.amount + order_id.bonus_order}
-                )
-                order_id.write({"bonus_order": 0})
+                order = o_line.order_id
+                order._compute_bonus()
+
         return super(SaleOrderLine, self).unlink()

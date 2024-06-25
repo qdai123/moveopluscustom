@@ -29,7 +29,7 @@
             </xpath>
 			<xpath expr="//group[@name='order_details']" position="inside">
 				<field name="check_discount_10" invisible="1"/>
-				<field name="check_discount_agency_white_place" invisible="1"/>
+				<field name="quantity_change" invisible="1"/>
 				<field name="bonus_max" invisible="1"/>
 				<field name="bonus_order" invisible="1"/>
 				<field name="bonus_remaining" invisible="1"/>
@@ -40,7 +40,7 @@
 				        class="btn-primary"
 				        id="action_compute_discount_month"
 				        name="action_compute_discount_month"
-				        context="{'validate_analytic': True}"
+				        context="{'validate_analytic': True, 'compute_discount_agency': True}"
 				        invisible="not compute_discount_agency"
 				/>
 				<!-- TODO: Needs more action to <Update Discount Amount> -->
@@ -59,6 +59,9 @@
 			</xpath>
 			<xpath expr="//field[@name='payment_term_id']" position="attributes">
 				<attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']" position="before">
+				<button string="Xóa các dòng chiết khấu" type="object" class="btn-secondary" name="action_clear_discount" groups="base.group_system"/>
 			</xpath>
 			<xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="before">
 				<field name="is_sales_manager" column_invisible="True"/>

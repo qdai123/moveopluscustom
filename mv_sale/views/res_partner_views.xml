@@ -19,7 +19,7 @@
 							</div>
 						</group>
 						<group invisible="not is_agency">
-							<field name="amount" invisible="True"/>
+							<field name="amount" invisible="1"/>
 							<label for="amount_currency" string="Tiền chiết khấu hiện có"/>
 							<div class="row">
 								<field class="oe_inline fw-bold" name="amount_currency" decoration-success="amount_currency > 0" decoration-muted="amount_currency == 0"/>

@@ -5,15 +5,15 @@
 		<field name="model">mv.wizard.discount</field>
 		<field name="arch" type="xml">
 			<form>
-				<field name="sale_order_id" invisible="True"/>
-				<field name="partner_id" invisible="True"/>
-				<field name="currency_id" invisible="True"/>
-				<field name="discount_product_ckt_set" invisible="True"/>
-				<field name="delivery_set" invisible="True"/>
-				<field name="delivery_type" invisible="True"/>
-				<field name="delivery_price" invisible="True"/>
-				<field name="available_carrier_ids" invisible="True"/>
-				<group class="col-8" invisible="discount_product_ckt_set">
+				<field name="sale_order_id" invisible="1"/>
+				<field name="partner_id" invisible="1"/>
+				<field name="currency_id" invisible="1"/>
+				<field name="discount_agency_set" invisible="1"/>
+				<field name="delivery_set" invisible="1"/>
+				<field name="delivery_type" invisible="1"/>
+				<field name="delivery_price" invisible="1"/>
+				<field name="available_carrier_ids" invisible="1"/>
+				<group class="col-8" invisible="discount_agency_set">
 					<field string="Số tiền chiết khấu" name="discount_amount_apply"/>
 					<field string="Tiền chiết khấu hiện có"
 					       name="discount_amount_remaining"

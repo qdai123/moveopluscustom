@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from odoo import models
+from odoo import api, models
 
 
 class DeliveryCarrier(models.Model):
     _inherit = "delivery.carrier"
 
+    @api.depends("order_line")
     def _get_price_available(self, order):
         self.ensure_one()
         self_sudo = self.sudo()
@@ -21,15 +22,15 @@ class DeliveryCarrier(models.Model):
         )
 
         for line in valid_lines:
-            if line.is_delivery:
-                total_delivery += line.price_total
-
             qty = line.product_uom._compute_quantity(
                 line.product_uom_qty, line.product_id.uom_id
             )
             weight += (line.product_id.weight or 0.0) * qty
             volume += (line.product_id.volume or 0.0) * qty
             quantity += qty
+
+            if line.is_delivery:
+                total_delivery += line.price_total
 
         total = (order.total_price_after_discount or 0.0) - total_delivery
         total = self_sudo._compute_currency(order, total, "pricelist_to_company")

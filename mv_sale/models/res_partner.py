@@ -72,10 +72,7 @@ class ResPartner(models.Model):
             partner.is_white_agency and partner.is_southern_agency for partner in self
         ):
             raise ValidationError(
-                _(
-                    "A partner cannot be both a 'White Agency' and a 'Southern Agency'. "
-                    "Please check the agency type for partner(s)."
-                )
+                "Đại lý không thể cùng lúc là 'Đại lý Vùng Trắng' và 'Đại lý miền Nam'"
             )
 
     # =================================
@@ -91,13 +88,13 @@ class ResPartner(models.Model):
 
     @api.depends("sale_order_ids")
     def _compute_sale_order(self):
-        for record in self.filtered("is_agency"):
+        for record in self:
             record.sale_mv_ids = None
             record.total_so_bonus_order = 0
             record.amount = record.amount_currency = 0
 
             orders_discount = record.sale_order_ids.filtered(
-                lambda so: so.bonus_order > 0 and so.state in ["sale"]
+                lambda order: order.discount_agency_set and order.state in ["sale"]
             )
             if orders_discount:
                 record.sale_mv_ids = [(6, 0, orders_discount.ids)]
@@ -143,37 +140,34 @@ class ResPartner(models.Model):
     # =================================
 
     def write(self, vals):
-        if "discount_id" in vals and vals.get("discount_id"):
+        if vals.get("discount_id"):
             discount_id = self.env["mv.discount"].browse(vals["discount_id"])
-            if discount_id:
-                vals["line_ids"] = self.env["mv.discount.partner"].create(
-                    {
-                        "parent_id": self.discount_id.id,
-                        "partner_id": self.id,
-                        "warranty_discount_policy_ids": [
-                            (6, 0, self.warranty_discount_policy_ids.ids)
-                        ],
-                        "needs_update": True,
-                    }
-                )
+            if discount_id.exists():
+                vals["line_ids"] = [
+                    (
+                        0,
+                        0,
+                        {
+                            "partner_id": self.id,
+                            "parent_id": vals["discount_id"],
+                            "warranty_discount_policy_ids": [
+                                (6, 0, self.warranty_discount_policy_ids.ids)
+                            ],
+                            "needs_update": True,
+                        },
+                    )
+                ]
+
         res = super().write(vals)
 
-        if res:
-            for record in self:
-                if (
-                    record.warranty_discount_policy_ids
-                    and record.line_ids
-                    and not record.line_ids.filtered(
-                        lambda r: r.partner_id.id == record.id
-                    ).warranty_discount_policy_ids
-                ):
-                    record.line_ids.write(
-                        {
-                            "warranty_discount_policy_ids": [
-                                (6, 0, record.warranty_discount_policy_ids.ids)
-                            ]
-                        }
-                    )
+        if res and self.warranty_discount_policy_ids:
+            lines_to_update = self.line_ids.filtered(
+                lambda r: r.partner_id == self and not r.warranty_discount_policy_ids
+            )
+            if lines_to_update:
+                lines_to_update.warranty_discount_policy_ids = [
+                    (6, 0, self.warranty_discount_policy_ids.ids)
+                ]
 
         return res
 
@@ -188,7 +182,7 @@ class ResPartner(models.Model):
 
             # [>] Filter orders with bonus and required state
             order_discount = partner.sale_order_ids.filtered(
-                lambda so: so.bonus_order > 0 and so.state in ["sale"]
+                lambda order: order.discount_agency_set and order.state in ["sale"]
             )
             if order_discount:
                 # [>>] Update 'sale_mv_ids' and 'total_so_bonus_order'

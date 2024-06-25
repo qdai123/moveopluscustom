@@ -11,7 +11,7 @@ MOVEOPLUS_TITLES = {
 }
 
 MOVEOPLUS_MESSAGES = {
-    "discount_amount_apply_exceeded": "Tổng tiền chiết khấu không được lớn hơn Số tiền chiết khấu tối đa.",
+    "discount_amount_apply_exceeded": "Tiền chiết khấu áp dụng không được lớn hơn Số tiền chiết khấu tối đa.",
 }
 
 
@@ -52,7 +52,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     weight_uom_name = fields.Char(readonly=True, default=_get_default_weight_uom)
 
     # === Discount Policy Fields ===#
-    discount_product_ckt_set = fields.Boolean(compute="_compute_invisible")
+    discount_agency_set = fields.Boolean(compute="_compute_invisible")
     discount_amount_apply = fields.Float()
     discount_amount_remaining = fields.Float(related="sale_order_id.bonus_remaining")
     discount_amount_maximum = fields.Float(related="sale_order_id.bonus_max")
@@ -91,9 +91,10 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             wizard.delivery_set = any(
                 line.is_delivery for line in wizard.sale_order_id.order_line
             )
-            wizard.discount_product_ckt_set = any(
-                line.product_id.default_code == "CKT"
-                for line in wizard.sale_order_id.order_line
+            wizard.discount_agency_set = (
+                wizard.sale_order_id.order_line._filter_discount_agency_lines(
+                    wizard.sale_order_id
+                )
             )
 
     @api.depends("carrier_id")
@@ -122,9 +123,6 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             vals = self._get_shipment_rate()
             if vals.get("error_message"):
                 return {"error": vals["error_message"]}
-        else:
-            self.display_price = 0
-            self.delivery_price = 0
 
     @api.onchange("sale_order_id")
     def _onchange_order_id(self):
@@ -175,12 +173,12 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         self.ensure_one()
         return {
             "name": "Chiết khấu sản lượng (Tháng, Quý, Năm)",
+            "default_code": "CKT",
             "type": "service",
             "invoice_policy": "order",
             "list_price": 0.0,
             "company_id": self.company_id.id,
             "taxes_id": None,
-            "default_code": "CKT",
         }
 
     def _prepare_mv_discount_line_values(self, product, amount, description=None):
@@ -214,36 +212,45 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             discount_product = self.company_id.sale_discount_product_id
         return discount_product
 
-    def _create_mv_discount_lines(self):
-        """Create SOline(s) according to wizard configuration"""
-        self.ensure_one()
-
-        discount_product = self._get_mv_discount_product()
-
-        vals_list = [
-            {
-                **self._prepare_mv_discount_line_values(
-                    product=discount_product, amount=self.discount_amount_apply
-                ),
-            }
-        ]
-
-        return self.env["sale.order.line"].create(vals_list)
-
     def action_apply_discount(self):
-        self.ensure_one()
         self = self.with_company(self.company_id)
         try:
             order = self.sale_order_id
-            order.set_delivery_line(self.carrier_id, self.delivery_price)
-            order.write(
-                {
-                    "recompute_delivery_price": False,
-                    "delivery_message": self.delivery_message,
-                }
-            )
-            if not self.discount_product_ckt_set:
-                self._create_mv_discount_lines()
+            if not self.delivery_set:
+                order.set_delivery_line(self.carrier_id, self.delivery_price)
+                order.write(
+                    {
+                        "recompute_delivery_price": False,
+                        "delivery_message": self.delivery_message,
+                    }
+                )
+
+            if not self.discount_agency_set:
+                """Create SOline(s) according to wizard configuration"""
+                # discount_product = self._get_mv_discount_product()
+                # vals_list = [
+                #     {
+                #         **self._prepare_mv_discount_line_values(
+                #             product=discount_product, amount=self.discount_amount_apply
+                #         ),
+                #     }
+                # ]
+                # order.order_line.create(vals_list)
+                order.compute_discount_for_partner(self.discount_amount_apply)
+                order._handle_bank_guarantee_discount()
+                order.write(
+                    {
+                        "recompute_discount_agency": (
+                            False
+                            if (
+                                self.discount_amount_apply
+                                - self.discount_amount_remaining
+                            )
+                            == 0
+                            else True
+                        ),
+                    }
+                )
         except Exception as e:
             _logger.error("Unexpected error: %s", e)
             raise UserError(_("An unexpected error occurred. Please try again."))

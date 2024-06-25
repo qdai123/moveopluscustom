@@ -2,7 +2,6 @@
 import logging
 
 from odoo import api, fields, models
-from odoo import http
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -26,10 +25,13 @@ class SaleOrder(models.Model):
     )
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(
-        "Discount Agency Amount should be recomputed"
+        compute="_compute_permissions",
+        string="Discount Agency Amount should be recomputed",
     )
 
-    @api.depends("state", "order_line", "order_line.product_id")
+    @api.depends(
+        "state", "order_line", "order_line.product_id", "order_line.product_uom_qty"
+    )
     @api.depends_context("uid")
     def _compute_permissions(self):
         for order in self:
@@ -45,6 +47,10 @@ class SaleOrder(models.Model):
                 ]
                 and not order.discount_agency_set
             )
+            order.recompute_discount_agency = (
+                order.discount_agency_set
+                and (order.bonus_remaining - order.bonus_order) != 0
+            )
 
     # === Model: [res.partner] Fields ===#
     partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
@@ -54,16 +60,11 @@ class SaleOrder(models.Model):
     partner_southern_agency = fields.Boolean(
         related="partner_id.is_southern_agency", store=True
     )
+
     # === Model: [mv.compute.discount.line] Fields ===#
     discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
 
     check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
-    check_discount_agency_white_place = fields.Boolean(
-        compute="_compute_discount", store=True
-    )
-    discount_agency_white_place_amount = fields.Float(
-        compute="_compute_discount", store=True
-    )
     bank_guarantee = fields.Boolean(related="partner_id.bank_guarantee", store=True)
     discount_bank_guarantee = fields.Float(compute="_compute_discount", store=True)
     after_discount_bank_guarantee = fields.Float(
@@ -77,13 +78,28 @@ class SaleOrder(models.Model):
         help="Số tiền tối đa mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
     bonus_order = fields.Float(
-        help="Số tiền chiết khấu đã và đang áp dụng trên đơn bán."
+        compute="_compute_bonus",
+        store=True,
+        help="Số tiền chiết khấu đã và đang áp dụng trên đơn bán.",
     )
     bonus_remaining = fields.Float(
-        compute="_compute_discount",
+        compute="_compute_bonus",
         store=True,
         help="Số tiền còn lại mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
+
+    @api.depends("partner_id", "order_line", "order_line.product_id")
+    def _compute_bonus(self):
+        for order in self:
+            bonus_order = sum(
+                line.price_unit
+                for line in order.order_line
+                if line.product_id.default_code == "CKT"
+                and line.product_id.product_tmpl_id.detailed_type == "service"
+            )
+            order.bonus_order = abs(bonus_order)
+            order.bonus_remaining = order.partner_id.amount_currency - abs(bonus_order)
+
     # === Amount, Total Fields ===#
     total_price_no_service = fields.Float(
         compute="_compute_discount",
@@ -152,7 +168,7 @@ class SaleOrder(models.Model):
             bool: True if both conditions are met, False otherwise.
         """
         order_line = self.order_line.filtered(
-            lambda x: x.product_id.detailed_type == "product"
+            lambda line: line.product_id.product_tmpl_id.detailed_type == "product"
             and self.check_category_product(x.product_id.categ_id)
         )
         return (
@@ -161,6 +177,7 @@ class SaleOrder(models.Model):
         )
 
     def _compute_cart_info(self):
+        # TODO: Move to 'mv_website_sale' module
         # Call the parent class's _compute_cart_info method
         super(SaleOrder, self)._compute_cart_info()
 
@@ -172,7 +189,7 @@ class SaleOrder(models.Model):
             service_lines_qty = sum(
                 line.product_uom_qty
                 for line in order.website_order_line
-                if line.product_id.detailed_type != "product"
+                if line.product_id.product_tmpl_id.detailed_type != "product"
                 and not line.is_reward_line
             )
 
@@ -181,41 +198,41 @@ class SaleOrder(models.Model):
             order.cart_quantity -= int(service_lines_qty)
 
     def _get_order_lines_to_report(self):
-        res = super(SaleOrder, self)._get_order_lines_to_report()
-        return res.sorted(key=lambda r: r.product_id.detailed_type)
+        Orders = super(SaleOrder, self)._get_order_lines_to_report()
+        return Orders.sorted(
+            key=lambda order: order.product_id.product_tmpl_id.detailed_type
+        )
 
     # ==================================
 
     @api.depends("order_line", "order_line.product_uom_qty", "order_line.product_id")
     def _compute_discount(self):
-        for record in self:
+        for order in self:
+            # TODO: Improve the logic of this method - Deadline: 25/06/2024 - Developer: phat.dangminh@moveoplus.com
             # RESET all discount values
-            record.reset_discount_values()
+            order.reset_discount_values()
 
             # [!] Kiểm tra có phải Đại lý trực thuộc của MOVEO+ hay không?
-            partner_agency = record.partner_id.is_agency
-
-            if record.order_line:
+            partner_agency = order.partner_id.is_agency
+            if order.order_line:
                 # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
-                record.check_discount_10 = (
-                    record.check_discount_applicable() if partner_agency else False
+                order.check_discount_10 = (
+                    order.check_discount_applicable() if partner_agency else False
                 )
                 # [!] Tính tổng tiền giá sản phẩm không bao gồm hàng Dịch Vụ,
                 #      tính giá gốc ban đầu, không bao gồm Thuế
-                record.calculate_discount_values()
+                order.calculate_discount_values()
 
             # [!] Nếu đơn hàng không còn lốp xe nữa thì xóa:
             # - "Chiết Khấu Tháng" (CKT)
             # - "Chiết Khấu Bảo Lãnh" (CKBL)
             # - "Chiết khấu Vùng Trắng" (CKSLVT) (Nếu có tồn tại)
-            record.handle_discount_lines()
+            # - "Chiết khấu Miền Nam" (CKSLMN) (Nếu có tồn tại)
+            order.handle_discount_lines()
 
     def reset_discount_values(self):
         self.percentage = 0
         self.check_discount_10 = False
-        self.after_discount_bank_guarantee = 0
-        self.discount_bank_guarantee = 0
-        self.discount_agency_white_place_amount = 0
         self.total_price_no_service = 0
         self.total_price_discount = 0
         self.total_price_after_discount = 0
@@ -223,13 +240,13 @@ class SaleOrder(models.Model):
         self.total_price_after_discount_10 = 0
         self.total_price_after_discount_month = 0
         self.bonus_max = 0
-        self.bonus_remaining = self.partner_id.amount_currency - self.bonus_order
 
     def check_discount_applicable(self):
         order_lines = self.order_line.filtered(
-            lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
-            and self.check_category_product(sol.product_id.categ_id)
+            lambda sol: self.check_category_product(sol.product_id.categ_id)
+            and sol.product_id.product_tmpl_id.detailed_type == "product"
         )
+
         return (
             len(order_lines) >= 1
             and sum(order_lines.mapped("product_uom_qty"))
@@ -237,9 +254,9 @@ class SaleOrder(models.Model):
         )
 
     def calculate_discount_values(self):
+        percentage = 0
         total_price_no_service = 0
         total_price_discount = 0
-        percentage = 0
 
         for line in self.order_line.filtered(
             lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
@@ -252,25 +269,13 @@ class SaleOrder(models.Model):
                 / DISCOUNT_PERCENTAGE_DIVISOR
             )
             percentage = line.discount
+
+        self.percentage = percentage
         self.total_price_no_service = total_price_no_service
         self.total_price_discount = total_price_discount
-        self.percentage = percentage
         self.total_price_after_discount = (
             self.total_price_no_service - self.total_price_discount
         )
-
-        # [!] Tính chiết khấu bảo lãnh ngân hàng
-        if self.partner_id.bank_guarantee:
-            self.discount_bank_guarantee = (
-                self.total_price_after_discount
-                * self.partner_id.discount_bank_guarantee
-                / DISCOUNT_PERCENTAGE_DIVISOR
-            )
-            if self.discount_bank_guarantee > 0:
-                self.create_discount_bank_guarantee()
-                self.after_discount_bank_guarantee = (
-                    self.total_price_after_discount - self.discount_bank_guarantee
-                )
 
         self.total_price_discount_10 = (
             self.total_price_after_discount / DISCOUNT_PERCENTAGE_DIVISOR
@@ -287,7 +292,6 @@ class SaleOrder(models.Model):
             - self.total_price_discount
             - self.total_price_discount_10
             - self.discount_bank_guarantee
-            - self.discount_agency_white_place_amount
         ) / 2
 
     def handle_discount_lines(self):
@@ -320,14 +324,18 @@ class SaleOrder(models.Model):
     # ==================================
 
     def write(self, vals):
-        return super(SaleOrder, self).write(vals)
+        context = self.env.context.copy()
+        return super(SaleOrder, self.with_context(context)).write(vals)
+
+    def unlink(self):
+        return super(SaleOrder, self).unlink()
 
     # ==================================
     # BUSINESS Methods
     # ==================================
 
     def compute_discount_for_partner(self, bonus):
-        PRODUCT_DISCOUNT_CODE = "CKT"
+        default_code = "CKT"
         try:
             bonus_max = self.bonus_max
             if bonus > bonus_max:
@@ -344,12 +352,12 @@ class SaleOrder(models.Model):
 
                 # Filter order lines for products
                 product_order_lines = self.order_line.filtered(
-                    lambda sol: sol.product_id.default_code == PRODUCT_DISCOUNT_CODE
+                    lambda sol: sol.product_id.default_code == default_code
                 )
                 if not product_order_lines:
                     # Create new product template if it doesn't exist
                     product_discount = self.env["product.template"].search(
-                        [("default_code", "=", PRODUCT_DISCOUNT_CODE)]
+                        [("default_code", "=", default_code)]
                     )
                     if not product_discount:
                         product_discount = (
@@ -361,14 +369,14 @@ class SaleOrder(models.Model):
                                     "detailed_type": "service",
                                     "categ_id": 1,
                                     "taxes_id": False,
-                                    "default_code": PRODUCT_DISCOUNT_CODE,
+                                    "default_code": default_code,
                                 }
                             )
                         )
 
                     # Check for existing discount line
                     discount_order_line = self.order_line.filtered(
-                        lambda sol: sol.product_id.default_code == PRODUCT_DISCOUNT_CODE
+                        lambda sol: sol.product_id.default_code == default_code
                     )
                     if not discount_order_line:
                         self.env["sale.order.line"].create(
@@ -377,7 +385,7 @@ class SaleOrder(models.Model):
                                 "product_id": product_discount.product_variant_ids[
                                     0
                                 ].id,
-                                "code_product": PRODUCT_DISCOUNT_CODE,
+                                "code_product": default_code,
                                 "product_uom_qty": 1,
                                 "price_unit": -total_bonus,
                                 "hidden_show_qty": True,
@@ -387,7 +395,7 @@ class SaleOrder(models.Model):
                 else:
                     # Update price unit of the order line
                     self.order_line.filtered(
-                        lambda sol: sol.product_id.default_code == PRODUCT_DISCOUNT_CODE
+                        lambda sol: sol.product_id.default_code == default_code
                     ).write(
                         {
                             "price_unit": -total_bonus,
@@ -395,30 +403,14 @@ class SaleOrder(models.Model):
                     )
 
             # [>] Update the Sale Order's Bonus Order
-            self.write(
-                {
-                    "bonus_order": total_bonus,
-                    "bonus_remaining": self.partner_id.amount_currency - total_bonus,
-                }
-            )
-            # [>] Re-compute discount
-            self.calculate_discount_values()
-
-            # [>] Update the Partner's Amount
-            self.sudo().with_context(trigger_update=True).env["res.partner"].browse(
-                self.partner_id.id
-            ).write(
-                {
-                    "amount": self.bonus_remaining,
-                    "amount_currency": self.bonus_remaining,
-                }
-            )
+            self._compute_bonus()
+            return True
         except Exception as e:
             _logger.error("Failed to compute discount for partner: %s", e)
             return False
 
     def action_compute_discount_month(self):
-        if self._is_order_returns():
+        if self._is_order_returns() or not self.order_line:
             return
 
         if self.locked:
@@ -427,121 +419,73 @@ class SaleOrder(models.Model):
         self._update_programs_and_rewards()
         self._auto_apply_rewards()
 
-        # [!] Thêm chiết khấu bảo lãnh ngân hàng
-        self._handle_bank_guarantee_discount()
-
         quantity_change = self._calculate_quantity_change()
-
         discount_lines, delivery_lines = self._filter_order_lines()
-
-        if not delivery_lines:
-            self.ensure_one()
-            carrier = (
-                self.with_company(
-                    self.company_id
-                ).partner_shipping_id.property_delivery_carrier_id
-                or self.with_company(
-                    self.company_id
-                ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
-            )
-            return {
-                "name": "Chiết khấu tự động",
-                "type": "ir.actions.act_window",
-                "res_model": "mv.wizard.discount",
-                "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
-                "views": [
-                    (self.env.ref("mv_sale.mv_wiard_discount_view_form").id, "form")
-                ],
-                "target": "new",
-                "context": {
-                    "partner_id": self.partner_id.id,
-                    "default_partner_id": self.partner_id.id,
-                    "default_sale_order_id": self.id,
-                    "default_discount_amount_apply": self.bonus_remaining,
-                    "default_carrier_id": carrier.id,
-                    "default_total_weight": self._get_estimated_weight(),
-                },
-            }
 
         self._handle_quantity_change(quantity_change, discount_lines, delivery_lines)
 
         return self._handle_discount_confirmation()
 
-    def create_discount_bank_guarantee(self, url=None):
-        PRODUCT_DISCOUNT_CODE = "CKBL"
-        try:
-            if not url:
-                url = http.request.httprequest.full_path or ""
+    def create_discount_bank_guarantee(self):
+        order = self
+        default_code = "CKBL"
 
-            # Check if there are product order lines
-            product_order_lines = self.order_line.filtered(
-                lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
-                and self.check_category_product(sol.product_id.categ_id)
+        # [!] Kiểm tra tồn tại Sản Phẩm dịch vụ cho Chiết Khấu Bảo Lãnh
+        product_discount_CKBL = self.env["product.product"].search(
+            [("default_code", "=", default_code)], limit=1
+        )
+        if not product_discount_CKBL:
+            self.env["product.product"].sudo().create(
+                {
+                    "name": "Chiết khấu bảo lãnh",
+                    "default_code": "CKBL",
+                    "type": "service",
+                    "invoice_policy": "order",
+                    "list_price": 0.0,
+                    "company_id": self.company_id.id,
+                    "taxes_id": None,
+                }
             )
 
-            if product_order_lines:
-                # Check for existing discount line
-                discount_order_line = self.order_line.filtered(
-                    lambda sol: sol.product_id.product_tmpl_id.default_code
-                    or sol.code_product == PRODUCT_DISCOUNT_CODE
-                )
-
-                if not discount_order_line:
-                    # Create new product template if it doesn't exist
-                    product_discount = self.env["product.template"].search(
-                        [("default_code", "=", PRODUCT_DISCOUNT_CODE)]
-                    )
-
-                    if not product_discount:
-                        product_discount = (
-                            self.env["product.template"]
-                            .sudo()
-                            .create(
-                                {
-                                    "name": "Chiết khấu bảo lãnh",
-                                    "detailed_type": "service",
-                                    "categ_id": 1,
-                                    "taxes_id": False,
-                                    "default_code": PRODUCT_DISCOUNT_CODE,
-                                }
-                            )
-                        )
-
-                    # ===========================================
-                    if (
-                        url
-                        and url.find("/shop/cart") > -1
-                        or self._context.get("bank_guarantee", False)
-                    ):
-                        discount_order_line = self.env["sale.order.line"].create(
+        # [!] Kiểm tra đã có dòng Chiết Khấu Bảo Lãnh hay chưa?
+        discount_order_line = order.order_line.filtered(
+            lambda sol: sol.product_id.default_code == default_code
+        )
+        if discount_order_line:
+            # [>] Cập nhật giá sản phẩm
+            discount_order_line.write(
+                {
+                    "price_unit": -order.total_price_after_discount
+                    * order.partner_id.discount_bank_guarantee
+                    / DISCOUNT_PERCENTAGE_DIVISOR,
+                }
+            )
+        else:
+            # [>] Tạo dòng Chiết Khấu Bảo Lãnh
+            order.write(
+                {
+                    "order_line": [
+                        (
+                            0,
+                            0,
                             {
-                                "order_id": self.id,
-                                "product_id": product_discount.product_variant_ids[
-                                    0
-                                ].id,
-                                "code_product": PRODUCT_DISCOUNT_CODE,
+                                "order_id": order.id,
+                                "product_id": product_discount_CKBL.id,
                                 "product_uom_qty": 1,
-                                "price_unit": 0,
+                                "code_product": default_code,
+                                "price_unit": -order.total_price_after_discount
+                                * order.partner_id.discount_bank_guarantee
+                                / DISCOUNT_PERCENTAGE_DIVISOR,
                                 "hidden_show_qty": True,
-                            }
+                            },
                         )
-                        _logger.info("Created discount line for bank guarantee.")
-                    # ===========================================
-
-                # Update price unit of the order line
-                if discount_order_line:
-                    discount_order_line.write(
-                        {
-                            "price_unit": -self.total_price_after_discount
-                            * self.partner_id.discount_bank_guarantee
-                            / DISCOUNT_PERCENTAGE_DIVISOR,
-                        }
-                    )
-        except Exception as e:
-            _logger.error("Failed to create discount for bank guarantee: %s", e)
+                    ]
+                }
+            )
+            _logger.info("Created discount line for bank guarantee.")
 
     def _handle_bank_guarantee_discount(self):
-        if self.partner_id.bank_guarantee:
+        if self.bank_guarantee:
             self.discount_bank_guarantee = (
                 self.total_price_after_discount
                 * self.partner_id.discount_bank_guarantee
@@ -554,20 +498,23 @@ class SaleOrder(models.Model):
         return sum(
             line.product_uom_qty
             for line in self.order_line
-            if line.product_id.product_tmpl_id.detailed_type == "product"
-            and self.check_category_product(line.product_id.categ_id)
+            if self.check_category_product(line.product_id.categ_id)
+            and line.product_id.product_tmpl_id.detailed_type == "product"
         )
 
-    def _handle_quantity_change(
-        self, quantity_change, discount_order_lines, delivery_order_lines
-    ):
-        if self.quantity_change != 0 and self.quantity_change != quantity_change:
-            if delivery_order_lines:
-                delivery_order_lines.unlink()
-            if discount_order_lines:
-                discount_order_lines.unlink()
+    def _handle_quantity_change(self, quantity_change, discount_lines, delivery_lines):
+        self.ensure_one()
 
-        self.write({"quantity_change": quantity_change})
+        if (
+            self.quantity_change != quantity_change
+            and self.quantity_change != quantity_change
+        ):
+            if delivery_lines:
+                delivery_lines.unlink()
+            if discount_lines:
+                discount_lines.unlink()
+
+            self.write({"quantity_change": quantity_change})
 
     def _filter_order_lines(self):
         order_lines_discount = self.order_line._filter_discount_agency_lines(self)
@@ -577,7 +524,7 @@ class SaleOrder(models.Model):
     def _handle_discount_confirmation(self):
         if not self._context.get("confirm", False):
             view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
-            delivery_order_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
+            order_lines_delivery = self.order_line.filtered(lambda sol: sol.is_delivery)
             carrier = (
                 (
                     self.with_company(
@@ -587,27 +534,30 @@ class SaleOrder(models.Model):
                         self.company_id
                     ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
                 )
-                if not delivery_order_lines
+                if not order_lines_delivery
                 else self.carrier_id
             )
+
             return {
                 "name": "Chiết khấu",
                 "type": "ir.actions.act_window",
                 "res_model": "mv.wizard.discount",
                 "view_id": view_id,
                 "views": [(view_id, "form")],
-                "target": "new",
                 "context": {
+                    "default_sale_order_id": self.id,
                     "partner_id": self.partner_id.id,
                     "default_partner_id": self.partner_id.id,
-                    "default_sale_order_id": self.id,
                     "default_discount_amount_apply": self.bonus_remaining,
                     "default_carrier_id": carrier.id,
                     "default_total_weight": self._get_estimated_weight(),
                 },
+                "target": "new",
             }
 
     def _reset_discount_agency(self):
+        self.ensure_one()
+
         if self.bonus_order > 0:
             if self.partner_id:
                 _logger.info("Adding bonus order amount back to partner's amount.")
@@ -616,7 +566,19 @@ class SaleOrder(models.Model):
                 )
             else:
                 _logger.warning("No partner found for this order.")
+                pass
+
             self.write({"bonus_order": 0, "quantity_change": 0})
+
+        self.order_line.filtered(
+            lambda sol: sol.product_id.default_code == "CKT"
+        ).unlink()
+
+    def action_clear_discount(self):
+        self.order_line.filtered(
+            lambda sol: sol.product_id.product_tmpl_id.detailed_type == "service"
+        ).unlink()
+        return True
 
     def action_draft(self):
         self._reset_discount_agency()
@@ -693,6 +655,13 @@ class SaleOrder(models.Model):
 
         return program_domain
 
+    def _update_programs_and_rewards(self):
+        """
+        Update the programs and rewards of the order.
+        """
+        if self.env.context.get("compute_discount_agency"):
+            return super()._update_programs_and_rewards()
+
     # ==================================
     # CONSTRAINS / VALIDATION Methods
     # ==================================
@@ -708,33 +677,32 @@ class SaleOrder(models.Model):
             raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
 
     def _check_order_not_free_qty_today(self):
-        for so in self:
-            if so.state not in ["draft", "sent"]:
-                continue
+        if self.state not in ["draft", "sent"]:
+            return
 
-            # Use list comprehension instead of filtered method
-            product_order_lines = [
-                line
-                for line in so.order_line
-                if line.product_id.detailed_type == "product"
-            ]
+        # Use list comprehension instead of filtered method
+        product_order_lines = [
+            line
+            for line in self.order_line
+            if line.product_id.product_tmpl_id.detailed_type == "product"
+        ]
 
-            if product_order_lines:
-                error_products = []
-                for so_line in product_order_lines:
-                    if so_line.product_uom_qty > so_line.free_qty_today:
-                        error_products.append(
-                            f"\n- {so_line.product_template_id.name}. [ Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái) ]"
-                        )
-
-                # Raise all errors at once
-                if error_products:
-                    error_message = (
-                        "Bạn không được phép đặt quá số lượng hiện tại:"
-                        + "".join(error_products)
-                        + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
+        error_products = []
+        if product_order_lines:
+            for so_line in product_order_lines:
+                if so_line.product_uom_qty > so_line.free_qty_today:
+                    error_products.append(
+                        f"\n- {so_line.product_template_id.name}. [ Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái) ]"
                     )
-                    raise ValidationError(error_message)
+
+        # Raise all errors at once
+        if error_products:
+            error_message = (
+                "Bạn không được phép đặt quá số lượng hiện tại:"
+                + "".join(error_products)
+                + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
+            )
+            raise ValidationError(error_message)
 
     def _handle_agency_discount(self):
         # Filter out orders that are returns
