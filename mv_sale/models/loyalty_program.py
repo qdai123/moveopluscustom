@@ -25,7 +25,5 @@ class LoyaltyProgram(models.Model):
             )
             if true_fields_count > 1:
                 raise ValidationError(
-                    _(
-                        "Only one of the Partner Agency, Partner White Agency, and Partner Southern Agency can be selected."
-                    )
+                    "Bạn không thể chọn nhiều hơn một loại Đại lý cho chương trình khuyến mãi này."
                 )

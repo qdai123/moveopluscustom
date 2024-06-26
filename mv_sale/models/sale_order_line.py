@@ -99,13 +99,9 @@ class SaleOrderLine(models.Model):
             if o_line.hidden_show_qty or o_line.reward_id:
                 return OrderLines
             else:
-                # [!] Check if the Product is CKT
+                # [!] Khi có sự thay đổi về số lượng cần tính toán lại các dòng chiết khấu
                 if "product_uom_qty" in vals and vals.get("product_uom_qty"):
-                    discount_of_month_line = o_line.order_id.order_line.filtered(
-                        lambda line: line.product_id.default_code == "CKT"
-                    )
-                    if discount_of_month_line:
-                        discount_of_month_line.unlink()
+                    o_line.order_id.action_clear_discount_lines()
 
         return OrderLines
 

@@ -11,7 +11,7 @@ MOVEOPLUS_TITLES = {
 }
 
 MOVEOPLUS_MESSAGES = {
-    "discount_amount_apply_exceeded": "Tiền chiết khấu áp dụng không được lớn hơn Số tiền chiết khấu tối đa.",
+    "discount_amount_apply_exceeded": "Tiền chiết khấu áp dụng không được lớn hơn số tiền chiết khấu tối đa.",
 }
 
 

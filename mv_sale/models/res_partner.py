@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import operator
-from functools import reduce
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
@@ -97,6 +95,7 @@ class ResPartner(models.Model):
                 lambda order: order.discount_agency_set and order.state in ["sale"]
             )
             if orders_discount:
+                orders_discount._compute_bonus()
                 record.sale_mv_ids = [(6, 0, orders_discount.ids)]
                 record.total_so_bonus_order = sum(orders_discount.mapped("bonus_order"))
 
@@ -181,13 +180,17 @@ class ResPartner(models.Model):
             partner.total_so_bonus_order = 0
 
             # [>] Filter orders with bonus and required state
-            order_discount = partner.sale_order_ids.filtered(
+            orders_discount = partner.sale_order_ids.filtered(
                 lambda order: order.discount_agency_set and order.state in ["sale"]
             )
-            if order_discount:
+            if orders_discount:
+                # [>>] Compute bonus order for each order
+                orders_discount._compute_bonus()
                 # [>>] Update 'sale_mv_ids' and 'total_so_bonus_order'
-                partner.sale_mv_ids = [(6, 0, order_discount.ids)]
-                partner.total_so_bonus_order = sum(order_discount.mapped("bonus_order"))
+                partner.sale_mv_ids = [(6, 0, orders_discount.ids)]
+                partner.total_so_bonus_order = sum(
+                    orders_discount.mapped("bonus_order")
+                )
 
             # [>] Calculate total discount money from different sources
             total_discount_money = sum(

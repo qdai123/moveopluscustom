@@ -65,16 +65,16 @@ class SaleOrder(models.Model):
     partner_southern_agency = fields.Boolean(
         related="partner_id.is_southern_agency", store=True
     )
-
-    # === Model: [mv.compute.discount.line] Fields ===#
-    discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
-
-    check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
     bank_guarantee = fields.Boolean(related="partner_id.bank_guarantee", store=True)
     discount_bank_guarantee = fields.Float(compute="_compute_discount", store=True)
     after_discount_bank_guarantee = fields.Float(
         compute="_compute_discount", store=True
     )
+
+    # === Model: [mv.compute.discount.line] Fields ===#
+    discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
+
+    check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
     # === Bonus, Discount Fields ===#
     percentage = fields.Float(compute="_compute_discount", store=True)
     bonus_max = fields.Float(
@@ -93,14 +93,17 @@ class SaleOrder(models.Model):
         help="Số tiền còn lại mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
 
-    @api.depends("partner_id", "order_line", "order_line.product_id")
+    @api.depends(
+        "partner_id",
+        "order_line",
+        "order_line.product_id",
+        "order_line.product_uom_qty",
+    )
     def _compute_bonus(self):
         for order in self:
             bonus_order = sum(
                 line.price_unit
-                for line in order.order_line
-                if line.product_id.default_code == "CKT"
-                and line.product_id.product_tmpl_id.detailed_type == "service"
+                for line in order.order_line._filter_discount_agency_lines(order)
             )
             order.bonus_order = abs(bonus_order)
             order.bonus_remaining = order.partner_id.amount_currency - abs(bonus_order)
@@ -519,8 +522,6 @@ class SaleOrder(models.Model):
         )
 
     def _handle_quantity_change(self, quantity_change, discount_lines, delivery_lines):
-        self.ensure_one()
-
         if (
             self.quantity_change != quantity_change
             and self.quantity_change != quantity_change
@@ -632,7 +633,7 @@ class SaleOrder(models.Model):
         discount_lines = self.order_line.filtered(
             lambda line: line.product_id.default_code
             and line.product_id.default_code.startswith("CK")
-            and not line.is_delivery
+            or line.is_delivery
         )
 
         # Unlink the discount lines
