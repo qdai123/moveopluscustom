@@ -23,6 +23,11 @@
 				<field name="is_sales_manager" invisible="1"/>
             </xpath>
 			<xpath expr="//field[@name='partner_id']" position="after">
+				<field name="partner_agency" invisible="1"/>
+				<field name="partner_white_agency" invisible="1"/>
+				<field name="partner_southern_agency" invisible="1"/>
+			</xpath>
+			<xpath expr="//field[@name='partner_id']" position="after">
 				<field name="discount_agency_set" invisible="1"/>
 				<field name="compute_discount_agency" invisible="1"/>
 				<field name="recompute_discount_agency" invisible="1"/>
@@ -38,12 +43,15 @@
 				<button string="Chiết khấu tự động"
 				        type="object"
 				        class="btn-primary"
-				        id="action_compute_discount_month"
-				        name="action_compute_discount_month"
+				        name="action_compute_discount"
 				        context="{'validate_analytic': True, 'compute_discount_agency': True}"
-				        invisible="not compute_discount_agency"
-				/>
-				<!-- TODO: Needs more action to <Update Discount Amount> -->
+				        invisible="not compute_discount_agency or recompute_discount_agency"/>
+				<button string="Cập nhật chiết khấu"
+				        type="object"
+				        class="btn-primary"
+				        name="action_recompute_discount"
+				        context="{'validate_analytic': True, 'recompute_discount_agency': True}"
+				        invisible="compute_discount_agency or not recompute_discount_agency"/>
 			</xpath>
 			<xpath expr="//field[@name='payment_term_id']" position="after">
 				<field string="Đổi trả hàng"
@@ -61,7 +69,12 @@
 				<attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
 			</xpath>
 			<xpath expr="//field[@name='order_line']" position="before">
-				<button string="Xóa các dòng chiết khấu" type="object" class="btn-secondary" name="action_clear_discount" groups="base.group_system"/>
+				<button string="Clean Discount Lines"
+				        type="object"
+				        name="action_clear_discount_lines"
+				        class="btn btn-link btn-sm lh-1 fa fa-trash o_clear_discount_lines_button"
+				        invisible="not partner_agency or is_order_returns or state in ['sale', 'cancel']"
+				        groups="base.group_system"/>
 			</xpath>
 			<xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="before">
 				<field name="is_sales_manager" column_invisible="True"/>
@@ -145,10 +158,6 @@
 				<attribute name="sum">Total price_total</attribute>
 			</xpath>
 			<!-- ===== [END] Readonly by Groups of Sales for Order Lines ===== -->
-			<xpath expr="//field[@name='partner_id']" position="after">
-				<field name="partner_agency" invisible="True"/>
-				<field name="partner_white_agency" invisible="True"/>
-			</xpath>
 			<xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="after">
 				<field name="price_subtotal_before_discount" widget="monetary"
 				       sum="Total price_subtotal_before_discount" optional="hidden"/>

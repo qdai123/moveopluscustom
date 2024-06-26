@@ -24,12 +24,14 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             "product.template"
         ]._get_weight_uom_name_from_ir_config_parameter()
 
+    # === Sale Order Fields ===#
     sale_order_id = fields.Many2one("sale.order", required=True)
     company_id = fields.Many2one("res.company", related="sale_order_id.company_id")
     currency_id = fields.Many2one("res.currency", related="sale_order_id.currency_id")
     partner_id = fields.Many2one(
         "res.partner", related="sale_order_id.partner_id", required=True
     )
+    is_update = fields.Boolean(related="sale_order_id.recompute_discount_agency")
 
     # === Delivery Carrier Fields ===#
     delivery_set = fields.Boolean(compute="_compute_invisible")
@@ -212,57 +214,65 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             discount_product = self.company_id.sale_discount_product_id
         return discount_product
 
-    def action_apply_discount(self):
-        self = self.with_company(self.company_id)
-        try:
-            order = self.sale_order_id
-            if not self.delivery_set:
-                order.set_delivery_line(self.carrier_id, self.delivery_price)
-                order.write(
-                    {
-                        "recompute_delivery_price": False,
-                        "delivery_message": self.delivery_message,
-                    }
-                )
+    def action_apply(self):
+        wizard = self.with_company(self.company_id)
+        order = wizard.sale_order_id
 
-            if not self.discount_agency_set:
-                """Create SOline(s) according to wizard configuration"""
-                # discount_product = self._get_mv_discount_product()
-                # vals_list = [
-                #     {
-                #         **self._prepare_mv_discount_line_values(
-                #             product=discount_product, amount=self.discount_amount_apply
-                #         ),
-                #     }
-                # ]
-                # order.order_line.create(vals_list)
-                order.compute_discount_for_partner(self.discount_amount_apply)
-                order._handle_bank_guarantee_discount()
-                order.write(
-                    {
-                        "recompute_discount_agency": (
-                            False
-                            if (
-                                self.discount_amount_apply
-                                - self.discount_amount_remaining
-                            )
-                            == 0
-                            else True
-                        ),
-                    }
-                )
-        except Exception as e:
-            _logger.error("Unexpected error: %s", e)
-            raise UserError(_("An unexpected error occurred. Please try again."))
+        if not wizard.delivery_set:
+            order.set_delivery_line(wizard.carrier_id, wizard.delivery_price)
+            order.write(
+                {
+                    "recompute_delivery_price": False,
+                    "delivery_message": wizard.delivery_message,
+                }
+            )
 
-    # ==================================
-    # TOOLING
-    # ==================================
+        if not wizard.discount_agency_set:
+            """Create SOline(s) discount according to wizard configuration"""
+            # discount_product = self._get_mv_discount_product()
+            # vals_list = [
+            #     {
+            #         **self._prepare_mv_discount_line_values(
+            #             product=discount_product, amount=self.discount_amount_apply
+            #         ),
+            #     }
+            # ]
+            # order.order_line.create(vals_list)
+            order.compute_discount_for_partner(wizard.discount_amount_apply)
+            order._handle_bank_guarantee_discount()
 
-    def _format_currency_amount(self, currency, amount):
-        pre = post = ""
-        if currency.position == "before":
-            pre = "{symbol}\N{NO-BREAK SPACE}".format(symbol=currency.symbol or "")
-        else:
-            post = "\N{NO-BREAK SPACE}{symbol}".format(symbol=currency.symbol or "")
-        return " {pre}{0}{post}".format(amount, pre=pre, post=post)
+        order._update_programs_and_rewards()
+        order._auto_apply_rewards()
+
+        return True
+
+    def action_update(self):
+        wizard = self.with_company(self.company_id)
+        order = wizard.sale_order_id
+
+        # [>] For Product Discount with code 'CKT'
+        if wizard.discount_agency_set and wizard.discount_amount_applied > 0:
+            """Update SOline(s) discount according to wizard configuration"""
+
+            total_order_discount_CKT = (
+                wizard.discount_amount_apply + wizard.discount_amount_applied
+            )
+            order.order_line.filtered(
+                lambda line: line.product_id.default_code == "CKT"
+            ).write({"price_unit": -total_order_discount_CKT})
+
+        # [>] For Product Discount with code 'CKBL'
+        if order.bank_guarantee:
+            total_order_discount_CKBL = (
+                order.total_price_after_discount
+                * order.partner_id.discount_bank_guarantee
+                / DISCOUNT_PERCENTAGE_DIVISOR
+            )
+            order.order_line.filtered(
+                lambda line: line.product_id.default_code == "CKBL"
+            ).write({"price_unit": -total_order_discount_CKBL})
+
+        order._update_programs_and_rewards()
+        order._auto_apply_rewards()
+
+        return True

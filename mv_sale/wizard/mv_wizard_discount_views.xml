@@ -5,6 +5,7 @@
 		<field name="model">mv.wizard.discount</field>
 		<field name="arch" type="xml">
 			<form>
+				<field name="is_update" invisible="1"/>
 				<field name="sale_order_id" invisible="1"/>
 				<field name="partner_id" invisible="1"/>
 				<field name="currency_id" invisible="1"/>
@@ -13,7 +14,7 @@
 				<field name="delivery_type" invisible="1"/>
 				<field name="delivery_price" invisible="1"/>
 				<field name="available_carrier_ids" invisible="1"/>
-				<group class="col-8" invisible="discount_agency_set">
+				<group class="col-8">
 					<field string="Số tiền chiết khấu" name="discount_amount_apply"/>
 					<field string="Tiền chiết khấu hiện có"
 					       name="discount_amount_remaining"
@@ -31,7 +32,7 @@
 					       options="{'currency_field': 'currency_id'}"
 					/>
 				</group>
-				<group class="col-8" string="# Chọn phương thức giao hàng" invisible="delivery_set">
+				<group class="col-8" string="# Phương thức giao hàng" invisible="delivery_set or is_update">
 					<field name="carrier_id" string="Phương thức giao hàng" domain="[('id', 'in', available_carrier_ids)]"/>
 					<label name="carried_weight_label" for="total_weight" string="Tổng khối lượng đơn hàng" groups="product.group_stock_packaging"/>
 					<div name="carried_weight" class="o_row" groups="product.group_stock_packaging">
@@ -59,7 +60,8 @@
 					<field name="delivery_message" nolabel="1"/>
 				</div>
 				<footer>
-					<button type="object" string="Xác nhận" name="action_apply_discount" class="btn-primary" data-hotkey="q"/>
+					<button type="object" string="Xác nhận" name="action_apply" class="btn-primary" invisible="is_update" data-hotkey="q"/>
+					<button type="object" string="Cập nhật" name="action_update" class="btn-primary" invisible="not is_update" data-hotkey="q"/>
 					<button string="Hủy bỏ" special="cancel" class="btn-secondary" data-hotkey="x"/>
 				</footer>
 			</form>

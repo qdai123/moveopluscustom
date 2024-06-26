@@ -7,7 +7,7 @@ from odoo import api, fields, models
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
 
-    # ACCESS/RULE Fields:
+    # === Permission/Flags Fields ===#
     is_sales_manager = fields.Boolean(compute="_compute_permissions")
 
     @api.depends_context("uid")
@@ -17,15 +17,24 @@ class SaleOrderLine(models.Model):
 
     # ================================================== #
 
-    discount_line_id = fields.Many2one(comodel_name="mv.compute.discount.line")
     code_product = fields.Char(help="Do not recompute discount")
+    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
     price_subtotal_before_discount = fields.Monetary(
         compute="_compute_price_subtotal_before_discount",
         store=True,
         string="Price Subtotal before Discount",
         currency_field="currency_id",
     )
-    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
+
+    # === Discount Agency ===#
+    discount_line_id = fields.Many2one(comodel_name="mv.compute.discount.line")
+    is_discount_agency = fields.Boolean(string="Is a Discount Agency", default=False)
+    recompute_discount_agency = fields.Boolean(
+        related="order_id.recompute_discount_agency"
+    )
+
+    def _is_not_sellable_line(self):
+        return self.hidden_show_qty or super()._is_not_sellable_line()
 
     def _filter_discount_agency_lines(self, order=False):
         # Return an empty recordset if no order_id is provided
@@ -49,9 +58,6 @@ class SaleOrderLine(models.Model):
                 ) - ((o_line.price_unit * o_line.qty_delivered) * o_line.discount / 100)
             else:
                 o_line.price_subtotal_before_discount = 0
-
-    def _is_not_sellable_line(self):
-        return self.hidden_show_qty or super()._is_not_sellable_line()
 
     @api.depends("state")
     def _compute_product_uom_readonly(self):

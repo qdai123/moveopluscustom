@@ -25,14 +25,13 @@ class SaleOrder(models.Model):
     )
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(
-        compute="_compute_permissions",
-        string="Discount Agency Amount should be recomputed",
+        "Discount Agency Amount should be recomputed"
     )
 
     @api.depends(
         "state", "order_line", "order_line.product_id", "order_line.product_uom_qty"
     )
-    @api.depends_context("uid")
+    @api.depends_context("uid", "compute_discount_agency", "recompute_discount_agency")
     def _compute_permissions(self):
         for order in self:
             order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
@@ -46,10 +45,16 @@ class SaleOrder(models.Model):
                     "sent",
                 ]
                 and not order.discount_agency_set
+                and order.partner_agency
             )
             order.recompute_discount_agency = (
-                order.discount_agency_set
-                and (order.bonus_remaining - order.bonus_order) != 0
+                order.state
+                in [
+                    "draft",
+                    "sent",
+                ]
+                and order.discount_agency_set
+                and order.partner_agency
             )
 
     # === Model: [res.partner] Fields ===#
@@ -325,6 +330,7 @@ class SaleOrder(models.Model):
 
     def write(self, vals):
         context = self.env.context.copy()
+        _logger.debug(f"Context: {context}")
         return super(SaleOrder, self.with_context(context)).write(vals)
 
     def unlink(self):
@@ -409,22 +415,32 @@ class SaleOrder(models.Model):
             _logger.error("Failed to compute discount for partner: %s", e)
             return False
 
-    def action_compute_discount_month(self):
+    def action_compute_discount(self):
         if self._is_order_returns() or not self.order_line:
             return
 
         if self.locked:
             raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
 
-        self._update_programs_and_rewards()
-        self._auto_apply_rewards()
+        quantity_change = self._calculate_quantity_change()
+        discount_lines, delivery_lines = self._filter_order_lines()
+        self._handle_quantity_change(quantity_change, discount_lines, delivery_lines)
+
+        return self._handle_discount_applying()
+
+    def action_recompute_discount(self):
+        if self._is_order_returns() or not self.order_line:
+            return
+
+        if self.locked:
+            raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
 
         quantity_change = self._calculate_quantity_change()
         discount_lines, delivery_lines = self._filter_order_lines()
 
         self._handle_quantity_change(quantity_change, discount_lines, delivery_lines)
 
-        return self._handle_discount_confirmation()
+        return self._handle_discount_applying()
 
     def create_discount_bank_guarantee(self):
         order = self
@@ -521,8 +537,11 @@ class SaleOrder(models.Model):
         order_lines_delivery = self.order_line.filtered("is_delivery")
         return order_lines_discount, order_lines_delivery
 
-    def _handle_discount_confirmation(self):
-        if not self._context.get("confirm", False):
+    def _handle_discount_applying(self):
+        context = dict(self.env.context or {})
+        if not context.get("action_confirm", False) and context.get(
+            "compute_discount_agency"
+        ):
             view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
             order_lines_delivery = self.order_line.filtered(lambda sol: sol.is_delivery)
             carrier = (
@@ -540,6 +559,40 @@ class SaleOrder(models.Model):
 
             return {
                 "name": "Chiết khấu",
+                "type": "ir.actions.act_window",
+                "res_model": "mv.wizard.discount",
+                "view_id": view_id,
+                "views": [(view_id, "form")],
+                "context": {
+                    "default_sale_order_id": self.id,
+                    "partner_id": self.partner_id.id,
+                    "default_partner_id": self.partner_id.id,
+                    "default_discount_amount_apply": self.bonus_remaining,
+                    "default_carrier_id": carrier.id,
+                    "default_total_weight": self._get_estimated_weight(),
+                },
+                "target": "new",
+            }
+        elif not context.get("action_confirm", False) and context.get(
+            "recompute_discount_agency"
+        ):
+            view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
+            order_lines_delivery = self.order_line.filtered(lambda sol: sol.is_delivery)
+            carrier = (
+                (
+                    self.with_company(
+                        self.company_id
+                    ).partner_shipping_id.property_delivery_carrier_id
+                    or self.with_company(
+                        self.company_id
+                    ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+                )
+                if not order_lines_delivery
+                else self.carrier_id
+            )
+
+            return {
+                "name": "Cập nhật chiết khấu",
                 "type": "ir.actions.act_window",
                 "res_model": "mv.wizard.discount",
                 "view_id": view_id,
@@ -574,10 +627,18 @@ class SaleOrder(models.Model):
             lambda sol: sol.product_id.default_code == "CKT"
         ).unlink()
 
-    def action_clear_discount(self):
-        self.order_line.filtered(
-            lambda sol: sol.product_id.product_tmpl_id.detailed_type == "service"
-        ).unlink()
+    def action_clear_discount_lines(self):
+        # Filter the order lines based on the conditions
+        discount_lines = self.order_line.filtered(
+            lambda line: line.product_id.default_code
+            and line.product_id.default_code.startswith("CK")
+            and not line.is_delivery
+        )
+
+        # Unlink the discount lines
+        if discount_lines:
+            discount_lines.unlink()
+
         return True
 
     def action_draft(self):
@@ -590,7 +651,8 @@ class SaleOrder(models.Model):
 
     def action_confirm(self):
         if not all(
-            order._can_not_confirmation_without_required_lines() for order in self
+            order._can_not_confirmation_without_required_lines()
+            for order in self.filtered(lambda order: order.partner_id.is_agency)
         ):
             error_message = (
                 "Các đơn hàng sau không có phương thức vận chuyển hoặc dòng chiết khấu sản lượng để xác nhận: %s"
@@ -708,13 +770,10 @@ class SaleOrder(models.Model):
         # Filter out orders that are returns
         non_return_orders = self.filtered(lambda order: not order.is_order_returns)
 
-        # Filter out orders that are not by partner agency
-        agency_orders = non_return_orders.filtered(
+        # Filter out orders that are not by partner agency and compute discount
+        non_return_orders.filtered(
             lambda order: order.partner_id.is_agency
-        )
-
-        # Compute discount for agency orders
-        agency_orders.with_context(confirm=True).action_compute_discount_month()
+        ).with_context(action_confirm=True).action_compute_discount()
 
     # =============================================================
     # TRIGGER Methods (Public)
@@ -782,5 +841,4 @@ class SaleOrder(models.Model):
         return field_name in f.keys()
 
     def _is_order_returns(self):
-        self.ensure_one()
         return self.is_order_returns
