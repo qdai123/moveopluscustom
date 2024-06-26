@@ -260,6 +260,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             order.order_line.filtered(
                 lambda line: line.product_id.default_code == "CKT"
             ).write({"price_unit": -total_order_discount_CKT})
+            order._compute_bonus()
 
         # [>] For Product Discount with code 'CKBL'
         if order.bank_guarantee:
