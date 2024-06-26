@@ -722,7 +722,9 @@ class SaleOrder(models.Model):
         """
         Update the programs and rewards of the order.
         """
-        if self.env.context.get("compute_discount_agency"):
+        if self.env.context.get("compute_discount_agency") or self.env.context.get(
+            "recompute_discount_agency"
+        ):
             return super()._update_programs_and_rewards()
 
     # ==================================

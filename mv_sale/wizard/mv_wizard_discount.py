@@ -251,7 +251,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         order = wizard.sale_order_id
 
         # [>] For Product Discount with code 'CKT'
-        if wizard.discount_agency_set and wizard.discount_amount_applied > 0:
+        if wizard.discount_agency_set and wizard.discount_amount_remaining > 0:
             """Update SOline(s) discount according to wizard configuration"""
 
             total_order_discount_CKT = (
