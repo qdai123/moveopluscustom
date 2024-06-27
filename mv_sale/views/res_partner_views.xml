@@ -22,7 +22,11 @@
 							<field name="amount" invisible="1"/>
 							<label for="amount_currency" string="Tiền chiết khấu hiện có"/>
 							<div class="row">
-								<field class="oe_inline fw-bold" name="amount_currency" decoration-success="amount_currency > 0" decoration-muted="amount_currency == 0"/>
+								<field name="amount_currency"
+								       class="oe_inline fw-bold"
+								       decoration-success="amount_currency &gt; 0"
+								       decoration-danger="amount_currency &lt; 0"
+								       decoration-muted="amount_currency == 0"/>
 								<button class="oe_inline btn-link mv-update-partner-discount" type="object" name="action_update_discount_amount" context="{'trigger_manual_update': True}" invisible="not is_agency">
 									<i title="Update Discount Money" role="img" aria-label="Update Discount Money" class="fa fa-fw fa-refresh"/>
 								</button>

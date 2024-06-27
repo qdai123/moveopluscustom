@@ -111,8 +111,9 @@ class ResPartner(models.Model):
                 )
             )
 
+            total_after = total_policy_discount_approved - record.total_so_bonus_order
             record.amount = record.amount_currency = (
-                total_policy_discount_approved - record.total_so_bonus_order
+                total_after if total_after > 0 else 0.0
             )
 
     @api.onchange("is_agency")
@@ -204,8 +205,9 @@ class ResPartner(models.Model):
             )
 
             # [>] Update 'amount' and 'amount_currency'
+            total_after = total_discount_money - partner.total_so_bonus_order
             partner.amount = partner.amount_currency = (
-                total_discount_money - partner.total_so_bonus_order
+                total_after if total_after > 0 else 0.0
             )
 
             # [>.CONTEXT] Trigger update manual notification

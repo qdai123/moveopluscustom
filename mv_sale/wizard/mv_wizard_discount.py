@@ -59,8 +59,8 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     discount_amount_invalid = fields.Boolean(readonly=True)
     discount_amount_invalid_message = fields.Text(readonly=True)
     discount_amount_apply = fields.Float()
-    discount_amount_remaining = fields.Float(related="sale_order_id.bonus_remaining")
     discount_amount_maximum = fields.Float(related="sale_order_id.bonus_max")
+    discount_amount_remaining = fields.Float(compute="_compute_sale_order_id")
     discount_amount_applied = fields.Float(compute="_compute_sale_order_id")
 
     # ==================================
@@ -105,6 +105,10 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             wizard.delivery_set = any(line.is_delivery for line in order.order_line)
             wizard.discount_agency_set = order.order_line._filter_discount_agency_lines(
                 order
+            )
+            total_remaining = wizard.partner_id.amount_currency - order.bonus_order
+            wizard.discount_amount_remaining = (
+                total_remaining if total_remaining > 0 else 0.0
             )
             wizard.discount_amount_applied = (
                 order.bonus_order if not wizard.discount_amount_invalid else 0.0

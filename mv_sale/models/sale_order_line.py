@@ -124,7 +124,7 @@ class SaleOrderLine(models.Model):
     @api.ondelete(at_uninstall=False)
     def _unlink_except_confirmed(self):
         # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
-        if not self.is_sales_manager:
+        if not self.env.user.has_group(GROUP_SALES_MANAGER):
             return super(SaleOrderLine, self)._unlink_except_confirmed()
 
     # /// HOOKS Methods
