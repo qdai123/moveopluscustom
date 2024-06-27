@@ -25,7 +25,8 @@ class SaleOrder(models.Model):
     )
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(
-        "Discount Agency Amount should be recomputed"
+        compute="_compute_permissions",
+        string="Discount Agency Amount should be recomputed",
     )
 
     @api.depends(
@@ -385,6 +386,12 @@ class SaleOrder(models.Model):
 
         return self._handle_discount_applying()
 
+    def _filter_order_lines(self):
+        order = self
+        order_lines_discount = order.order_line._filter_discount_agency_lines(order)
+        order_lines_delivery = order.order_line.filtered("is_delivery")
+        return order_lines_discount, order_lines_delivery
+
     def action_recompute_discount(self):
         if self._is_order_returns() or not self.order_line:
             return
@@ -487,31 +494,31 @@ class SaleOrder(models.Model):
 
             self.write({"quantity_change": quantity_change})
 
-    def _filter_order_lines(self):
-        order_lines_discount = self.order_line._filter_discount_agency_lines(self)
-        order_lines_delivery = self.order_line.filtered("is_delivery")
-        return order_lines_discount, order_lines_delivery
-
     def _handle_discount_applying(self):
         context = dict(self.env.context or {})
-        if not context.get("action_confirm", False) and context.get(
-            "compute_discount_agency"
-        ):
-            view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
-            order_lines_delivery = self.order_line.filtered(lambda sol: sol.is_delivery)
-            carrier = (
-                (
-                    self.with_company(
-                        self.company_id
-                    ).partner_shipping_id.property_delivery_carrier_id
-                    or self.with_company(
-                        self.company_id
-                    ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
-                )
-                if not order_lines_delivery
-                else self.carrier_id
-            )
+        compute_discount_agency = not context.get(
+            "action_confirm", False
+        ) and context.get("compute_discount_agency")
+        recompute_discount_agency = not context.get(
+            "action_confirm", False
+        ) and context.get("recompute_discount_agency")
 
+        view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
+        order_lines_delivery = self.order_line.filtered(lambda sol: sol.is_delivery)
+        carrier = (
+            (
+                self.with_company(
+                    self.company_id
+                ).partner_shipping_id.property_delivery_carrier_id
+                or self.with_company(
+                    self.company_id
+                ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+            )
+            if not order_lines_delivery
+            else self.carrier_id
+        )
+
+        if compute_discount_agency:
             return {
                 "name": "Chiết khấu",
                 "type": "ir.actions.act_window",
@@ -528,24 +535,7 @@ class SaleOrder(models.Model):
                 },
                 "target": "new",
             }
-        elif not context.get("action_confirm", False) and context.get(
-            "recompute_discount_agency"
-        ):
-            view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
-            order_lines_delivery = self.order_line.filtered(lambda sol: sol.is_delivery)
-            carrier = (
-                (
-                    self.with_company(
-                        self.company_id
-                    ).partner_shipping_id.property_delivery_carrier_id
-                    or self.with_company(
-                        self.company_id
-                    ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
-                )
-                if not order_lines_delivery
-                else self.carrier_id
-            )
-
+        elif recompute_discount_agency:
             return {
                 "name": "Cập nhật chiết khấu",
                 "type": "ir.actions.act_window",
@@ -615,11 +605,87 @@ class SaleOrder(models.Model):
             )
             raise UserError(error_message)
 
-        self._check_delivery_lines()
-        self._check_order_not_free_qty_today()
-        self._handle_agency_discount()
+        orders = self.filtered(
+            lambda so: not so.is_order_returns and so.partner_id.is_agency
+        )
+        orders._check_delivery_lines()
+        orders._check_order_not_free_qty_today()
+        orders.mapped(
+            "partner_id"
+        ).action_update_discount_amount()  # Update partner's discount amount
+        for order in orders:
+            quotation_bonus_order = (
+                self.env["sale.order.line"]
+                .search(
+                    [
+                        ("order_id", "=", order.id),
+                        ("product_id.default_code", "=", "CKT"),
+                    ],
+                    limit=1,
+                )
+                .price_unit
+            )
+            if not self.env.context.get(
+                "apply_confirm"
+            ) and order.partner_id.amount_currency < abs(quotation_bonus_order):
+                # [>] Xử lý chiết khấu khi có sự thay đổi hoặc đang dùng ở một đơn khác của Đại lý
+                quotations_discount_applied = (
+                    self.env["sale.order"]
+                    .search(
+                        [
+                            ("id", "!=", order.id),
+                            ("state", "in", ["draft", "sent"]),
+                            ("partner_id", "=", order.partner_id.id),
+                            "|",
+                            ("partner_id.is_agency", "=", True),
+                            ("partner_agency", "=", True),
+                        ]
+                    )
+                    .filtered(
+                        lambda so: so.order_line.filtered(
+                            lambda so_line: so_line._filter_discount_agency_lines(so)
+                        )
+                    )
+                )
+                quotations_discount_applied._compute_bonus()
+                order_lines_delivery = order.order_line.filtered(
+                    lambda sol: sol.is_delivery
+                )
+                carrier = (
+                    (
+                        order.with_company(
+                            order.company_id
+                        ).partner_shipping_id.property_delivery_carrier_id
+                        or order.with_company(
+                            order.company_id
+                        ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+                    )
+                    if not order_lines_delivery
+                    else order.carrier_id
+                )
 
-        return super(SaleOrder, self).action_confirm()
+                return {
+                    "name": "Cập nhật chiết khấu",
+                    "type": "ir.actions.act_window",
+                    "res_model": "mv.wizard.discount",
+                    "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
+                    "views": [
+                        (self.env.ref("mv_sale.mv_wiard_discount_view_form").id, "form")
+                    ],
+                    "context": {
+                        "default_sale_order_id": order.id,
+                        "partner_id": order.partner_id.id,
+                        "default_partner_id": order.partner_id.id,
+                        "default_discount_amount_apply": order.bonus_remaining,
+                        "default_carrier_id": carrier.id,
+                        "default_total_weight": order._get_estimated_weight(),
+                        "default_discount_amount_invalid": True,
+                    },
+                    "target": "new",
+                }
+            else:
+                order.with_context(action_confirm=True).action_recompute_discount()
+                return super(SaleOrder, order).action_confirm()
 
     # === MOVEO+ FULL OVERRIDE '_get_program_domain' ===#
 
@@ -726,13 +792,82 @@ class SaleOrder(models.Model):
             raise ValidationError(error_message)
 
     def _handle_agency_discount(self):
-        # Filter out orders that are returns
-        non_return_orders = self.filtered(lambda order: not order.is_order_returns)
+        orders = self.filtered(
+            lambda so: not so.is_order_returns and so.partner_id.is_agency
+        )
+        orders.mapped(
+            "partner_id"
+        ).action_update_discount_amount()  # Update partner's discount amount
+        for order in orders:
+            quotation_bonus_order = (
+                self.env["sale.order.line"]
+                .search(
+                    [
+                        ("order_id", "=", order.id),
+                        ("product_id.default_code", "=", "CKT"),
+                    ],
+                    limit=1,
+                )
+                .price_unit
+            )
+            if order.partner_id.amount_currency < abs(quotation_bonus_order):
+                # [>] Xử lý chiết khấu khi có sự thay đổi hoặc đang dùng ở một đơn khác của Đại lý\
+                quotations_discount_applied = (
+                    self.env["sale.order"]
+                    .search(
+                        [
+                            ("id", "!=", order.id),
+                            ("state", "in", ["draft", "sent"]),
+                            ("partner_id", "=", order.partner_id.id),
+                            "|",
+                            ("partner_id.is_agency", "=", True),
+                            ("partner_agency", "=", True),
+                        ]
+                    )
+                    .filtered(
+                        lambda so: so.order_line.filtered(
+                            lambda so_line: so_line._filter_discount_agency_lines(so)
+                        )
+                    )
+                )
+                quotations_discount_applied._compute_bonus()
+                order_lines_delivery = order.order_line.filtered(
+                    lambda sol: sol.is_delivery
+                )
+                carrier = (
+                    (
+                        order.with_company(
+                            order.company_id
+                        ).partner_shipping_id.property_delivery_carrier_id
+                        or order.with_company(
+                            order.company_id
+                        ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+                    )
+                    if not order_lines_delivery
+                    else order.carrier_id
+                )
 
-        # Filter out orders that are not by partner agency and compute discount
-        non_return_orders.filtered(
-            lambda order: order.partner_id.is_agency
-        ).with_context(action_confirm=True).action_compute_discount()
+                return {
+                    "name": "Cập nhật chiết khấu",
+                    "type": "ir.actions.act_window",
+                    "res_model": "mv.wizard.discount",
+                    "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
+                    "views": [
+                        (self.env.ref("mv_sale.mv_wiard_discount_view_form").id, "form")
+                    ],
+                    "context": {
+                        "default_sale_order_id": order.id,
+                        "partner_id": order.partner_id.id,
+                        "default_partner_id": order.partner_id.id,
+                        "default_discount_amount_apply": order.bonus_remaining,
+                        "default_carrier_id": carrier.id,
+                        "default_total_weight": order._get_estimated_weight(),
+                        "default_discount_amount_invalid": True,
+                    },
+                    "target": "new",
+                }
+            else:
+                order.with_context(action_confirm=True).action_recompute_discount()
 
     # =============================================================
     # TRIGGER Methods (Public)

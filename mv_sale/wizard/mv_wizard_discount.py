@@ -12,6 +12,7 @@ MOVEOPLUS_TITLES = {
 
 MOVEOPLUS_MESSAGES = {
     "discount_amount_apply_exceeded": "Tiền chiết khấu áp dụng không được lớn hơn số tiền chiết khấu tối đa.",
+    "discount_amount_invalid": "Tiền chiết khấu áp dụng đang lớn số tiền chiết khấu hiện có, vui lòng nhập lại!",
 }
 
 
@@ -31,10 +32,10 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     partner_id = fields.Many2one(
         "res.partner", related="sale_order_id.partner_id", required=True
     )
-    is_update = fields.Boolean(related="sale_order_id.recompute_discount_agency")
+    is_update = fields.Boolean(compute="_compute_sale_order_id")
 
     # === Delivery Carrier Fields ===#
-    delivery_set = fields.Boolean(compute="_compute_invisible")
+    delivery_set = fields.Boolean(compute="_compute_sale_order_id")
     carrier_id = fields.Many2one("delivery.carrier", required=True)
     delivery_type = fields.Selection(related="carrier_id.delivery_type")
     delivery_price = fields.Float()
@@ -54,7 +55,9 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     weight_uom_name = fields.Char(readonly=True, default=_get_default_weight_uom)
 
     # === Discount Policy Fields ===#
-    discount_agency_set = fields.Boolean(compute="_compute_invisible")
+    discount_agency_set = fields.Boolean(compute="_compute_sale_order_id")
+    discount_amount_invalid = fields.Boolean(readonly=True)
+    discount_amount_invalid_message = fields.Text(readonly=True)
     discount_amount_apply = fields.Float()
     discount_amount_remaining = fields.Float(related="sale_order_id.bonus_remaining")
     discount_amount_maximum = fields.Float(related="sale_order_id.bonus_max")
@@ -87,16 +90,21 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     # COMPUTE / ONCHANGE Methods
     # ==================================
 
+    @api.onchange("discount_amount_invalid")
+    def onchange_discount_amount_invalid_message(self):
+        if self.discount_amount_invalid:
+            self.discount_amount_invalid_message = MOVEOPLUS_MESSAGES[
+                "discount_amount_invalid"
+            ]
+
     @api.depends("sale_order_id", "sale_order_id.order_line")
-    def _compute_invisible(self):
+    def _compute_sale_order_id(self):
         for wizard in self:
-            wizard.delivery_set = any(
-                line.is_delivery for line in wizard.sale_order_id.order_line
-            )
-            wizard.discount_agency_set = (
-                wizard.sale_order_id.order_line._filter_discount_agency_lines(
-                    wizard.sale_order_id
-                )
+            order = wizard.sale_order_id
+            wizard.is_update = order.recompute_discount_agency
+            wizard.delivery_set = any(line.is_delivery for line in order.order_line)
+            wizard.discount_agency_set = order.order_line._filter_discount_agency_lines(
+                order
             )
 
     @api.depends("carrier_id")
@@ -277,3 +285,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         order._auto_apply_rewards()
 
         return True
+
+    def action_apply_and_confirm(self):
+        self.action_update()
+        return self.sale_order_id.with_context(apply_confirm=True).action_confirm()

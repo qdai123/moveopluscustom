@@ -3,8 +3,24 @@
     <!-- MOVEO PLUS Inherited: Portal Layout (portal.portal_layout) -->
 	<template id="mv_website_sale.portal_layout" inherit_id="portal.portal_layout">
 		<xpath expr="//div[hasclass('o_portal_wrap')]//h3[hasclass('my-3')]" position="replace">
-			<h3 class="my-3">My account - MO+</h3>
+			<t t-if="user_id.partner_id and user_id.partner_id.is_agency">
+				<h3 class="my-3">Thông tin Đại lý</h3>
+			</t>
+			<t t-else="">
+				<h3 class="my-3">Tài khoản của tôi</h3>
+			</t>
 		</xpath>
+        <xpath expr="//div[hasclass('o_portal_wrap')]//div[hasclass('container')]//div[2]//div[contains(@t-attf-class, 'o_portal_content')]" position="replace">
+	        <div t-attf-class="o_portal_content col-12 col-lg-8 mb-5">
+		        <h4 class="text-danger">
+			        <i class="fa fa-fw fa-money me-1"/>Tiền chiết khấu hiện có:
+			        <t t-out="float(user_id.sudo().partner_id.amount)"
+			           class="monetary_field"
+			           t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
+		        </h4>
+		        <t t-out="0"/>
+	        </div>
+        </xpath>
 	</template>
 
 <!--    <template id="portal_my_home" name="My Portal">-->

@@ -6,14 +6,18 @@
 		<field name="arch" type="xml">
 			<form>
 				<field name="is_update" invisible="1"/>
-				<field name="sale_order_id" invisible="1"/>
 				<field name="partner_id" invisible="1"/>
 				<field name="currency_id" invisible="1"/>
+				<field name="sale_order_id" invisible="1"/>
 				<field name="discount_agency_set" invisible="1"/>
+				<field name="discount_amount_invalid" invisible="1"/>
 				<field name="delivery_set" invisible="1"/>
 				<field name="delivery_type" invisible="1"/>
 				<field name="delivery_price" invisible="1"/>
 				<field name="available_carrier_ids" invisible="1"/>
+				<div role="alert" class="col-8 alert alert-warning" invisible="not discount_amount_invalid or discount_amount_invalid_message == ''">
+					<field name="discount_amount_invalid_message" nolabel="1"/>
+				</div>
 				<group class="col-8">
 					<field string="Số tiền chiết khấu" name="discount_amount_apply"/>
 					<field string="Tiền chiết khấu hiện có"
@@ -60,8 +64,10 @@
 					<field name="delivery_message" nolabel="1"/>
 				</div>
 				<footer>
-					<button type="object" string="Xác nhận" name="action_apply" class="btn-primary" invisible="is_update" data-hotkey="q"/>
-					<button type="object" string="Cập nhật" name="action_update" class="btn-primary" invisible="not is_update" data-hotkey="q"/>
+					<button type="object" string="Áp dụng &amp; Xác nhận" name="action_apply_and_confirm" class="btn-primary" invisible="not discount_amount_invalid" data-hotkey="q"/>
+					<button type="object" string="Xác nhận" name="action_apply" class="btn-primary" invisible="is_update or discount_amount_invalid" data-hotkey="q"/>
+					<button type="object" string="Cập nhật" name="action_update" class="btn-primary" invisible="not is_update or discount_amount_invalid" data-hotkey="q"/>
+					<button type="object" string="Chỉ cập nhật" name="action_update" class="btn-primary" invisible="not discount_amount_invalid" data-hotkey="q"/>
 					<button string="Hủy bỏ" special="cancel" class="btn-secondary" data-hotkey="x"/>
 				</footer>
 			</form>
