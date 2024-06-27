@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- MOVEO PLUS Form for applying partner bonus on Sales Orders (Portal Only) -->
-	<template id="mv_apply_partner_bonus_form" name="Form: Apply Partner Bonus">
+	<!-- MOVEO PLUS Form: Apply Partner Discount on Sale Order (Portal Only) -->
+	<template id="mv_apply_partner_bonus_form" name="Form: Apply Partner Discount">
 		<!-- Checkout context:
-            - redirect: The route to redirect to when a customer enters partner bonus; default: `None`.
+            - redirect: The route to redirect to when a customer enters partner discount; default: `None`.
             - website_sale_order: The current order.
         -->
 		<form t-attf-action="/shop/apply_partner_bonus#{redirect and '?r=' + redirect or ''}" method="post" name="apply_partner_bonus">
@@ -29,15 +29,14 @@
 
 	<!-- ======================================================= -->
 
+	<!-- MOVEO PLUS Inherited: Total (website_sale.total) -->
 	<template id="mv_website_sale.total" inherit_id="website_sale.total">
-		<!-- MOVEO PLUS Inherited: Total (website_sale) -->
 		<xpath expr="//div[@id='cart_total']//table" position="before">
 			<t t-set="is_partner_agency" t-value="website_sale_order and website_sale_order.partner_id and website_sale_order.partner_id.is_agency"/>
 			<t t-set="partner_discount_amount" t-value="website_sale_order.partner_id.amount if is_partner_agency else 0"/>
 		</xpath>
 		<xpath expr="//tr[@id='order_total']" position="after">
-			<tr t-if="is_partner_agency and partner_discount_amount &gt; 0"
-			    id="order_total_partner_discount_amount_info">
+			<tr t-if="is_partner_agency and partner_discount_amount &gt; 0" id="order_total_partner_discount_amount_info">
 				<td colspan="2" class="border-0 ps-0 pt-3">
 					<strong class="text-info">
 						<i class="fa fa-fw fa-money me-1"/>Tiền chiết khấu hiện có
@@ -72,8 +71,8 @@
 		</xpath>
 	</template>
 
+	<!-- MOVEO PLUS Inherited: Navigations Buttons (website_sale.navigation_buttons) -->
 	<template id="mv_website_sale.navigation_buttons" inherit_id="website_sale.navigation_buttons">
-		<!-- MOVEO PLUS Inherited: Navigations Buttons (website_sale) -->
 		<xpath expr="//a[@name='website_sale_main_button']" position="after">
 			<t t-if="request.params.get('show_warning')" name="show_warning">
 				<div class="alert alert-danger text-center" role="alert">Bạn phải đặt từ 4 lốp xe trở lên</div>
@@ -81,11 +80,9 @@
 		</xpath>
 	</template>
 
+	<!-- MOVEO PLUS Inherited: Brand Promotion (website_sale.brand_promotion) -->
 	<template id="mv_website_sale.brand_promotion" inherit_id="website_sale.brand_promotion">
-		<!--
-			MOVEO PLUS Inherited: Brand Promotion (website_sale)
-			=> Remove the brand promotion message
-		-->
+		<!-- Replace: Remove the brand promotion message -->
 		<xpath expr="//t[@t-call='web.brand_promotion_message']" position="replace"/>
 	</template>
 </odoo>

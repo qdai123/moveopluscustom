@@ -132,19 +132,19 @@
 		</xpath>
 	</template>
 
-	<template id="portal_layout_mv_sale" inherit_id="portal.portal_layout">
-		<xpath expr="//t[@t-if='my_details']/div/h3" position="replace">
-			<h3 class="my-3">My account &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-				<span style='color:red;font-size:14pt;'>Tiền chiết khấu:
-					<t t-out="user_id.sudo().partner_id.amount" class="monetary_field"
-					   style="white-space: nowrap;"
-					   t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
-				</span>
-			</h3>
-		</xpath>
-	</template>
+<!--	<template id="portal_layout_mv_sale" inherit_id="portal.portal_layout">-->
+<!--		<xpath expr="//t[@t-if='my_details']/div/h3" position="replace">-->
+<!--			<h3 class="my-3">My account &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;-->
+<!--				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;-->
+<!--				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;-->
+<!--				<span style='color:red;font-size:14pt;'>Tiền chiết khấu:-->
+<!--					<t t-out="user_id.sudo().partner_id.amount" class="monetary_field"-->
+<!--					   style="white-space: nowrap;"-->
+<!--					   t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>-->
+<!--				</span>-->
+<!--			</h3>-->
+<!--		</xpath>-->
+<!--	</template>-->
 
 	<!--    Giấu tất cả sản phẩm dịch vụ ở trang shop/cart -->
 	<template id="cart_lines_mv_sale" inherit_id="website_sale.cart_lines">

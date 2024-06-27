@@ -116,3 +116,9 @@ class SaleOrderLine(models.Model):
                 order._compute_bonus()
 
         return super(SaleOrderLine, self).unlink()
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_confirmed(self):
+        # [!] MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
+        if not self.is_sales_manager:
+            return super(SaleOrderLine, self)._unlink_except_confirmed()

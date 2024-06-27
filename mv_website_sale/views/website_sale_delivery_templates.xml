@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<!-- MOVEO PLUS Inherited: Cart Delivery (website_sale.cart_delivery) -->
 	<template id="mv_website_sale.cart_delivery" name="MOVEO PLUS Delivery Cost" inherit_id="website_sale.cart_delivery">
-		<!-- MOVEO PLUS Inherited: Cart Delivery (website_sale) -->
 		<!-- Write your logic code here... -->
 	</template>
 </odoo>
