@@ -61,7 +61,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     discount_amount_apply = fields.Float()
     discount_amount_remaining = fields.Float(related="sale_order_id.bonus_remaining")
     discount_amount_maximum = fields.Float(related="sale_order_id.bonus_max")
-    discount_amount_applied = fields.Float(related="sale_order_id.bonus_order")
+    discount_amount_applied = fields.Float(compute="_compute_sale_order_id")
 
     # ==================================
     # CONSTRAINS / VALIDATION Methods
@@ -105,6 +105,9 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             wizard.delivery_set = any(line.is_delivery for line in order.order_line)
             wizard.discount_agency_set = order.order_line._filter_discount_agency_lines(
                 order
+            )
+            wizard.discount_amount_applied = (
+                order.bonus_order if not wizard.discount_amount_invalid else 0.0
             )
 
     @api.depends("carrier_id")
@@ -259,15 +262,25 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         order = wizard.sale_order_id
 
         # [>] For Product Discount with code 'CKT'
-        if wizard.discount_agency_set and wizard.discount_amount_remaining > 0:
+        if wizard.discount_agency_set:
             """Update SOline(s) discount according to wizard configuration"""
 
             total_order_discount_CKT = (
-                wizard.discount_amount_apply + wizard.discount_amount_applied
+                (wizard.discount_amount_apply + wizard.discount_amount_applied)
+                if wizard.discount_amount_remaining > 0
+                else wizard.discount_amount_apply
             )
             order.order_line.filtered(
                 lambda line: line.product_id.default_code == "CKT"
-            ).write({"price_unit": -total_order_discount_CKT})
+            ).write(
+                {
+                    "price_unit": (
+                        -total_order_discount_CKT
+                        if total_order_discount_CKT > 0
+                        else 0.0
+                    )
+                }
+            )
             order._compute_bonus()
 
         # [>] For Product Discount with code 'CKBL'

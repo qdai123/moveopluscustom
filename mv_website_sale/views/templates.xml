@@ -38,8 +38,8 @@
 		<xpath expr="//tr[@id='order_total']" position="after">
 			<tr t-if="is_partner_agency and partner_discount_amount &gt; 0" id="order_total_partner_discount_amount_info">
 				<td colspan="2" class="border-0 ps-0 pt-3">
-					<strong class="text-info">
-						<i class="fa fa-fw fa-money me-1"/>Tiền chiết khấu hiện có
+					<span class="fw-bold">
+						<i class="fa fa-fw fa-money me-1 text-success"/>Tiền chiết khấu hiện có
 						<p class="fw-normal">
 							<small class="text-muted">(Lưu ý: Số tiền chiết khấu sử dụng không vượt quá
 								<b>
@@ -47,11 +47,12 @@
 								</b>
 							</small>
 						</p>
-					</strong>
+					</span>
 				</td>
-				<td class="text-end border-0 px-0 pt-3 text-info">
-					<strong t-field="website_sale_order.bonus_remaining" class="monetary_field text-end p-0" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-					<strong t-field="website_sale_order.bonus_order" class="monetary_field text-end p-0" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				<td class="text-end text-success border-0 px-0 pt-3">
+					<p t-field="website_sale_order.bonus_remaining"
+					   t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"
+					   class="monetary_field text-end fw-bold p-0"/>
 				</td>
 			</tr>
 		</xpath>

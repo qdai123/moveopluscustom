@@ -5,38 +5,46 @@
 		<field name="model">mv.wizard.discount</field>
 		<field name="arch" type="xml">
 			<form>
+				<!-- Invisible Fields: START -->
 				<field name="is_update" invisible="1"/>
 				<field name="partner_id" invisible="1"/>
 				<field name="currency_id" invisible="1"/>
 				<field name="sale_order_id" invisible="1"/>
-				<field name="discount_agency_set" invisible="1"/>
-				<field name="discount_amount_invalid" invisible="1"/>
 				<field name="delivery_set" invisible="1"/>
 				<field name="delivery_type" invisible="1"/>
 				<field name="delivery_price" invisible="1"/>
-				<field name="available_carrier_ids" invisible="1"/>
+				<!-- Invisible Fields: END -->
 				<div role="alert" class="col-8 alert alert-warning" invisible="not discount_amount_invalid or discount_amount_invalid_message == ''">
-					<field name="discount_amount_invalid_message" nolabel="1"/>
+					<field name="discount_amount_invalid_message" force_save="1" nolabel="1"/>
 				</div>
 				<group class="col-8">
+					<field name="discount_agency_set" invisible="1"/>
+					<field name="discount_amount_invalid" invisible="1"/>
 					<field string="Số tiền chiết khấu" name="discount_amount_apply"/>
 					<field string="Tiền chiết khấu hiện có"
 					       name="discount_amount_remaining"
 					       widget="monetary"
 					       options="{'currency_field': 'currency_id'}"
-					/>
+					       class="fw-bold"
+					       decoration-success="discount_amount_remaining &gt; 0"
+					       decoration-muted="discount_amount_remaining == 0"/>
 					<field string="Được chiết khấu tối đa"
 					       name="discount_amount_maximum"
 					       widget="monetary"
 					       options="{'currency_field': 'currency_id'}"
-					/>
+					       class="fw-bold"
+					       decoration-danger="discount_amount_maximum &gt; 0"
+					       decoration-muted="discount_amount_maximum == 0"/>
 					<field string="Tiền đã chiết khấu"
 					       name="discount_amount_applied"
 					       widget="monetary"
 					       options="{'currency_field': 'currency_id'}"
-					/>
+					       class="fw-bold"
+					       decoration-warning="discount_amount_applied &gt; 0"
+					       decoration-muted="discount_amount_applied == 0"/>
 				</group>
 				<group class="col-8" string="# Phương thức giao hàng" invisible="delivery_set or is_update">
+					<field name="available_carrier_ids" invisible="1"/>
 					<field name="carrier_id" string="Phương thức giao hàng" domain="[('id', 'in', available_carrier_ids)]"/>
 					<label name="carried_weight_label" for="total_weight" string="Tổng khối lượng đơn hàng" groups="product.group_stock_packaging"/>
 					<div name="carried_weight" class="o_row" groups="product.group_stock_packaging">
@@ -45,14 +53,8 @@
 					</div>
 					<label for="display_price" string="Chi phí"/>
 					<div class="o_row">
-						<field name="display_price"
-						       widget="monetary"
-						       options="{'currency_field': 'currency_id'}"
-						       invisible="not carrier_id"
-						/>
-						<button name="update_price"
-						        type="object"
-						        invisible="delivery_type in ('fixed', 'base_on_rule')">
+						<field name="display_price" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="not carrier_id"/>
+						<button name="update_price" type="object" invisible="delivery_type in ('fixed', 'base_on_rule')">
 							<i class="oi oi-arrow-right me-1"/>Nhập tỉ lệ
 						</button>
 					</div>
@@ -64,10 +66,10 @@
 					<field name="delivery_message" nolabel="1"/>
 				</div>
 				<footer>
-					<button type="object" string="Áp dụng &amp; Xác nhận" name="action_apply_and_confirm" class="btn-primary" invisible="not discount_amount_invalid" data-hotkey="q"/>
+					<!-- Action on Confirm SO -->
+					<button type="object" string="Cập nhật &amp; Xác nhận" name="action_apply_and_confirm" class="btn-primary" invisible="not discount_amount_invalid" data-hotkey="q"/>
 					<button type="object" string="Xác nhận" name="action_apply" class="btn-primary" invisible="is_update or discount_amount_invalid" data-hotkey="q"/>
-					<button type="object" string="Cập nhật" name="action_update" class="btn-primary" invisible="not is_update or discount_amount_invalid" data-hotkey="q"/>
-					<button type="object" string="Chỉ cập nhật" name="action_update" class="btn-primary" invisible="not discount_amount_invalid" data-hotkey="q"/>
+					<button type="object" string="Cập nhật" name="action_update" class="btn-primary" invisible="not is_update" data-hotkey="q"/>
 					<button string="Hủy bỏ" special="cancel" class="btn-secondary" data-hotkey="x"/>
 				</footer>
 			</form>

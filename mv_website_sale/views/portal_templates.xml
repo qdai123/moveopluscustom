@@ -12,12 +12,14 @@
 		</xpath>
         <xpath expr="//div[hasclass('o_portal_wrap')]//div[hasclass('container')]//div[2]//div[contains(@t-attf-class, 'o_portal_content')]" position="replace">
 	        <div t-attf-class="o_portal_content col-12 col-lg-8 mb-5">
-		        <h4 class="text-danger">
-			        <i class="fa fa-fw fa-money me-1"/>Tiền chiết khấu hiện có:
-			        <t t-out="float(user_id.sudo().partner_id.amount)"
-			           class="monetary_field"
-			           t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
-		        </h4>
+		        <h5>
+			        <i class="fa fa-fw fa-money me-1 text-success"/>Tổng tiền chiết khấu hiện có:
+			        <span class="text-success fw-bold">
+				        <t t-out="float(user_id.sudo().partner_id.amount)"
+				           class="monetary_field"
+				           t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
+			        </span>
+		        </h5>
 		        <t t-out="0"/>
 	        </div>
         </xpath>
