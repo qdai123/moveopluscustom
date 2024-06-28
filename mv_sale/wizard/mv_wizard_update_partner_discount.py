@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from markupsafe import Markup
 
-from odoo import fields, models, _
+from odoo import _, fields, models
 from odoo.exceptions import UserError
 
 

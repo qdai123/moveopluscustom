@@ -45,7 +45,7 @@
 					</group>
 					<notebook>
 						<page string="Chi tiết">
-							<field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': id, 'first_policy_code': 'rim_lower_and_equal_16', 'second_policy_code': 'rim_greater_and_equal_17'}">
+							<field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': active_id, 'first_policy_code': 'rim_lower_and_equal_16', 'second_policy_code': 'rim_greater_and_equal_17'}">
 								<tree default_order="parent_compute_date">
 									<field name="currency_id" column_invisible="True"/>
 									<field name="parent_compute_date" column_invisible="True"/>

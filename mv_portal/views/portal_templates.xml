@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<!-- MOVEO PLUS Inherited: My Portal Record Sidebar (portal.portal_record_sidebar) -->
 	<template id="mv_portal.portal_record_sidebar" inherit_id="portal.portal_record_sidebar">
+		<!-- Replace: Remove Powered by Odoo title -->
         <xpath expr="//div[hasclass('o_portal_sidebar_content')]/div[2]" position="replace"/>
     </template>
 </odoo>

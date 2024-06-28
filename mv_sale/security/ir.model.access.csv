@@ -1,20 +1,34 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_mv_discount,mv.discount,model_mv_discount,base.group_user,1,1,1,0
-access_mv_discount_line,mv.discount.line,model_mv_discount_line,base.group_user,1,1,1,1
-access_mv_warranty_discount_policy_internal_user,mv.warranty.discount.policy Internal User,model_mv_warranty_discount_policy,base.group_user,1,1,1,0
+access_mv_discount_internal_user,mv.discount Internal User,model_mv_discount,base.group_user,1,0,1,0
+access_mv_discount_system_user,mv.discount System User,model_mv_discount,base.group_system,1,1,1,1
+access_mv_discount_sale_manager,mv.discount Sale Manager,model_mv_discount,sales_team.group_sale_manager,1,1,1,1
+
+access_mv_discount_line_internal_user,mv.discount.line Internal User,model_mv_discount_line,base.group_user,1,0,1,0
+access_mv_discount_line_system_user,mv.discount.line System User,model_mv_discount_line,base.group_system,1,1,1,1
+access_mv_discount_line_sale_manager,mv.discount.line Sale Manager,model_mv_discount_line,sales_team.group_sale_manager,1,1,1,1
+
+access_mv_warranty_discount_policy_internal_user,mv.warranty.discount.policy Internal User,model_mv_warranty_discount_policy,base.group_user,1,0,1,0
 access_mv_warranty_discount_policy_system_user,mv.warranty.discount.policy System User,model_mv_warranty_discount_policy,base.group_system,1,1,1,1
-access_mv_warranty_discount_policy_line_internal_user,mv.warranty.discount.policy.line Internal User,model_mv_warranty_discount_policy_line,base.group_user,1,1,1,0
+access_mv_warranty_discount_policy_sale_manager,mv.warranty.discount.policy Sale Manager,model_mv_warranty_discount_policy,sales_team.group_sale_manager,1,1,1,1
+
+access_mv_warranty_discount_policy_line_internal_user,mv.warranty.discount.policy.line Internal User,model_mv_warranty_discount_policy_line,base.group_user,1,0,1,0
 access_mv_warranty_discount_policy_line_system_user,mv.warranty.discount.policy.line System User,model_mv_warranty_discount_policy_line,base.group_system,1,1,1,1
-access_mv_compute_warranty_discount_policy_internal_user,mv.compute.warranty.discount.policy Internal User,model_mv_compute_warranty_discount_policy,base.group_user,1,1,1,0
+access_mv_warranty_discount_policy_line_sale_manager,mv.warranty.discount.policy.line Sale Manager,model_mv_warranty_discount_policy_line,sales_team.group_sale_manager,1,1,1,1
+
+access_mv_compute_warranty_discount_policy_internal_user,mv.compute.warranty.discount.policy Internal User,model_mv_compute_warranty_discount_policy,base.group_user,1,0,1,0
 access_mv_compute_warranty_discount_policy_system_user,mv.compute.warranty.discount.policy System User,model_mv_compute_warranty_discount_policy,base.group_system,1,1,1,1
-access_mv_compute_warranty_discount_policy_line_internal_user,mv.compute.warranty.discount.policy.line Internal User,model_mv_compute_warranty_discount_policy_line,base.group_user,1,1,1,0
+access_mv_compute_warranty_discount_policy_sale_manager,mv.compute.warranty.discount.policy Sale Manager,model_mv_compute_warranty_discount_policy,sales_team.group_sale_manager,1,1,1,1
+
+access_mv_compute_warranty_discount_policy_line_internal_user,mv.compute.warranty.discount.policy.line Internal User,model_mv_compute_warranty_discount_policy_line,base.group_user,1,0,1,0
 access_mv_compute_warranty_discount_policy_line_system_user,mv.compute.warranty.discount.policy.line System User,model_mv_compute_warranty_discount_policy_line,base.group_system,1,1,1,1
+access_mv_compute_warranty_discount_policy_line_sale_manager,mv.compute.warranty.discount.policy.line Sale Manager,model_mv_compute_warranty_discount_policy_line,sales_team.group_sale_manager,1,1,1,1
+
 access_mv_promote_discount_line,mv.promote.discount.line,model_mv_promote_discount_line,base.group_user,1,1,1,1
 access_mv_white_place_discount_line,mv.white.place.discount.line,model_mv_white_place_discount_line,base.group_user,1,1,1,1
 access_mv_discount_partner,mv.discount.partner,model_mv_discount_partner,base.group_user,1,1,1,1
+access_mv_compute_discount,mv.compute.discount,model_mv_compute_discount,base.group_user,1,1,1,0
 access_mv_compute_discount_line,mv.compute.discount.line,model_mv_compute_discount_line,base.group_user,1,1,1,1
 access_mv_compute_discount_line_approver,mv.compute.discount.line Approver,model_mv_compute_discount_line,mv_sale.group_mv_compute_discount_approver,1,1,1,1
-access_mv_compute_discount,mv.compute.discount,model_mv_compute_discount,base.group_user,1,1,1,0
 access_discount_report_line,discount.report.line,model_discount_report_line,base.group_user,1,1,1,1
 access_discount_report,discount.report,model_discount_report,base.group_user,1,1,1,1
 access_mv_report_discount,mv.report.discount,model_mv_report_discount,base.group_user,1,1,1,1

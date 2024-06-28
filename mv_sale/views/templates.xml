@@ -3,235 +3,126 @@
 	<template id="bonus_amount_mv_sale" name="bonus_amount_mv_sale">
 		<t t-if="website_sale_order and website_sale_order.partner_id.amount > 0">
 			<t t-if="not deliveries">
-				<form t-attf-action="/shop/compute_bonus_amount#{redirect and '?r=' + redirect or ''}"
-				      method="post" name="compute_bonus_amount">
-					<input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"
-					       t-nocache="The csrf token must always be up to date."/>
+				<form t-attf-action="/shop/compute_bonus_amount#{redirect and '?r=' + redirect or ''}" method="post" name="compute_bonus_amount">
+					<input type="hidden" name="csrf_token" t-att-value="request.csrf_token()" t-nocache="The csrf token must always be up to date."/>
 					<div class="input-group w-100 my-2">
-						<input name="bonus" class="form-control" type="text" placeholder="Nhập số tiền muốn áp dụng"/>
+						<input name="bonus" class="form-control" type="text" placeholder="Số tiền muốn áp dụng ..."/>
 						<a href="#" role="button" class="btn btn-secondary a-submit ps-2">Áp dụng</a>
 					</div>
 				</form>
 			</t>
 			<t t-if="request.params.get('not_available_condition')" name="not_available_condition">
-				<div class="alert alert-danger text-start" role="alert">Chỉ được nhập số</div>
+				<div class="alert alert-danger text-start" role="alert">Chỉ được nhập số!</div>
 			</t>
 			<t t-if="request.params.get('bonus_max')" name="bonus_max">
-				<div class="alert alert-danger text-start" role="alert">*Lưu ý số tiền chiết khấu sử dụng không vượt quá
-					50% giá trị đơn hàng là:
-					<t t-out="int(website_sale_order.bonus_max)" class="monetary_field"
-					   t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				<div class="alert alert-danger text-start" role="alert">
+					(*) Lưu ý số tiền chiết khấu sử dụng không vượt quá 50% giá trị đơn hàng là:
+					<t t-out="float(website_sale_order.bonus_max)" class="monetary_field" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</div>
 			</t>
 			<t t-if="request.params.get('bonus_more_time')" name="bonus_more_time">
-				<div class="alert alert-danger text-start" role="alert">* Tổng số tiền chiết khấu sản lượng bạn áp dụng
-					là
-					<t t-out="float(request.params.get('bonus_more_time'))" class="monetary_field"
-					   t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				<div class="alert alert-danger text-start" role="alert">
+					(*) Tổng số tiền chiết khấu sản lượng bạn áp dụng là
+					<t t-out="float(request.params.get('bonus_more_time'))" class="monetary_field" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 					đã vượt qua 50% giá trị đơn hàng là:
-					<t t-out="int(website_sale_order.bonus_max)" class="monetary_field"
-					   t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					<t t-out="int(website_sale_order.bonus_max)" class="monetary_field" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</div>
 			</t>
 			<t t-if="request.params.get('bonus_larger_partner')" name="bonus_larger_partner">
-				<div class="alert alert-danger text-start" role="alert">tổng tiền chiết khấu bạn áp dụng là
-					<t t-out="float(request.params.get('bonus_larger_partner'))" class="monetary_field"
-					   t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				<div class="alert alert-danger text-start" role="alert">
+					(*) Tổng tiền chiết khấu bạn áp dụng là
+					<t t-out="float(request.params.get('bonus_larger_partner'))" class="monetary_field" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 					đã vượt qua số tiền bạn hiện có trong tài khoản là:
-					<t t-out="int(website_sale_order.partner_id.amount)" class="monetary_field"
-					   t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					<t t-out="int(website_sale_order.partner_id.amount)" class="monetary_field" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</div>
 			</t>
 		</t>
 	</template>
 
-	<template id="navigation_buttons_mv_sale" inherit_id="website_sale.navigation_buttons">
-		<xpath expr="//a[@name='website_sale_main_button']" position="replace">
-			<a role="button" name="website_sale_main_button"
-			   t-attf-class="#{_cta_classes} btn btn-primary #{not website_sale_order._is_cart_ready() and 'disabled'} #{_form_send_navigation and 'order-lg-3 w-100 w-lg-auto ms-lg-auto' or 'w-100'}"
-			   t-att-href="step_specific_values['main_button_href']">
-				<!--                <t t-out="step_specific_values['main_button']"/>-->
-				Đặt hàng
-				<i class="fa fa-angle-right ms-2 fw-light"/>
-			</a>
-			<t t-if="request.params.get('show_warning')" name="show_warning">
-				<div class="alert alert-danger text-start" role="alert">Bạn phải đặt từ 4 lốp xe trở lên</div>
-			</t>
-		</xpath>
-	</template>
+<!--	<template id="cart_delivery_mv_sale" inherit_id="website_sale.cart_delivery">-->
+<!--		<xpath expr="//tr[@id='order_delivery']" position="before">-->
+<!--			<tr id="total_price_no_service">-->
+<!--				<td id="total_price_no_service" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">-->
+<!--					Giá-->
+<!--				</td>-->
+<!--				<td class="text-end border-0 pb-2 pe-0 pt-0">-->
+<!--					<span t-field="website_sale_order.total_price_no_service"-->
+<!--					      class="monetary_field"-->
+<!--					      style="white-space: nowrap;"-->
+<!--					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--				</td>-->
+<!--			</tr>-->
+<!--			<tr id="order_total_price_begin">-->
+<!--				<td id="order_total_price_begin" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">-->
+<!--					Chiết khấu <t t-out="int(website_sale_order.percentage)"/>%-->
+<!--				</td>-->
+<!--				<td class="text-end border-0 pb-2 pe-0 pt-0">-->
+<!--					- <span t-field="website_sale_order.total_price_discount" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--				</td>-->
+<!--			</tr>-->
+<!--			<tr id="order_total_price_after_discount">-->
+<!--				<td id="order_total_price_after_discount" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">-->
+<!--					Giá sau chiết khấu-->
+<!--				</td>-->
+<!--				<td class="text-end border-0 pb-2 pe-0 pt-0">-->
+<!--					<span t-field="website_sale_order.total_price_after_discount" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--				</td>-->
+<!--			</tr>-->
+<!--			<t t-if="website_sale_order and website_sale_order.bank_guarantee">-->
+<!--				<tr id="bank_guarantee">-->
+<!--					<td id="bank_guarantee"-->
+<!--					    class="border-0 pb-2 ps-0 pt-0 text-start text-muted"-->
+<!--					    colspan="2">-->
+<!--						Chiết khấu bảo lãnh (0.5%)-->
+<!--					</td>-->
+<!--					<td class="text-end border-0 pb-2 pe-0 pt-0">-->
+<!--						- -->
+<!--						<span t-field="website_sale_order.discount_bank_guarantee"-->
+<!--						      class="monetary_field"-->
+<!--						      style="white-space: nowrap;"-->
+<!--						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--					</td>-->
+<!--				</tr>-->
+<!--			</t>-->
+<!--			<t t-if="website_sale_order and website_sale_order.check_discount_10">-->
+<!--				<tr>-->
+<!--					<td colspan="2" class="border-0 pb-2 ps-0 pt-0 text-start text-muted">-->
+<!--						Chiết khấu đặt hàng-->
+<!--						<p>-->
+<!--							(trên 10 lốp) 1%-->
+<!--						</p>-->
+<!--					</td>-->
+<!--					<td class="text-end border-0 pb-2 pe-0 pt-0">-->
+<!--						- -->
+<!--						<span t-field="website_sale_order.total_price_discount_10"-->
+<!--						      class="monetary_field text-end p-0"-->
+<!--						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--					</td>-->
+<!--				</tr>-->
+<!--			</t>-->
+<!--			<t t-if="website_sale_order and website_sale_order.bonus_order > 0">-->
+<!--				<tr>-->
+<!--					<td colspan="2" class="border-0 pb-2 ps-0 pt-0 text-start text-muted">Chiết khấu sản lượng</td>-->
+<!--					<td class="text-end border-0 pb-2 pe-0 pt-0">-->
+<!--						- <span t-field="website_sale_order.bonus_order" class="monetary_field text-end p-0" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--					</td>-->
+<!--				</tr>-->
+<!--			</t>-->
+<!--			<tr id="order_total_taxes">-->
+<!--				<td colspan="2" class="text-muted border-0 ps-0 pt-0 pb-3">Giá đã bao gồm VAT(8%)</td>-->
+<!--				<td class="text-end border-0 pe-0 pt-0 pb-3">-->
+<!--					<span t-field="website_sale_order.amount_tax"-->
+<!--					      class="monetary_field"-->
+<!--					      style="white-space: nowrap;"-->
+<!--					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--				</td>-->
+<!--			</tr>-->
+<!--		</xpath>-->
+<!--&lt;!&ndash;		<xpath expr="//tr[@id='order_total_untaxed']" position="attributes">&ndash;&gt;-->
+<!--&lt;!&ndash;			<attribute name="t-attf-style">display: none;</attribute>&ndash;&gt;-->
+<!--&lt;!&ndash;		</xpath>&ndash;&gt;-->
+<!--	</template>-->
 
-	<template id="total_mv_sale" inherit_id="website_sale.total">
-		<xpath expr="//tr[@id='order_total_taxes']" position="attributes">
-			<attribute name="t-attf-style">display: none;</attribute>
-		</xpath>
-		<xpath expr="//tr[@id='order_total']" position="after">
-			<tr>
-				<td colspan="2" class="border-0 ps-0 pt-3 text-danger mr8">
-					<small class="text-warning">
-						Số tiền chiết khấu hiện có
-						<p>*Áp dụng không quá 50% giá trị tổng đơn hàng</p>
-					</small>
-				</td>
-				<td class="text-end border-0 px-0 pt-3 text-warning">
-					<strong t-field="website_sale_order.partner_id.amount" class="monetary_field text-end p-0"
-					        t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-				</td>
-			</tr>
-		</xpath>
-		<xpath expr="//div[@id='cart_total']//table/tr[last()]" position="after">
-			<tr t-if="not hide_promotions">
-				<td colspan="3" class="text-end text-xl-end border-0 p-0">
-					<span>
-						<t t-set="force_coupon" t-value="website_sale_order.pricelist_id.code"/>
-						<div t-if="not force_coupon" class="coupon_form">
-							<t t-call="mv_sale.bonus_amount_mv_sale"/>
-						</div>
-					</span>
-				</td>
-			</tr>
-		</xpath>
-	</template>
-
-	<template id="cart_delivery_mv_sale" inherit_id="website_sale.cart_delivery">
-		<xpath expr="//tr[@id='order_delivery']" position="before">
-			<tr id="total_price_no_service">
-				<td id="total_price_no_service"
-				    class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
-				    colspan="2">
-					Giá
-				</td>
-				<td class="text-end border-0 pb-2 pe-0 pt-0">
-					<span t-field="website_sale_order.total_price_no_service"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-				</td>
-			</tr>
-			<tr id="order_total_price_begin">
-				<td id="order_total_price_begin"
-				    class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
-				    colspan="2">
-					Chiết khấu<t t-out="int(website_sale_order.percentage)"/>%
-				</td>
-				<td class="text-end border-0 pb-2 pe-0 pt-0">
-					-
-					<span t-field="website_sale_order.total_price_discount"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-				</td>
-			</tr>
-			<tr id="order_total_price_after_discount">
-				<td id="order_total_price_after_discount"
-				    class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
-				    colspan="2">
-					Giá sau chiết khấu
-				</td>
-				<td class="text-end border-0 pb-2 pe-0 pt-0">
-					<span t-field="website_sale_order.total_price_after_discount"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-				</td>
-			</tr>
-			<t t-if="website_sale_order and website_sale_order.bank_guarantee">
-				<tr id="bank_guarantee">
-					<td id="bank_guarantee"
-					    class="border-0 pb-2 ps-0 pt-0 text-start text-muted"
-					    colspan="2">
-						Chiết khấu bảo lãnh (0.5%)
-					</td>
-					<td class="text-end border-0 pb-2 pe-0 pt-0">
-						-
-						<span t-field="website_sale_order.discount_bank_guarantee"
-						      class="monetary_field"
-						      style="white-space: nowrap;"
-						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-					</td>
-				</tr>
-			</t>
-			<!--            <t t-if="website_sale_order and website_sale_order.bank_guarantee">-->
-			<!--                <tr id="after_bank_guarantee">-->
-			<!--                    <td id="after_bank_guarantee"-->
-			<!--                        class="border-0 pb-2 ps-0 pt-0 text-start text-muted"-->
-			<!--                        colspan="2">-->
-			<!--                        Giá sau chiết khấu-->
-			<!--                        <p>bảo lãnh (0.5%)</p>-->
-			<!--                    </td>-->
-			<!--                    <td class="text-end border-0 pb-2 pe-0 pt-0">-->
-			<!--                        <span t-field="website_sale_order.after_discount_bank_guarantee"-->
-			<!--                              class="monetary_field"-->
-			<!--                              style="white-space: nowrap;"-->
-			<!--                              t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
-			<!--                    </td>-->
-			<!--                </tr>-->
-			<!--            </t>-->
-			<t t-if="website_sale_order and website_sale_order.check_discount_10">
-				<tr>
-					<td colspan="2" class="border-0 pb-2 ps-0 pt-0 text-start text-muted">
-						Chiết khấu đặt hàng
-						<p>
-							(trên 10 lốp) 1%
-						</p>
-					</td>
-					<td class="text-end border-0 pb-2 pe-0 pt-0">
-						-
-						<span t-field="website_sale_order.total_price_discount_10"
-						      class="monetary_field text-end p-0"
-						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-					</td>
-				</tr>
-				<!--                <tr>-->
-				<!--                    <td colspan="2" class="border-0 pb-2 ps-0 pt-0 text-start text-muted">-->
-				<!--                        Giá sau chiết-->
-				<!--                        <p>-->
-				<!--                            khấu đặt hàng-->
-				<!--                        </p>-->
-				<!--                    </td>-->
-				<!--                    <td class="text-end border-0 pb-2 pe-0 pt-0">-->
-				<!--                        <span t-field="website_sale_order.total_price_after_discount_10"-->
-				<!--                              class="monetary_field text-end p-0"-->
-				<!--                              t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
-				<!--                    </td>-->
-				<!--                </tr>-->
-			</t>
-			<t t-if="website_sale_order and website_sale_order.bonus_order > 0">
-				<tr>
-					<td colspan="2" class="border-0 pb-2 ps-0 pt-0 text-start text-muted">
-						Sử dụng điểm thưởng
-					</td>
-					<td class="text-end border-0 pb-2 pe-0 pt-0">
-						-
-						<span t-field="website_sale_order.bonus_order"
-						      class="monetary_field text-end p-0"
-						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-					</td>
-				</tr>
-				<!--                <tr>-->
-				<!--                    <td colspan="2" class="border-0 pb-2 ps-0 pt-0 text-start text-muted">-->
-				<!--                        Giá sau ck tháng-->
-				<!--                    </td>-->
-				<!--                    <td class="text-end border-0 pb-2 pe-0 pt-0">-->
-				<!--                        <span t-field="website_sale_order.total_price_after_discount_month"-->
-				<!--                              class="monetary_field text-end p-0"-->
-				<!--                              t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
-				<!--                    </td>-->
-				<!--                </tr>-->
-			</t>
-			<tr id="order_total_taxes">
-				<td colspan="2" class="text-muted border-0 ps-0 pt-0 pb-3">Giá đã bao gồm VAT(8%)</td>
-				<td class="text-end border-0 pe-0 pt-0 pb-3">
-					<span t-field="website_sale_order.amount_tax"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-				</td>
-			</tr>
-		</xpath>
-		<xpath expr="//tr[@id='order_total_untaxed']" position="attributes">
-			<attribute name="t-attf-style">display: none;</attribute>
-		</xpath>
-	</template>
 	<!--    ẩn đường link-->
 	<template id="cart_line_product_no_link_mv_sale" inherit_id="website_sale_loyalty.cart_line_product_no_link">
 		<xpath expr="//t[@t-if='line.is_reward_line']" position="after">
@@ -241,19 +132,19 @@
 		</xpath>
 	</template>
 
-	<template id="portal_layout_mv_sale" inherit_id="portal.portal_layout">
-		<xpath expr="//t[@t-if='my_details']/div/h3" position="replace">
-			<h3 class="my-3">My account &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;
-				<span style='color:red;font-size:14pt;'>Tiền chiết khấu:
-					<t t-out="user_id.sudo().partner_id.amount" class="monetary_field"
-					   style="white-space: nowrap;"
-					   t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
-				</span>
-			</h3>
-		</xpath>
-	</template>
+<!--	<template id="portal_layout_mv_sale" inherit_id="portal.portal_layout">-->
+<!--		<xpath expr="//t[@t-if='my_details']/div/h3" position="replace">-->
+<!--			<h3 class="my-3">My account &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;-->
+<!--				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;-->
+<!--				&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;-->
+<!--				<span style='color:red;font-size:14pt;'>Tiền chiết khấu:-->
+<!--					<t t-out="user_id.sudo().partner_id.amount" class="monetary_field"-->
+<!--					   style="white-space: nowrap;"-->
+<!--					   t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>-->
+<!--				</span>-->
+<!--			</h3>-->
+<!--		</xpath>-->
+<!--	</template>-->
 
 	<!--    Giấu tất cả sản phẩm dịch vụ ở trang shop/cart -->
 	<template id="cart_lines_mv_sale" inherit_id="website_sale.cart_lines">
@@ -369,6 +260,7 @@
 			</div>
 		</xpath>
 	</template>
+
 	<!--    Giấu tất cả sản phẩm dịch vụ ở trang shop/payment -->
 	<template id="checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">
 		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="replace">

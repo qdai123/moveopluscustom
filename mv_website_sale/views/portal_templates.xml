@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- MOVEO PLUS Inherited: Portal Layout (portal.portal_layout) -->
+	<template id="mv_website_sale.portal_layout" inherit_id="portal.portal_layout">
+		<xpath expr="//div[hasclass('o_portal_wrap')]//h3[hasclass('my-3')]" position="replace">
+			<t t-if="user_id.partner_id and user_id.partner_id.is_agency">
+				<h3 class="my-3">Thông tin Đại lý</h3>
+			</t>
+			<t t-else="">
+				<h3 class="my-3">Tài khoản của tôi</h3>
+			</t>
+		</xpath>
+        <xpath expr="//div[hasclass('o_portal_wrap')]//div[hasclass('container')]//div[2]//div[contains(@t-attf-class, 'o_portal_content')]" position="replace">
+	        <div t-attf-class="o_portal_content col-12 col-lg-8 mb-5">
+		        <h5>
+			        <i class="fa fa-fw fa-money me-1 text-success"/>Tổng tiền chiết khấu hiện có:
+			        <span class="text-success fw-bold">
+				        <t t-out="float(user_id.sudo().partner_id.amount)"
+				           class="monetary_field"
+				           t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
+			        </span>
+		        </h5>
+		        <t t-out="0"/>
+	        </div>
+        </xpath>
+	</template>
+
+<!--    <template id="portal_my_home" name="My Portal">-->
+<!--        <t t-call="portal.portal_layout">-->
+<!--            <t t-set="my_details" t-value="True"/>-->
+<!--            <div class="o_portal_my_home">-->
+<!--                <div class="oe_structure" id="oe_structure_portal_my_home_1"/>-->
+<!--                <div class="o_portal_docs row g-2">-->
+<!--                    <div class="o_portal_doc_spinner spinner-border text-o-color-2 align-self-center mt-5"/>-->
+<!--                    <div t-if="portal_alert_category_enable" class="o_portal_category row g-2 mt-3" id="portal_alert_category"/>-->
+<!--                    <div t-if="portal_client_category_enable" class="o_portal_category row g-2 mt-3" id="portal_client_category"/>-->
+<!--                    <div t-if="portal_service_category_enable" class="o_portal_category row g-2 mt-3" id="portal_service_category"/>-->
+<!--                    <div t-if="portal_vendor_category_enable" class="o_portal_category row g-2 mt-3" id="portal_vendor_category"/>-->
+<!--                    <div class="o_portal_category row g-2 mt-3" id="portal_common_category">-->
+<!--                        <t t-call="portal.portal_docs_entry">-->
+<!--                            <t t-set="icon" t-value="'/portal/static/src/img/portal-addresses.svg'"/>-->
+<!--                            <t t-set="title">Addresses</t>-->
+<!--                            <t t-set="text">Add, remove or modify your addresses</t>-->
+<!--                            <t t-set="url" t-value="'/my/account'"/>-->
+<!--                            <t t-set="config_card" t-value="True"/>-->
+<!--                        </t>-->
+<!--                        <t t-call="portal.portal_docs_entry">-->
+<!--                            <t t-set="icon" t-value="'/portal/static/src/img/portal-connection.svg'"/>-->
+<!--                            <t t-set="title">Connection &amp; Security</t>-->
+<!--                            <t t-set="text">Configure your connection parameters</t>-->
+<!--                            <t t-set="url" t-value="'/my/security'"/>-->
+<!--                            <t t-set="config_card" t-value="True"/>-->
+<!--                        </t>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="oe_structure" id="oe_structure_portal_my_home_2"/>-->
+<!--        </t>-->
+<!--    </template>-->
+</odoo>

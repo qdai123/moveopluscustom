@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mv_sale_inherit_sale_order_cancel_view_form" model="ir.ui.view">
+        <field name="name">mv_sale.inherit.sale.order.cancel.form</field>
+        <field name="model">sale.order.cancel</field>
+        <field name="priority">30</field>
+        <field name="inherit_id" ref="sale.sale_order_cancel_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='subject']" position="after">
+                <field name="cancel_reason"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

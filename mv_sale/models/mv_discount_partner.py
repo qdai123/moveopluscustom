@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 
 
 class MvDiscountPolicyPartner(models.Model):
     _name = _description = "mv.discount.partner"
     _rec_name = "partner_id"
 
-    date = fields.Date("Ngày hiệu lực", default=fields.Date.today().replace(day=1))
-    level = fields.Integer("Cấp bậc", default=0)
-    min_debt = fields.Integer("Min Debt", default=0)
-    max_debt = fields.Integer("Max Debt", default=0)
-    number_debt = fields.Float("Ratio Debt", default=0)
-    # RELATION Fields
-    parent_id = fields.Many2one(
-        "mv.discount",
-        "Chính sách chiết khấu",
-        domain=[("active", "=", True)],
-        help="Parent Model: mv.discount",
+    # === Model: [res.partner] Fields ===#
+    partner_id = fields.Many2one(
+        "res.partner", "Khách hàng / Đại lý", domain=[("is_agency", "=", True)]
     )
+    partner_agency = fields.Boolean(compute="_compute_partner_agency")
+    partner_white_agency = fields.Boolean(compute="_compute_partner_agency")
+    partner_southern_agency = fields.Boolean(compute="_compute_partner_agency")
+    # === Model: [mv.discount] Fields ===#
+    parent_id = fields.Many2one(
+        "mv.discount", "Chính sách chiết khấu", domain=[("active", "=", True)]
+    )
+    # === Model: [mv.warranty.discount.policy] Fields ===#
     warranty_discount_policy_ids = fields.Many2many(
         "mv.warranty.discount.policy",
         "mv_warranty_discount_policy_partner_rel",
@@ -25,19 +25,16 @@ class MvDiscountPolicyPartner(models.Model):
         "mv_discount_partner_id",
         string="Chính sách chiết khấu kích hoạt",
         domain=[("active", "=", True)],
-        help="Parent Model: mv.warranty.discount.policy",
     )
-    partner_id = fields.Many2one(
-        "res.partner",
-        "Khách hàng / Đại lý",
-        domain=[("is_agency", "=", True)],
-        help="Parent Model: res.partner",
-    )
-    partner_agency = fields.Boolean(help="Make sure this is an agency")
-    partner_white_agency = fields.Boolean(help="Make sure this is a white agency")
-    needs_update = fields.Boolean(
-        default=False, help="Warning: This record needs to be updated"
-    )
+    # === Other Fields ===#
+    date = fields.Date(
+        "Ngày hiệu lực", default=fields.Date.today().replace(day=1, month=1)
+    )  # Default: 1/1/(Current Year)
+    level = fields.Integer("Cấp bậc", default=0)
+    min_debt = fields.Integer("Min Debt", default=0)
+    max_debt = fields.Integer("Max Debt", default=0)
+    number_debt = fields.Float("Ratio Debt", default=0)
+    needs_update = fields.Boolean("Cần cập nhật", default=False)
 
     _sql_constraints = [
         (
@@ -47,25 +44,32 @@ class MvDiscountPolicyPartner(models.Model):
         ),
     ]
 
-    # =================================
-    # ORM Methods
-    # =================================
+    @api.depends("partner_id")
+    def _compute_partner_agency(self):
+        for mv_partner in self:
+            mv_partner.partner_agency = mv_parner.partner_id.is_agency or False
+            mv_partner.partner_white_agency = (
+                mv_parner.partner_id.is_white_agency or False
+            )
+            mv_partner.partner_southern_agency = (
+                mv_parner.partner_id.is_southern_agency or False
+            )
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        return super(MvDiscountPolicyPartner, self).create(vals_list)
+    # =================================
+    # ORM / CRUD Methods
+    # =================================
 
     def write(self, vals):
-        res = super(MvDiscountPolicyPartner, self).write(vals)
+        res = super().write(vals)
 
         if res:
             for record in self:
                 if (
                     record.parent_id
-                    and record.warranty_discount_policy_ids
                     and record.partner_id
+                    and record.warranty_discount_policy_ids
                 ):
-                    record.partner_id.sudo().write(
+                    record.partner_id.write(
                         {
                             "warranty_discount_policy_ids": [
                                 (6, 0, record.warranty_discount_policy_ids.ids)
@@ -74,9 +78,6 @@ class MvDiscountPolicyPartner(models.Model):
                     )
 
         return res
-
-    def unlink(self):
-        return super(MvDiscountPolicyPartner, self).unlink()
 
     # =================================
     # ACTION Methods
