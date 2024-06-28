@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import models
 
+QUANTITY_THRESHOLD = 4
+
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
@@ -15,7 +17,7 @@ class SaleOrder(models.Model):
         """
         order_line = self.order_line.filtered(
             lambda line: line.product_id.product_tmpl_id.detailed_type == "product"
-            and self.check_category_product(x.product_id.categ_id)
+            and self.check_category_product(line.product_id.categ_id)
         )
         return (
             len(order_line) >= 1
