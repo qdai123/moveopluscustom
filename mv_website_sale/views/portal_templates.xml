@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- MOVEO PLUS Inherited: Portal Layout (portal.portal_layout) -->
-	<template id="mv_website_sale.portal_layout" inherit_id="portal.portal_layout">
+    <!-- MOVEO+ Inherited: Portal Layout (portal.portal_layout) -->
+	<template id="mv_website_sale.portal_layout" name="MOVEO+ Inherited: Portal Layout" inherit_id="portal.portal_layout">
 		<xpath expr="//div[hasclass('o_portal_wrap')]//h3[hasclass('my-3')]" position="replace">
 			<t t-if="user_id.partner_id and user_id.partner_id.is_agency">
 				<h3 class="my-3">Thông tin Đại lý</h3>

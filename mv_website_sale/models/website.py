@@ -8,6 +8,8 @@ class MoveoplusWebsite(models.Model):
     def _get_moveoplus_checkout_step_list(self):
         """Return an ordered list of Moveo PLus steps according to the current template rendered.
 
+            TODO: Implement the logic to add the "Moveoplus info" step when needed.
+
         :rtype: list
         :return: A list with the following structure:
             [
@@ -32,26 +34,24 @@ class MoveoplusWebsite(models.Model):
             (
                 ["website_sale.cart"],
                 {
-                    "name": _lt("Review Order"),
+                    "name": "Xem lại đơn hàng",
                     "current_href": "/shop/cart",
                     "main_button": (
-                        _lt("Sign In")
-                        if redirect_to_sign_in
-                        else _lt("Proceed to checkout")
+                        "Đăng nhập" if redirect_to_sign_in else "Tiến hành thanh toán"
                     ),
                     "main_button_href": f'{"/web/login?redirect=" if redirect_to_sign_in else ""}/shop/checkout?express=1',
-                    "back_button": _lt("Continue shopping"),
+                    "back_button": "Tiếp tục mua hàng",
                     "back_button_href": "/shop",
                 },
             ),
             (
                 ["website_sale.checkout", "website_sale.address"],
                 {
-                    "name": _lt("Shipping"),
+                    "name": "Vận chuyển",
                     "current_href": "/shop/checkout",
-                    "main_button": _lt("Confirm"),
+                    "main_button": "Xác nhận",
                     "main_button_href": f'{"/shop/extra_info" if is_extra_step_active else "/shop/confirm_order"}',
-                    "back_button": _lt("Back to cart"),
+                    "back_button": "Quay lại giỏ hàng",
                     "back_button_href": "/shop/cart",
                 },
             ),
@@ -61,11 +61,11 @@ class MoveoplusWebsite(models.Model):
                 (
                     ["website_sale.extra_info"],
                     {
-                        "name": _lt("Extra Info"),
+                        "name": "Thông tin bổ sung",
                         "current_href": "/shop/extra_info",
-                        "main_button": _lt("Continue checkout"),
+                        "main_button": "Tiếp tục thanh toán",
                         "main_button_href": "/shop/confirm_order",
-                        "back_button": _lt("Return to shipping"),
+                        "back_button": "Quay lại bước vận chuyển",
                         "back_button_href": "/shop/checkout",
                     },
                 )
@@ -74,9 +74,9 @@ class MoveoplusWebsite(models.Model):
             (
                 ["website_sale.payment"],
                 {
-                    "name": _lt("Payment"),
+                    "name": "Thanh toán",
                     "current_href": "/shop/payment",
-                    "back_button": _lt("Back to cart"),
+                    "back_button": "Quay lại giỏ hàng",
                     "back_button_href": "/shop/cart",
                 },
             )
