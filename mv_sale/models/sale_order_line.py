@@ -174,7 +174,7 @@ class SaleOrderLine(models.Model):
     def _compute_price_subtotal_before_discount(self):
         for so_line in self:
             if so_line.price_unit and so_line.qty_delivered and so_line.discount:
-                order_line.price_subtotal_before_discount = (
+                so_line.price_subtotal_before_discount = (
                     so_line.price_unit * so_line.qty_delivered
                 ) - (
                     (so_line.price_unit * so_line.qty_delivered)

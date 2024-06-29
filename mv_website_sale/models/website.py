@@ -5,7 +5,7 @@ from odoo import models, _lt
 class MoveoplusWebsite(models.Model):
     _inherit = "website"
 
-    def _get_moveoplus_checkout_step_list(self):
+    def _get_moveoplus_checkout_agency_step_list(self):
         """Return an ordered list of Moveo PLus steps according to the current template rendered.
 
             TODO: Implement the logic to add the "Moveoplus info" step when needed.
@@ -84,13 +84,13 @@ class MoveoplusWebsite(models.Model):
         return steps
 
     def _get_checkout_steps(self, current_step=None):
-        """Override of `website_sale` to add a "Moveoplus info" step when needed."""
+        """Override of `website_sale` to add a "Moveoplus for Partner Agency" step when needed."""
 
         checkout_steps = super()._get_checkout_steps(current_step=None)
         order = self.sudo().sale_get_order()
         agency = order and order.partner_id and order.partner_id.is_agency
         if agency:
-            checkout_steps = self._get_moveoplus_checkout_step_list()
+            checkout_steps = self._get_moveoplus_checkout_agency_step_list()
 
         if current_step:
             return next(step for step in checkout_steps if current_step in step[0])[1]
