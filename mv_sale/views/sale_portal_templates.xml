@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<!-- MOVEO+ Inherited: Sale Portal Layout Sidebar (sale.sale_order_portal_template) -->
+	<template id="mv_sale.sale_order_portal_template" name="MOVEO+ Inherited: Sale Portal Layout Sidebar" inherit_id="sale.sale_order_portal_template">
+		<xpath expr="//div[@id='sale_order_sidebar_button']/a[1]" position="attributes">
+			<attribute name="class">d-none</attribute>
+		</xpath>
+		<xpath expr="//div[@id='sale_order_sidebar_button']/a[@id='o_sale_portal_paynow']" position="attributes">
+			<attribute name="class">d-none</attribute>
+		</xpath>
+		<xpath expr="//t[@t-if='sale_order._has_to_be_signed()']/div[1]" position="attributes">
+			<attribute name="class">d-none</attribute>
+		</xpath>
+	</template>
+
+</odoo>

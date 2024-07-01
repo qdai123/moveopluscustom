@@ -15,7 +15,7 @@
 		        <h5>
 			        <i class="fa fa-fw fa-money me-1 text-success"/>Tổng tiền chiết khấu hiện có:
 			        <span class="text-success fw-bold">
-				        <t t-out="float(user_id.sudo().partner_id.amount)"
+				        <t t-out="float(user_id.sudo().partner_id.amount_currency)"
 				           class="monetary_field"
 				           t-options="{'widget': 'monetary', 'display_currency': user_id.sudo().partner_id.property_product_pricelist.currency_id}"/>
 			        </span>

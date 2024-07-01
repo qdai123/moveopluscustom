@@ -107,7 +107,7 @@
 			</tr>
 		</xpath>
 		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total']" position="after">
-			<tr t-if="is_partner_agency" id="order_total_partner_discount_amount">
+			<tr t-if="is_partner_agency and not hide_discount_amount" id="order_total_partner_discount_amount">
 				<td colspan="2" class="border-0 ps-0 pt-3">
 					<span class="fw-bold">
 						<i class="fa fa-fw fa-money me-1 text-success"/>Tiền chiết khấu hiện có
@@ -128,7 +128,7 @@
 			</tr>
 		</xpath>
 		<xpath expr="//div[@id='cart_total']/table/tr[last()]" position="after">
-			<tr t-if="is_partner_agency" id="order_partner_discount_amount_apply_form">
+			<tr t-if="is_partner_agency and not hide_discount_amount" id="order_partner_discount_amount_apply_form">
 				<td colspan="3" class="text-end text-xl-end border-0 p-0">
 					<span>
 						<div class="mv_apply_partner_bonus_form">
