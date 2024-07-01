@@ -115,6 +115,9 @@ class MoveoplusWebsiteSale(WebsiteSale):
         if order.partner_id.is_agency and order.check_show_warning():
             return request.redirect("%s?show_warning=1" % redirect)
 
+        if order.check_missing_partner_discount():
+            return request.redirect("%s?missing_partner_discount=1" % redirect)
+
         return super().checkout(**post)
 
     # /// Payment
