@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<menuitem id="salesperson_report_menu"
+              name="Salesperson's Analysis"
+              action="salesperson_report_action_view"
+              parent="sale.menu_sale_report"
+              sequence="50"/>
 
 	<!-- Menu Configuration: Discount by MOVEO PLUS -->
 	<menuitem id="mv_menu_sales_discount_config" name="Chiết khấu" parent="sale.menu_sale_config" sequence="25"/>
