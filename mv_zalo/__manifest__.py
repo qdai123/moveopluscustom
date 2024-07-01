@@ -7,6 +7,7 @@
     "author": "Phat Dang <phat.dangminh@moveoplus.com>",
     "depends": [
         # Odoo
+        "account",
         "stock",
         # BIZ
         "biz_zalo",
@@ -16,9 +17,12 @@
         "mv_sale",
     ],
     "data": [
+        # DATA
+        "data/ir_cron_data.xml",
         # SECURITY
         "security/ir.model.access.csv",
         # VIEWS
+        "views/account_move_views.xml",
         "views/stock_picking_views.xml",
         # WIZARDS
         "wizard/zns_send_message_wizard_views.xml",
