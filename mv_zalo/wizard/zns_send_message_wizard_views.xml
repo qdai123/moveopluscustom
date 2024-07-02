@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="mv_zalo_inherit_view_zns_send_message_wizard_form" model="ir.ui.view">
+		<field name="name">mv_zalo.inherit.zns.send.message.wizard.form</field>
+		<field name="model">zns.send.message.wizard</field>
+		<field name="inherit_id" ref="biz_zalo_zns.view_zns_send_message_wizard_form"/>
+		<field name="priority">30</field>
+		<field name="arch" type="xml">
+			<xpath expr="//sheet/group/group" position="inside">
+				<field name="picking_id" options="{'no_open': True}" invisible="use_type != 'stock.picking'"/>
+				<field name="move_id" options="{'no_open': True}" invisible="use_type != 'stock.move'"/>
+				<field name="move_line_id" options="{'no_open': True}" invisible="use_type != 'stock.move.line'"/>
+				<field name="account_move_id" options="{'no_open': True}" invisible="use_type != 'account.move'"/>
+				<field name="account_move_line_id" options="{'no_open': True}" invisible="use_type != 'account.move.line'"/>
+			</xpath>
+			<xpath expr="//field[@name='order_id']" position="attributes">
+				<attribute name="options">{'no_open': True}</attribute>
+			</xpath>
+			<xpath expr="//field[@name='coupon_id']" position="attributes">
+				<attribute name="options">{'no_open': True}</attribute>
+			</xpath>
+			<xpath expr="//field[@name='tracking_id']" position="attributes">
+				<attribute name="readonly">True</attribute>
+			</xpath>
+			<xpath expr="//field[@name='template_id']" position="attributes">
+				<attribute name="options">{'no_create_edit': True, 'no_open': True}</attribute>
+			</xpath>
+		</field>
+	</record>
+</odoo>

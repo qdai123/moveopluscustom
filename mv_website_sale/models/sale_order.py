@@ -8,13 +8,6 @@ class SaleOrder(models.Model):
     _inherit = "sale.order"
 
     def check_show_warning(self):
-        """
-        Check if there is at least one product in the order line that belongs to the target category
-        and if the sum of the quantities of these products is less than QUANTITY_THRESHOLD.
-
-        Returns:
-            bool: True if both conditions are met, False otherwise.
-        """
         order_line = self.order_line.filtered(
             lambda line: line.product_id.product_tmpl_id.detailed_type == "product"
             and self.check_category_product(line.product_id.categ_id)
@@ -23,6 +16,14 @@ class SaleOrder(models.Model):
             len(order_line) >= 1
             and sum(order_line.mapped("product_uom_qty")) < QUANTITY_THRESHOLD
         )
+
+    def check_missing_partner_discount(self):
+        order = self
+        agency_discount_line = (
+            order.order_line._filter_discount_agency_lines(order)
+            or order.discount_agency_set
+        )
+        return not agency_discount_line
 
     def _compute_cart_info(self):
         # Call the parent class's _compute_cart_info method

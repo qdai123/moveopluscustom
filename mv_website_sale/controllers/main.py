@@ -16,6 +16,8 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
     # === OVERRIDE METHODS ===#
 
+    # /// Cart
+
     def _cart_values(self, **post):
         _logger.debug(f"POST: {post}")
         order = request.website.sale_get_order()
@@ -94,6 +96,16 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
         return super().cart(access_token=access_token, revive=revive, **post)
 
+    # /// Checkout
+
+    def checkout_values(self, order, **kw):
+        res = super().checkout_values(order, **kw)
+
+        # [>] Hide Discount Amount Input
+        res["hide_discount_amount"] = True
+
+        return res
+
     @http.route()
     def checkout(self, **post):
         redirect = post.get("r", "/shop/cart")
@@ -102,6 +114,9 @@ class MoveoplusWebsiteSale(WebsiteSale):
         order = request.website.sale_get_order()
         if order.partner_id.is_agency and order.check_show_warning():
             return request.redirect("%s?show_warning=1" % redirect)
+
+        if order.check_missing_partner_discount():
+            return request.redirect("%s?missing_partner_discount=1" % redirect)
 
         return super().checkout(**post)
 
@@ -113,6 +128,9 @@ class MoveoplusWebsiteSale(WebsiteSale):
         # Update the submit button label (use for Moveo Plus only)
         res["submit_button_label"] = "Đặt Hàng Ngay"
 
+        # [>] Hide Discount Amount Input
+        res["hide_discount_amount"] = True
+
         return res
 
     @http.route()
@@ -122,6 +140,18 @@ class MoveoplusWebsiteSale(WebsiteSale):
             order.compute_discount_for_partner(0)
 
         return super().shop_payment(**post)
+
+    @http.route()
+    def shop_payment_confirmation(self, **post):
+        return super().shop_payment_confirmation(**post)
+
+    def _prepare_shop_payment_confirmation_values(self, order):
+        res = super()._prepare_shop_payment_confirmation_values(order)
+
+        # [>] Hide Discount Amount Input
+        res["hide_discount_amount"] = True
+
+        return res
 
     # === MOVEOPLUS METHODS ===#
 
@@ -198,7 +228,9 @@ class MoveoplusWebsiteSale(WebsiteSale):
                     lambda line: line.product_id.default_code == "CKBL"
                 ).write({"price_unit": -total_order_discount_CKBL})
 
-        order._update_programs_and_rewards()
-        order._auto_apply_rewards()
+        order.with_context(
+            applying_partner_discount=True
+        )._update_programs_and_rewards()
+        order.with_context(applying_partner_discount=True)._auto_apply_rewards()
 
         return request.redirect(redirect_shop_cart)

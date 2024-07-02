@@ -483,10 +483,7 @@ class SaleOrder(models.Model):
         )
 
     def _handle_quantity_change(self, quantity_change, discount_lines, delivery_lines):
-        if (
-            self.quantity_change != quantity_change
-            and self.quantity_change != quantity_change
-        ):
+        if self.quantity_change != 0 and self.quantity_change != quantity_change:
             if delivery_lines:
                 delivery_lines.unlink()
             if discount_lines:
@@ -743,9 +740,11 @@ class SaleOrder(models.Model):
         Update the programs and rewards of the order.
         """
         context = dict(self.env.context or {})
-        context_compute_discount = context.get(
-            "compute_discount_agency"
-        ) or context.get("recompute_discount_agency")
+        context_compute_discount = (
+            context.get("compute_discount_agency")
+            or context.get("recompute_discount_agency")
+            or context.get("applying_partner_discount")
+        )
         if context_compute_discount:
             return super()._update_programs_and_rewards()
 

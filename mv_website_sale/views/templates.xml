@@ -9,7 +9,7 @@
 		<form t-attf-action="/shop/apply_discount#{redirect and '?r=' + redirect or ''}" method="post" name="applying_partner_discount">
 			<input type="hidden" name="csrf_token" t-att-value="request.csrf_token()" t-nocache="The csrf token must always be up to date."/>
 			<div class="input-group w-100 my-2">
-				<input type="number" id="applying_partner_discount_input" class="form-control" name="discount_amount" value="0" min="0"/>
+				<input type="number" id="applying_partner_discount_input" class="form-control" name="discount_amount" t-att-value="website_sale_order.bonus_remaining if website_sale_order.bonus_remaining else 0" min="0"/>
 				<a href="#" role="button" id="button-apply" class="btn btn-secondary a-submit">Áp dụng</a>
 			</div>
 		</form>
@@ -107,7 +107,7 @@
 			</tr>
 		</xpath>
 		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total']" position="after">
-			<tr t-if="is_partner_agency" id="order_total_partner_discount_amount">
+			<tr t-if="is_partner_agency and not hide_discount_amount" id="order_total_partner_discount_amount">
 				<td colspan="2" class="border-0 ps-0 pt-3">
 					<span class="fw-bold">
 						<i class="fa fa-fw fa-money me-1 text-success"/>Tiền chiết khấu hiện có
@@ -128,7 +128,7 @@
 			</tr>
 		</xpath>
 		<xpath expr="//div[@id='cart_total']/table/tr[last()]" position="after">
-			<tr t-if="is_partner_agency" id="order_partner_discount_amount_apply_form">
+			<tr t-if="is_partner_agency and not hide_discount_amount" id="order_partner_discount_amount_apply_form">
 				<td colspan="3" class="text-end text-xl-end border-0 p-0">
 					<span>
 						<div class="mv_apply_partner_bonus_form">
@@ -143,9 +143,14 @@
 	<!-- MOVEO+ Inherited: Navigations Buttons (website_sale.navigation_buttons) -->
 	<template id="mv_website_sale.navigation_buttons" name="MOVEO+ Inherited: Navigations Buttons" inherit_id="website_sale.navigation_buttons">
 		<xpath expr="//a[@name='website_sale_main_button']" position="after">
-			<t t-if="request.params.get('show_warning')" name="show_warning">
-				<div class="alert alert-danger text-center" role="alert">Bạn phải đặt từ 4 lốp xe trở lên</div>
-			</t>
+			<div class="warning_checkout" style="padding-top: inherit;">
+				<t t-if="request.params.get('show_warning')" name="show_warning">
+					<div class="alert alert-danger text-center" role="alert">Bạn phải đặt từ 4 lốp xe trở lên!</div>
+				</t>
+				<t t-if="request.params.get('missing_partner_discount')" name="missing_partner_discount">
+					<div class="alert alert-danger text-center" role="alert">Vui lòng áp dụng Chiết khấu cho đơn hàng!</div>
+				</t>
+			</div>
 		</xpath>
 	</template>
 

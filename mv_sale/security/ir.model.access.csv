@@ -31,6 +31,7 @@ access_mv_compute_discount_line,mv.compute.discount.line,model_mv_compute_discou
 access_mv_compute_discount_line_approver,mv.compute.discount.line Approver,model_mv_compute_discount_line,mv_sale.group_mv_compute_discount_approver,1,1,1,1
 access_discount_report_line,discount.report.line,model_discount_report_line,base.group_user,1,1,1,1
 access_discount_report,discount.report,model_discount_report,base.group_user,1,1,1,1
+access_salesperson_report,salesperson.report,model_salesperson_report,base.group_user,1,1,1,1
 access_mv_report_discount,mv.report.discount,model_mv_report_discount,base.group_user,1,1,1,1
 access_mv_wizard_discount,mv.wizard.discount,model_mv_wizard_discount,base.group_user,1,1,1,1
 access_mv_wizard_promote_discount_line,mv.wizard.promote.discount.line,model_mv_wizard_promote_discount_line,base.group_user,1,1,1,1
