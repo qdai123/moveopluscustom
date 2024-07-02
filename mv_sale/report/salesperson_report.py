@@ -98,10 +98,89 @@ class SalespersonReport(models.Model):
         """
 
     def _with_clause(self):
-        att_ma_gai = self.env.context.get("attribute_ma_gai", False)
-        att_size_lop = self.env.context.get("attribute_size_lop", False)
+        att_ma_gai = self.env.context.get("attribute_ma_gai", "ma_gai")
+        att_size_lop = self.env.context.get("attribute_size_lop", "size_lop")
         att_rim_diameter_inch = self.env.context.get(
-            "attribute_rim_diameter_inch", False
+            "attribute_rim_diameter_inch", "rim_diameter_inch"
+        )
+
+        print(
+            f"""
+            orders AS ({self._sql_orders()}),
+            order_lines AS (SELECT so.sale_id,
+                                so.partner_id,
+                                so.partner_shipping_id,
+                                sol.product_id       AS product_id,
+                                pt.id                AS product_template_id,
+                                pt.country_of_origin AS product_country_of_origin,
+                                stl.name             AS serial_number,
+                                stl.ref              AS qrcode
+                         FROM sale_order_line AS sol
+                                  JOIN orders AS so ON (so.sale_id = sol.order_id)
+                                  JOIN product_product AS pp ON (pp.id = sol.product_id)
+                                  JOIN product_template AS pt
+                                       ON (pt.id = pp.product_tmpl_id)
+                                           AND sale_ok = TRUE
+                                           AND (pt.detailed_type = 'product' OR pt.type = 'product')
+                                  JOIN stock_picking AS sp ON (sp.sale_id = sol.order_id) AND sp.state = 'done'
+                                  JOIN stock_move_line AS sml ON (sml.picking_id = sp.id AND sml.product_id = pp.id)
+                                  JOIN stock_lot AS stl ON (stl.id = sml.lot_id AND stl.product_id = pp.id)
+                         WHERE sol.state = 'sale'
+                           AND sol.qty_delivered_method = 'stock_move'
+                         GROUP BY 1, 2, 3, 4, 5, 6, 7, 8),
+         products AS (SELECT pp.id                         AS product_id,
+                             sol.product_template_id       AS product_template_id,
+                             sol.product_country_of_origin AS product_country_of_origin
+                      FROM product_product AS pp
+                               JOIN order_lines AS sol ON (sol.product_id = pp.id)
+                      GROUP BY pp.id, sol.product_template_id, sol.product_country_of_origin),
+         products_size_lop AS (SELECT pp.id                      AS product_id,
+                                      pav.name ->> 'en_US'::TEXT AS product_att_size_lop
+                               FROM product_product AS pp
+                                        JOIN product_template AS pt
+                                             ON (pt.id = pp.product_tmpl_id) AND pp.id IN (SELECT product_id FROM order_lines)
+                                        JOIN product_template_attribute_line AS ptal ON (ptal.product_tmpl_id = pt.id)
+                                        JOIN product_attribute AS paatt
+                                             ON (paatt.id = ptal.attribute_id) AND
+                                                paatt.attribute_code IN ('{att_size_lop}', '{att_size_lop}_duplicated')
+                                        JOIN product_template_attribute_value AS ptav
+                                             ON (ptav.product_tmpl_id = pt.id AND ptav.attribute_id = paatt.id)
+                                        JOIN product_attribute_value AS pav
+                                             ON (pav.id = ptav.product_attribute_value_id)
+                               WHERE pp.id IN (SELECT product_id FROM products)
+                               GROUP BY product_id, product_att_size_lop),
+         products_ma_gai AS (SELECT pp.id                      AS product_id,
+                                    pav.name ->> 'en_US'::TEXT AS product_att_ma_gai
+                             FROM product_product AS pp
+                                      JOIN product_template AS pt
+                                           ON (pt.id = pp.product_tmpl_id) AND pp.id IN (SELECT product_id FROM order_lines)
+                                      JOIN product_template_attribute_line AS ptal ON (ptal.product_tmpl_id = pt.id)
+                                      JOIN product_attribute AS paatt
+                                           ON (paatt.id = ptal.attribute_id) AND
+                                              paatt.attribute_code IN ('{att_ma_gai}', '{att_ma_gai}_duplicated')
+                                      JOIN product_template_attribute_value AS ptav
+                                           ON (ptav.product_tmpl_id = pt.id AND ptav.attribute_id = paatt.id)
+                                      JOIN product_attribute_value AS pav
+                                           ON (pav.id = ptav.product_attribute_value_id)
+                             WHERE pp.id IN (SELECT product_id FROM products)
+                             GROUP BY product_id, product_att_ma_gai),
+         products_rim_diameter_inch AS (SELECT pp.id                      AS product_id,
+                                               pav.name ->> 'en_US'::TEXT AS product_att_rim_diameter_inch
+                                        FROM product_product AS pp
+                                                 JOIN product_template AS pt
+                                                      ON (pt.id = pp.product_tmpl_id) AND pp.id IN (SELECT product_id FROM order_lines)
+                                                 JOIN product_template_attribute_line AS ptal
+                                                      ON (ptal.product_tmpl_id = pt.id)
+                                                 JOIN product_attribute AS paatt
+                                                      ON (paatt.id = ptal.attribute_id) AND
+                                                         paatt.attribute_code IN ('{att_rim_diameter_inch}', '{att_rim_diameter_inch}_duplicated')
+                                                 JOIN product_template_attribute_value AS ptav
+                                                      ON (ptav.product_tmpl_id = pt.id AND ptav.attribute_id = paatt.id)
+                                                 JOIN product_attribute_value AS pav
+                                                      ON (pav.id = ptav.product_attribute_value_id)
+                                        WHERE pp.id IN (SELECT product_id FROM products)
+                                        GROUP BY product_id, product_att_rim_diameter_inch)
+        """
         )
 
         return f"""
