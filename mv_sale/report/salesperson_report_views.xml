@@ -15,24 +15,23 @@
                     </div>
                     <group>
                         <group string="Thông tin bán hàng" name="group_sale_order_info">
-	                        <field name="sale_date_order" string="Ngày đặt hàng"/>
+	                        <field name="sale_date_order"/>
                         </group>
                         <group string="Thông tin Đại lý" name="group_customer_info">
-                            <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
-                            <field name="partner_shipping_id" string="Đại lý vận chuyển" options="{'no_open': True}"/>
-                            <field name="delivery_address" string="Địa chỉ"/>
+                            <field name="partner_id" options="{'no_open': True}"/>
+	                        <field name="partner_company_registry"/>
+                            <field name="partner_shipping_id" options="{'no_open': True}"/>
+                            <field name="delivery_address"/>
                         </group>
 	                    <group string="Thông tin Sản phẩm" name="group_product_info">
 		                    <field name="product_id" invisible="True"/>
-		                    <field name="product_template_id" string="Sản phẩm" options="{'no_open': True}"/>
-                            <field name="product_country_of_origin" string="Quốc Gia" options="{'no_open': True}"/>
-                            <field name="product_barcode" string="Barcode"/>
-                            <field name="product_att_size_lop" string="Size (lốp)"/>
-                            <field name="product_att_ma_gai" string="Mã gai"/>
-                            <field name="product_att_rim_diameter_inch" string="Đường kính Mâm"/>
-                            <field name="serial_number" string="Mã vạch"/>
-                            <field name="qrcode" string="QR-Code"/>
-                            <field name="week_number" string="Số tuần" options="{'no_open': True}"/>
+		                    <field name="product_template_id" options="{'no_open': True}"/>
+                            <field name="product_country_of_origin" options="{'no_open': True}"/>
+                            <field name="product_att_size_lop"/>
+                            <field name="product_att_ma_gai"/>
+                            <field name="product_att_rim_diameter_inch"/>
+                            <field name="serial_number"/>
+                            <field name="qrcode"/>
 	                    </group>
                     </group>
                 </sheet>
@@ -46,29 +45,28 @@
 		<field name="arch" type="xml">
 			<tree string="Salesperson's Analysis Report TREE" create="false" edit="false" delete="false" import="false">
 				<field name="product_id" column_invisible="1"/>
-				<field name="product_template_id" string="Sản phẩm" options="{'no_open': True}"/>
-				<field name="serial_number" string="Mã vạch"/>
-				<field name="qrcode" string="QR-Code"/>
-				<field name="product_barcode" string="Barcode" optional="hidden"/>
-				<field name="product_att_size_lop" string="Size (lốp)" optional="show"/>
-				<field name="product_att_ma_gai" string="Mã gai" optional="show"/>
-				<field name="product_att_rim_diameter_inch" string="Đường kính Mâm" optional="show"/>
-				<field name="product_country_of_origin" string="Quốc Gia" options="{'no_open': True}" optional="show"/>
-				<field name="week_number" column_invisible="1"/>
+				<field name="product_template_id" options="{'no_open': True}"/>
+				<field name="serial_number"/>
+				<field name="qrcode"/>
+				<field name="product_att_size_lop" optional="show"/>
+				<field name="product_att_ma_gai" optional="show"/>
+				<field name="product_att_rim_diameter_inch" optional="show"/>
+				<field name="product_country_of_origin" options="{'no_open': True}" optional="show"/>
 				<field name="sale_id" column_invisible="1"/>
-				<field class="fw-bold" name="sale_ref" string="Mã SO" optional="show"/>
-				<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+				<field class="fw-bold" name="sale_ref" optional="show"/>
+				<field name="partner_id" options="{'no_open': True}"/>
+				<field name="partner_company_registry"/>
 				<field name="partner_shipping_id" column_invisible="1"/>
-				<field name="delivery_address" string="Địa chỉ giao hàng" optional="show"/>
-				<field name="street" string="Đường" optional="show"/>
-				<field name="wards_id" string="Phường" optional="show"/>
-				<field name="district_id" string="Quận" optional="show"/>
-				<field name="state_id" string="Thành phố" optional="show"/>
-				<field name="country_id" string="Quốc gia" optional="show"/>
-				<field name="sale_date_order" string="Ngày đặt hàng"/>
-				<field name="sale_day_order" string="Ngày đặt"/>
-				<field name="sale_month_order" string="Tháng đặt"/>
-				<field name="sale_year_order" string="Năm đặt"/>
+				<field name="delivery_address" optional="show"/>
+				<field name="street" optional="show"/>
+				<field name="wards_id" optional="show"/>
+				<field name="district_id" optional="show"/>
+				<field name="state_id" optional="show"/>
+				<field name="country_id" optional="show"/>
+				<field name="sale_date_order" optional="show"/>
+				<field name="sale_day_order" optional="show"/>
+				<field name="sale_month_order" optional="show"/>
+				<field name="sale_year_order" optional="show"/>
 			</tree>
 		</field>
 	</record>
@@ -88,10 +86,8 @@
                         ('product_template_id.name', 'ilike', self)]"/>
 				<field name="serial_number" string="Mã vạch"/>
 				<field name="qrcode" string="QR-Code"/>
-				<field name="week_number" string="Số tuần"/>
 				<group expand="0" string="Group By" colspan="16">
 					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'partner_id'}"/>
-					<filter string="Quốc Gia" name="groupby_country" context="{'group_by':'country_id'}"/>
 					<separator/>
 					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_template_id'}"/>
 					<filter string="Quốc Gia (Sản phẩm)" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
@@ -110,7 +106,11 @@
 		<field name="search_view_id" ref="salesperson_report_view_search"/>
 		<field name="view_id" ref="salesperson_report_view_tree"/>
 		<field name="domain">[]</field>
-		<field name="context">{}</field>
+		<field name="context">{
+			'attribute_ma_gai': 'ma_gai',
+			'attribute_size_lop': 'size_lop',
+			'attribute_rim_diameter_inch': 'rim_diameter_inch'
+		}</field>
 		<field name="help" type="html">
 			<p class="o_view_nocontent_empty_folder">
 				No data yet, please update data!
