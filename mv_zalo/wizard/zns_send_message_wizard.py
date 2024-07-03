@@ -11,10 +11,11 @@ from odoo.addons.biz_zalo_common.models.common import (
 from odoo.addons.mv_zalo.models.zns_templates import MODELS_ZNS_USE_TYPE
 
 from odoo import api, fields, models
-
-CODE_ERROR_ZNS = dict(CODE_ERROR_ZNS)
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
+
+CODE_ERROR_ZNS = dict(CODE_ERROR_ZNS)
 
 
 class ZnsSendMessageWizard(models.TransientModel):
