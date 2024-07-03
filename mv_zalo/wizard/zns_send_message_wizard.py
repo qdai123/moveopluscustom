@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
-from markupsafe import Markup
+import json
 
-from odoo import api, fields, models, _
+from markupsafe import Markup
+from odoo.addons.biz_zalo_common.models.common import (
+    CODE_ERROR_ZNS,
+    get_datetime,
+    show_success_message,
+)
 from odoo.addons.mv_zalo.models.zns_templates import MODELS_ZNS_USE_TYPE
+
+from odoo import api, fields, models
+
+CODE_ERROR_ZNS = dict(CODE_ERROR_ZNS)
 
 
 class ZnsSendMessageWizard(models.TransientModel):
