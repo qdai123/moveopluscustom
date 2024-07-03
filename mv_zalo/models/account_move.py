@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import timedelta
-from markupsafe import Markup
 
 import pytz
+from markupsafe import Markup
 from odoo.addons.biz_zalo_common.models.common import (
     CODE_ERROR_ZNS,
     convert_valid_phone_number,
+    get_datetime,
 )
-from odoo.addons.mv_zalo.zalo_oa_functional import ZNS_GET_PAYLOAD, ZNS_GET_SAMPLE_DATA
+from odoo.addons.mv_zalo.zalo_oa_functional import (
+    ZNS_GENERATE_MESSAGE,
+    ZNS_GET_PAYLOAD,
+    ZNS_GET_SAMPLE_DATA,
+)
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
@@ -67,7 +72,7 @@ class AccountMove(models.Model):
             [("msg_id", "=", data.get("msg_id"))], limit=1
         )
         sent_time = (
-            get_timezone(data.get("sent_time", False))
+            get_datetime(data.get("sent_time", False))
             if data.get("sent_time", False)
             else ""
         )
@@ -129,12 +134,12 @@ class AccountMove(models.Model):
             data = datas.get("data")
             if data:
                 sent_time = (
-                    get_zns_time(data.get("sent_time", False))
+                    get_datetime(data.get("sent_time", False))
                     if data.get("sent_time", False)
                     else ""
                 )
                 sent_time = sent_time and get_zns_time(sent_time) or ""
-                zns_message = self.generate_zns_message(data, sent_time)
+                zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
                 self.generate_zns_history(data, ZNSConfiguration)
                 self.message_post(body=Markup(zns_message))
                 _logger.info(f"Send Message ZNS successfully for Invoice {self.name}!")
