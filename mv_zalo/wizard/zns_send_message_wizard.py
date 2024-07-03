@@ -13,6 +13,8 @@ from odoo import api, fields, models
 
 CODE_ERROR_ZNS = dict(CODE_ERROR_ZNS)
 
+_logger = logging.getLogger(__name__)
+
 
 class ZnsSendMessageWizard(models.TransientModel):
     _inherit = "zns.send.message.wizard"
