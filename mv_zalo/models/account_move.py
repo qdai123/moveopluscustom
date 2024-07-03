@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import timedelta
+from ast import literal_eval
 
 import pytz
 from markupsafe import Markup
@@ -45,10 +46,10 @@ class AccountMove(models.Model):
 
     @api.model
     def _get_zns_payment_notification_template(self):
-        return (
+        return literal_eval(
             self.env["ir.config_parameter"]
             .sudo()
-            .get_param("mv_zalo.zns_payment_notification_template")
+            .get_param("mv_zalo.zns_payment_notification_template", False)
         )
 
     # === FIELDS ===#
@@ -180,8 +181,9 @@ class AccountMove(models.Model):
             "views": [(view_id.id, "form")],
             "context": {
                 "default_use_type": invoice._name,
-                "default_phone": valid_phone_number,
+                "default_tracking_id": invoice.id,
                 "default_account_move_id": invoice.id,
+                "default_phone": valid_phone_number,
             },
             "target": "new",
         }
@@ -190,12 +192,13 @@ class AccountMove(models.Model):
     @api.model
     def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
         zns_template = self._get_zns_payment_notification_template()
-        if not zns_template:
+        zns_template_id = self.env["zns.template"].browse(zns_template)
+        if not zns_template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return
 
         zns_template_data = {}
-        zns_sample_data_ids = zns_template.sample_data_ids or False
+        zns_sample_data_ids = zns_template_id.sample_data_ids or False
         for sample_data in zns_sample_data_ids:
             zns_template_data[sample_data.name] = (
                 sample_data.value
@@ -204,11 +207,11 @@ class AccountMove(models.Model):
             )
 
         if phone:
-            valid_phone_number = convert_valid_phone_number(phone)
+            valid_phone_number = convert_valid_phone_number(int(phone))
             self.send_zns_message(
                 {
                     "phone": valid_phone_number,
-                    "template_id": zns_template,
+                    "template_id": zns_template_id,
                     "template_data": zns_template_data,
                     "tracking_id": self.id,
                 }
@@ -227,7 +230,7 @@ class AccountMove(models.Model):
             )
             .filtered(
                 lambda am: fields.Date.today()
-                == am.invoice_date_due - timedelta(days=dt_before or 2)
+                == am.invoice_date_due - timedelta(days=int(dt_before) or 2)
             )
         )
         if journal_entries:
@@ -236,7 +239,7 @@ class AccountMove(models.Model):
                 self.send_zns_message(
                     {
                         "phone": valid_phone_number,
-                        "template_id": zns_template,
+                        "template_id": zns_template_id,
                         "template_data": zns_template_data,
                         "tracking_id": line.id,
                     }

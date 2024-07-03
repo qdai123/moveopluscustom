@@ -32,7 +32,6 @@ class ZnsSendMessageWizard(models.TransientModel):
         domain="[('use_type', '=', use_type)]",
         required=True,
     )
-    template_data = fields.Text(readonly=True)
     use_type = fields.Selection(selection_add=MODELS_ZNS_USE_TYPE)
 
     # === OVERRIDE METHODS ===#
@@ -59,7 +58,7 @@ class ZnsSendMessageWizard(models.TransientModel):
                     else self._get_sample_data_by(sample_id, related_record)
                 )
 
-        self.template_data = json.dumps(data)
+        self.template_data = json.dumps(data) if data else "{}"
 
     def generate_zns_history(self, data, config_id=False):  # FULL OVERRIDE
         zns_history_id = self.env["zns.history"].search(
@@ -92,7 +91,16 @@ class ZnsSendMessageWizard(models.TransientModel):
                 origin = self.picking_id.name if self.picking_id else ""
                 partner_id = (
                     self.picking_id.sale_id.partner_id.id
-                    if self.picking_id and self.picking_id.sale_id
+                    if self.picking_id
+                    and self.picking_id.sale_id
+                    and self.picking_id.sale_id.partner_id
+                    else False
+                )
+            elif self.use_type == "account.move":
+                origin = self.account_move_id.name if self.account_move_id else ""
+                partner_id = (
+                    self.account_move_id.partner_id.id
+                    if self.account_move_id and self.account_move_id.partner_id
                     else False
                 )
 

@@ -1,15 +1,39 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import models, _
-
 from odoo.addons.biz_zalo_common.models.common import convert_valid_phone_number
+
+from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
 
 
 class StockPicking(models.Model):
     _inherit = "stock.picking"
+
+    # === FIELDS ===#
+    partner_delivery_address = fields.Char(
+        "Partner Delivery Address", compute="_compute_partner_id", store=True
+    )
+    order_date_confirmed = fields.Date(
+        "Order Date Confirmed", compute="_compute_order_date_confirmed", store=True
+    )
+
+    @api.depends("partner_id")
+    def _compute_partner_id(self):
+        for picking in self:
+            picking.partner_delivery_address = (
+                picking.partner_id.full_address_vi or picking.partner_id.contact_address
+            )
+
+    @api.depends("sale_id", "sale_id.date_order")
+    def _compute_order_date_confirmed(self):
+        for picking in self:
+            picking.order_date_confirmed = (
+                picking.sale_id.date_order.date() if picking.sale_id else None
+            )
+
+    # /// ACTIONS ///
 
     def action_send_message_zns(self):
         self.ensure_one()
@@ -39,7 +63,8 @@ class StockPicking(models.Model):
             "view_id": view_id.id,
             "views": [(view_id.id, "form")],
             "context": {
-                "default_use_type": self._name,
+                "default_use_type": picking._name,
+                "default_tracking_id": picking.id,
                 "default_picking_id": picking.id,
                 "default_order_id": order.id,
                 "default_phone": valid_phone_number,
