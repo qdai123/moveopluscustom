@@ -24,6 +24,7 @@
         # VIEWS
         "views/account_move_views.xml",
         "views/stock_picking_views.xml",
+        "views/res_config_settings_views.xml",
         # WIZARDS
         "wizard/zns_send_message_wizard_views.xml",
     ],
