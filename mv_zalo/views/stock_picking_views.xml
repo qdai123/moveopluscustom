@@ -13,6 +13,12 @@
 				        name="action_send_message_zns"
 				        invisible="state not in ['assigned', 'done']"/>
 			</xpath>
+			<xpath expr="//field[@name='partner_id']" position="after">
+				<field name="partner_delivery_address" invisible="1"/>
+			</xpath>
+			<xpath expr="//field[@name='group_id']" position="after">
+				<field name="order_date_confirmed" invisible="1"/>
+			</xpath>
 		</field>
 	</record>
 </odoo>
