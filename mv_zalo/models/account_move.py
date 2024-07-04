@@ -62,7 +62,9 @@ class AccountMove(models.Model):
     def _get_sample_data_by(self, sample_id, obj):
 
         value = obj[sample_id.field_id.name]
-        _logger.debug(f">>> Field Data: {value} <<<")
+        _logger.debug(f">>> Record: {sample_id} <<<")
+        _logger.debug(f">>> Record Field: {sample_id.field_id} <<<")
+        _logger.debug(f">>> Record Field (Name): {sample_id.field_id.name} <<<")
 
         if (
             sample_id.field_id
@@ -72,7 +74,11 @@ class AccountMove(models.Model):
             _logger.debug(
                 f">>> Field Date/Datetime: {obj[sample_id.field_id.name]} <<<"
             )
-            value = obj[sample_id.field_id.name].strftime("%d/%m/%Y")
+            value = (
+                obj[sample_id.field_id.name].strftime("%d/%m/%Y")
+                if obj[sample_id.field_id.name]
+                else None
+            )
         elif (
             sample_id.field_id
             and sample_id.field_id.ttype in ["float", "integer", "monetary"]
