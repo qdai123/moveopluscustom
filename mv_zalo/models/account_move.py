@@ -11,6 +11,7 @@ from odoo.addons.biz_zalo_common.models.common import (
 )
 from odoo.addons.mv_zalo.zalo_oa_functional import (
     ZNS_GENERATE_MESSAGE,
+    ZNS_GET_SAMPLE_DATA,
     ZNS_GET_PAYLOAD,
 )
 
@@ -61,6 +62,8 @@ class AccountMove(models.Model):
     def _get_sample_data_by(self, sample_id, obj):
 
         value = obj[sample_id.field_id.name]
+        _logger.debug(f">>> Sample Data Value: {value} <<<")
+
         if (
             sample_id.field_id
             and sample_id.field_id.ttype in ["date", "datetime"]
@@ -233,7 +236,7 @@ class AccountMove(models.Model):
             zns_template_data[sample_data.name] = (
                 sample_data.value
                 if not sample_data.field_id
-                else self._get_sample_data_by(sample_data, self)
+                else ZNS_GET_SAMPLE_DATA(sample_data, self)
             )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
         if phone:
