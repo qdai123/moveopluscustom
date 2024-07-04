@@ -35,7 +35,7 @@ def ZNS_GET_PAYLOAD(phone, template_id, template_data, tracking_id):
     return {
         "phone": phone,
         "template_id": template_id,
-        "template_data": json.loads(template_data),
+        "template_data": template_data,
         "tracking_id": tracking_id,
     }
 
