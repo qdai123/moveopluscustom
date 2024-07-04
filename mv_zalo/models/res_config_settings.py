@@ -22,16 +22,16 @@ class ResConfigSettings(models.TransientModel):
 
     @api.model
     def get_values(self):
-        res = super(ResConfigSettings, self).get_values()
+        res = super().get_values()
         ICPSudo = self.env["ir.config_parameter"].sudo()
         zns_template_id = ICPSudo.get_param(
-            "mv_zalo.zns_payment_notification_template_id", False
+            "mv_zalo.zns_payment_notification_template_id", 0
         )
         res.update(zns_template_id=zns_template_id)
         return res
 
     def set_values(self):
-        super(ResConfigSettings, self).set_values()
+        super().set_values()
         ICPSudo = self.env["ir.config_parameter"].sudo()
         ICPSudo.set_param(
             "mv_zalo.zns_payment_notification_template_id", self.zns_template_id

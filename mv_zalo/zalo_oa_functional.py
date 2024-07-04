@@ -35,39 +35,38 @@ def ZNS_GET_PAYLOAD(phone, template_id, template_data, tracking_id):
     return {
         "phone": phone,
         "template_id": template_id,
-        "template_data": json.loads(template_data),
+        "template_data": template_data,
         "tracking_id": tracking_id,
     }
 
 
 def ZNS_GET_MESSAGE_TEMPLATE(zns_message_id, zns_quota, sent_time):
     return (
-        (
-            '<p class="mb-0">Đã gửi tin nhắn ZNS</p>'
-            + """
+        '<p class="mb-0">Đã gửi tin nhắn ZNS</p>'
+        + """
             <ul class="o_Message_trackingValues mb-0 ps-4">
                 <li>
                     <div class="o_TrackingValue d-flex align-items-center flex-wrap mb-1" role="group">
                         <span class="o_TrackingValue_oldValue me-1 px-1 text-muted fw-bold">ID thông báo ZNS: </span>
-                        <span class="o_TrackingValue_newValue me-1 fw-bold text-info">%s</span>
+                        <span class="o_TrackingValue_newValue me-1 fw-bold text-info">{zns_message_id}</span>
                     </div>
                 </li>
                 <li>
                     <div class="o_TrackingValue d-flex align-items-center flex-wrap mb-1" role="group">
-                        <span class="o_TrackingValue_oldValue me-1 px-1 text-muted fw-bold">Thời gian gửi: </span>
-                        <span class="o_TrackingValue_newValue me-1 fw-bold text-info">%s</span>
+                        <span class="o_TrackingValue_oldValue me-1 px-1 text-muted fw-bold">Thời gian gửi thông báo ZNS: </span>
+                        <span class="o_TrackingValue_newValue me-1 fw-bold text-info">{sent_time}</span>
                     </div>
                 </li>
                 <li>
                     <div class="o_TrackingValue d-flex align-items-center flex-wrap mb-1" role="group">
-                        <span class="o_TrackingValue_oldValue me-1 px-1 text-muted fw-bold">Nội dung: </span>
-                        <span class="o_TrackingValue_newValue me-1 fw-bold text-info">%s</span>
+                        <span class="o_TrackingValue_oldValue me-1 px-1 text-muted fw-bold">Thông tin quota thông báo ZNS của OA: </span>
+                        <span class="o_TrackingValue_newValue me-1 fw-bold text-info">{zns_quota}</span>
                     </div>
                 </li>
             </ul>
-        """
+        """.format(
+            zns_message_id=zns_message_id, sent_time=sent_time, zns_quota=zns_quota
         )
-        % (zns_message_id, sent_time, zns_quota)
     )
 
 
