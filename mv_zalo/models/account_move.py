@@ -77,8 +77,9 @@ class AccountMove(models.Model):
     # /// Zalo ZNS ///
 
     def generate_zns_history(self, data, config_id=False):
-        zns_template = self._get_zns_payment_notification_template()
-        if not zns_template:
+        template_id = self._get_zns_payment_notification_template()
+        zns_template_id = self.env["zns.template"].browse(template_id)
+        if not zns_template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return False
 
@@ -101,7 +102,7 @@ class AccountMove(models.Model):
                     "zalo_config_id": config_id and config_id.id or False,
                     "origin": origin,
                     "partner_id": partner_id,
-                    "template_id": zns_template.id if zns_template else False,
+                    "template_id": zns_template_id,
                 }
             )
         if zns_history_id and zns_history_id.template_id:
@@ -204,8 +205,8 @@ class AccountMove(models.Model):
     # /// CRON JOB ///
     @api.model
     def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
-        zns_template = self._get_zns_payment_notification_template()
-        zns_template_id = self.env["zns.template"].browse(zns_template)
+        template_id = self._get_zns_payment_notification_template()
+        zns_template_id = self.env["zns.template"].browse(template_id)
         if not zns_template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return
