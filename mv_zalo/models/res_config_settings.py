@@ -29,5 +29,5 @@ class ResConfigSettings(models.TransientModel):
         ICPSudo = self.env["ir.config_parameter"].sudo()
         ICPSudo.set_param(
             "mv_zalo.zns_payment_notification_template",
-            self.zns_payment_notification_template_id.id,
+            self.zns_payment_notification_template_id,
         )

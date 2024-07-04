@@ -78,7 +78,7 @@ class AccountMove(models.Model):
 
     def generate_zns_history(self, data, config_id=False):
         template_id = self._get_zns_payment_notification_template()
-        zns_template_id = self.env["zns.template"].browse(template_id)
+        zns_template_id = self.env["zns.template"].browse(template_id.id)
         if not zns_template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return False
@@ -94,15 +94,14 @@ class AccountMove(models.Model):
 
         if not zns_history_id:
             origin = self.name
-            partner_id = self.partner_id.id if self.partner_id else False
             zns_history_id = zns_history_id.create(
                 {
                     "msg_id": data.get("msg_id"),
+                    "origin": origin,
                     "sent_time": sent_time,
                     "zalo_config_id": config_id and config_id.id or False,
-                    "origin": origin,
-                    "partner_id": partner_id,
-                    "template_id": zns_template_id,
+                    "partner_id": self.partner_id.id if self.partner_id else False,
+                    "template_id": zns_template_id.id,
                 }
             )
         if zns_history_id and zns_history_id.template_id:
@@ -206,7 +205,7 @@ class AccountMove(models.Model):
     @api.model
     def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
         template_id = self._get_zns_payment_notification_template()
-        zns_template_id = self.env["zns.template"].browse(template_id)
+        zns_template_id = self.env["zns.template"].browse(template_id.id)
         if not zns_template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return
@@ -225,7 +224,7 @@ class AccountMove(models.Model):
             self.send_zns_message(
                 {
                     "phone": valid_phone_number,
-                    "template_id": zns_template_id,
+                    "template_id": zns_template_id.id,
                     "template_data": zns_template_data,
                     "tracking_id": self.id,
                 }
@@ -253,7 +252,7 @@ class AccountMove(models.Model):
                 self.send_zns_message(
                     {
                         "phone": valid_phone_number,
-                        "template_id": zns_template_id,
+                        "template_id": zns_template_id.id,
                         "template_data": zns_template_data,
                         "tracking_id": line.id,
                     }
