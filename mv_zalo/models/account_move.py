@@ -78,11 +78,11 @@ class AccountMove(models.Model):
 
     def generate_zns_history(self, data, config_id=False):
         template_id = self._get_zns_payment_notification_template()
-        zns_template_id = self.env["zns.template"].browse(template_id.id)
-        if not zns_template_id:
+        if not template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return False
 
+        zns_template_id = self.env["zns.template"].browse(template_id.id)
         zns_history_id = self.env["zns.history"].search(
             [("msg_id", "=", data.get("msg_id"))], limit=1
         )
@@ -205,10 +205,11 @@ class AccountMove(models.Model):
     @api.model
     def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
         template_id = self._get_zns_payment_notification_template()
-        zns_template_id = self.env["zns.template"].browse(template_id.id)
-        if not zns_template_id:
+        if not template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return
+
+        zns_template_id = self.env["zns.template"].browse(template_id.id)
 
         zns_template_data = {}
         zns_sample_data_ids = zns_template_id.sample_data_ids or False
