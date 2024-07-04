@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import timedelta
-from ast import literal_eval
 
 import pytz
 from markupsafe import Markup
@@ -13,7 +12,6 @@ from odoo.addons.biz_zalo_common.models.common import (
 from odoo.addons.mv_zalo.zalo_oa_functional import (
     ZNS_GENERATE_MESSAGE,
     ZNS_GET_PAYLOAD,
-    ZNS_GET_SAMPLE_DATA,
 )
 
 from odoo import _, api, fields, models
@@ -59,6 +57,30 @@ class AccountMove(models.Model):
     )
 
     # /// Zalo ZNS ///
+
+    def _get_sample_data_by(self, sample_id, obj):
+
+        value = obj[sample_id.field_id.name]
+        if (
+            sample_id.field_id
+            and sample_id.field_id.ttype in ["date", "datetime"]
+            and sample_id.type == "DATE"
+        ):
+            value = obj[sample_id.field_id.name].strftime("%d/%m/%Y")
+        elif (
+            sample_id.field_id
+            and sample_id.field_id.ttype in ["float", "integer", "monetary"]
+            and sample_id.type == "NUMBER"
+        ):
+            value = str(obj[sample_id.field_id.name])
+        elif (
+            sample_id.field_id
+            and sample_id.field_id.ttype in ["many2one"]
+            and sample_id.type == "STRING"
+        ):
+            value = str(obj[sample_id.field_id.name].name)
+
+        return value
 
     def generate_zns_history(self, data, config_id=False):
         template_id = self._get_zns_payment_notification_template()
@@ -199,8 +221,8 @@ class AccountMove(models.Model):
         zns_template_id = self.env["zns.template"].browse(template_id)
 
         zns_template_data = {}
-        zns_sample_data_ids = (
-            zns_template_id and zns_template_id.sample_data_ids or False
+        zns_sample_data_ids = self.env["zns.template.sample.data"].search(
+            [("zns_template_id", "=", zns_template_id.id)],
         )
         if not zns_sample_data_ids:
             _logger.error("ZNS Template Sample Data not found.")
@@ -210,8 +232,8 @@ class AccountMove(models.Model):
             zns_template_data[sample_data.name] = (
                 sample_data.value
                 if not sample_data.field_id
-                else ZNS_GET_SAMPLE_DATA(sample_data, self)
-            )
+                else self._get_sample_data_by(sample_data, self)
+            )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
         if phone:
             valid_phone_number = convert_valid_phone_number(int(phone))
