@@ -289,6 +289,8 @@ class AccountMove(models.Model):
                     }
                 )
 
-        _logger.info(">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<")
+            _logger.info(
+                ">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<"
+            )
 
         return True
