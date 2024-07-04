@@ -213,12 +213,13 @@ class AccountMove(models.Model):
     # /// CRON JOB ///
     @api.model
     def _cron_notification_date_due_journal_entry(self, dt_before=None, phone=None):
-        template_id = self._get_zns_payment_notification_template()
+        template_id = int(self._get_zns_payment_notification_template())
         if not template_id or template_id == 0:
             _logger.error("ZNS Payment Notification Template not found.")
             return
 
         zns_template_id = self.env["zns.template"].browse(template_id)
+        _logger.debug(f">>> ZNS Template ID: {zns_template_id} <<<")
 
         zns_template_data = {}
         zns_sample_data_ids = self.env["zns.template.sample.data"].search(
