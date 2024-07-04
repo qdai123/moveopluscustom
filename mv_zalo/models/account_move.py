@@ -46,11 +46,24 @@ class AccountMove(models.Model):
 
     @api.model
     def _get_zns_payment_notification_template(self):
-        return literal_eval(
+        param_value = (
             self.env["ir.config_parameter"]
             .sudo()
-            .get_param("mv_zalo.zns_payment_notification_template", False)
+            .get_param("mv_zalo.zns_payment_notification_template", default="False")
         )
+        if param_value and param_value != "False":
+            try:
+                return literal_eval(param_value)
+            except ValueError:
+                _logger.error(
+                    "Invalid format for ZNS Payment Notification Template parameter."
+                )
+                return None
+        else:
+            _logger.info(
+                "ZNS Payment Notification Template parameter not set or set to False."
+            )
+            return None
 
     # === FIELDS ===#
     zns_notification_sent = fields.Boolean(
