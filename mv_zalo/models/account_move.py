@@ -102,6 +102,8 @@ class AccountMove(models.Model):
             zns_history_id.template_id.update_quota(daily_quota, remaining_quota)
             zns_history_id.get_message_status()
 
+        self.zns_history_id = zns_history_id.id if zns_history_id else False
+
     def send_zns_message(self, data):
         ZNSConfiguration = self.env["zalo.config"].search(
             [("primary_settings", "=", True)], limit=1
@@ -140,6 +142,7 @@ class AccountMove(models.Model):
                 zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
                 self.generate_zns_history(data, ZNSConfiguration)
                 self.message_post(body=Markup(zns_message))
+                self.zns_notification_sent = True
                 _logger.info(f"Send Message ZNS successfully for Invoice {self.name}!")
         else:
             _logger.error(
@@ -187,7 +190,7 @@ class AccountMove(models.Model):
 
     # /// CRON JOB ///
     @api.model
-    def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
+    def _cron_notification_date_due_journal_entry(self, dt_before=None, phone=None):
         template_id = self._get_zns_payment_notification_template()
         if not template_id or template_id == 0:
             _logger.error("ZNS Payment Notification Template not found.")
@@ -196,7 +199,13 @@ class AccountMove(models.Model):
         zns_template_id = self.env["zns.template"].browse(template_id)
 
         zns_template_data = {}
-        zns_sample_data_ids = zns_template_id.sample_data_ids or False
+        zns_sample_data_ids = (
+            zns_template_id and zns_template_id.sample_data_ids or False
+        )
+        if not zns_sample_data_ids:
+            _logger.error("ZNS Template Sample Data not found.")
+            return
+
         for sample_data in zns_sample_data_ids:
             zns_template_data[sample_data.name] = (
                 sample_data.value
@@ -228,7 +237,8 @@ class AccountMove(models.Model):
             )
             .filtered(
                 lambda am: fields.Date.today()
-                == am.invoice_date_due - timedelta(days=int(dt_before) or 2)
+                == am.invoice_date_due
+                - timedelta(days=int(dt_before) if dt_before else 2)
             )
         )
         if journal_entries:
