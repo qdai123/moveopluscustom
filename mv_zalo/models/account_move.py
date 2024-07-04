@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 from datetime import timedelta
 
@@ -133,7 +134,7 @@ class AccountMove(models.Model):
 
         self.zns_history_id = zns_history_id.id if zns_history_id else False
 
-    def send_zns_message(self, data):
+    def send_zns_message(self, data, testing=False):
         ZNSConfiguration = self.env["zalo.config"].search(
             [("primary_settings", "=", True)], limit=1
         )
@@ -150,7 +151,9 @@ class AccountMove(models.Model):
             ZNSConfiguration._get_sub_url_zns("/message/template"),
             method="POST",
             headers=ZNSConfiguration._get_headers(),
-            payload=ZNS_GET_PAYLOAD(phone, template_id, template_data, tracking_id),
+            payload=ZNS_GET_PAYLOAD(
+                phone, template_id, json.dumps(template_data), tracking_id
+            ),
             is_check=True,
         )
 
@@ -168,7 +171,7 @@ class AccountMove(models.Model):
                     zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
                     self.generate_zns_history(data, ZNSConfiguration)
                     self.message_post(body=Markup(zns_message))
-                    self.zns_notification_sent = True
+                    self.zns_notification_sent = True if not testing else False
                     _logger.info(
                         f"Send Message ZNS successfully for Invoice {self.name}!"
                     )
@@ -241,6 +244,7 @@ class AccountMove(models.Model):
                 else self._get_sample_data_by(sample_data, self)
             )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
+        phone_test = False
         if phone:
             # Remove any non-digit characters
             digits = "".join(filter(str.isdigit, phone))
@@ -250,50 +254,41 @@ class AccountMove(models.Model):
                 raise ValidationError(
                     _("Phone number must contain exactly 10 or 11 digits")
                 )
+            phone_test = digits
 
-            valid_phone_number = convert_valid_phone_number(digits)
-            self.send_zns_message(
-                {
-                    "phone": valid_phone_number,
-                    "template_id": zns_template_id.id,
-                    "template_data": zns_template_data,
-                    "tracking_id": self.id,
-                }
+        # Get all journal entries that are due in the next 2 days
+        # and have not been sent a ZNS notification
+        journal_entries = (
+            self.env["account.move"]
+            .search(
+                [
+                    ("state", "=", "posted"),
+                    ("payment_state", "=", "not_paid"),
+                    ("zns_notification_sent", "=", False),
+                ]
             )
-        else:
-            # Get all journal entries that are due in the next 2 days
-            # and have not been sent a ZNS notification
-            journal_entries = (
-                self.env["account.move"]
-                .search(
-                    [
-                        ("state", "=", "posted"),
-                        ("payment_state", "=", "not_paid"),
-                        ("zns_notification_sent", "=", False),
-                    ]
-                )
-                .filtered(
-                    lambda am: fields.Date.today()
-                    == am.invoice_date_due
-                    - timedelta(days=int(dt_before) if dt_before else 2)
-                )
+            .filtered(
+                lambda am: fields.Date.today()
+                == am.invoice_date_due
+                - timedelta(days=int(dt_before) if dt_before else 2)
             )
-            if journal_entries:
-                for line in journal_entries:
-                    valid_phone_number = convert_valid_phone_number(
-                        line.partner_id.phone
-                    )
-                    self.send_zns_message(
-                        {
-                            "phone": valid_phone_number,
-                            "template_id": zns_template_id.id,
-                            "template_data": zns_template_data,
-                            "tracking_id": line.id,
-                        }
-                    )
+        )
+        if journal_entries:
+            for line in journal_entries:
+                valid_phone_number = (
+                    convert_valid_phone_number(line.partner_id.phone)
+                    if not phone
+                    else phone_test
+                )
+                self.send_zns_message(
+                    {
+                        "phone": valid_phone_number,
+                        "template_id": zns_template_id.id,
+                        "template_data": zns_template_data,
+                        "tracking_id": line.id,
+                    }
+                )
 
-            _logger.info(
-                ">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<"
-            )
+        _logger.info(">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<")
 
         return True

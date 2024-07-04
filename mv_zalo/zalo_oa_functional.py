@@ -40,6 +40,10 @@ def ZNS_GET_PAYLOAD(phone, template_id, template_data, tracking_id):
     }
 
 
+def ZNS_GENERATE_MESSAGE(data, sent_time):
+    return ZNS_GET_MESSAGE_TEMPLATE(data.get("msg_id"), data.get("quota"), sent_time)
+
+
 def ZNS_GET_MESSAGE_TEMPLATE(zns_message_id, zns_quota, sent_time):
     return (
         '<p class="mb-0">Đã gửi tin nhắn ZNS</p>'
@@ -68,7 +72,3 @@ def ZNS_GET_MESSAGE_TEMPLATE(zns_message_id, zns_quota, sent_time):
             zns_message_id=zns_message_id, sent_time=sent_time, zns_quota=zns_quota
         )
     )
-
-
-def ZNS_GENERATE_MESSAGE(data, sent_time):
-    return ZNS_GET_MESSAGE_TEMPLATE(data.get("msg_id"), data.get("quota"), sent_time)
