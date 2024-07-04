@@ -157,6 +157,10 @@ class AccountMove(models.Model):
             is_check=True,
         )
 
+        import pprint
+
+        pprint.pprint(datas, indent=2)
+
         if datas and isinstance(datas, list) and len(datas) > 0:
             data = datas[0]  # Assuming the first item is the desired one
             if data.get("error") == 0 and data.get("message") == "Success":
@@ -288,6 +292,11 @@ class AccountMove(models.Model):
                         "tracking_id": line.id,
                     }
                 )
+
+                _logger.debug(f"Phone: {valid_phone_number}")
+                _logger.debug(f"Template ID: {zns_template_id.id}")
+                _logger.debug(f"Template Data: {zns_template_data}")
+                _logger.debug(f"Tracking ID: {line.id}")
 
             _logger.info(
                 ">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<"
