@@ -62,8 +62,6 @@ class AccountMove(models.Model):
     def _get_sample_data_by(self, sample_id, obj):
 
         value = obj[sample_id.field_id.name]
-        _logger.debug(f">>> Record: {sample_id} <<<")
-        _logger.debug(f">>> Record Field: {sample_id.field_id} <<<")
         _logger.debug(f">>> Record Field (Name): {sample_id.field_id.name} <<<")
 
         if (
@@ -71,9 +69,6 @@ class AccountMove(models.Model):
             and sample_id.field_id.ttype in ["date", "datetime"]
             and sample_id.type == "DATE"
         ):
-            _logger.debug(
-                f">>> Field Date/Datetime: {obj[sample_id.field_id.name]} <<<"
-            )
             value = (
                 obj[sample_id.field_id.name].strftime("%d/%m/%Y")
                 if obj[sample_id.field_id.name]
@@ -249,7 +244,16 @@ class AccountMove(models.Model):
             )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
         if phone:
-            valid_phone_number = convert_valid_phone_number(int(phone))
+            # Remove any non-digit characters
+            digits = "".join(filter(str.isdigit, phone))
+
+            # Check if the number has 10 digits
+            if len(digits) not in [10, 11]:
+                raise ValidationError(
+                    _("Phone number must contain exactly 10 or 11 digits")
+                )
+
+            valid_phone_number = convert_valid_phone_number(digits)
             self.send_zns_message(
                 {
                     "phone": valid_phone_number,
@@ -258,35 +262,40 @@ class AccountMove(models.Model):
                     "tracking_id": self.id,
                 }
             )
-
-        # Get all journal entries that are due in the next 2 days
-        # and have not been sent a ZNS notification
-        journal_entries = (
-            self.env["account.move"]
-            .search(
-                [
-                    ("state", "=", "posted"),
-                    ("payment_state", "=", "not_paid"),
-                    ("zns_notification_sent", "=", False),
-                ]
-            )
-            .filtered(
-                lambda am: fields.Date.today()
-                == am.invoice_date_due
-                - timedelta(days=int(dt_before) if dt_before else 2)
-            )
-        )
-        if journal_entries:
-            for line in journal_entries:
-                valid_phone_number = convert_valid_phone_number(line.partner_id.phone)
-                self.send_zns_message(
-                    {
-                        "phone": valid_phone_number,
-                        "template_id": zns_template_id.id,
-                        "template_data": zns_template_data,
-                        "tracking_id": line.id,
-                    }
+        else:
+            # Get all journal entries that are due in the next 2 days
+            # and have not been sent a ZNS notification
+            journal_entries = (
+                self.env["account.move"]
+                .search(
+                    [
+                        ("state", "=", "posted"),
+                        ("payment_state", "=", "not_paid"),
+                        ("zns_notification_sent", "=", False),
+                    ]
                 )
+                .filtered(
+                    lambda am: fields.Date.today()
+                    == am.invoice_date_due
+                    - timedelta(days=int(dt_before) if dt_before else 2)
+                )
+            )
+            if journal_entries:
+                for line in journal_entries:
+                    valid_phone_number = convert_valid_phone_number(
+                        line.partner_id.phone
+                    )
+                    self.send_zns_message(
+                        {
+                            "phone": valid_phone_number,
+                            "template_id": zns_template_id.id,
+                            "template_data": zns_template_data,
+                            "tracking_id": line.id,
+                        }
+                    )
 
-        _logger.info(">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<")
+            _logger.info(
+                ">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<"
+            )
+
         return True
