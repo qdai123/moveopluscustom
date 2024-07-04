@@ -62,13 +62,16 @@ class AccountMove(models.Model):
     def _get_sample_data_by(self, sample_id, obj):
 
         value = obj[sample_id.field_id.name]
-        _logger.debug(f">>> Sample Data Value: {value} <<<")
+        _logger.debug(f">>> Field Data: {value} <<<")
 
         if (
             sample_id.field_id
             and sample_id.field_id.ttype in ["date", "datetime"]
             and sample_id.type == "DATE"
         ):
+            _logger.debug(
+                f">>> Field Date/Datetime: {obj[sample_id.field_id.name]} <<<"
+            )
             value = obj[sample_id.field_id.name].strftime("%d/%m/%Y")
         elif (
             sample_id.field_id
@@ -236,7 +239,7 @@ class AccountMove(models.Model):
             zns_template_data[sample_data.name] = (
                 sample_data.value
                 if not sample_data.field_id
-                else ZNS_GET_SAMPLE_DATA(sample_data, self)
+                else self._get_sample_data_by(sample_data, self)
             )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
         if phone:
