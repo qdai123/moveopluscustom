@@ -47,7 +47,7 @@ class AccountMove(models.Model):
     @api.model
     def _get_zns_payment_notification_template(self):
         ICPSudo = self.env["ir.config_parameter"].sudo()
-        return ICPSudo.get_param("mv_zalo.zns_payment_notification_template_id", 0)
+        return ICPSudo.get_param("mv_zalo.zns_payment_notification_template_id", "")
 
     # === FIELDS ===#
     zns_notification_sent = fields.Boolean(
@@ -58,45 +58,86 @@ class AccountMove(models.Model):
         related="zns_history_id.status", string="ZNS History Status"
     )
 
+    # /// ACTIONS ///
+
+    def action_send_message_zns(self):
+        self.ensure_one()
+
+        view_id = self.env.ref("biz_zalo_zns.view_zns_send_message_wizard_form")
+        if not view_id:
+            _logger.error(
+                "View 'biz_zalo_zns.view_zns_send_message_wizard_form' not found."
+            )
+            return
+
+        invoice = self
+        partner = invoice.partner_id
+
+        phone_number = partner.phone if partner else None
+        valid_phone_number = (
+            convert_valid_phone_number(phone_number) if phone_number else False
+        )
+
+        return {
+            "name": _("Send Message ZNS"),
+            "type": "ir.actions.act_window",
+            "res_model": "zns.send.message.wizard",
+            "view_id": view_id.id,
+            "views": [(view_id.id, "form")],
+            "context": {
+                "default_use_type": invoice._name,
+                "default_tracking_id": invoice.id,
+                "default_account_move_id": invoice.id,
+                "default_phone": valid_phone_number,
+            },
+            "target": "new",
+        }
+
     # /// Zalo ZNS ///
 
     def _get_sample_data_by(self, sample_id, obj):
+        # Check if the 'field_id' is set
+        if not sample_id.field_id:
+            _logger.error("Field ID not found for sample_id: {}".format(sample_id))
+            return None
 
-        value = obj[sample_id.field_id.name]
-        _logger.debug(f">>> Record Field (Name): {sample_id.field_id.name} <<<")
+        field_name = sample_id.field_id.name
+        field_type = sample_id.field_id.ttype
+        sample_type = sample_id.type
+        value = obj[field_name]
 
-        if (
-            sample_id.field_id
-            and sample_id.field_id.ttype in ["date", "datetime"]
-            and sample_id.type == "DATE"
-        ):
-            value = (
-                obj[sample_id.field_id.name].strftime("%d/%m/%Y")
-                if obj[sample_id.field_id.name]
-                else None
-            )
-        elif (
-            sample_id.field_id
-            and sample_id.field_id.ttype in ["float", "integer", "monetary"]
-            and sample_id.type == "NUMBER"
-        ):
-            value = str(obj[sample_id.field_id.name])
-        elif (
-            sample_id.field_id
-            and sample_id.field_id.ttype in ["many2one"]
-            and sample_id.type == "STRING"
-        ):
-            value = str(obj[sample_id.field_id.name].name)
+        _logger.debug(
+            f"Processing Field: {field_name}, Type: {field_type}, Sample Type: {sample_type}"
+        )
 
-        return value
+        try:
+            if field_type in ["date", "datetime"] and sample_type == "DATE":
+                return value.strftime("%d/%m/%Y") if value else None
+            elif (
+                field_type in ["float", "integer", "monetary"]
+                and sample_type == "NUMBER"
+            ):
+                return str(value)
+            elif field_type == "many2one" and sample_type == "STRING":
+                return str(value.name) if value else None
+            else:
+                _logger.error(
+                    f"Unhandled field type: {field_type} or sample type: {sample_type}"
+                )
+                return None
+        except Exception as e:
+            _logger.error(f"Error processing sample data for {field_name}: {e}")
+            return None
 
     def generate_zns_history(self, data, config_id=False):
         template_id = self._get_zns_payment_notification_template()
-        if not template_id or template_id == 0:
+        if not template_id or template_id is None:
             _logger.error("ZNS Payment Notification Template not found.")
             return False
 
-        zns_template_id = self.env["zns.template"].browse(template_id)
+        zns_template_id = self.env["zns.template"].search(
+            [("template_id", "=", template_id)], limit=1
+        )
         zns_history_id = self.env["zns.history"].search(
             [("msg_id", "=", data.get("msg_id"))], limit=1
         )
@@ -187,50 +228,17 @@ class AccountMove(models.Model):
         else:
             _logger.error("Unexpected data format or empty response.")
 
-    # /// ACTIONS ///
-
-    def action_send_message_zns(self):
-        self.ensure_one()
-
-        view_id = self.env.ref("biz_zalo_zns.view_zns_send_message_wizard_form")
-        if not view_id:
-            _logger.error(
-                "View 'biz_zalo_zns.view_zns_send_message_wizard_form' not found."
-            )
-            return
-
-        invoice = self
-        partner = invoice.partner_id
-
-        phone_number = partner.phone if partner else None
-        valid_phone_number = (
-            convert_valid_phone_number(phone_number) if phone_number else False
-        )
-
-        return {
-            "name": _("Send Message ZNS"),
-            "type": "ir.actions.act_window",
-            "res_model": "zns.send.message.wizard",
-            "view_id": view_id.id,
-            "views": [(view_id.id, "form")],
-            "context": {
-                "default_use_type": invoice._name,
-                "default_tracking_id": invoice.id,
-                "default_account_move_id": invoice.id,
-                "default_phone": valid_phone_number,
-            },
-            "target": "new",
-        }
-
     # /// CRON JOB ///
     @api.model
     def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
         template_id = int(self._get_zns_payment_notification_template())
-        if not template_id or template_id == 0:
+        if not template_id or template_id is None:
             _logger.error("ZNS Payment Notification Template not found.")
             return
 
-        zns_template_id = self.env["zns.template"].browse(template_id)
+        zns_template_id = self.env["zns.template"].search(
+            [("template_id", "=", template_id)], limit=1
+        )
         _logger.debug(f">>> ZNS Template ID: {zns_template_id} <<<")
 
         zns_template_data = {}
