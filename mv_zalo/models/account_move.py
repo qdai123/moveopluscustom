@@ -187,7 +187,7 @@ class AccountMove(models.Model):
         template_data = data.get("template_data")
         tracking_id = data.get("tracking_id")
 
-        _, datas = self.env["zalo.log.request"].zns_do_execute(
+        _, datas = self.env["zalo.log.request"].do_execute(
             ZNSConfiguration._get_sub_url_zns("/message/template"),
             method="POST",
             headers=ZNSConfiguration._get_headers(),

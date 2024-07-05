@@ -59,7 +59,7 @@ class ZALOLogRequest(models.Model):
                 headers=request_data["headers"],
             )
             _logger.debug(f"Response: {response.text}")
-            return response
+            return self, response
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
@@ -100,6 +100,28 @@ class ZALOLogRequest(models.Model):
             # Handle non-JSON responses or other exceptions
             _logger.error("Failed to parse response as JSON.")
             raise UserError("Invalid response format received.")
+
+    def zns_handle_response(self, response, is_check=False):
+        _logger.info(f"IS CHECK: {is_check}")
+        result = {"success": False, "data": None, "error": None}
+        try:
+            if response.status_code == 200:
+                response_json = response.json()
+                if "error" in response_json and response_json["error"] != 0:
+                    _logger.error(f"ZALO API Error: {response_json['error']}")
+                    result["error"] = response_json["error"]
+                else:
+                    _logger.info("ZALO API Request Successful.")
+                    result.update({"success": True, "data": response_json})
+            else:
+                _logger.error(
+                    f"ZALO API Request Failed: Status Code {response.status_code}"
+                )
+                result["error"] = f"Status Code {response.status_code}"
+        except Exception as e:
+            _logger.error(f"Error processing response: {e}")
+            result["error"] = str(e)
+        return result
 
     # /// ZALO ZNS (OVERRIDE) ///
 
@@ -150,3 +172,23 @@ class ZALOLogRequest(models.Model):
             raise UserError(_(error))
 
         return self_obj.handle_response(response, is_check=is_check)
+
+    def handle_response(self, response, is_check=False):
+        _logger.info(f"IS CHECK: {is_check}")
+        if response.status_code == 200:
+            try:
+                response_json = response.json()
+                state = "done"
+                if "error" in response_json and response_json["error"] != 0:
+                    state = "error"
+
+                self.write({"message": response_json, "state": state})
+                return self, response.json()
+            except Exception as error:
+                self.write({"error": message, "state": "error"})
+                raise UserError(error)
+        else:
+            message = "Information from instances is incorrect!"
+            self.write({"error": response.json(), "state": "error"})
+            _logger.error(response)
+            raise UserError(message)
