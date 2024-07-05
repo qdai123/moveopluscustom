@@ -6,7 +6,6 @@ from datetime import timedelta
 import pytz
 from markupsafe import Markup
 from odoo.addons.biz_zalo_common.models.common import (
-    CODE_ERROR_ZNS,
     convert_valid_phone_number,
     get_datetime,
 )
@@ -228,6 +227,7 @@ class AccountMove(models.Model):
                     )
                     sent_time = sent_time and get_zns_time(sent_time) or ""
                     zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
+                    _logger.debug(f"ZNS Message: {zns_message}")
                     self.generate_zns_history(data, ZNSConfiguration)
                     self.message_post(body=Markup(zns_message))
                     self.zns_notification_sent = True if not testing else False
@@ -308,6 +308,8 @@ class AccountMove(models.Model):
                 else self._get_sample_data_by(sample_data, self)
             )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
+        _logger.debug(f"ZNS Template Data: {zns_template_data}")
+
         phone_test = False
         if phone:
             # Remove any non-digit characters
@@ -350,7 +352,8 @@ class AccountMove(models.Model):
                         "template_id": zns_template_id.template_id,
                         "template_data": zns_template_data,
                         "tracking_id": line.id,
-                    }
+                    },
+                    True if phone else False,
                 )
 
         return True
