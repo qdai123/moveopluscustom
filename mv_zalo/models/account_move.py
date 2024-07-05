@@ -92,7 +92,7 @@ class AccountMove(models.Model):
             "target": "new",
         }
 
-    # /// Zalo ZNS ///
+    # /// ZALO ZNS ///
 
     def _get_sample_data_by(self, sample_id, obj):
         # Check if the 'field_id' is set
