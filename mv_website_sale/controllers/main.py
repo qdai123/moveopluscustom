@@ -168,9 +168,12 @@ class MoveoplusWebsiteSale(WebsiteSale):
         order = request.website.sale_get_order()
         order._compute_bonus()
 
+        discount_amount_apply = float(discount_amount)
+        if discount_amount_apply < 0:
+            return request.redirect(redirect_shop_cart)
+
         discount_amount_invalid = order.partner_id.amount_currency < order.bonus_order
         discount_amount_maximum = order.bonus_max
-        discount_amount_apply = float(discount_amount)
         discount_amount_applied = (
             order.bonus_order if not discount_amount_invalid else 0.0
         )
