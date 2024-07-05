@@ -198,11 +198,13 @@ class AccountMove(models.Model):
         )
 
         if len(datas) > 0:
-            print("=========================================================")
-            print(f"Base Datas: {datas}")
-            print(f"Datas[0]: {datas[0]}")
-            print("=========================================================")
+            _logger.debug("=========================================================")
+            _logger.debug(f"Base Datas: {datas}")
+            _logger.debug("=========================================================")
             for r_data in datas:
+                _logger.debug("00000000000000000000000000000")
+                _logger.debug(f"Base Raw Data: {r_data}")
+                _logger.debug("00000000000000000000000000000")
                 if r_data.get("error") == 0 and r_data.get("message") == "Success":
                     data = r_data.get("data")
                     if data:
