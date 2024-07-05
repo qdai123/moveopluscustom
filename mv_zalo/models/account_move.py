@@ -192,7 +192,7 @@ class AccountMove(models.Model):
             method="POST",
             headers=ZNSConfiguration._get_headers(),
             payload=ZNS_GET_PAYLOAD(
-                phone, template_id, json.dumps(template_data), tracking_id
+                phone, template_id, json.loads(template_data), tracking_id
             ),
             is_check=True,
         )
@@ -342,10 +342,10 @@ class AccountMove(models.Model):
                     zns_template_data[sample_data.name] = (
                         sample_data.value
                         if not sample_data.field_id
-                        else self._get_sample_data_by(sample_data, line)
+                        else line._get_sample_data_by(sample_data, line)
                     )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
-                self.send_zns_message(
+                line.send_zns_message(
                     {
                         "phone": valid_phone_number,
                         "template_id": zns_template_id.template_id,
