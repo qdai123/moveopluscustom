@@ -197,39 +197,42 @@ class AccountMove(models.Model):
             is_check=True,
         )
 
-        if len(datas) > 0:
+        if (
+            len(datas) > 0
+            and datas.get("error") == 0
+            and datas.get("message") == "Success"
+        ):
+
             _logger.debug("=========================================================")
             _logger.debug(f"Base Datas: {datas}")
             _logger.debug("=========================================================")
+
             for r_data in datas:
+
                 _logger.debug("00000000000000000000000000000")
                 _logger.debug(f"Base Raw Data: {r_data}")
                 _logger.debug("00000000000000000000000000000")
-                if r_data.get("error") == 0 and r_data.get("message") == "Success":
-                    data = r_data.get("data")
-                    if data:
-                        sent_time = (
-                            get_datetime(data.get("sent_time", False))
-                            if data.get("sent_time", False)
-                            else ""
-                        )
-                        sent_time = sent_time and get_zns_time(sent_time) or ""
-                        zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
-                        self.generate_zns_history(data, ZNSConfiguration)
-                        self.message_post(body=Markup(zns_message))
-                        self.zns_notification_sent = True if not testing else False
-                        _logger.info(
-                            f"Send Message ZNS successfully for Invoice {self.name}!"
-                        )
-                else:
-                    error_message = CODE_ERROR_ZNS.get(
-                        str(r_data["error"]), "Unknown error"
+
+                data = r_data.get("data")
+                if data:
+                    sent_time = (
+                        get_datetime(data.get("sent_time", False))
+                        if data.get("sent_time", False)
+                        else ""
                     )
-                    _logger.error(
-                        f"Code Error: {r_data['error']}, Error Info: {error_message}"
+                    sent_time = sent_time and get_zns_time(sent_time) or ""
+                    zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
+                    self.generate_zns_history(data, ZNSConfiguration)
+                    self.message_post(body=Markup(zns_message))
+                    self.zns_notification_sent = True if not testing else False
+                    _logger.info(
+                        f"Send Message ZNS successfully for Invoice {self.name}!"
                     )
         else:
-            _logger.error("Unexpected data format or empty response.")
+            error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
+            _logger.error(
+                f"ZNS Code Error: {datas['error']}, Error Info: {error_message}"
+            )
 
     # /// CRON JOB ///
     @api.model
