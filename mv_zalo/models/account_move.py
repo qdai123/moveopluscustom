@@ -116,6 +116,8 @@ class AccountMove(models.Model):
                 and sample_type == "NUMBER"
             ):
                 return str(value)
+            elif field_type in ["char", "text"] and sample_type == "STRING":
+                return value if value else None
             elif field_type == "many2one" and sample_type == "STRING":
                 return str(value.name) if value else None
             else:
@@ -183,16 +185,16 @@ class AccountMove(models.Model):
 
         # Parameters
         phone = convert_valid_phone_number(data.get("phone"))
+        tracking_id = data.get("tracking_id")
         template_id = data.get("template_id")
         template_data = data.get("template_data")
-        tracking_id = data.get("tracking_id")
 
         _, datas = self.env["zalo.log.request"].do_execute(
             ZNSConfiguration._get_sub_url_zns("/message/template"),
             method="POST",
             headers=ZNSConfiguration._get_headers(),
             payload=ZNS_GET_PAYLOAD(
-                phone, template_id, json.dumps(template_data), tracking_id
+                phone, template_id, json.loads(template_data), tracking_id
             ),
             is_check=True,
         )
@@ -342,14 +344,14 @@ class AccountMove(models.Model):
                     zns_template_data[sample_data.name] = (
                         sample_data.value
                         if not sample_data.field_id
-                        else self._get_sample_data_by(sample_data, line)
+                        else line._get_sample_data_by(sample_data, line)
                     )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
 
-                self.send_zns_message(
+                line.send_zns_message(
                     {
                         "phone": valid_phone_number,
                         "template_id": zns_template_id.template_id,
-                        "template_data": zns_template_data,
+                        "template_data": json.dumps(zns_template_data),
                         "tracking_id": line.id,
                     },
                     True if phone else False,

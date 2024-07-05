@@ -18,9 +18,12 @@ class ResConfigSettings(models.TransientModel):
     def _onchange_zns_payment_notification_template_id(self):
         if self.zns_payment_notification_template_id:
             self.zns_template_id = self.zns_payment_notification_template_id.template_id
-            self.env.ref("mv_zalo.zns_payment_notification_template_id").write(
-                {"value": self.zns_template_id}
+            ICPSudo = self.env["ir.config_parameter"].sudo()
+            param = ICPSudo.get_param(
+                "mv_zalo.zns_payment_notification_template_id", ""
             )
+            if param:
+                param.write({"value": self.zns_template_id})
 
     @api.model
     def get_values(self):
