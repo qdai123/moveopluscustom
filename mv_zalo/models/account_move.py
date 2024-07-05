@@ -281,6 +281,18 @@ class AccountMove(models.Model):
     # /// CRON JOB ///
     @api.model
     def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
+        phone_test = False
+        if phone:
+            # Remove any non-digit characters
+            digits = "".join(filter(str.isdigit, phone))
+
+            # Check if the number has 10 digits
+            if len(digits) not in [10, 11]:
+                raise ValidationError(
+                    _("Phone number must contain exactly 10 or 11 digits")
+                )
+            phone_test = digits
+
         template_id = int(self._get_zns_payment_notification_template())
         if not template_id or template_id is None:
             _logger.error("ZNS Payment Notification Template not found.")
@@ -300,27 +312,6 @@ class AccountMove(models.Model):
         if not zns_sample_data_ids:
             _logger.error("ZNS Template Sample Data not found.")
             return
-
-        for sample_data in zns_sample_data_ids:
-            zns_template_data[sample_data.name] = (
-                sample_data.value
-                if not sample_data.field_id
-                else self._get_sample_data_by(sample_data, self)
-            )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
-
-        _logger.debug(f"ZNS Template Data: {zns_template_data}")
-
-        phone_test = False
-        if phone:
-            # Remove any non-digit characters
-            digits = "".join(filter(str.isdigit, phone))
-
-            # Check if the number has 10 digits
-            if len(digits) not in [10, 11]:
-                raise ValidationError(
-                    _("Phone number must contain exactly 10 or 11 digits")
-                )
-            phone_test = digits
 
         # Get all journal entries that are due in the next 2 days
         # and have not been sent a ZNS notification
@@ -346,6 +337,14 @@ class AccountMove(models.Model):
                     if not phone
                     else phone_test
                 )
+
+                for sample_data in zns_sample_data_ids:
+                    zns_template_data[sample_data.name] = (
+                        sample_data.value
+                        if not sample_data.field_id
+                        else self._get_sample_data_by(sample_data, line)
+                    )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
+
                 self.send_zns_message(
                     {
                         "phone": valid_phone_number,
