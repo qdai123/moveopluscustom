@@ -197,32 +197,33 @@ class AccountMove(models.Model):
             is_check=True,
         )
 
-        import pprint
-
-        pprint.pprint(datas, indent=2)
+        print(f"datas: {datas}")
 
         if len(datas) > 0:
-            if datas.get("error") == 0 and datas.get("message") == "Success":
-                data = datas.get("data")
-                if data:
-                    sent_time = (
-                        get_datetime(data.get("sent_time", False))
-                        if data.get("sent_time", False)
-                        else ""
+            for r_data in datas:
+                if r_data.get("error") == 0 and r_data.get("message") == "Success":
+                    data = r_data.get("data")
+                    if data:
+                        sent_time = (
+                            get_datetime(data.get("sent_time", False))
+                            if data.get("sent_time", False)
+                            else ""
+                        )
+                        sent_time = sent_time and get_zns_time(sent_time) or ""
+                        zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
+                        self.generate_zns_history(data, ZNSConfiguration)
+                        self.message_post(body=Markup(zns_message))
+                        self.zns_notification_sent = True if not testing else False
+                        _logger.info(
+                            f"Send Message ZNS successfully for Invoice {self.name}!"
+                        )
+                else:
+                    error_message = CODE_ERROR_ZNS.get(
+                        str(r_data["error"]), "Unknown error"
                     )
-                    sent_time = sent_time and get_zns_time(sent_time) or ""
-                    zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
-                    self.generate_zns_history(data, ZNSConfiguration)
-                    self.message_post(body=Markup(zns_message))
-                    self.zns_notification_sent = True if not testing else False
-                    _logger.info(
-                        f"Send Message ZNS successfully for Invoice {self.name}!"
+                    _logger.error(
+                        f"Code Error: {r_data['error']}, Error Info: {error_message}"
                     )
-            else:
-                error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
-                _logger.error(
-                    f"Code Error: {datas['error']}, Error Info: {error_message}"
-                )
         else:
             _logger.error("Unexpected data format or empty response.")
 
