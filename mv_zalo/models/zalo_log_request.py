@@ -162,7 +162,6 @@ class ZALOLogRequest(models.Model):
                 data=data.encode("utf-8") if isinstance(data, str) else data,
                 headers=json.loads(self_obj.headers),
             )
-            _logger.debug(f"Response: {response.text}")
             _logger.info(">>>>>> ZALO - END: event received <<<<<<<<<<<<<")
         except (socket.gaierror, socket.error, socket.timeout) as error:
             raise UserError(
@@ -174,7 +173,6 @@ class ZALOLogRequest(models.Model):
         return self_obj.handle_response(response, is_check=is_check)
 
     def handle_response(self, response, is_check=False):
-        _logger.info(f"IS CHECK: {is_check}")
         if response.status_code == 200:
             try:
                 response_json = response.json()
