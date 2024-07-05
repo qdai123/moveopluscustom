@@ -197,9 +197,11 @@ class AccountMove(models.Model):
             is_check=True,
         )
 
-        print(f"datas: {datas}")
-
         if len(datas) > 0:
+            print("=========================================================")
+            print(f"Base Datas: {datas}")
+            print(f"Datas[0]: {datas[0]}")
+            print("=========================================================")
             for r_data in datas:
                 if r_data.get("error") == 0 and r_data.get("message") == "Success":
                     data = r_data.get("data")
@@ -238,7 +240,9 @@ class AccountMove(models.Model):
         zns_template_id = self.env["zns.template"].search(
             [("template_id", "=", template_id)], limit=1
         )
-        _logger.debug(f">>> ZNS Template ID: {zns_template_id} <<<")
+        _logger.info(
+            f">>> ZNS Template: [{zns_template_id.template_id}] {zns_template_id.template_name} <<<"
+        )
 
         zns_template_data = {}
         zns_sample_data_ids = self.env["zns.template.sample.data"].search(
@@ -299,14 +303,5 @@ class AccountMove(models.Model):
                         "tracking_id": line.id,
                     }
                 )
-
-                _logger.debug(f"Phone: {valid_phone_number}")
-                _logger.debug(f"Template ID: {zns_template_id.id}")
-                _logger.debug(f"Template Data: {zns_template_data}")
-                _logger.debug(f"Tracking ID: {line.id}")
-
-            _logger.info(
-                ">>> ZNS: Notification Date Due Journal Entry - SUCCESSFULLY <<<"
-            )
 
         return True
