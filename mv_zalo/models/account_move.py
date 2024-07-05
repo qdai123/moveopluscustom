@@ -116,6 +116,8 @@ class AccountMove(models.Model):
                 and sample_type == "NUMBER"
             ):
                 return str(value)
+            elif field_type in ["char", "text"] and sample_type == "STRING":
+                return value if value else None
             elif field_type == "many2one" and sample_type == "STRING":
                 return str(value.name) if value else None
             else:
