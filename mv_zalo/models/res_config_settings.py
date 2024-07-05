@@ -10,22 +10,24 @@ class ResConfigSettings(models.TransientModel):
         "ZNS Payment Notification Template",
         domain="[('use_type', 'in', ['account.move'])]",
     )
-    zns_template_id = fields.Integer(
-        default=0,
-        config_parameter="mv_zalo.zns_payment_notification_template_id",
+    zns_template_id = fields.Char(
+        config_parameter="mv_zalo.zns_payment_notification_template_id"
     )
 
     @api.onchange("zns_payment_notification_template_id")
     def _onchange_zns_payment_notification_template_id(self):
         if self.zns_payment_notification_template_id:
-            self.zns_template_id = self.zns_payment_notification_template_id.id
+            self.zns_template_id = self.zns_payment_notification_template_id.template_id
+            self.env.ref("mv_zalo.zns_payment_notification_template_id").write(
+                {"value": self.zns_template_id}
+            )
 
     @api.model
     def get_values(self):
         res = super().get_values()
         ICPSudo = self.env["ir.config_parameter"].sudo()
         zns_template_id = ICPSudo.get_param(
-            "mv_zalo.zns_payment_notification_template_id", 0
+            "mv_zalo.zns_payment_notification_template_id", ""
         )
         res.update(zns_template_id=zns_template_id)
         return res
