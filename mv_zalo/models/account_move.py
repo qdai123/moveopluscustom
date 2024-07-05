@@ -12,7 +12,6 @@ from odoo.addons.biz_zalo_common.models.common import (
 )
 from odoo.addons.mv_zalo.zalo_oa_functional import (
     ZNS_GENERATE_MESSAGE,
-    ZNS_GET_SAMPLE_DATA,
     ZNS_GET_PAYLOAD,
 )
 
@@ -202,9 +201,8 @@ class AccountMove(models.Model):
 
         pprint.pprint(datas, indent=2)
 
-        if datas and isinstance(datas, list) and len(datas) > 0:
-            data = datas[0]  # Assuming the first item is the desired one
-            if data.get("error") == 0 and data.get("message") == "Success":
+        if len(datas) > 0:
+            if datas.get("error") == 0 and datas.get("message") == "Success":
                 data = datas.get("data")
                 if data:
                     sent_time = (
