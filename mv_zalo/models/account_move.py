@@ -219,9 +219,9 @@ class AccountMove(models.Model):
                         f"Send Message ZNS successfully for Invoice {self.name}!"
                     )
             else:
-                error_message = CODE_ERROR_ZNS.get(str(data["error"]), "Unknown error")
+                error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
                 _logger.error(
-                    f"Code Error: {data['error']}, Error Info: {error_message}"
+                    f"Code Error: {datas['error']}, Error Info: {error_message}"
                 )
         else:
             _logger.error("Unexpected data format or empty response.")
