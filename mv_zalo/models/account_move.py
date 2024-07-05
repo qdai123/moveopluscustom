@@ -175,11 +175,12 @@ class AccountMove(models.Model):
         self.zns_history_id = zns_history_id.id if zns_history_id else False
 
     def send_zns_message(self, data, testing=False):
-        ZNSConfiguration = self.env["zalo.config"].search(
-            [("primary_settings", "=", True)], limit=1
-        )
+
+        # Get ZNS configuration
+        ZNSConfiguration = self._get_zns_configuration()
         if not ZNSConfiguration:
-            raise ValidationError("ZNS Configuration is not found!")
+            _logger.error("ZNS Configuration is not found!")
+            return
 
         # Parameters
         phone = convert_valid_phone_number(data.get("phone"))
@@ -202,7 +203,7 @@ class AccountMove(models.Model):
             # _logger.error(
             #     f"ZNS Code Error: {datas['error']}, Error Info: {error_message}"
             # )
-            _logger.debug(
+            _logger.error(
                 f"ZNS Code Error: {datas['error']}, Error Info: {datas['message']}"
             )
             return
@@ -234,6 +235,48 @@ class AccountMove(models.Model):
                     _logger.info(
                         f"Send Message ZNS successfully for Invoice {self.name}!"
                     )
+
+    def _get_zns_configuration(self):
+        # Implement logic to retrieve ZNS configuration
+        return self.env["zalo.config"].search(
+            [("primary_settings", "=", True)], limit=1
+        )
+
+    def _execute_send_message(self, ZNSConfiguration, payload):
+        # Step 1: Validate Input
+        if not ZNSConfiguration or not payload:
+            _logger.error("Invalid ZNSConfiguration or payload.")
+            return {"success": False, "error": "Invalid input"}
+
+        # Step 2: Prepare Request Data
+        url = ZNSConfiguration._get_sub_url_zns("/message/template")
+        headers = ZNSConfiguration._get_headers()
+        method = "POST"
+
+        # Step 3: Execute Request
+        try:
+            response, response_data = self.env["zalo.log.request"].do_execute(
+                url,
+                method=method,
+                headers=headers,
+                payload=json.dumps(payload),
+                is_check=True,
+            )
+        except Exception as e:
+            _logger.error(f"An error occurred while sending the message: {e}")
+            return {"success": False, "error": str(e)}
+
+        # Step 4: Handle Response
+        if response_data.get("error") != 0:
+            error_message = response_data.get("message", "Unknown error")
+            _logger.error(f"Failed to send message: {error_message}")
+            return {"success": False, "error": error_message}
+
+        # Step 5: Logging
+        _logger.info(f"Message sent successfully: {response_data}")
+
+        # Step 6: Return Result
+        return {"success": True, "details": "Message sent successfully"}
 
     # /// CRON JOB ///
     @api.model
@@ -304,7 +347,7 @@ class AccountMove(models.Model):
                 self.send_zns_message(
                     {
                         "phone": valid_phone_number,
-                        "template_id": zns_template_id.id,
+                        "template_id": zns_template_id.template_id,
                         "template_data": zns_template_data,
                         "tracking_id": line.id,
                     }
