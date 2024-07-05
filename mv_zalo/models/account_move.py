@@ -187,7 +187,7 @@ class AccountMove(models.Model):
         template_data = data.get("template_data")
         tracking_id = data.get("tracking_id")
 
-        _, datas = self.env["zalo.log.request"].do_execute(
+        _, datas = self.env["zalo.log.request"].zns_do_execute(
             ZNSConfiguration._get_sub_url_zns("/message/template"),
             method="POST",
             headers=ZNSConfiguration._get_headers(),
@@ -197,11 +197,16 @@ class AccountMove(models.Model):
             is_check=True,
         )
 
-        if (
-            len(datas) > 0
-            and datas.get("error") == 0
-            and datas.get("message") == "Success"
-        ):
+        if datas and datas["error"] != 0 and datas["message"] != "Success":
+            # error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
+            # _logger.error(
+            #     f"ZNS Code Error: {datas['error']}, Error Info: {error_message}"
+            # )
+            _logger.debug(
+                f"ZNS Code Error: {datas['error']}, Error Info: {datas['message']}"
+            )
+            return
+        else:
 
             _logger.debug("=========================================================")
             _logger.debug(f"Base Datas: {datas}")
@@ -225,14 +230,10 @@ class AccountMove(models.Model):
                     self.generate_zns_history(data, ZNSConfiguration)
                     self.message_post(body=Markup(zns_message))
                     self.zns_notification_sent = True if not testing else False
+
                     _logger.info(
                         f"Send Message ZNS successfully for Invoice {self.name}!"
                     )
-        else:
-            error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
-            _logger.error(
-                f"ZNS Code Error: {datas['error']}, Error Info: {error_message}"
-            )
 
     # /// CRON JOB ///
     @api.model
