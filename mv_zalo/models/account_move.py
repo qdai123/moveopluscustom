@@ -183,9 +183,9 @@ class AccountMove(models.Model):
 
         # Parameters
         phone = convert_valid_phone_number(data.get("phone"))
+        tracking_id = data.get("tracking_id")
         template_id = data.get("template_id")
         template_data = data.get("template_data")
-        tracking_id = data.get("tracking_id")
 
         _, datas = self.env["zalo.log.request"].do_execute(
             ZNSConfiguration._get_sub_url_zns("/message/template"),
@@ -349,7 +349,7 @@ class AccountMove(models.Model):
                     {
                         "phone": valid_phone_number,
                         "template_id": zns_template_id.template_id,
-                        "template_data": zns_template_data,
+                        "template_data": json.dumps(zns_template_data),
                         "tracking_id": line.id,
                     },
                     True if phone else False,
