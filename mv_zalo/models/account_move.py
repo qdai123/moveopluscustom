@@ -20,6 +20,8 @@ from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
+CODE_ERROR_ZNS = dict(CODE_ERROR_ZNS)
+
 
 def get_zns_time(time, user_timezone="Asia/Ho_Chi_Minh"):
     """
@@ -184,20 +186,20 @@ class AccountMove(models.Model):
     # /// ZALO ZNS ///
 
     def send_zns_message(self, data, testing=False):
-
-        # Get ZNS configuration
+        # Retrieve ZNS configuration
         ZNSConfiguration = self._retrieve_zns_configuration()
         if not ZNSConfiguration:
             _logger.error("ZNS Configuration is not found!")
             return
 
-        # Parameters
+        # Extract data
         phone = convert_valid_phone_number(data.get("phone"))
         tracking_id = data.get("tracking_id")
         template_id = data.get("template_id")
         template_data = data.get("template_data")
 
-        _, datas = self.env["zalo.log.request"].do_execute(
+        # Execute ZNS request
+        _, response_data = self.env["zalo.log.request"].do_execute(
             ZNSConfiguration._get_sub_url_zns("/message/template"),
             method="POST",
             headers=ZNSConfiguration._get_headers(),
@@ -207,37 +209,34 @@ class AccountMove(models.Model):
             is_check=True,
         )
 
-        if datas and datas["error"] != 0 and datas["message"] != "Success":
-            error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
+        # Handle empty response
+        if not response_data:
+            _logger.error("No data received.")
+            return
+
+        # Handle error response
+        if response_data["error"] != 0 and response_data["message"] != "Success":
+            error_message = CODE_ERROR_ZNS.get(
+                str(response_data["error"]), "Unknown error"
+            )
             _logger.error(
-                f"ZNS Code Error: {datas['error']}, Error Info: {error_message}"
+                f"ZNS Code Error: {response_data['error']}, Error Info: {error_message}"
             )
             return
-        else:
 
-            _logger.debug("=========================================================")
-            _logger.debug(f"Base Datas: {datas}")
-            _logger.debug("=========================================================")
+        # Process successful response
+        if response_data.get("data"):
+            for r_data in response_data["data"]:
+                sent_time = (
+                    get_datetime(r_data["sent_time"]) if r_data["sent_time"] else ""
+                )
+                formatted_sent_time = get_zns_time(sent_time) if sent_time else ""
+                zns_message = ZNS_GENERATE_MESSAGE(r_data, formatted_sent_time)
+                self.generate_zns_history(r_data, ZNSConfiguration)
+                self.message_post(body=Markup(zns_message))
+                self.zns_notification_sent = not testing
 
-            if datas.get("data"):
-                for r_data in datas["data"]:
-
-                    _logger.debug("00000000000000000000000000000")
-                    _logger.debug(f"Base Raw Data: {r_data}")
-                    _logger.debug("00000000000000000000000000000")
-
-                    sent_time = (
-                        get_datetime(r_data["sent_time"]) if r_data["sent_time"] else ""
-                    )
-                    sent_time = sent_time and get_zns_time(sent_time) or ""
-                    zns_message = ZNS_GENERATE_MESSAGE(r_data, sent_time)
-                    self.generate_zns_history(r_data, ZNSConfiguration)
-                    self.message_post(body=Markup(zns_message))
-                    self.zns_notification_sent = True if not testing else False
-
-                    _logger.info(
-                        f"Send Message ZNS successfully for Invoice {self.name}!"
-                    )
+                _logger.info(f"Send Message ZNS successfully for Invoice {self.name}!")
 
     def generate_zns_history(self, data, config_id=False):
         template_id = self._get_zns_payment_notification_template()
