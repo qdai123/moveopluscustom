@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<!-- MOVEO+ Inherited: Report Invoice Document (account.report_invoice_document) -->
+	<template id="mv_account.report_invoice_document" name="MOVEO+ Inherited: Report Invoice Document" inherit_id="account.report_invoice_document">
+		<!-- Write your logic code here... -->
+	</template>
+
+</odoo>
