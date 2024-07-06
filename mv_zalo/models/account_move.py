@@ -6,13 +6,13 @@ from datetime import timedelta
 import pytz
 from markupsafe import Markup
 from odoo.addons.biz_zalo_common.models.common import (
+    CODE_ERROR_ZNS,
     convert_valid_phone_number,
     get_datetime,
 )
 from odoo.addons.mv_zalo.zalo_oa_functional import (
     ZNS_GENERATE_MESSAGE,
     ZNS_GET_PAYLOAD,
-    ZNS_GET_SAMPLE_DATA,
 )
 
 from odoo import _, api, fields, models
