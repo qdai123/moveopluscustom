@@ -6,7 +6,7 @@
 			<field name="model_id" ref="account.model_account_move"/>
 			<field name="user_id" ref="base.user_root"/>
 			<field name="state">code</field>
-			<field name="code">model._cron_notification_date_due_journal_entry()</field>
+			<field name="code">model._cron_notification_invoice_date_due()</field>
 			<field name="interval_number">1</field>
 			<field name="interval_type">days</field>
 			<field name="nextcall" eval="(DateTime.now().replace(hour=0, minute=0, second=0) + timedelta(days=1, hours=1)).strftime('%Y-%m-%d %H:%M:%S')"/>

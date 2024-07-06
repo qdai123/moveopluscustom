@@ -12,6 +12,7 @@ class StockPicking(models.Model):
     _inherit = "stock.picking"
 
     # === FIELDS ===#
+    short_name = fields.Char(related="partner_id.short_name", store=True)
     partner_delivery_address = fields.Char(
         "Partner Delivery Address", compute="_compute_partner_id", store=True
     )

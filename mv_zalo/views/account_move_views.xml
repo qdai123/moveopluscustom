@@ -7,7 +7,7 @@
 		<field name="priority">30</field>
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
-				<page string="ZNS" name="page_zalo_zns">
+				<page string="ZNS" name="page_zalo_zns" groups="mv_zalo.group_mv_zalo_manager">
 					<group>
 						<field name="zns_notification_sent" string="ZNS Sent"/>
 						<field name="zns_history_id" invisible="1"/>
@@ -38,14 +38,18 @@
 		<field name="priority">30</field>
 		<field name="arch" type="xml">
 			<xpath expr="//tree" position="inside">
-				<field name="zns_notification_sent" string="ZNS Sent" optional="hidden"/>
 				<field name="zns_history_id" column_invisible="1"/>
+				<field name="zns_notification_sent"
+				       string="ZNS Sent"
+				       groups="mv_zalo.group_mv_zalo_manager"
+				       optional="hidden"/>
 				<field name="zns_history_status"
 				       string="ZNS Status"
 				       decoration-muted="zns_history_status == '-1'"
 				       decoration-info="zns_history_status == '0'"
 				       decoration-success="zns_history_status == '1'"
 				       widget="badge"
+				       groups="mv_zalo.group_mv_zalo_manager"
 				       optional="hidden"/>
 			</xpath>
 		</field>
