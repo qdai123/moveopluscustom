@@ -26,7 +26,8 @@
 				        string="Send Message ZNS"
 				        type="object"
 				        name="action_send_message_zns"
-				        invisible="not zns_notification_sent or not zns_history_status or zns_history_status == '-1'"/>
+				        invisible="not zns_notification_sent or not zns_history_status or zns_history_status == '-1'"
+				        groups="mv_zalo.group_mv_zalo_manager"/>
 			</xpath>
 		</field>
 	</record>
