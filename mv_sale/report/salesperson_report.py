@@ -7,14 +7,14 @@ class SalespersonReport(models.Model):
     _description = _("Salesperson's Analysis Report")
     _auto = False
     _rec_name = "product_template_id"
-    _rec_names_search = ["sale_id", "sale_ref", "partner_id", "serial_number"]
-    _order = "sale_ref DESC, serial_number"
+    _rec_names_search = ["sale_id", "partner_id", "serial_number", "qrcode"]
+    _order = "sale_id DESC, serial_number"
 
     # ==== Product FIELDS ==== #
-    product_id = fields.Many2one("product.product", readonly=True)
+    product_id = fields.Many2one("product.product", "Base Product", readonly=True)
     product_template_id = fields.Many2one("product.template", "Sản phẩm", readonly=True)
     product_country_of_origin = fields.Many2one(
-        "res.country", "Quốc Gia (SP)", readonly=True
+        "res.country", "Quốc Gia (Sản phẩm)", readonly=True
     )
     product_att_size_lop = fields.Char("Size (lốp)", readonly=True)
     product_att_ma_gai = fields.Char("Mã gai", readonly=True)
@@ -23,52 +23,28 @@ class SalespersonReport(models.Model):
     serial_number = fields.Char("Mã vạch", readonly=True)
     qrcode = fields.Char("QR-Code", readonly=True)
     # ==== Sale FIELDS ==== #
-    sale_id = fields.Many2one("sale.order", readonly=True)
-    sale_ref = fields.Char("Mã SO", compute="_compute_sale_id")
-    sale_date_order = fields.Date("Ngày đặt hàng", compute="_compute_sale_id")
-    sale_day_order = fields.Char("Ngày đặt", compute="_compute_sale_id")
-    sale_month_order = fields.Char("Tháng đặt", compute="_compute_sale_id")
-    sale_year_order = fields.Char("Năm đặt", compute="_compute_sale_id")
+    sale_id = fields.Many2one("sale.order", "Mã đơn hàng", readonly=True)
+    sale_date_order = fields.Date("Ngày đặt hàng", readonly=True)
+    sale_day_order = fields.Char("Ngày", readonly=True)
+    sale_month_order = fields.Char("Tháng", readonly=True)
+    sale_year_order = fields.Char("Năm", readonly=True)
     # ==== Partner FIELDS ==== #
     partner_id = fields.Many2one("res.partner", "Đại lý", readonly=True)
-    partner_company_registry = fields.Char("Mã Đại lý", compute="_compute_partner")
-    partner_shipping_id = fields.Many2one(
-        "res.partner", "Đại lý vận chuyển", readonly=True
-    )
-    delivery_address = fields.Char("Địa chỉ giao hàng", compute="_compute_partner")
-    street = fields.Char("Đường", compute="_compute_partner")
-    wards_id = fields.Many2one(
-        "res.country.wards", "Phường", compute="_compute_partner"
-    )
-    district_id = fields.Many2one(
-        "res.country.district", "Quận", compute="_compute_partner"
-    )
-    state_id = fields.Many2one(
-        "res.country.state", "Thành phố", compute="_compute_partner"
-    )
-    country_id = fields.Many2one("res.country", "Quốc gia", compute="_compute_partner")
+    partner_company_registry = fields.Char("Mã Đại lý", readonly=True)
+    street = fields.Char("Đường", readonly=True)
+    wards_id = fields.Many2one("res.country.wards", "Phường", readonly=True)
+    district_id = fields.Many2one("res.country.district", "Quận", readonly=True)
+    state_id = fields.Many2one("res.country.state", "Thành phố", readonly=True)
+    country_id = fields.Many2one("res.country", "Quốc gia", readonly=True)
+    delivery_address = fields.Char("Địa chỉ giao hàng", compute="_compute_sale_id")
 
-    @api.depends("sale_id")
+    @api.depends("sale_id", "sale_id.partner_shipping_id")
     def _compute_sale_id(self):
         for record in self:
-            if record.sale_id:
-                record.sale_ref = record.sale_id.name
-                record.sale_date_order = record.sale_id.date_order.date()
-                record.sale_day_order = record.sale_id.date_order.day
-                record.sale_month_order = record.sale_id.date_order.month
-                record.sale_year_order = record.sale_id.date_order.year
-
-    @api.depends("partner_id", "partner_shipping_id")
-    def _compute_partner(self):
-        for record in self:
-            record.partner_company_registry = record.partner_id.company_registry
-            if record.partner_shipping_id:
-                record.delivery_address = record.partner_shipping_id.full_address_vi
-                record.street = record.partner_shipping_id.street
-                record.country_id = record.partner_shipping_id.country_id
-                record.state_id = record.partner_shipping_id.state_id
-                record.district_id = record.partner_shipping_id.district_id
-                record.wards_id = record.partner_shipping_id.wards_id
+            if record.sale_id and record.sale_id.partner_shipping_id:
+                record.delivery_address = (
+                    record.sale_id.partner_shipping_id.full_address_vi
+                )
 
     # ==================================
     # SQL Queries / Initialization
@@ -77,14 +53,24 @@ class SalespersonReport(models.Model):
     @api.model
     def _sql_orders(self):
         return f"""
-            SELECT so.id AS sale_id,
-                   so.partner_id,
-                   so.partner_shipping_id
+            SELECT so.id                             AS sale_id,
+                   so.date_order::DATE               AS sale_date_order,
+                   EXTRACT(DAY FROM so.date_order)   AS sale_day_order,
+                   EXTRACT(MONTH FROM so.date_order) AS sale_month_order,
+                   EXTRACT(YEAR FROM so.date_order)  AS sale_year_order,
+                   partner.id                        AS partner_id,
+                   partner.company_registry          AS partner_company_registry,
+                   partner_shipping.street,
+                   partner_shipping.wards_id,
+                   partner_shipping.district_id,
+                   partner_shipping.state_id,
+                   partner_shipping.country_id
             FROM sale_order so
-                     JOIN res_partner rp ON so.partner_id = rp.id
+                     INNER JOIN res_partner partner ON (so.partner_id = partner.id AND partner.is_agency = TRUE)
+                     INNER JOIN res_partner partner_shipping ON (so.partner_shipping_id = partner_shipping.id)
             WHERE so.state = 'sale'
-              AND rp.is_agency = TRUE
-            GROUP BY so.id
+              AND so.is_order_returns = FALSE 
+                OR so.is_order_returns IS NULL
         """
 
     def _query(self):
@@ -106,103 +92,95 @@ class SalespersonReport(models.Model):
         return f"""
             orders AS ({self._sql_orders()}),
             order_lines AS (SELECT so.sale_id,
-                                so.partner_id,
-                                so.partner_shipping_id,
-                                sol.product_id       AS product_id,
-                                pt.id                AS product_template_id,
-                                pt.country_of_origin AS product_country_of_origin,
-                                stl.name             AS serial_number,
-                                stl.ref              AS qrcode
-                         FROM sale_order_line AS sol
-                                  JOIN orders AS so ON (so.sale_id = sol.order_id)
-                                  JOIN product_product AS pp ON (pp.id = sol.product_id)
-                                  JOIN product_template AS pt
-                                       ON (pt.id = pp.product_tmpl_id)
-                                           AND sale_ok = TRUE
-                                           AND (pt.detailed_type = 'product' OR pt.type = 'product')
-                                  JOIN stock_picking AS sp ON (sp.sale_id = sol.order_id) AND sp.state = 'done'
-                                  JOIN stock_move_line AS sml ON (sml.picking_id = sp.id AND sml.product_id = pp.id)
-                                  JOIN stock_lot AS stl ON (stl.id = sml.lot_id AND stl.product_id = pp.id)
-                         WHERE sol.state = 'sale'
-                           AND sol.qty_delivered_method = 'stock_move'
-                         GROUP BY 1, 2, 3, 4, 5, 6, 7, 8),
-         products AS (SELECT pp.id                         AS product_id,
-                             sol.product_template_id       AS product_template_id,
-                             sol.product_country_of_origin AS product_country_of_origin
-                      FROM product_product AS pp
-                               JOIN order_lines AS sol ON (sol.product_id = pp.id)
-                      GROUP BY pp.id, sol.product_template_id, sol.product_country_of_origin),
-         products_size_lop AS (SELECT pp.id                      AS product_id,
-                                      pav.name ->> 'en_US'::TEXT AS product_att_size_lop
-                               FROM product_product AS pp
-                                        JOIN product_template AS pt
-                                             ON (pt.id = pp.product_tmpl_id) AND pp.id IN (SELECT product_id FROM order_lines)
-                                        JOIN product_template_attribute_line AS ptal ON (ptal.product_tmpl_id = pt.id)
-                                        JOIN product_attribute AS paatt
-                                             ON (paatt.id = ptal.attribute_id) AND
-                                                paatt.attribute_code IN ('{att_size_lop}', '{att_size_lop}_duplicated')
-                                        JOIN product_template_attribute_value AS ptav
-                                             ON (ptav.product_tmpl_id = pt.id AND ptav.attribute_id = paatt.id)
-                                        JOIN product_attribute_value AS pav
-                                             ON (pav.id = ptav.product_attribute_value_id)
-                               WHERE pp.id IN (SELECT product_id FROM products)
-                               GROUP BY product_id, product_att_size_lop),
-         products_ma_gai AS (SELECT pp.id                      AS product_id,
-                                    pav.name ->> 'en_US'::TEXT AS product_att_ma_gai
-                             FROM product_product AS pp
-                                      JOIN product_template AS pt
-                                           ON (pt.id = pp.product_tmpl_id) AND pp.id IN (SELECT product_id FROM order_lines)
-                                      JOIN product_template_attribute_line AS ptal ON (ptal.product_tmpl_id = pt.id)
-                                      JOIN product_attribute AS paatt
-                                           ON (paatt.id = ptal.attribute_id) AND
-                                              paatt.attribute_code IN ('{att_ma_gai}', '{att_ma_gai}_duplicated')
-                                      JOIN product_template_attribute_value AS ptav
-                                           ON (ptav.product_tmpl_id = pt.id AND ptav.attribute_id = paatt.id)
-                                      JOIN product_attribute_value AS pav
-                                           ON (pav.id = ptav.product_attribute_value_id)
-                             WHERE pp.id IN (SELECT product_id FROM products)
-                             GROUP BY product_id, product_att_ma_gai),
-         products_rim_diameter_inch AS (SELECT pp.id                      AS product_id,
-                                               pav.name ->> 'en_US'::TEXT AS product_att_rim_diameter_inch
-                                        FROM product_product AS pp
-                                                 JOIN product_template AS pt
-                                                      ON (pt.id = pp.product_tmpl_id) AND pp.id IN (SELECT product_id FROM order_lines)
-                                                 JOIN product_template_attribute_line AS ptal
-                                                      ON (ptal.product_tmpl_id = pt.id)
-                                                 JOIN product_attribute AS paatt
-                                                      ON (paatt.id = ptal.attribute_id) AND
-                                                         paatt.attribute_code IN ('{att_rim_diameter_inch}', '{att_rim_diameter_inch}_duplicated')
-                                                 JOIN product_template_attribute_value AS ptav
-                                                      ON (ptav.product_tmpl_id = pt.id AND ptav.attribute_id = paatt.id)
-                                                 JOIN product_attribute_value AS pav
-                                                      ON (pav.id = ptav.product_attribute_value_id)
-                                        WHERE pp.id IN (SELECT product_id FROM products)
-                                        GROUP BY product_id, product_att_rim_diameter_inch)
+                                   so.sale_date_order,
+                                   so.sale_day_order,
+                                   so.sale_month_order,
+                                   so.sale_year_order,
+                                   so.partner_id,
+                                   so.partner_company_registry,
+                                   so.street,
+                                   so.wards_id,
+                                   so.district_id,
+                                   so.state_id,
+                                   so.country_id,
+                                   pp.id                AS product_id,
+                                   pt.id                AS product_template_id,
+                                   pt.country_of_origin AS product_country_of_origin,
+                                   stl.name             AS serial_number,
+                                   stl.ref              AS qrcode
+                             FROM sale_order_line sol
+                                  JOIN orders so ON so.sale_id = sol.order_id
+                                  JOIN product_product pp ON pp.id = sol.product_id
+                                  JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                                  JOIN stock_picking sp ON sp.sale_id = sol.order_id
+                                  JOIN stock_move_line sml ON sml.picking_id = sp.id AND sml.product_id = pp.id
+                                  JOIN stock_lot stl ON stl.id = sml.lot_id AND stl.product_id = pp.id
+                             WHERE sol.state = 'sale'
+                               AND sol.qty_delivered_method = 'stock_move'
+                               AND pt.sale_ok = TRUE
+                               AND (pt.detailed_type = 'product' OR pt.type = 'product')
+                               AND sp.state = 'done'),
+        product_attributes AS (SELECT pp.id                                      AS product_id,
+                                       MAX(CASE
+                                               WHEN paatt.attribute_code IN ('{att_size_lop}', '{att_size_lop}_duplicated')
+                                                   THEN pav.name ->> 'en_US' END) AS product_att_size_lop,
+                                       MAX(CASE
+                                               WHEN paatt.attribute_code IN ('{att_ma_gai}', '{att_ma_gai}_duplicated')
+                                                   THEN pav.name ->> 'en_US' END) AS product_att_ma_gai,
+                                       MAX(CASE
+                                               WHEN paatt.attribute_code IN ('{att_rim_diameter_inch}', '{att_rim_diameter_inch}_duplicated')
+                                                   THEN pav.name ->> 'en_US' END) AS product_att_rim_diameter_inch
+                                FROM product_product pp
+                                         JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                                         JOIN product_template_attribute_line ptal ON ptal.product_tmpl_id = pt.id
+                                         JOIN product_attribute paatt ON paatt.id = ptal.attribute_id
+                                         JOIN product_template_attribute_value ptav ON ptav.product_tmpl_id = pt.id AND ptav.attribute_id = paatt.id
+                                         JOIN product_attribute_value pav ON pav.id = ptav.product_attribute_value_id
+                                WHERE pp.id IN (SELECT product_id FROM order_lines)
+                                GROUP BY pp.id)
         """
 
     def _select_clause(self):
         return """
-            SELECT ROW_NUMBER() OVER ()               AS id,
+            SELECT ROW_NUMBER() OVER () AS id,
                    line.*,
-                   pzl.product_att_size_lop           AS product_att_size_lop,
-                   pmg.product_att_ma_gai             AS product_att_ma_gai,
-                   prim.product_att_rim_diameter_inch AS product_att_rim_diameter_inch
+                   pa.product_att_size_lop,
+                   pa.product_att_ma_gai,
+                   pa.product_att_rim_diameter_inch
         """
 
     def _from_clause(self):
         return """
             FROM order_lines line
-                 JOIN products AS p ON (p.product_id = line.product_id)
-                 FULL OUTER JOIN products_size_lop pzl ON (p.product_id = pzl.product_id)
-                 FULL OUTER JOIN products_ma_gai pmg ON (p.product_id = pmg.product_id)
-                 FULL OUTER JOIN products_rim_diameter_inch prim ON (p.product_id = prim.product_id)
+                JOIN product_attributes pa ON pa.product_id = line.product_id
         """
 
     def _where_clause(self):
         return ""
 
     def _group_by_clause(self):
-        return "GROUP BY 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"
+        return """
+            GROUP BY line.sale_id,
+                     line.sale_date_order,
+                     line.sale_day_order,
+                     line.sale_month_order,
+                     line.sale_year_order,
+                     line.partner_id,
+                     line.partner_company_registry,
+                     line.street,
+                     line.wards_id,
+                     line.district_id,
+                     line.state_id,
+                     line.country_id,
+                     line.product_id,
+                     line.product_template_id,
+                     line.product_country_of_origin,
+                     line.serial_number,
+                     line.qrcode,
+                     pa.product_att_size_lop,
+                     pa.product_att_ma_gai,
+                     pa.product_att_rim_diameter_inch
+        """
 
     def init(self):
         tools.drop_view_if_exists(self._cr, self._table)
