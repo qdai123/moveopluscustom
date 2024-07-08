@@ -22,6 +22,8 @@ class SaleOrder(models.Model):
         agency_discount_line = (
             order.order_line._filter_discount_agency_lines(order)
             or order.discount_agency_set
+            and order.partner_agency
+            or order.partner_id.is_agency
         )
         return not agency_discount_line
 

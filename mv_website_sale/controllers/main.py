@@ -19,7 +19,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
     # /// Cart
 
     def _cart_values(self, **post):
-        _logger.debug(f"POST: {post}")
+        _logger.debug(f"MOVEO+ Cart Value [POST]: {post}")
         order = request.website.sale_get_order()
         discount_amount_invalid = order.partner_id.amount_currency < order.bonus_order
         discount_amount_maximum = order.bonus_max

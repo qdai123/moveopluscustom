@@ -19,11 +19,20 @@ class ResConfigSettings(models.TransientModel):
         if self.zns_payment_notification_template_id:
             self.zns_template_id = self.zns_payment_notification_template_id.template_id
             ICPSudo = self.env["ir.config_parameter"].sudo()
-            param = ICPSudo.get_param(
+            template = ICPSudo.get_param(
                 "mv_zalo.zns_payment_notification_template_id", ""
             )
-            if param:
+            if template:
+                param = ICPSudo.search(
+                    [("key", "=", "mv_zalo.zns_payment_notification_template_id")],
+                    limit=1,
+                )
                 param.write({"value": self.zns_template_id})
+            else:
+                ICPSudo.set_param(
+                    "mv_zalo.zns_payment_notification_template_id",
+                    self.zns_payment_notification_template_id.template_id,
+                )
 
     @api.model
     def get_values(self):

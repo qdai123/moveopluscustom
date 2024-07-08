@@ -9,7 +9,7 @@
 	                <div class="oe_title pe-0">
                         <h1 class="d-flex justify-content-between align-items-center">
                             <div class="d-flex w-100">
-                                <field name="sale_ref"/>
+                                <field name="sale_id"/>
                             </div>
                         </h1>
                     </div>
@@ -20,7 +20,6 @@
                         <group string="Thông tin Đại lý" name="group_customer_info">
                             <field name="partner_id" options="{'no_open': True}"/>
 	                        <field name="partner_company_registry"/>
-                            <field name="partner_shipping_id" options="{'no_open': True}"/>
                             <field name="delivery_address"/>
                         </group>
 	                    <group string="Thông tin Sản phẩm" name="group_product_info">
@@ -52,21 +51,19 @@
 				<field name="product_att_ma_gai" optional="show"/>
 				<field name="product_att_rim_diameter_inch" optional="show"/>
 				<field name="product_country_of_origin" options="{'no_open': True}" optional="show"/>
-				<field name="sale_id" column_invisible="1"/>
-				<field class="fw-bold" name="sale_ref" optional="show"/>
+				<field class="fw-bold" name="sale_id" options="{'no_open': True}"/>
 				<field name="partner_id" options="{'no_open': True}"/>
-				<field name="partner_company_registry"/>
-				<field name="partner_shipping_id" column_invisible="1"/>
+				<field name="partner_company_registry" optional="show"/>
 				<field name="delivery_address" optional="show"/>
-				<field name="street" optional="show"/>
-				<field name="wards_id" optional="show"/>
-				<field name="district_id" optional="show"/>
+				<field name="street" optional="hidden"/>
+				<field name="wards_id" optional="hidden"/>
+				<field name="district_id" optional="hidden"/>
 				<field name="state_id" optional="show"/>
 				<field name="country_id" optional="show"/>
 				<field name="sale_date_order" optional="show"/>
-				<field name="sale_day_order" optional="show"/>
-				<field name="sale_month_order" optional="show"/>
-				<field name="sale_year_order" optional="show"/>
+				<field name="sale_day_order" optional="hidden"/>
+				<field name="sale_month_order" optional="hidden"/>
+				<field name="sale_year_order" optional="hidden"/>
 			</tree>
 		</field>
 	</record>
@@ -76,20 +73,22 @@
 		<field name="model">salesperson.report</field>
 		<field name="arch" type="xml">
 			<search string="Salesperson's Analysis Report SEARCH">
-				<field name="partner_id" operator="child_of" string="Đại lý" filter_domain="[
-                        '|',
-                        ('partner_id', 'ilike', self),
-                        ('partner_email', 'ilike', self)]"/>
-				<field name="product_template_id" operator="child_of" string="Sản phẩm" filter_domain="[
-                        '|',
-                        ('product_template_id', 'ilike', self),
-                        ('product_template_id.name', 'ilike', self)]"/>
+				<field name="sale_id" operator="child_of" string="Mã đơn hàng" filter_domain="[('sale_id', 'ilike', self)]"/>
+				<field name="partner_id" operator="child_of" string="Đại lý" filter_domain="[('partner_id', 'ilike', self)]"/>
+				<field name="product_template_id" operator="child_of" string="Sản phẩm" filter_domain="[('product_template_id', 'ilike', self)]"/>
 				<field name="serial_number" string="Mã vạch"/>
 				<field name="qrcode" string="QR-Code"/>
+				<filter string="Đơn hàng của tôi" domain="[('sale_id.user_id', '=', uid)]" name="my_sale_orders_filter"/>
 				<group expand="0" string="Group By" colspan="16">
 					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'partner_id'}"/>
 					<separator/>
+					<filter string="Mã đơn hàng" name="groupby_sale_order" context="{'group_by':'sale_id'}"/>
+					<filter string="Ngày đặt hàng" name="groupby_sale_date_order" domain="[]" context="{'group_by':'sale_date_order'}"/>
+					<separator/>
 					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_template_id'}"/>
+					<filter string="Size (lốp)" name="groupby_product_att_size_lop" context="{'group_by':'product_att_size_lop'}"/>
+					<filter string="Mã gai" name="groupby_product_att_ma_gai" context="{'group_by':'product_att_ma_gai'}"/>
+					<filter string="Đường kính Mâm" name="groupby_product_att_rim_diameter_inch" context="{'group_by':'product_att_rim_diameter_inch'}"/>
 					<filter string="Quốc Gia (Sản phẩm)" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
 					<separator/>
 					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
@@ -109,7 +108,8 @@
 		<field name="context">{
 			'attribute_ma_gai': 'ma_gai',
 			'attribute_size_lop': 'size_lop',
-			'attribute_rim_diameter_inch': 'rim_diameter_inch'
+			'attribute_rim_diameter_inch': 'rim_diameter_inch',
+			'search_default_my_sale_orders_filter': 1
 		}</field>
 		<field name="help" type="html">
 			<p class="o_view_nocontent_empty_folder">

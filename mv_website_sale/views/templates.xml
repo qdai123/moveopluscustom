@@ -9,7 +9,12 @@
 		<form t-attf-action="/shop/apply_discount#{redirect and '?r=' + redirect or ''}" method="post" name="applying_partner_discount">
 			<input type="hidden" name="csrf_token" t-att-value="request.csrf_token()" t-nocache="The csrf token must always be up to date."/>
 			<div class="input-group w-100 my-2">
-				<input type="number" id="applying_partner_discount_input" class="form-control" name="discount_amount" t-att-value="website_sale_order.bonus_remaining if website_sale_order.bonus_remaining else 0" min="0"/>
+				<input name="discount_amount"
+				       type="number"
+				       id="applying_partner_discount_input"
+				       class="form-control"
+				       t-attf-value="{{website_sale_order.bonus_remaining if website_sale_order.bonus_remaining > 0 else 0}}"
+				       min="0"/>
 				<a href="#" role="button" id="button-apply" class="btn btn-secondary a-submit">Áp dụng</a>
 			</div>
 		</form>
@@ -37,7 +42,7 @@
 				<td id="cart_total_before_discount" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
 					Giá chưa chiết khấu
 				</td>
-				<td class="text-end border-0 pb-2 pe-0 pt-0">
+				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
 					<span t-field="website_sale_order.total_price_no_service"
 					      class="monetary_field"
 					      style="white-space: nowrap;"
@@ -48,7 +53,7 @@
 				<td id="cart_total_discount_on_product" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
 					Chiết khấu (Sản phẩm) <t t-out="'({}%)'.format(int(website_sale_order.percentage))"/>
 				</td>
-				<td class="text-end border-0 pb-2 pe-0 pt-0">
+				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
 					<span t-out="-website_sale_order.total_price_discount"
 					      class="monetary_field"
 					      style="white-space: nowrap;"
@@ -61,7 +66,7 @@
 						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
 							<t t-out="so_line.name_short"/>
 						</td>
-						<td class="text-end border-0 pb-2 pe-0 pt-0">
+						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
 							<span t-out="so_line.price_unit"
 							      class="monetary_field"
 							      style="white-space: nowrap;"
@@ -75,7 +80,7 @@
 					<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
 						<t t-out="so_line.name_short"/>
 					</td>
-					<td class="text-end border-0 pb-2 pe-0 pt-0">
+					<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
 						<span t-out="so_line.price_unit"
 						      class="monetary_field"
 						      style="white-space: nowrap;"
@@ -89,7 +94,7 @@
 				<td id="cart_total_after_discount" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
 					Giá sau chiết khấu
 				</td>
-				<td class="text-end border-0 pb-2 pe-0 pt-0">
+				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
 					<span t-field="website_sale_order.amount_untaxed"
 					      class="monetary_field"
 					      style="white-space: nowrap;"
@@ -98,7 +103,7 @@
 			</tr>
 			<tr id="order_total_taxes">
 				<td colspan="2" class="text-muted border-0 ps-0 pt-0 pb-3">Thuế</td>
-				<td class="text-end border-0 pe-0 pt-0 pb-3">
+				<td class="text-end border-0 pe-0 pt-0 pb-3 text-muted">
 					<span t-field="website_sale_order.amount_tax"
 					      class="monetary_field"
 					      style="white-space: nowrap;"
