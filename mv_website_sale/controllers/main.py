@@ -108,6 +108,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
     @http.route()
     def checkout(self, **post):
+        res = super().checkout(**post)
         redirect = post.get("r", "/shop/cart")
 
         # [!] WARNING for buying more than 4 tires
@@ -118,7 +119,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
         if order.check_missing_partner_discount():
             return request.redirect("%s?missing_partner_discount=1" % redirect)
 
-        return super().checkout(**post)
+        return res
 
     # /// Payment
 
