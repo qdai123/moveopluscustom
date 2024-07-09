@@ -19,11 +19,12 @@ class SaleOrder(models.Model):
 
     def check_missing_partner_discount(self):
         order = self
+        is_partner_agency = order.partner_agency or order.partner_id.is_agency
         agency_discount_line = (
             order.order_line._filter_discount_agency_lines(order)
             or order.discount_agency_set
         )
-        return not agency_discount_line
+        return is_partner_agency and not agency_discount_line
 
     def _compute_cart_info(self):
         # Call the parent class's _compute_cart_info method

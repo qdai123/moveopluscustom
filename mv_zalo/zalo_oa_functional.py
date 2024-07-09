@@ -5,30 +5,40 @@ import json
 def ZNS_GET_SAMPLE_DATA(sample_id, obj_model):
     # Check if field_id is set
     if not sample_id.field_id:
+        _logger.error("Field ID not found for sample_id: {}".format(sample_id))
         return None
 
     # Get the raw value
-    raw_value = obj_model[sample_id.field_id.name]
+    field_name = sample_id.field_id.name
+    field_type = sample_id.field_id.ttype
+    sample_type = sample_id.type
+
+    _logger.debug(
+        f"Processing Field: {field_name}, Type: {field_type}, Sample Type: {sample_type}"
+    )
 
     # Handle None values gracefully
-    if raw_value is None:
+    raw_field = obj_model[field_name]
+    if raw_field is None:
         return None
 
     # Define a mapping for field types to their processing logic
     type_format_mapping = {
-        "date": lambda x: x.strftime("%d/%m/%Y"),
-        "datetime": lambda x: x.strftime("%d/%m/%Y"),
+        "date": lambda val: val.strftime("%d/%m/%Y") if val else None,
+        "datetime": lambda val: val.strftime("%d/%m/%Y") if val else None,
+        "text": lambda val: val if val else None,
+        "char": lambda val: val if val else None,
+        "many2one": lambda val: val.name if val else None,
         "float": str,
         "integer": str,
         "monetary": str,
-        "many2one": lambda x: x.name,
     }
 
     # Get the specific formatter based on field type and sample type
     formatter = type_format_mapping.get(sample_id.field_id.ttype)
 
     # Apply formatting if applicable, else return the string representation
-    return formatter(raw_value) if formatter else str(raw_value)
+    return formatter(raw_field) if formatter else str(raw_field)
 
 
 def ZNS_GET_PAYLOAD(phone, template_id, template_data, tracking_id):

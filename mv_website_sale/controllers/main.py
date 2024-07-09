@@ -19,7 +19,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
     # /// Cart
 
     def _cart_values(self, **post):
-        _logger.debug(f"POST: {post}")
+        _logger.debug(f"MOVEO+ Cart Value [POST]: {post}")
         order = request.website.sale_get_order()
         discount_amount_invalid = order.partner_id.amount_currency < order.bonus_order
         discount_amount_maximum = order.bonus_max
@@ -108,6 +108,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
     @http.route()
     def checkout(self, **post):
+        res = super().checkout(**post)
         redirect = post.get("r", "/shop/cart")
 
         # [!] WARNING for buying more than 4 tires
@@ -118,7 +119,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
         if order.check_missing_partner_discount():
             return request.redirect("%s?missing_partner_discount=1" % redirect)
 
-        return super().checkout(**post)
+        return res
 
     # /// Payment
 

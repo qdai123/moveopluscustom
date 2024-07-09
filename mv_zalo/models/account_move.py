@@ -6,6 +6,7 @@ from datetime import timedelta
 import pytz
 from markupsafe import Markup
 from odoo.addons.biz_zalo_common.models.common import (
+    CODE_ERROR_ZNS,
     convert_valid_phone_number,
     get_datetime,
 )
@@ -18,6 +19,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
+
+CODE_ERROR_ZNS = dict(CODE_ERROR_ZNS)
 
 
 def get_zns_time(time, user_timezone="Asia/Ho_Chi_Minh"):
@@ -55,12 +58,34 @@ class AccountMove(models.Model):
     zns_history_status = fields.Selection(
         related="zns_history_id.status", string="ZNS History Status"
     )
+    short_name = fields.Char(related="partner_id.short_name", store=True)
 
     # /// ACTIONS ///
 
     def action_send_message_zns(self):
         self.ensure_one()
 
+        # Ensure the invoice has an associated partner
+        if not self.partner_id:
+            _logger.error("Invoice ID %s has no associated partner.", self.id)
+            return
+
+        # Validate the partner's phone number
+        phone_number = self.partner_id.phone
+        if not phone_number:
+            _logger.error(
+                "Partner associated with Invoice ID %s has no phone number.", self.id
+            )
+            return
+        valid_phone_number = convert_valid_phone_number(phone_number)
+        if not valid_phone_number:
+            _logger.error(
+                "Invalid phone number for partner associated with Invoice ID %s.",
+                self.id,
+            )
+            return
+
+        # Prepare the context for the wizard view
         view_id = self.env.ref("biz_zalo_zns.view_zns_send_message_wizard_form")
         if not view_id:
             _logger.error(
@@ -68,66 +93,150 @@ class AccountMove(models.Model):
             )
             return
 
-        invoice = self
-        partner = invoice.partner_id
+        context = {
+            "default_use_type": self._name,
+            "default_tracking_id": self.id,
+            "default_account_move_id": self.id,
+            "default_phone": valid_phone_number,
+        }
 
-        phone_number = partner.phone if partner else None
-        valid_phone_number = (
-            convert_valid_phone_number(phone_number) if phone_number else False
-        )
-
+        # Return the action dictionary to open the wizard form view
         return {
             "name": _("Send Message ZNS"),
             "type": "ir.actions.act_window",
             "res_model": "zns.send.message.wizard",
             "view_id": view_id.id,
             "views": [(view_id.id, "form")],
-            "context": {
-                "default_use_type": invoice._name,
-                "default_tracking_id": invoice.id,
-                "default_account_move_id": invoice.id,
-                "default_phone": valid_phone_number,
-            },
+            "context": context,
             "target": "new",
         }
 
-    # /// ZALO ZNS ///
+    # /// CRON JOB ///
+    @api.model
+    def _cron_notification_invoice_date_due(self, date_before=False, phone=False):
+        def sanitize_phone(phonenumber=phone):
+            digits = "".join(filter(str.isdigit, phonenumber))
+            if len(digits) not in [10, 11]:
+                raise ValidationError(
+                    _("Phone number must contain exactly 10 or 11 digits")
+                )
+            return digits
 
-    def _get_sample_data_by(self, sample_id, obj):
-        # Check if the 'field_id' is set
-        if not sample_id.field_id:
-            _logger.error("Field ID not found for sample_id: {}".format(sample_id))
-            return None
+        testing_phone = sanitize_phone(phone) if phone else False
 
-        field_name = sample_id.field_id.name
-        field_type = sample_id.field_id.ttype
-        sample_type = sample_id.type
-        value = obj[field_name]
+        template_id = self._get_zns_payment_notification_template()
+        if not template_id:
+            _logger.error("ZNS Payment Notification Template not found.")
+            return
 
-        _logger.debug(
-            f"Processing Field: {field_name}, Type: {field_type}, Sample Type: {sample_type}"
+        zns_template = self.env["zns.template"].search(
+            [("template_id", "=", template_id)], limit=1
+        )
+        if not zns_template:
+            _logger.error(f"ZNS Template with ID {template_id} not found.")
+            return
+
+        _logger.info(
+            f">>> ZNS Template: [{zns_template.template_id}] {zns_template.template_name} <<<"
         )
 
-        try:
-            if field_type in ["date", "datetime"] and sample_type == "DATE":
-                return value.strftime("%d/%m/%Y") if value else None
-            elif (
-                field_type in ["float", "integer", "monetary"]
-                and sample_type == "NUMBER"
-            ):
-                return str(value)
-            elif field_type in ["char", "text"] and sample_type == "STRING":
-                return value if value else None
-            elif field_type == "many2one" and sample_type == "STRING":
-                return str(value.name) if value else None
-            else:
-                _logger.error(
-                    f"Unhandled field type: {field_type} or sample type: {sample_type}"
+        zns_sample_data = self.env["zns.template.sample.data"].search(
+            [("zns_template_id", "=", zns_template.id)]
+        )
+        if not zns_sample_data:
+            _logger.error("ZNS Template Sample Data not found.")
+            return
+
+        due_date = fields.Date.today() - timedelta(
+            days=int(date_before) if date_before else 2
+        )
+        journal_entries = self.env["account.move"].search(
+            [
+                ("state", "=", "posted"),
+                ("payment_state", "=", "not_paid"),
+                ("zns_notification_sent", "=", False),
+                ("invoice_date_due", "=", due_date),
+            ]
+        )
+        for entry in journal_entries:
+            valid_phone_number = (
+                sanitize_phone(entry.partner_id.phone) if not phone else testing_phone
+            )
+            template_data = {
+                sample_data.name: (
+                    sample_data.value
+                    if not sample_data.field_id
+                    else entry._get_sample_data_by(sample_data, entry)
                 )
-                return None
-        except Exception as e:
-            _logger.error(f"Error processing sample data for {field_name}: {e}")
-            return None
+                for sample_data in zns_sample_data
+            }
+
+            entry.send_zns_message(
+                {
+                    "phone": valid_phone_number,
+                    "template_id": zns_template.template_id,
+                    "template_data": json.dumps(template_data),
+                    "tracking_id": entry.id,
+                },
+                bool(phone),
+            )
+
+        return True
+
+    # /// ZALO ZNS ///
+
+    def send_zns_message(self, data, testing=False):
+        # Retrieve ZNS configuration
+        ZNSConfiguration = self._retrieve_zns_configuration()
+        if not ZNSConfiguration:
+            _logger.error("ZNS Configuration is not found!")
+            return
+
+        # Extract data
+        phone = convert_valid_phone_number(data.get("phone"))
+        tracking_id = data.get("tracking_id")
+        template_id = data.get("template_id")
+        template_data = data.get("template_data")
+
+        # Execute ZNS request
+        _, response_data = self.env["zalo.log.request"].do_execute(
+            ZNSConfiguration._get_sub_url_zns("/message/template"),
+            method="POST",
+            headers=ZNSConfiguration._get_headers(),
+            payload=ZNS_GET_PAYLOAD(
+                phone, template_id, json.loads(template_data), tracking_id
+            ),
+            is_check=True,
+        )
+
+        # Handle empty response
+        if not response_data:
+            _logger.error("No data received.")
+            return
+
+        # Handle error response
+        if response_data["error"] != 0 and response_data["message"] != "Success":
+            error_message = CODE_ERROR_ZNS.get(
+                str(response_data["error"]), "Unknown error"
+            )
+            _logger.error(
+                f"ZNS Code Error: {response_data['error']}, Error Info: {error_message}"
+            )
+            return
+
+        # Process successful response
+        if response_data.get("data"):
+            for r_data in response_data["data"]:
+                sent_time = (
+                    get_datetime(r_data["sent_time"]) if r_data["sent_time"] else ""
+                )
+                formatted_sent_time = get_zns_time(sent_time) if sent_time else ""
+                zns_message = ZNS_GENERATE_MESSAGE(r_data, formatted_sent_time)
+                self.generate_zns_history(r_data, ZNSConfiguration)
+                self.message_post(body=Markup(zns_message))
+                self.zns_notification_sent = not testing
+
+                _logger.info(f"Send Message ZNS successfully for Invoice {self.name}!")
 
     def generate_zns_history(self, data, config_id=False):
         template_id = self._get_zns_payment_notification_template()
@@ -175,74 +284,43 @@ class AccountMove(models.Model):
 
         self.zns_history_id = zns_history_id.id if zns_history_id else False
 
-    def send_zns_message(self, data, testing=False):
+    def _get_sample_data_by(self, sample_id, obj):
+        # Check if the 'field_id' is set
+        if not sample_id.field_id:
+            _logger.error("Field ID not found for sample_id: {}".format(sample_id))
+            return None
 
-        # Get ZNS configuration
-        ZNSConfiguration = self._get_zns_configuration()
-        if not ZNSConfiguration:
-            _logger.error("ZNS Configuration is not found!")
-            return
+        field_name = sample_id.field_id.name
+        field_type = sample_id.field_id.ttype
+        sample_type = sample_id.type
+        value = obj[field_name]
 
-        # Parameters
-        phone = convert_valid_phone_number(data.get("phone"))
-        tracking_id = data.get("tracking_id")
-        template_id = data.get("template_id")
-        template_data = data.get("template_data")
-
-        _, datas = self.env["zalo.log.request"].do_execute(
-            ZNSConfiguration._get_sub_url_zns("/message/template"),
-            method="POST",
-            headers=ZNSConfiguration._get_headers(),
-            payload=ZNS_GET_PAYLOAD(
-                phone, template_id, json.loads(template_data), tracking_id
-            ),
-            is_check=True,
+        _logger.debug(
+            f"Processing Field: {field_name}, Type: {field_type}, Sample Type: {sample_type}"
         )
 
-        if datas and datas["error"] != 0 and datas["message"] != "Success":
-            # error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
-            # _logger.error(
-            #     f"ZNS Code Error: {datas['error']}, Error Info: {error_message}"
-            # )
-            _logger.error(
-                f"ZNS Code Error: {datas['error']}, Error Info: {datas['message']}"
-            )
-            return
-        else:
+        try:
+            if field_type in ["date", "datetime"] and sample_type == "DATE":
+                return value.strftime("%d/%m/%Y") if value else None
+            elif (
+                field_type in ["float", "integer", "monetary"]
+                and sample_type == "NUMBER"
+            ):
+                return str(value)
+            elif field_type in ["char", "text"] and sample_type == "STRING":
+                return value if value else None
+            elif field_type == "many2one" and sample_type == "STRING":
+                return str(value.name) if value else None
+            else:
+                _logger.error(
+                    f"Unhandled field type: {field_type} or sample type: {sample_type}"
+                )
+                return None
+        except Exception as e:
+            _logger.error(f"Error processing sample data for {field_name}: {e}")
+            return None
 
-            _logger.debug("=========================================================")
-            _logger.debug(f"Base Datas: {datas}")
-            _logger.debug("=========================================================")
-
-            for r_data in datas:
-
-                _logger.debug("00000000000000000000000000000")
-                _logger.debug(f"Base Raw Data: {r_data}")
-                _logger.debug("00000000000000000000000000000")
-
-                data = r_data.get("data")
-                if data:
-                    sent_time = (
-                        get_datetime(data.get("sent_time", False))
-                        if data.get("sent_time", False)
-                        else ""
-                    )
-                    sent_time = sent_time and get_zns_time(sent_time) or ""
-                    zns_message = ZNS_GENERATE_MESSAGE(data, sent_time)
-                    _logger.debug(f"ZNS Message: {zns_message}")
-                    self.generate_zns_history(data, ZNSConfiguration)
-                    self.message_post(body=Markup(zns_message))
-                    self.zns_notification_sent = True if not testing else False
-
-                    _logger.info(
-                        f"Send Message ZNS successfully for Invoice {self.name}!"
-                    )
-
-    def _get_zns_configuration(self):
-        # Implement logic to retrieve ZNS configuration
-        return self.env["zalo.config"].search(
-            [("primary_settings", "=", True)], limit=1
-        )
+    # /// PREPARING OPTIMIZE ///
 
     def _execute_send_message(self, ZNSConfiguration, payload):
         # Step 1: Validate Input
@@ -280,81 +358,50 @@ class AccountMove(models.Model):
         # Step 6: Return Result
         return {"success": True, "details": "Message sent successfully"}
 
-    # /// CRON JOB ///
-    @api.model
-    def _cron_notification_date_due_journal_entry(self, dt_before=False, phone=False):
-        phone_test = False
-        if phone:
-            # Remove any non-digit characters
-            digits = "".join(filter(str.isdigit, phone))
-
-            # Check if the number has 10 digits
-            if len(digits) not in [10, 11]:
-                raise ValidationError(
-                    _("Phone number must contain exactly 10 or 11 digits")
-                )
-            phone_test = digits
-
-        template_id = int(self._get_zns_payment_notification_template())
-        if not template_id or template_id is None:
-            _logger.error("ZNS Payment Notification Template not found.")
-            return
-
-        zns_template_id = self.env["zns.template"].search(
-            [("template_id", "=", template_id)], limit=1
+    def _retrieve_zns_configuration(self):
+        ZNSConfiguration = self.env["zalo.config"].search(
+            [("primary_settings", "=", True)], limit=1
         )
-        _logger.info(
-            f">>> ZNS Template: [{zns_template_id.template_id}] {zns_template_id.template_name} <<<"
+        if not ZNSConfiguration:
+            _logger.error("ZNS Configuration is not found!")
+            return None
+        return ZNSConfiguration
+
+    def _prepare_payload(self, data):
+        phone = convert_valid_phone_number(data.get("phone"))
+        tracking_id = data.get("tracking_id")
+        template_id = data.get("template_id")
+        template_data = data.get("template_data")
+        return ZNS_GET_PAYLOAD(
+            phone, template_id, json.loads(template_data), tracking_id
         )
 
-        zns_template_data = {}
-        zns_sample_data_ids = self.env["zns.template.sample.data"].search(
-            [("zns_template_id", "=", zns_template_id.id)],
+    def _send_message(self, zns_configuration, payload):
+        response, datas = self.env["zalo.log.request"].do_execute(
+            zns_configuration._get_sub_url_zns("/message/template"),
+            method="POST",
+            headers=zns_configuration._get_headers(),
+            payload=json.dumps(payload),
+            is_check=True,
         )
-        if not zns_sample_data_ids:
-            _logger.error("ZNS Template Sample Data not found.")
-            return
+        return response, datas
 
-        # Get all journal entries that are due in the next 2 days
-        # and have not been sent a ZNS notification
-        journal_entries = (
-            self.env["account.move"]
-            .search(
-                [
-                    ("state", "=", "posted"),
-                    ("payment_state", "=", "not_paid"),
-                    ("zns_notification_sent", "=", False),
-                ]
+    def _handle_response(self, datas, testing=False):
+        # Check for errors in the response
+        if datas and datas["error"] != 0:
+            # Log the error message
+            error_message = CODE_ERROR_ZNS.get(str(datas["error"]), "Unknown error")
+            _logger.error(
+                f"ZNS Code Error: {datas['error']}, Error Info: {error_message}"
             )
-            .filtered(
-                lambda am: fields.Date.today()
-                == am.invoice_date_due
-                - timedelta(days=int(dt_before) if dt_before else 2)
-            )
-        )
-        if journal_entries:
-            for line in journal_entries:
-                valid_phone_number = (
-                    convert_valid_phone_number(line.partner_id.phone)
-                    if not phone
-                    else phone_test
-                )
+            return False
+        else:
+            # Log success message
+            _logger.info(f"Send Message ZNS successfully for Invoice {self.name}!")
+            if not testing:
+                # Update relevant fields or perform actions to reflect the successful operation
+                # For example, marking the message as sent in the database
+                self.zns_notification_sent = True
+                # Additional actions can be performed here
 
-                for sample_data in zns_sample_data_ids:
-                    zns_template_data[sample_data.name] = (
-                        sample_data.value
-                        if not sample_data.field_id
-                        else line._get_sample_data_by(sample_data, line)
-                    )  # TODO: ZNS_GET_SAMPLE_DATA needs to re-check
-
-                line.send_zns_message(
-                    {
-                        "phone": valid_phone_number,
-                        "template_id": zns_template_id.template_id,
-                        "template_data": json.dumps(zns_template_data),
-                        "tracking_id": line.id,
-                    },
-                    True if phone else False,
-                )
-
-        return True
+            return True

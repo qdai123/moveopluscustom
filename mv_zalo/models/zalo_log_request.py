@@ -102,7 +102,7 @@ class ZALOLogRequest(models.Model):
             raise UserError("Invalid response format received.")
 
     def zns_handle_response(self, response, is_check=False):
-        _logger.info(f"IS CHECK: {is_check}")
+        _logger.info(f"ZNS Handle Response with CHECK: {is_check}")
         result = {"success": False, "data": None, "error": None}
         try:
             if response.status_code == 200:

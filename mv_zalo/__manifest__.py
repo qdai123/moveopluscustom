@@ -14,16 +14,19 @@
         "biz_zalo_common",
         "biz_zalo_zns",
         # MOVEOPLUS
+        "mv_base",
         "mv_sale",
     ],
     "data": [
         # DATA
         "data/ir_cron_data.xml",
         # SECURITY
+        "security/res_groups.xml",
         "security/ir.model.access.csv",
         # VIEWS
         "views/account_move_views.xml",
         "views/stock_picking_views.xml",
+        "views/res_partner_views.xml",
         "views/res_config_settings_views.xml",
         # WIZARDS
         "wizard/zns_send_message_wizard_views.xml",
