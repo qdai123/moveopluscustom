@@ -5,7 +5,12 @@
     "category": "Moveoplus/MV Invoicing",
     "description": "Base on Invoicing modules and Related modules to customize new features",
     "author": "Phat Dang <phat.dangminh@moveoplus.com>",
-    "depends": ["account"],
+    "depends": [
+        # Odoo
+        "account",
+        # Moveoplus
+        "mv_base",
+    ],
     "data": [
         # SECURITY
         "security/ir.model.access.csv",

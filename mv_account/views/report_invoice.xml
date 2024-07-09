@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
 	<!-- MOVEO+ Inherited: Report Invoice Document (account.report_invoice_document) -->
-	<template id="mv_account.report_invoice_document" name="MOVEO+ Inherited: Report Invoice Document" inherit_id="account.report_invoice_document">
-		<!-- Write your logic code here... -->
+	<template id="mv_account_report_invoice_document" name="MOVEO+ Inherited: Report Invoice Document" inherit_id="account.report_invoice_document">
+		<xpath expr="//div[@id='total_payment_term_details_table']/div[1]" position="inside">
+			<t t-if="o._is_eligible_for_early_payment_discount_partial(o.currency_id,o.invoice_date)">
+				<td>
+					<span t-field="o.amount_residual"
+					      t-options='{"widget": "monetary", "display_currency": o.currency_id}'>
+						30.00
+					</span>
+					due if paid before
+					<span t-out="o.invoice_payment_term_id._get_last_discount_date_formatted(o.invoice_date)">
+						2024-01-01
+					</span>
+				</td>
+			</t>
+		</xpath>
 	</template>
-
 </odoo>
