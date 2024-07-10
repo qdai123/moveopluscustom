@@ -8,7 +8,7 @@
     ===================================================
     """,
     "author": "Phat Dang <phat.dangminh@moveoplus.com>",
-    "depends": ["base"],
+    "depends": ["base", "base_setup"],
     "data": [
         # SECURITY
         "security/mv_base_groups.xml",

@@ -592,25 +592,49 @@ class SaleOrder(models.Model):
         return super(SaleOrder, self).action_cancel()
 
     def action_confirm(self):
-        if not all(
-            order._can_not_confirmation_without_required_lines()
-            for order in self.filtered(lambda order: order.partner_id.is_agency)
-        ):
-            error_message = (
-                "Các đơn hàng sau không có phương thức vận chuyển hoặc dòng chiết khấu sản lượng để xác nhận: %s"
-                % ", ".join(self.mapped("display_name")),
-            )
-            raise UserError(error_message)
-
-        orders = self.filtered(
+        # Filter orders into categories for processing
+        orders_return = self.filtered(lambda so: so.is_order_returns)
+        orders_agency = self.filtered(
             lambda so: not so.is_order_returns and so.partner_id.is_agency
         )
-        orders._check_delivery_lines()
-        orders._check_order_not_free_qty_today()
-        orders.mapped(
-            "partner_id"
-        ).action_update_discount_amount()  # Update partner's discount amount
-        for order in orders:
+
+        # Process return orders
+        if orders_return:
+            self._process_return_orders(orders_return)
+            return super(SaleOrder, orders_return).action_confirm()
+
+        # Process agency orders
+        if orders_agency:
+            if not all(
+                order._can_not_confirmation_without_required_lines()
+                for order in orders_agency
+            ):
+                error_message = (
+                    "Các đơn hàng sau không có Phương thức vận chuyển HOẶC Chiết Khấu Sản Lượng, vui lòng kiểm tra: %s"
+                    % ", ".join(orders_agency.mapped("display_name")),
+                )
+                raise UserError(error_message)
+
+            self._process_agency_orders(orders_agency)
+            return super(SaleOrder, orders_agency).action_confirm()
+
+        # Confirm orders not requiring special processing
+        orders_regular = self - orders_return - orders_agency
+        if orders_regular:
+            return super(SaleOrder, orders_regular).action_confirm()
+
+    def _process_return_orders(self, orders_return):
+        for order in orders_return:
+            order._check_delivery_lines()
+            order._check_order_not_free_qty_today()
+
+    def _process_agency_orders(self, orders_agency):
+        for order in orders_agency:
+            order._check_delivery_lines()
+            order._check_order_not_free_qty_today()
+            order.partner_id.action_update_discount_amount()
+
+            # [>] Applying Discount
             quotation_bonus_order = (
                 self.env["sale.order.line"]
                 .search(
@@ -667,7 +691,10 @@ class SaleOrder(models.Model):
                     "res_model": "mv.wizard.discount",
                     "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
                     "views": [
-                        (self.env.ref("mv_sale.mv_wiard_discount_view_form").id, "form")
+                        (
+                            self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
+                            "form",
+                        )
                     ],
                     "context": {
                         "default_sale_order_id": order.id,
@@ -682,7 +709,6 @@ class SaleOrder(models.Model):
                 }
             else:
                 order.with_context(action_confirm=True).action_recompute_discount()
-                return super(SaleOrder, order).action_confirm()
 
     # === MOVEO+ FULL OVERRIDE '_get_program_domain' ===#
 
@@ -791,6 +817,7 @@ class SaleOrder(models.Model):
             raise ValidationError(error_message)
 
     def _handle_agency_discount(self):
+        # FIXME: This method is not used anywhere in the codebase.
         orders = self.filtered(
             lambda so: not so.is_order_returns and so.partner_id.is_agency
         )

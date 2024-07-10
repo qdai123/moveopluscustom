@@ -32,6 +32,9 @@
 				<field name="compute_discount_agency" invisible="1"/>
 				<field name="recompute_discount_agency" invisible="1"/>
             </xpath>
+			<xpath expr="//field[@name='payment_term_id']" position="after">
+				<field string="Đổi trả hàng" name="is_order_returns" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
+			</xpath>
 			<xpath expr="//group[@name='order_details']" position="inside">
 				<field name="check_discount_10" invisible="1"/>
 				<field name="quantity_change" invisible="1"/>
@@ -45,19 +48,13 @@
 				        class="btn-primary"
 				        name="action_compute_discount"
 				        context="{'validate_analytic': True, 'compute_discount_agency': True}"
-				        invisible="not compute_discount_agency or recompute_discount_agency"/>
+				        invisible="not compute_discount_agency or recompute_discount_agency or is_order_returns"/>
 				<button string="Cập nhật chiết khấu"
 				        type="object"
 				        class="btn-primary"
 				        name="action_recompute_discount"
 				        context="{'validate_analytic': True, 'recompute_discount_agency': True}"
-				        invisible="compute_discount_agency or not recompute_discount_agency"/>
-			</xpath>
-			<xpath expr="//field[@name='payment_term_id']" position="after">
-				<field string="Đổi trả hàng"
-				       name="is_order_returns"
-				       invisible="not is_sales_manager or state == 'sale'"
-				       readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
+				        invisible="compute_discount_agency or not recompute_discount_agency or is_order_returns"/>
 			</xpath>
 			<xpath expr="//field[@name='date_order']" position="attributes">
 				<attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
@@ -178,8 +175,9 @@
 			<xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
 				<separator/>
 				<filter string="Đại lý" domain="[('partner_agency', '=', True)]" name="partner_agency_filter"/>
-				<filter string="Đại lý Vùng Trắng" domain="[('partner_white_agency', '=', True)]"
-				        name="partner_white_agency_filter"/>
+				<filter string="Đại lý Vùng Trắng" domain="[('partner_white_agency', '=', True)]" name="partner_white_agency_filter"/>
+				<separator/>
+				<filter string="Đơn đổi trả" domain="[('is_order_returns', '=', True)]" name="order_return_filter"/>
 				<separator/>
 			</xpath>
 		</field>
