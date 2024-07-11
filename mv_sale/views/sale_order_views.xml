@@ -28,8 +28,8 @@
 				<field name="partner_southern_agency" invisible="1"/>
 			</xpath>
 			<xpath expr="//field[@name='partner_id']" position="after">
-				<field name="discount_agency_set" invisible="1"/>
-				<field name="compute_discount_agency" invisible="1"/>
+				<field name="discount_agency_set" invisible="0"/>
+				<field name="compute_discount_agency" invisible=""/>
 				<field name="recompute_discount_agency" invisible="1"/>
             </xpath>
 			<xpath expr="//group[@name='order_details']" position="inside">

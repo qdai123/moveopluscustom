@@ -79,49 +79,47 @@ class SaleOrder(models.Model):
     # === Bonus, Discount Fields ===#
     percentage = fields.Float(compute="_compute_discount", store=True)
     bonus_max = fields.Float(
-        compute="_compute_bonus",
+        compute="_compute_bonus_order_line",
         store=True,
         help="Số tiền tối đa mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
     bonus_order = fields.Float(
-        compute="_compute_bonus",
+        compute="_compute_bonus_order_line",
         store=True,
         help="Số tiền chiết khấu đã và đang áp dụng trên đơn bán.",
     )
     bonus_remaining = fields.Float(
-        compute="_compute_bonus",
+        compute="_compute_partner_bonus",
         store=True,
         help="Số tiền còn lại mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
 
-    @api.depends(
-        "partner_id",
-        "state",
-        "order_line",
-        "order_line.product_id",
-        "order_line.product_uom_qty",
-    )
-    def _compute_bonus(self):
+    def _compute_partner_bonus(self):
         for order in self:
-            if order.partner_id and order.state != "cancel":
+            if order.state != "cancel" and order.partner_id and order.partner_agency:
+                bonus_order = sum(
+                    line.price_unit
+                    for line in order.order_line._filter_discount_agency_lines(order)
+                )
+                order.bonus_remaining = order.partner_id.amount_currency - abs(
+                    bonus_order
+                )
+
+    @api.depends("state", "order_line", "order_line.product_id")
+    def _compute_bonus_order_line(self):
+        for order in self:
+            if order.state != "cancel" and order.order_line and order_line.product_id:
                 bonus_order = sum(
                     line.price_unit
                     for line in order.order_line._filter_discount_agency_lines(order)
                 )
                 order.bonus_order = abs(bonus_order)
-                order.bonus_remaining = order.partner_id.amount_currency - abs(
-                    bonus_order
-                )
                 order.bonus_max = (
                     order.total_price_no_service
                     - order.total_price_discount
                     - order.total_price_discount_10
                     - order.discount_bank_guarantee
                 ) / 2
-            else:
-                order.bonus_order = 0
-                order.bonus_remaining = 0
-                order.bonus_max = 0
 
     # === Amount, Total Fields ===#
     total_price_no_service = fields.Float(
@@ -190,7 +188,7 @@ class SaleOrder(models.Model):
 
     # ==================================
 
-    @api.depends("order_line", "order_line.product_uom_qty", "order_line.product_id")
+    @api.depends("order_line", "order_line.product_id", "order_line.product_uom_qty")
     def _compute_discount(self):
         for order in self:
             # RESET all discount values
@@ -372,7 +370,7 @@ class SaleOrder(models.Model):
                     )
 
             # [>] Update the Sale Order's Bonus Order
-            self._compute_bonus()
+            self._compute_partner_bonus()
             return True
         except Exception as e:
             _logger.error("Failed to compute discount for partner: %s", e)
@@ -384,6 +382,9 @@ class SaleOrder(models.Model):
 
         if self.locked:
             raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
+
+        self._compute_partner_bonus()
+        self._compute_bonus_order_line()
 
         quantity_change = self._calculate_quantity_change()
         discount_lines, delivery_lines = self._filter_order_lines()
@@ -403,6 +404,9 @@ class SaleOrder(models.Model):
 
         if self.locked:
             raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
+
+        self._compute_partner_bonus()
+        self._compute_bonus_order_line()
 
         quantity_change = self._calculate_quantity_change()
         discount_lines, delivery_lines = self._filter_order_lines()
@@ -560,7 +564,8 @@ class SaleOrder(models.Model):
 
         # [>] Reset Bonus, Discount Fields
         if order_state == "draft":
-            self._compute_bonus()
+            self._compute_partner_bonus()
+            self._compute_bonus_order_line()
             self.quantity_change = self._calculate_quantity_change()
         elif order_state == "cancel":
             self.bonus_max = 0
@@ -572,9 +577,8 @@ class SaleOrder(models.Model):
                 self.partner_id.sudo().action_update_discount_amount()
 
         # [>] Remove Discount Agency Lines
-        self.order_line.filtered(
-            lambda sol: sol.product_id.default_code == "CKT"
-        ).unlink()
+        if self.state in ["draft", "cancel"]:
+            self.action_clear_discount_lines()
 
     def action_clear_discount_lines(self):
         # Filter the order lines based on the conditions
@@ -682,7 +686,8 @@ class SaleOrder(models.Model):
                         )
                     )
                 )
-                quotations_discount_applied._compute_bonus()
+                quotations_discount_applied._compute_partner_bonus()
+                quotations_discount_applied._compute_bonus_order_line()
                 order_lines_delivery = order.order_line.filtered(
                     lambda sol: sol.is_delivery
                 )
@@ -874,7 +879,8 @@ class SaleOrder(models.Model):
                         )
                     )
                 )
-                quotations_discount_applied._compute_bonus()
+                quotations_discount_applied._compute_partner_bonus()
+                quotations_discount_applied._compute_bonus_order_line()
                 order_lines_delivery = order.order_line.filtered(
                     lambda sol: sol.is_delivery
                 )

@@ -89,7 +89,8 @@ class MoveoplusWebsiteSale(WebsiteSale):
     @http.route()
     def cart(self, access_token=None, revive="", **post):
         order = request.website.sale_get_order()
-        order._compute_bonus()
+        order._compute_partner_bonus()
+        order._compute_bonus_order_line()
 
         if order.partner_id.is_agency:
             order.partner_id.action_update_discount_amount()
@@ -167,7 +168,8 @@ class MoveoplusWebsiteSale(WebsiteSale):
         redirect_shop_cart = post.get("r", "/shop/cart")
 
         order = request.website.sale_get_order()
-        order._compute_bonus()
+        order._compute_partner_bonus()
+        order._compute_bonus_order_line()
 
         discount_amount_apply = float(discount_amount)
         if discount_amount_apply < 0:
@@ -220,7 +222,8 @@ class MoveoplusWebsiteSale(WebsiteSale):
                         )
                     }
                 )
-                order._compute_bonus()
+                order._compute_partner_bonus()
+                order._compute_bonus_order_line()
 
             if order.bank_guarantee:
                 total_order_discount_CKBL = (
