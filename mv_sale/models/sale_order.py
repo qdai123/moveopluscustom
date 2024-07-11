@@ -108,7 +108,11 @@ class SaleOrder(models.Model):
     @api.depends("state", "order_line", "order_line.product_id")
     def _compute_bonus_order_line(self):
         for order in self:
-            if order.state != "cancel" and order.order_line and order_line.product_id:
+            if (
+                order.state != "cancel"
+                and order.order_line
+                and order.order_line.product_id
+            ):
                 bonus_order = sum(
                     line.price_unit
                     for line in order.order_line._filter_discount_agency_lines(order)
