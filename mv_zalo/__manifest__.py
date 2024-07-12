@@ -19,6 +19,7 @@
     ],
     "data": [
         # DATA
+        "data/ir_config_parameter.xml",
         "data/ir_cron_data.xml",
         # SECURITY
         "security/res_groups.xml",

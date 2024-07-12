@@ -6,9 +6,11 @@
     "description": "Base on Helpdesk module to customize new features",
     "author": "Phat Dang <phat.dangminh@moveoplus.com>",
     "depends": [
-        # Odoo (Enterpice)
+        # Odoo (Enterprise)
         "helpdesk",
         "helpdesk_stock",
+        # BIZ
+        "biz_stock_qrcode",
     ],
     "data": [
         # SECURITY

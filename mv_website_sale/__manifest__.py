@@ -19,7 +19,7 @@
     "data": [
         # TEMPLATE VIEWS
         "views/portal_templates.xml",
-        "views/website_sale_delivery_templates.xml",
+        # "views/website_sale_delivery_templates.xml",
         "views/templates.xml",
     ],
     "bootstrap": True,

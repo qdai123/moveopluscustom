@@ -117,7 +117,8 @@ class SaleOrderLine(models.Model):
                 and "Delivery_" not in so_line.product_id.default_code
             ):
                 order = so_line.order_id
-                order._compute_bonus()
+                order._compute_partner_bonus()
+                order._compute_bonus_order_line()
 
         return super(SaleOrderLine, self).unlink()
 

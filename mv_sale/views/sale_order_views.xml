@@ -32,15 +32,15 @@
 				<field name="compute_discount_agency" invisible="1"/>
 				<field name="recompute_discount_agency" invisible="1"/>
             </xpath>
-			<xpath expr="//field[@name='payment_term_id']" position="after">
-				<field string="Đổi trả hàng" name="is_order_returns" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
-			</xpath>
 			<xpath expr="//group[@name='order_details']" position="inside">
 				<field name="check_discount_10" invisible="1"/>
 				<field name="quantity_change" invisible="1"/>
 				<field name="bonus_max" invisible="1"/>
 				<field name="bonus_order" invisible="1"/>
 				<field name="bonus_remaining" invisible="1"/>
+			</xpath>
+			<xpath expr="//field[@name='payment_term_id']" position="after">
+				<field string="Đổi trả hàng" name="is_order_returns" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
 			</xpath>
 			<xpath expr="//header" position="inside">
 				<button string="Chiết khấu tự động"

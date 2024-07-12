@@ -95,7 +95,7 @@ class ResPartner(models.Model):
                 lambda order: order.discount_agency_set and order.state in ["sale"]
             )
             if orders_discount:
-                orders_discount._compute_bonus()
+                orders_discount._compute_partner_bonus()
                 record.sale_mv_ids = [(6, 0, orders_discount.ids)]
                 record.total_so_bonus_order = sum(orders_discount.mapped("bonus_order"))
 
@@ -186,7 +186,7 @@ class ResPartner(models.Model):
             )
             if orders_discount:
                 # [>>] Compute bonus order for each order
-                orders_discount._compute_bonus()
+                orders_discount._compute_partner_bonus()
                 # [>>] Update 'sale_mv_ids' and 'total_so_bonus_order'
                 partner.sale_mv_ids = [(6, 0, orders_discount.ids)]
                 partner.total_so_bonus_order = sum(

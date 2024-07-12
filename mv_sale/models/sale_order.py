@@ -79,35 +79,51 @@ class SaleOrder(models.Model):
     # === Bonus, Discount Fields ===#
     percentage = fields.Float(compute="_compute_discount", store=True)
     bonus_max = fields.Float(
-        compute="_compute_discount",
+        compute="_compute_bonus_order_line",
         store=True,
         help="Số tiền tối đa mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
     bonus_order = fields.Float(
-        compute="_compute_bonus",
+        compute="_compute_bonus_order_line",
         store=True,
         help="Số tiền chiết khấu đã và đang áp dụng trên đơn bán.",
     )
     bonus_remaining = fields.Float(
-        compute="_compute_bonus",
+        compute="_compute_partner_bonus",
         store=True,
         help="Số tiền còn lại mà Đại lý có thể áp dụng để tính chiết khấu.",
     )
 
-    @api.depends(
-        "partner_id",
-        "order_line",
-        "order_line.product_id",
-        "order_line.product_uom_qty",
-    )
-    def _compute_bonus(self):
+    def _compute_partner_bonus(self):
         for order in self:
-            bonus_order = sum(
-                line.price_unit
-                for line in order.order_line._filter_discount_agency_lines(order)
-            )
-            order.bonus_order = abs(bonus_order)
-            order.bonus_remaining = order.partner_id.amount_currency - abs(bonus_order)
+            if order.state != "cancel" and order.partner_id and order.partner_agency:
+                bonus_order = sum(
+                    line.price_unit
+                    for line in order.order_line._filter_discount_agency_lines(order)
+                )
+                order.bonus_remaining = order.partner_id.amount_currency - abs(
+                    bonus_order
+                )
+
+    @api.depends("state", "order_line", "order_line.product_id")
+    def _compute_bonus_order_line(self):
+        for order in self:
+            if (
+                order.state != "cancel"
+                and order.order_line
+                and order.order_line.product_id
+            ):
+                bonus_order = sum(
+                    line.price_unit
+                    for line in order.order_line._filter_discount_agency_lines(order)
+                )
+                order.bonus_order = abs(bonus_order)
+                order.bonus_max = (
+                    order.total_price_no_service
+                    - order.total_price_discount
+                    - order.total_price_discount_10
+                    - order.discount_bank_guarantee
+                ) / 2
 
     # === Amount, Total Fields ===#
     total_price_no_service = fields.Float(
@@ -176,7 +192,7 @@ class SaleOrder(models.Model):
 
     # ==================================
 
-    @api.depends("order_line", "order_line.product_uom_qty", "order_line.product_id")
+    @api.depends("order_line", "order_line.product_id", "order_line.product_uom_qty")
     def _compute_discount(self):
         for order in self:
             # RESET all discount values
@@ -205,14 +221,12 @@ class SaleOrder(models.Model):
         self.total_price_discount_10 = 0
         self.total_price_after_discount_10 = 0
         self.total_price_after_discount_month = 0
-        self.bonus_max = 0
 
     def check_discount_applicable(self):
         order_lines = self.order_line.filtered(
             lambda sol: self.check_category_product(sol.product_id.categ_id)
             and sol.product_id.product_tmpl_id.detailed_type == "product"
         )
-
         return (
             len(order_lines) >= 1
             and sum(order_lines.mapped("product_uom_qty"))
@@ -252,13 +266,6 @@ class SaleOrder(models.Model):
         self.total_price_after_discount_month = (
             self.total_price_after_discount_10 - self.bonus_order
         )
-
-        self.bonus_max = (
-            self.total_price_no_service
-            - self.total_price_discount
-            - self.total_price_discount_10
-            - self.discount_bank_guarantee
-        ) / 2
 
     def handle_discount_lines(self):
         """
@@ -367,7 +374,7 @@ class SaleOrder(models.Model):
                     )
 
             # [>] Update the Sale Order's Bonus Order
-            self._compute_bonus()
+            self._compute_partner_bonus()
             return True
         except Exception as e:
             _logger.error("Failed to compute discount for partner: %s", e)
@@ -379,6 +386,9 @@ class SaleOrder(models.Model):
 
         if self.locked:
             raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
+
+        self._compute_partner_bonus()
+        self._compute_bonus_order_line()
 
         quantity_change = self._calculate_quantity_change()
         discount_lines, delivery_lines = self._filter_order_lines()
@@ -398,6 +408,9 @@ class SaleOrder(models.Model):
 
         if self.locked:
             raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
+
+        self._compute_partner_bonus()
+        self._compute_bonus_order_line()
 
         quantity_change = self._calculate_quantity_change()
         discount_lines, delivery_lines = self._filter_order_lines()
@@ -550,31 +563,32 @@ class SaleOrder(models.Model):
                 "target": "new",
             }
 
-    def _reset_discount_agency(self):
+    def _reset_discount_agency(self, order_state=None):
         self.ensure_one()
 
-        if self.bonus_order > 0:
-            if self.partner_id:
-                _logger.info("Adding bonus order amount back to partner's amount.")
-                self.partner_id.write(
-                    {"amount": self.partner_id.amount + self.bonus_order}
-                )
-            else:
-                _logger.warning("No partner found for this order.")
-                pass
+        # [>] Reset Bonus, Discount Fields
+        if order_state == "draft":
+            self._compute_partner_bonus()
+            self._compute_bonus_order_line()
+            self.quantity_change = self._calculate_quantity_change()
+        elif order_state == "cancel":
+            self.bonus_max = 0
+            self.bonus_remaining = 0
+            self.bonus_order = 0
+            self.quantity_change = 0
 
-            self.write({"bonus_order": 0, "quantity_change": 0})
+            if self.partner_agency:
+                self.partner_id.sudo().action_update_discount_amount()
 
-        self.order_line.filtered(
-            lambda sol: sol.product_id.default_code == "CKT"
-        ).unlink()
+        # [>] Remove Discount Agency Lines
+        if self.state in ["draft", "cancel"]:
+            self.action_clear_discount_lines()
 
     def action_clear_discount_lines(self):
         # Filter the order lines based on the conditions
         discount_lines = self.order_line.filtered(
             lambda line: line.product_id.default_code
             and line.product_id.default_code.startswith("CK")
-            or line.is_delivery
         )
 
         # Unlink the discount lines
@@ -584,12 +598,20 @@ class SaleOrder(models.Model):
         return True
 
     def action_draft(self):
-        self._reset_discount_agency()
-        return super(SaleOrder, self).action_draft()
+        res = super(SaleOrder, self).action_draft()
+
+        for order in self:
+            order._reset_discount_agency(order_state="draft")
+
+        return res
 
     def action_cancel(self):
-        self._reset_discount_agency()
-        return super(SaleOrder, self).action_cancel()
+        res = super(SaleOrder, self).action_cancel()
+
+        for order in self:
+            order._reset_discount_agency(order_state="cancel")
+
+        return res
 
     def action_confirm(self):
         # Filter orders into categories for processing
@@ -626,12 +648,12 @@ class SaleOrder(models.Model):
     def _process_return_orders(self, orders_return):
         for order in orders_return:
             order._check_delivery_lines()
-            order._check_order_not_free_qty_today()
+            order._check_not_free_qty_in_stock()
 
     def _process_agency_orders(self, orders_agency):
         for order in orders_agency:
             order._check_delivery_lines()
-            order._check_order_not_free_qty_today()
+            order._check_not_free_qty_in_stock()
             order.partner_id.action_update_discount_amount()
 
             # [>] Applying Discount
@@ -668,7 +690,8 @@ class SaleOrder(models.Model):
                         )
                     )
                 )
-                quotations_discount_applied._compute_bonus()
+                quotations_discount_applied._compute_partner_bonus()
+                quotations_discount_applied._compute_bonus_order_line()
                 order_lines_delivery = order.order_line.filtered(
                     lambda sol: sol.is_delivery
                 )
@@ -780,15 +803,19 @@ class SaleOrder(models.Model):
 
     def _can_not_confirmation_without_required_lines(self):
         self.ensure_one()
-        discount_agency_lines = self.order_line._filter_discount_agency_lines(self)
-        return self.delivery_set and discount_agency_lines
+
+        delivery_line = self.delivery_set or self.order_line.filtered(
+            lambda sol: sol.is_delivery
+        )
+        discount_agency_line = self.order_line._filter_discount_agency_lines(self)
+        return delivery_line and discount_agency_line
 
     def _check_delivery_lines(self):
         delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
         if not delivery_lines:
             raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
 
-    def _check_order_not_free_qty_today(self):
+    def _check_not_free_qty_in_stock(self):
         if self.state not in ["draft", "sent"]:
             return
 
@@ -856,7 +883,8 @@ class SaleOrder(models.Model):
                         )
                     )
                 )
-                quotations_discount_applied._compute_bonus()
+                quotations_discount_applied._compute_partner_bonus()
+                quotations_discount_applied._compute_bonus_order_line()
                 order_lines_delivery = order.order_line.filtered(
                     lambda sol: sol.is_delivery
                 )

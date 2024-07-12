@@ -285,7 +285,8 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                     )
                 }
             )
-            order._compute_bonus()
+            order._compute_partner_bonus()
+            order._compute_bonus_order_line()
 
         # [>] For Product Discount with code 'CKBL'
         if order.bank_guarantee:
