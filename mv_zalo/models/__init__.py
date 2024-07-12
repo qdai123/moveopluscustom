@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from . import account_move
+from . import mv_compute_discount
 from . import mv_compute_discount_line
+from . import mv_compute_warranty_discount_policy
+from . import mv_compute_warranty_discount_policy_line
 from . import res_config_settings
 from . import res_partner
 from . import res_users

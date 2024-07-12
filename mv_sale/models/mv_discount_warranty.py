@@ -353,7 +353,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
     def action_done(self):
         if not self._access_approve():
-            raise AccessError(_("Bạn không có quyền duyệt!"))
+            raise AccessError("Bạn không có quyền duyệt!")
 
         for rec in self.filtered(lambda r: len(r.line_ids) > 0):
             for line in rec.line_ids:
