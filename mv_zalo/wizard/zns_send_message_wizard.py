@@ -174,7 +174,7 @@ class ZnsSendMessageWizard(models.TransientModel):
     # === MOVEOPLUS METHODS ===#
 
     @api.model
-    def _zns_message_template(self, zns_message_id, zns_quota, sent_time):
+    def _zns_message_template(self, zns_message_id, sent_time, zns_quota):
         return (
             '<p class="mb-0">Đã gửi tin nhắn ZNS</p>'
             + """
@@ -204,7 +204,9 @@ class ZnsSendMessageWizard(models.TransientModel):
 
     def generate_zns_message(self, data, sent_time):
         return self._zns_message_template(
-            data.get("msg_id"), sent_time, data.get("quota")
+            zns_message_id=data.get("msg_id"),
+            sent_time=sent_time,
+            zns_quota=data.get("quota"),
         )
 
     # /// BUSINESS METHODS ///

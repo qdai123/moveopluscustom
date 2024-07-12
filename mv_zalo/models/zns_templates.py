@@ -11,6 +11,13 @@ MODELS_ZNS_USE_TYPE = [
     ("stock.move.line", "stock.move.line"),
     ("account.move", "account.move"),
     ("account.move.line", "account.move.line"),
+    ("mv.compute.discount", "mv.compute.discount"),
+    ("mv.compute.discount.line", "mv.compute.discount.line"),
+    ("mv.compute.warranty.discount.policy", "mv.compute.warranty.discount.policy"),
+    (
+        "mv.compute.warranty.discount.policy.line",
+        "mv.compute.warranty.discount.policy.line",
+    ),
 ]
 
 

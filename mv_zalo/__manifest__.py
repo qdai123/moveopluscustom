@@ -14,6 +14,7 @@
         "biz_zalo_common",
         "biz_zalo_zns",
         # MOVEOPLUS
+        "mv_account",
         "mv_base",
         "mv_sale",
     ],

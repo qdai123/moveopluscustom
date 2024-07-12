@@ -50,7 +50,66 @@ class AccountMove(models.Model):
         ICPSudo = self.env["ir.config_parameter"].sudo()
         return ICPSudo.get_param("mv_zalo.zns_payment_notification_template_id", "")
 
-    # === FIELDS ===#
+    # === INVOICE / PAYMENT FIELDS ===#
+    bank_transfer_details = fields.Text(
+        compute="_compute_bank_transfer_details", store=True
+    )
+    payment_early_discount_percentage = fields.Float(
+        compute="_compute_payment_early_discount_percentage", store=True
+    )
+    payment_early_discount_percentage_display = fields.Char(
+        compute="_compute_payment_early_discount_percentage",
+        string="Early Discount (%)",
+        store=True,
+    )
+    amount_paid_already = fields.Monetary(
+        "Paid Amount", compute="_compute_amount_early", store=True
+    )
+    amount_must_pay = fields.Monetary(
+        "Amount Must Pay", compute="_compute_amount_early", store=True
+    )
+
+    @api.depends("name", "invoice_payment_term_id")
+    def _compute_bank_transfer_details(self):
+        for record in self:
+            today = fields.Date.today()
+            if record.name and record.invoice_payment_term_id:
+                record.bank_transfer_details = "THANH TOAN HOA DON {invoice_name}-{year}{month}{day}/{partner_id}".format(
+                    invoice_name=record.name,
+                    year=today.year,
+                    month=today.month,
+                    day=today.day,
+                    partner_id=record.partner_id.id,
+                )
+
+    @api.depends("invoice_payment_term_id", "invoice_payment_term_id.early_discount")
+    def _compute_payment_early_discount_percentage(self):
+        for record in self:
+            if (
+                record.invoice_payment_term_id
+                and record.invoice_payment_term_id.early_discount
+            ):
+                record.payment_early_discount_percentage = (
+                    record.invoice_payment_term_id.discount_percentage
+                )
+                record.payment_early_discount_percentage_display = "{discount}%".format(
+                    discount=record.payment_early_discount_percentage
+                )
+
+    @api.depends("amount_total", "amount_residual")
+    def _compute_amount_early(self):
+        for record in self:
+            record.amount_paid_already = record.amount_total - record.amount_residual
+            record.amount_must_pay = (
+                record.amount_residual
+                if record.amount_residual > 0
+                else record.amount_total
+            )
+
+    # === PARTNER FIELDS ===#
+    short_name = fields.Char(related="partner_id.short_name", store=True)
+
+    # === ZALO ZNS FIELDS ===#
     zns_notification_sent = fields.Boolean(
         "ZNS Notification Sent", default=False, readonly=True
     )
@@ -58,7 +117,6 @@ class AccountMove(models.Model):
     zns_history_status = fields.Selection(
         related="zns_history_id.status", string="ZNS History Status"
     )
-    short_name = fields.Char(related="partner_id.short_name", store=True)
 
     # /// ACTIONS ///
 
