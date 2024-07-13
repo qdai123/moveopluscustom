@@ -6,6 +6,8 @@ from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
+DISCOUNT_PERCENTAGE_DIVISOR = 100
+
 MOVEOPLUS_TITLES = {
     "add_a_shipping_method": "Thêm phương thức giao hàng",
 }
