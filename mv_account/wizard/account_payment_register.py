@@ -1,9 +1,24 @@
 # -*- coding: utf-8 -*-
-from odoo import models
+from odoo import api, models
 
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = "account.payment.register"
+
+    # /// MOVEOPLUS METHODS ///
+
+    def _check_invoice_payment_state(self, move, currency, payment_date):
+        """
+        Check Payment State in ['not_paid', 'partial'] for Early Payment Discount
+        """
+        for_payment_state_unpaid = move._is_eligible_for_early_payment_discount(
+            currency, payment_date
+        )
+        for_payment_state_partial = (
+            move._is_eligible_for_early_payment_discount_partial(currency, payment_date)
+        )
+        payment_state_apply = for_payment_state_unpaid or for_payment_state_partial
+        return payment_state_apply, move.payment_state
 
     # /// MOVEOPLUS OVERRIDE ///
 
@@ -15,25 +30,13 @@ class AccountPaymentRegister(models.TransientModel):
         mode = False
         moves = batch_result["lines"].mapped("move_id")
         for move in moves:
-            # MOVEOPLUS OVERRIDE: Check Payment State in ['not_paid', 'partial'] for Early Payment Discount
-            for_payment_state_unpaid = move._is_eligible_for_early_payment_discount(
-                move.currency_id, self.payment_date
+            # MOVEOPLUS OVERRIDE
+            pstate_pass, pstate = self._check_invoice_payment_state(
+                move, move.currency_id, self.payment_date
             )
-            for_payment_state_partial = (
-                move._is_eligible_for_early_payment_discount_partial(
-                    move.currency_id, self.payment_date
-                )
-            )
-            if early_payment_discount and (
-                for_payment_state_unpaid or for_payment_state_partial
-            ):
+            if early_payment_discount and pstate_pass:
                 amount += move.invoice_payment_term_id._get_amount_due_after_discount(
-                    (
-                        move.amount_total
-                        if for_payment_state_unpaid
-                        else move.amount_residual
-                    ),
-                    move.amount_tax,
+                    move.amount_total, move.amount_tax
                 )
                 mode = "early_payment"
             else:
@@ -42,6 +45,34 @@ class AccountPaymentRegister(models.TransientModel):
                 ):
                     amount += aml.amount_residual_currency
         return abs(amount), mode
+
+    @api.depends(
+        "can_edit_wizard",
+        "source_amount",
+        "source_amount_currency",
+        "source_currency_id",
+        "company_id",
+        "currency_id",
+        "payment_date",
+    )
+    def _compute_amount(self):
+        for wizard in self:
+            if (
+                not wizard.journal_id
+                or not wizard.currency_id
+                or not wizard.payment_date
+            ):
+                wizard.amount = wizard.amount
+            elif wizard.source_currency_id and wizard.can_edit_wizard:
+                batch_result = wizard._get_batches()[0]
+                wizard.amount = (
+                    wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
+                        batch_result
+                    )[0]
+                )
+            else:
+                # The wizard is not editable so no partial payment allowed and then, 'amount' is not used.
+                wizard.amount = None
 
     # -------------------------------------------------------------------------
     # BUSINESS METHODS (OVERRIDE)
