@@ -11,21 +11,43 @@ _logger = logging.getLogger(__name__)
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
-    # === FIELDS ===#
+    # === PARTNER FIELDS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)
     partner_delivery_address = fields.Char(
-        "Partner Delivery Address", compute="_compute_partner_id", store=True
+        "Partner Delivery Address", compute="_compute_partner_address", store=True
     )
+    partner_delivery_address_advanced = fields.Char(
+        "Partner Delivery Address (Advanced)",
+        compute="_compute_partner_address",
+        store=True,
+    )
+
+    # === SALE ORDER FIELDS ===#
+    order_display_name = fields.Char(related="sale_id.name", store=True)
     order_date_confirmed = fields.Date(
         "Order Date Confirmed", compute="_compute_order_date_confirmed", store=True
     )
 
     @api.depends("partner_id")
-    def _compute_partner_id(self):
+    def _compute_partner_address(self):
         for picking in self:
-            picking.partner_delivery_address = (
-                picking.partner_id.full_address_vi or picking.partner_id.contact_address
+            partner = picking.partner_id
+            address_components = [partner.street]
+            # Filter out any False or None values before joining
+            partner_address = ", ".join(filter(None, address_components))
+
+            address_advanced_components = [
+                partner.wards_id.name,
+                partner.district_id.name,
+                partner.state_id.name,
+            ]
+            # Filter out any False or None values before joining
+            partner_address_advanced = ", ".join(
+                filter(None, address_advanced_components)
             )
+
+            picking.partner_delivery_address = partner_address
+            picking.partner_delivery_address_advanced = partner_address_advanced
 
     @api.depends("sale_id", "sale_id.date_order")
     def _compute_order_date_confirmed(self):
@@ -57,6 +79,16 @@ class StockPicking(models.Model):
             convert_valid_phone_number(phone_number) if phone_number else False
         )
 
+        # ZNS Template:
+        zns_template = self.env["zns.template"].search(
+            [
+                ("active", "=", True),
+                ("sample_data", "!=", False),
+                ("use_type", "=", picking._name),
+            ],
+            limit=1,
+        )
+
         return {
             "name": _("Send Message ZNS"),
             "type": "ir.actions.act_window",
@@ -64,11 +96,12 @@ class StockPicking(models.Model):
             "view_id": view_id.id,
             "views": [(view_id.id, "form")],
             "context": {
+                "default_phone": valid_phone_number,
+                "default_template_id": zns_template.id if zns_template else False,
                 "default_use_type": picking._name,
                 "default_tracking_id": picking.id,
                 "default_picking_id": picking.id,
                 "default_order_id": order.id,
-                "default_phone": valid_phone_number,
             },
             "target": "new",
         }

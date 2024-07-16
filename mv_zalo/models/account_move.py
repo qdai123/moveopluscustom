@@ -173,6 +173,10 @@ class AccountMove(models.Model):
     @api.model
     def _cron_notification_invoice_date_due(self, date_before=False, phone=False):
         def sanitize_phone(phonenumber=phone):
+
+            if not phonenumber:
+                pass
+
             digits = "".join(filter(str.isdigit, phonenumber))
             if len(digits) not in [10, 11]:
                 raise ValidationError(
@@ -228,6 +232,11 @@ class AccountMove(models.Model):
                 )
                 for sample_data in zns_sample_data
             }
+
+            # Recompute Invoice Data
+            entry._compute_amount_early()
+            entry._compute_payment_early_discount_percentage()
+            entry._compute_bank_transfer_details()
 
             entry.send_zns_message(
                 {
