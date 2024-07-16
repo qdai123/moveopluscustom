@@ -16,8 +16,7 @@
 						       decoration-muted="zns_history_status == '-1'"
 						       decoration-info="zns_history_status == '0'"
 						       decoration-success="zns_history_status == '1'"
-						       widget="badge"
-						       optional="hidden"/>
+						       widget="badge"/>
 					</group>
 				</page>
 			</xpath>

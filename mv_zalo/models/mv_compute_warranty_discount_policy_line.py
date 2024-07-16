@@ -14,7 +14,7 @@ from odoo.addons.mv_zalo.zalo_oa_functional import (
     ZNS_GET_PAYLOAD,
 )
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -59,9 +59,84 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         related="zns_history_id.status", string="ZNS History Status"
     )
 
-    # === PARTNER FIELDS ===#
+    # === PARTNER FIELDS for ZNS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)
     partner_phone = fields.Char(related="partner_id.phone", store=True)
+    partner_company_registry = fields.Char(
+        related="partner_id.company_registry", store=True
+    )
+    partner_total_discount_amount = fields.Float(
+        "Total Discount Amount (Month)", compute="_compute_amount_update", store=True
+    )
+    partner_discount_amount_update = fields.Float(
+        "Partner Discount Amount (UPDATE)", compute="_compute_amount_update", store=True
+    )
+
+    @api.depends("partner_id", "partner_id.amount_currency", "total_amount_currency")
+    def _compute_amount_update(self):
+        for record in self:
+            record.partner_total_discount_amount = record.total_amount_currency
+            record.partner_discount_amount_update = (
+                record.partner_id.amount_currency + record.partner_total_discount_amount
+            )
+
+    # /// ACTIONS ///
+
+    def action_send_message_zns(self):
+        self.ensure_one()
+
+        if not self.partner_id:
+            return
+
+        phone_number = self.partner_phone or self.partner_id.phone
+        if not phone_number:
+            _logger.error("Partner has no phone number.")
+            return
+
+        valid_phone_number = convert_valid_phone_number(phone_number)
+        if not valid_phone_number:
+            _logger.error("Invalid phone number for partner")
+            return
+
+        self._compute_amount_update()  # Recompute the discount amount
+
+        # Prepare the context for the wizard view
+        view_id = self.env.ref("biz_zalo_zns.view_zns_send_message_wizard_form")
+        if not view_id:
+            _logger.error(
+                "View 'biz_zalo_zns.view_zns_send_message_wizard_form' not found."
+            )
+            return
+
+        # ZNS Template:
+        zns_template = self.env["zns.template"].search(
+            [
+                ("active", "=", True),
+                ("sample_data", "!=", False),
+                ("use_type", "=", self._name),
+            ],
+            limit=1,
+        )
+
+        context = {
+            "default_template_id": zns_template.id if zns_template else False,
+            "default_phone": valid_phone_number,
+            "default_use_type": self._name,
+            "default_tracking_id": self.id,
+            "default_mv_compute_warranty_discount_id": self.parent_id.id,
+            "default_mv_compute_warranty_discount_line_id": self.id,
+        }
+
+        # Return the action dictionary to open the wizard form view
+        return {
+            "name": _("Send Message ZNS"),
+            "type": "ir.actions.act_window",
+            "res_model": "zns.send.message.wizard",
+            "view_id": view_id.id,
+            "views": [(view_id.id, "form")],
+            "context": context,
+            "target": "new",
+        }
 
     # /// ZALO ZNS ///
 

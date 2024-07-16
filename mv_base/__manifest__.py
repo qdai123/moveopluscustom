@@ -14,6 +14,8 @@
         "security/mv_base_groups.xml",
         "security/mv_base_security.xml",
         "security/ir.model.access.csv",
+        # VIEWS
+        "views/res_partner_views.xml",
     ],
     "license": "LGPL-3",
     "application": True,

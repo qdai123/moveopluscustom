@@ -28,6 +28,16 @@ class ZnsSendMessageWizard(models.TransientModel):
     move_line_id = fields.Many2one("stock.move.line", readonly=True)
     account_move_id = fields.Many2one("account.move", readonly=True)
     account_move_line_id = fields.Many2one("account.move.line", readonly=True)
+    mv_compute_discount_id = fields.Many2one("mv.compute.discount", readonly=True)
+    mv_compute_discount_line_id = fields.Many2one(
+        "mv.compute.discount.line", readonly=True
+    )
+    mv_compute_warranty_discount_id = fields.Many2one(
+        "mv.compute.warranty.discount.policy", readonly=True
+    )
+    mv_compute_warranty_discount_line_id = fields.Many2one(
+        "mv.compute.warranty.discount.policy.line", readonly=True
+    )
 
     # === Fields OVERRIDE ===#
     template_id = fields.Many2one(
@@ -50,6 +60,8 @@ class ZnsSendMessageWizard(models.TransientModel):
             "loyalty.card": self.coupon_id,
             "stock.picking": self.picking_id,
             "account.move": self.account_move_id,
+            "mv.compute.discount.line": self.mv_compute_discount_line_id,
+            "mv.compute.warranty.discount.policy.line": self.mv_compute_warranty_discount_line_id,
         }
 
         data = {}
@@ -105,6 +117,30 @@ class ZnsSendMessageWizard(models.TransientModel):
                 partner_id = (
                     self.account_move_id.partner_id.id
                     if self.account_move_id and self.account_move_id.partner_id
+                    else False
+                )
+            elif self.use_type == "mv.compute.discount.line":
+                origin = (
+                    self.mv_compute_discount_line_id.name
+                    if self.mv_compute_discount_line_id
+                    else ""
+                )
+                partner_id = (
+                    self.mv_compute_discount_line_id.partner_id.id
+                    if self.mv_compute_discount_line_id
+                    and self.mv_compute_discount_line_id.partner_id
+                    else False
+                )
+            elif self.use_type == "mv.compute.warranty.discount.policy.line":
+                origin = (
+                    self.mv_compute_warranty_discount_line_id.name
+                    if self.mv_compute_warranty_discount_line_id
+                    else ""
+                )
+                partner_id = (
+                    self.mv_compute_warranty_discount_line_id.partner_id.id
+                    if self.mv_compute_warranty_discount_line_id
+                    and self.mv_compute_warranty_discount_line_id.partner_id
                     else False
                 )
 
@@ -212,7 +248,13 @@ class ZnsSendMessageWizard(models.TransientModel):
     # /// BUSINESS METHODS ///
 
     def process_data(self, data, config_id):
-        if self.use_type in ["sale.order", "stock.picking", "account.move"]:
+        if self.use_type in [
+            "sale.order",
+            "stock.picking",
+            "account.move",
+            "mv.compute.discount.line",
+            "mv.compute.warranty.discount.policy.line",
+        ]:
             sent_time = (
                 get_datetime(data.get("sent_time", False))
                 if data.get("sent_time", False)
@@ -228,5 +270,9 @@ class ZnsSendMessageWizard(models.TransientModel):
                 self.picking_id.message_post(body=Markup(msg))
             elif self.use_type == "account.move":
                 self.account_move_id.message_post(body=Markup(msg))
+            elif self.use_type == "mv.compute.discount.line":
+                self.mv_compute_discount_id.message_post(body=Markup(msg))
+            elif self.use_type == "mv.compute.warranty.discount.policy.line":
+                self.mv_compute_warranty_discount_id.message_post(body=Markup(msg))
         elif self.use_type == "loyalty.card":
             self.generate_zns_history(data, config_id)

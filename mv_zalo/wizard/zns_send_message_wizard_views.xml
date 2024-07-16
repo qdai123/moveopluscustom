@@ -12,6 +12,10 @@
 				<field name="move_line_id" options="{'no_open': True}" invisible="use_type != 'stock.move.line'"/>
 				<field name="account_move_id" options="{'no_open': True}" invisible="use_type != 'account.move'"/>
 				<field name="account_move_line_id" options="{'no_open': True}" invisible="use_type != 'account.move.line'"/>
+				<field name="mv_compute_discount_id" invisible="1"/>
+				<field name="mv_compute_discount_line_id" invisible="1"/>
+				<field name="mv_compute_warranty_discount_id" invisible="1"/>
+				<field name="mv_compute_warranty_discount_line_id" invisible="1"/>
 			</xpath>
 			<xpath expr="//field[@name='order_id']" position="attributes">
 				<attribute name="options">{'no_open': True}</attribute>
