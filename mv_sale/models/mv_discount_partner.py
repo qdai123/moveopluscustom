@@ -86,7 +86,7 @@ class MvDiscountPolicyPartner(models.Model):
     def action_update_partner_discount(self):
         self.ensure_one()
         return {
-            "name": _(f"Cập nhật thông tin cho {self.partner_id.name}"),
+            "name": _(f"Cập nhật chính sách cho {self.partner_id.name}"),
             "type": "ir.actions.act_window",
             "res_model": "mv.wizard.update.partner.discount",
             "view_mode": "form",
