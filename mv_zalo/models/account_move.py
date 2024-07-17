@@ -216,38 +216,43 @@ class AccountMove(models.Model):
         due_date = fields.Date.today() - timedelta(
             days=int(date_before) if date_before else 2
         )
-        journal_entries = self.env["account.move"].search(
+        customer_invoices = self.env["account.move"].search(
             [
-                ("state", "=", "posted"),
-                ("payment_state", "=", "not_paid"),
                 ("zns_notification_sent", "=", False),
+                ("state", "=", "posted"),
+                ("payment_state", "in", ["not_paid", "partial"]),
+                ("move_type", "=", "out_invoice"),
                 ("invoice_date_due", "=", due_date),
+                ("invoice_date_due", ">=", fields.date.today()),
+                "|",
+                ("partner_id.is_agency", "=", True),
+                ("partner_id.parent_id.is_agency", "=", True),
             ]
         )
-        for entry in journal_entries:
+        for inv in customer_invoices:
             valid_phone_number = (
-                sanitize_phone(entry.partner_id.phone) if not phone else testing_phone
+                sanitize_phone(inv.partner_id.phone) if not phone else testing_phone
             )
             template_data = {
                 sample_data.name: (
                     sample_data.value
                     if not sample_data.field_id
-                    else entry._get_sample_data_by(sample_data, entry)
+                    else inv._get_sample_data_by(sample_data, inv)
                 )
                 for sample_data in zns_sample_data
             }
 
             # Recompute Invoice Data
-            entry._compute_amount_early()
-            entry._compute_payment_early_discount_percentage()
-            entry._compute_bank_transfer_details()
+            inv._compute_amount_early()
+            inv._compute_payment_early_discount_percentage()
+            inv._compute_bank_transfer_details()
 
-            entry.send_zns_message(
+            inv.send_zns_message(
                 {
                     "phone": valid_phone_number,
                     "template_id": zns_template.template_id,
                     "template_data": json.dumps(template_data),
-                    "tracking_id": entry.id,
+                    "tracking_id": inv.id,
                 },
                 bool(phone),
             )
