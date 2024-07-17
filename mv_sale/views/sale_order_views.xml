@@ -176,6 +176,7 @@
 				<separator/>
 				<filter string="Đại lý" domain="[('partner_agency', '=', True)]" name="partner_agency_filter"/>
 				<filter string="Đại lý Vùng Trắng" domain="[('partner_white_agency', '=', True)]" name="partner_white_agency_filter"/>
+				<filter string="Đại lý Miền Nam" domain="[('partner_southern_agency', '=', True)]" name="partner_southern_agency_filter"/>
 				<separator/>
 				<filter string="Đơn đổi trả" domain="[('is_order_returns', '=', True)]" name="order_return_filter"/>
 				<separator/>

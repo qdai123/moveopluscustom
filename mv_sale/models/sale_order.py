@@ -18,11 +18,11 @@ class SaleOrder(models.Model):
     _inherit = "sale.order"
 
     # === Permission/Flags Fields ===#
-    is_sales_manager = fields.Boolean(compute="_compute_permissions")
     discount_agency_set = fields.Boolean(
         compute="_compute_permissions",
         help="""Ghi nhận: Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
     )
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(
         compute="_compute_permissions",
@@ -35,7 +35,6 @@ class SaleOrder(models.Model):
     @api.depends_context("uid", "compute_discount_agency", "recompute_discount_agency")
     def _compute_permissions(self):
         for order in self:
-            order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
             order.discount_agency_set = order.order_line._filter_discount_agency_lines(
                 order
             )
@@ -57,6 +56,7 @@ class SaleOrder(models.Model):
                 and order.discount_agency_set
                 and order.partner_agency
             )
+            order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
 
     # === Model: [res.partner] Fields ===#
     partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
@@ -75,8 +75,8 @@ class SaleOrder(models.Model):
     # === Model: [mv.compute.discount.line] Fields ===#
     discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
 
-    check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
     # === Bonus, Discount Fields ===#
+    check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
     percentage = fields.Float(compute="_compute_discount", store=True)
     bonus_max = fields.Float(
         compute="_compute_bonus_order_line",
@@ -196,11 +196,19 @@ class SaleOrder(models.Model):
     def _compute_discount(self):
         for order in self:
             # RESET all discount values
-            order.reset_discount_values()
+            order.percentage = 0
+            order.check_discount_10 = False
+            order.total_price_no_service = 0
+            order.total_price_discount = 0
+            order.total_price_after_discount = 0
+            order.total_price_discount_10 = 0
+            order.total_price_after_discount_10 = 0
+            order.total_price_after_discount_month = 0
 
             # [!] Kiểm tra có phải Đại lý trực thuộc của MOVEO+ hay không?
             partner_agency = order.partner_id.is_agency
             if order.order_line:
+                # TODO: Do không còn áp dụng cách tính cũ, nên cần check lại toàn bộ phần tính toán theo số lượng 10 lốp này
                 # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
                 order.check_discount_10 = (
                     order.check_discount_applicable() if partner_agency else False
@@ -211,16 +219,6 @@ class SaleOrder(models.Model):
 
             # [!] Nếu không còn dòng sản phẩm nào thì xóa hết các dòng chiết khấu bao gồm cả phương thức giao hàng
             order.handle_discount_lines()
-
-    def reset_discount_values(self):
-        self.percentage = 0
-        self.check_discount_10 = False
-        self.total_price_no_service = 0
-        self.total_price_discount = 0
-        self.total_price_after_discount = 0
-        self.total_price_discount_10 = 0
-        self.total_price_after_discount_10 = 0
-        self.total_price_after_discount_month = 0
 
     def check_discount_applicable(self):
         order_lines = self.order_line.filtered(
@@ -234,13 +232,15 @@ class SaleOrder(models.Model):
         )
 
     def calculate_discount_values(self):
-        percentage = 0
+        order = self
+        product_discount_percentage = 0
         total_price_no_service = 0
         total_price_discount = 0
 
-        for line in self.order_line.filtered(
+        order_product_lines = order.order_line.filtered(
             lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
-        ):
+        )
+        for line in order_product_lines:
             total_price_no_service += line.price_unit * line.product_uom_qty
             total_price_discount += (
                 line.price_unit
@@ -248,23 +248,23 @@ class SaleOrder(models.Model):
                 * line.discount
                 / DISCOUNT_PERCENTAGE_DIVISOR
             )
-            percentage = line.discount
+            product_discount_percentage = line.discount
 
-        self.percentage = percentage
-        self.total_price_no_service = total_price_no_service
-        self.total_price_discount = total_price_discount
-        self.total_price_after_discount = (
-            self.total_price_no_service - self.total_price_discount
+        order.percentage = product_discount_percentage
+        order.total_price_no_service = total_price_no_service
+        order.total_price_discount = total_price_discount
+        order.total_price_after_discount = (
+            order.total_price_no_service - order.total_price_discount
         )
 
-        self.total_price_discount_10 = (
-            self.total_price_after_discount / DISCOUNT_PERCENTAGE_DIVISOR
+        order.total_price_discount_10 = (
+            order.total_price_after_discount / DISCOUNT_PERCENTAGE_DIVISOR
         )
-        self.total_price_after_discount_10 = (
-            self.after_discount_bank_guarantee - self.total_price_discount_10
+        order.total_price_after_discount_10 = (
+            order.after_discount_bank_guarantee - order.total_price_discount_10
         )
-        self.total_price_after_discount_month = (
-            self.total_price_after_discount_10 - self.bonus_order
+        order.total_price_after_discount_month = (
+            order.total_price_after_discount_10 - order.bonus_order
         )
 
     def handle_discount_lines(self):
@@ -733,7 +733,7 @@ class SaleOrder(models.Model):
             else:
                 order.with_context(action_confirm=True).action_recompute_discount()
 
-    # === MOVEO+ FULL OVERRIDE '_get_program_domain' ===#
+    # === MOVEO+ FULL OVERRIDE '_get_program_domain', '_update_programs_and_rewards' ===#
 
     def _get_program_domain(self):
         """
@@ -804,14 +804,18 @@ class SaleOrder(models.Model):
     def _can_not_confirmation_without_required_lines(self):
         self.ensure_one()
 
-        delivery_line = self.delivery_set or self.order_line.filtered(
+        order = self
+        delivery_line = order.delivery_set or order.order_line.filtered(
             lambda sol: sol.is_delivery
         )
-        discount_agency_line = self.order_line._filter_discount_agency_lines(self)
+        discount_agency_line = self.order_line._filter_discount_agency_lines(order)
         return delivery_line and discount_agency_line
 
     def _check_delivery_lines(self):
-        delivery_lines = self.order_line.filtered(lambda sol: sol.is_delivery)
+        order = self
+        delivery_lines = order.delivery_set or order.order_line.filtered(
+            lambda sol: sol.is_delivery
+        )
         if not delivery_lines:
             raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
 
@@ -926,7 +930,7 @@ class SaleOrder(models.Model):
     # =============================================================
     # TRIGGER Methods (Public)
     # These methods are called when a record is updated or deleted.
-    # TODO: Update theses functional
+    # TODO: Update theses functional - Phat Dang <phat.dangminh@moveoplus.com>
     # =============================================================
 
     def trigger_update(self):

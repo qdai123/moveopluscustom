@@ -108,6 +108,10 @@ class AccountMove(models.Model):
 
     # === PARTNER FIELDS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)
+    partner_phone = fields.Char(related="partner_id.phone", store=True)
+    partner_company_registry = fields.Char(
+        related="partner_id.company_registry", store=True
+    )
 
     # === ZALO ZNS FIELDS ===#
     zns_notification_sent = fields.Boolean(

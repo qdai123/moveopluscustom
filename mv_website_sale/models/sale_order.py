@@ -1,30 +1,13 @@
 # -*- coding: utf-8 -*-
-from odoo import models
+from odoo.addons.mv_sale.models.sale_order import QUANTITY_THRESHOLD
 
-QUANTITY_THRESHOLD = 4
+from odoo import models
 
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    def check_show_warning(self):
-        order_line = self.order_line.filtered(
-            lambda line: line.product_id.product_tmpl_id.detailed_type == "product"
-            and self.check_category_product(line.product_id.categ_id)
-        )
-        return (
-            len(order_line) >= 1
-            and sum(order_line.mapped("product_uom_qty")) < QUANTITY_THRESHOLD
-        )
-
-    def check_missing_partner_discount(self):
-        order = self
-        is_partner_agency = order.partner_agency or order.partner_id.is_agency
-        agency_discount_line = (
-            order.order_line._filter_discount_agency_lines(order)
-            or order.discount_agency_set
-        )
-        return is_partner_agency and not agency_discount_line
+    # === MOVEOPLUS OVERRIDE === #
 
     def _compute_cart_info(self):
         # Call the parent class's _compute_cart_info method
@@ -45,14 +28,38 @@ class SaleOrder(models.Model):
             # Subtract the total quantity of service lines from the order's "cart_quantity"
             # The int() function is used to ensure that the result is an integer
             order.cart_quantity -= int(service_lines_qty)
+            order._compute_partner_bonus()
+            order._compute_bonus_order_line()
 
-    # ==================================
-    # ORM / CURD Methods
-    # ==================================
+    # /// ORM/CRUD
 
     def copy(self, default=None):
-        # MOVEOPLUS Override
         orders = super(SaleOrder, self).copy(default)
+
         orders._update_programs_and_rewards()
         orders._auto_apply_rewards()
+
         return orders
+
+    # === MOVEOPLUS METHODS === #
+
+    def check_show_warning(self):
+        order = self
+        if not order.partner_id.is_southern_agency:
+            order_line = order.order_line.filtered(
+                lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
+                and order.check_category_product(sol.product_id.categ_id)
+            )
+            return (
+                len(order_line) >= 1
+                and sum(order_line.mapped("product_uom_qty")) < QUANTITY_THRESHOLD
+            )
+
+    def check_missing_partner_discount(self):
+        order = self
+        is_partner_agency = order.partner_agency or order.partner_id.is_agency
+        agency_discount_line = (
+            order.order_line._filter_discount_agency_lines(order)
+            or order.discount_agency_set
+        )
+        return is_partner_agency and not agency_discount_line
