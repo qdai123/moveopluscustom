@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import http, _
-from odoo.http import request
 from odoo.addons.website_sale.controllers.main import WebsiteSale
-from odoo.addons.payment.controllers import portal as payment_portal
-from odoo.exceptions import UserError, ValidationError
+
+from odoo import http
+from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
@@ -14,12 +13,13 @@ DISCOUNT_PERCENTAGE_DIVISOR = 100
 
 class MoveoplusWebsiteSale(WebsiteSale):
 
-    # === OVERRIDE METHODS ===#
+    # === MOVEOPLUS OVERRIDE ===#
 
     # /// Cart
 
     def _cart_values(self, **post):
-        _logger.debug(f"MOVEO+ Cart Value [POST]: {post}")
+        _logger.debug(f">>> MOVEO+ Cart Value [POST]: {post} <<<")
+
         order = request.website.sale_get_order()
         discount_amount_invalid = order.partner_id.amount_currency < order.bonus_order
         discount_amount_maximum = order.bonus_max
@@ -53,6 +53,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 lambda line: line.product_id.default_code == "CKSLMN"
             ).mapped("price_unit")
         )
+
         values_update = {
             "is_update": order.recompute_discount_agency,
             "delivery_set": any(line.is_delivery for line in order.order_line),
@@ -84,23 +85,28 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 else 0.0
             ),
         }
+
         return values_update
 
     @http.route()
-    def cart(self, access_token=None, revive="", **post):
+    def cart(self, **post):
         order = request.website.sale_get_order()
-        order._compute_partner_bonus()
-        order._compute_bonus_order_line()
+        order.sudo()._compute_partner_bonus()
+        order.sudo()._compute_bonus_order_line()
 
         if order.partner_id.is_agency:
-            order.partner_id.action_update_discount_amount()
+            order.sudo().partner_id.action_update_discount_amount()
 
-        return super().cart(access_token=access_token, revive=revive, **post)
+        return super(MoveoplusWebsiteSale, self).cart(**post)
+
+    @http.route()
+    def cart_update_json(self, *args, **kwargs):
+        return super(MoveoplusWebsiteSale, self).cart_update_json(*args, **kwargs)
 
     # /// Checkout
 
     def checkout_values(self, order, **kw):
-        values_checkout = super().checkout_values(order, **kw)
+        values_checkout = super(MoveoplusWebsiteSale, self).checkout_values(order, **kw)
 
         # [>] Hide Discount Amount Input
         values_checkout["hide_discount_amount"] = True
@@ -109,7 +115,6 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
     @http.route()
     def checkout(self, **post):
-        orders_checkout = super().checkout(**post)
         redirect = post.get("r", "/shop/cart")
 
         # [!] WARNING for buying more than 4 tires
@@ -117,15 +122,18 @@ class MoveoplusWebsiteSale(WebsiteSale):
         if order.partner_id.is_agency and order.check_show_warning():
             return request.redirect("%s?show_warning=1" % redirect)
 
+        # [!] WARNING for missing partner discount line
         if order.check_missing_partner_discount():
             return request.redirect("%s?missing_partner_discount=1" % redirect)
 
-        return orders_checkout
+        return super(MoveoplusWebsiteSale, self).checkout(**post)
 
     # /// Payment
 
     def _get_shop_payment_values(self, order, **kwargs):
-        res = super()._get_shop_payment_values(order, **kwargs)
+        res = super(MoveoplusWebsiteSale, self)._get_shop_payment_values(
+            order, **kwargs
+        )
 
         # Update the submit button label (use for Moveo Plus only)
         res["submit_button_label"] = "Đặt Hàng Ngay"
@@ -141,14 +149,16 @@ class MoveoplusWebsiteSale(WebsiteSale):
         if order.bonus_order > 0:
             order.compute_discount_for_partner(0)
 
-        return super().shop_payment(**post)
+        return super(MoveoplusWebsiteSale, self).shop_payment(**post)
 
     @http.route()
     def shop_payment_confirmation(self, **post):
-        return super().shop_payment_confirmation(**post)
+        return super(MoveoplusWebsiteSale, self).shop_payment_confirmation(**post)
 
     def _prepare_shop_payment_confirmation_values(self, order):
-        res = super()._prepare_shop_payment_confirmation_values(order)
+        res = super(
+            MoveoplusWebsiteSale, self
+        )._prepare_shop_payment_confirmation_values(order)
 
         # [>] Hide Discount Amount Input
         res["hide_discount_amount"] = True

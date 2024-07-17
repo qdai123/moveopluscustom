@@ -16,7 +16,7 @@ class Partner(models.Model):
 
     @api.depends("name", "parent_id.short_name")
     def _compute_short_name(self):
-        for partner in self:
+        for partner in self.filtered(lambda p: not p.short_name):
             partner.short_name = (
                 partner.parent_id.short_name
                 if partner.parent_id and partner.parent_id.short_name
