@@ -351,7 +351,6 @@ class MvComputeDiscount(models.Model):
                             ]
                         )
                         if line_name_one and line_name_two:
-                            discount_for_two_month = discount_line_id.two_month
                             discount_for_quarter = discount_line_id.quarter
                             vals["is_quarter"] = True
                             vals["quarter"] = discount_for_quarter
@@ -361,7 +360,7 @@ class MvComputeDiscount(models.Model):
                                     + line_name_one.amount_total
                                     + line_name_two.amount_total
                                 )
-                                * discount_for_two_month
+                                * discount_for_quarter
                                 / 100
                             )
 
