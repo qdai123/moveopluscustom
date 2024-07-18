@@ -29,6 +29,8 @@
         "views/account_move_views.xml",
         "views/stock_picking_views.xml",
         "views/res_partner_views.xml",
+        "views/mv_compute_discount_line_views.xml",
+        "views/mv_compute_warranty_discount_policy_line_views.xml",
         "views/res_config_settings_views.xml",
         # WIZARDS
         "wizard/zns_send_message_wizard_views.xml",

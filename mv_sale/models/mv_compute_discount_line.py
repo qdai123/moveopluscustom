@@ -117,7 +117,7 @@ class MvComputeDiscountLine(models.Model):
 
     def action_approve_for_promote(self):
         if not self._access_approve():
-            raise AccessError(_("Bạn không có quyền duyệt!"))
+            raise AccessError("Bạn không có quyền duyệt!")
 
         return {
             "type": "ir.actions.act_window",
@@ -142,7 +142,7 @@ class MvComputeDiscountLine(models.Model):
 
     def action_approve_for_month(self):
         if not self._access_approve():
-            raise AccessError(_("Bạn không có quyền duyệt!"))
+            raise AccessError("Bạn không có quyền duyệt!")
 
         vals = {}
         discount_line_env = self.env["mv.compute.discount.line"]
@@ -153,9 +153,7 @@ class MvComputeDiscountLine(models.Model):
                     "partner_sales_state": "qualified_by_approving",
                     "is_month": True,
                     "month": rec.discount_line_id.month,
-                    "month_money": (rec.month_money + rec.amount_total)
-                    * rec.discount_line_id.month
-                    / 100,
+                    "month_money": rec.amount_total * rec.discount_line_id.month / 100,
                 }
             )
             # Case 2:
@@ -204,7 +202,7 @@ class MvComputeDiscountLine(models.Model):
 
     def action_quarter(self):
         if not self._access_approve():
-            raise AccessError(_("Bạn không có quyền duyệt!"))
+            raise AccessError("Bạn không có quyền duyệt!")
 
         amount_two_month = 0
         name_one = str(int(self.month_parent) - 1) + "/" + self.parent_id.year
@@ -241,7 +239,7 @@ class MvComputeDiscountLine(models.Model):
 
     def action_year(self):
         if not self._access_approve():
-            raise AccessError(_("Bạn không có quyền duyệt!"))
+            raise AccessError("Bạn không có quyền duyệt!")
 
         total_year = 0
         for i in range(12):
