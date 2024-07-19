@@ -74,7 +74,11 @@ class StockPicking(models.Model):
             )
             return
 
-        phone_number = order.partner_id.phone if order.partner_id else None
+        phone_number = (
+            picking.partner_id.phone
+            if picking.partner_id and picking.partner_id.phone
+            else picking.partner_id.mobile
+        ) or None
         valid_phone_number = (
             convert_valid_phone_number(phone_number) if phone_number else False
         )
