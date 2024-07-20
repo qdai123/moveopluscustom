@@ -7,7 +7,7 @@
 		<field name="priority">30</field>
 		<field name="arch" type="xml">
 			<xpath expr="//field[@name='payment_difference']" position="before">
-				<field name="keep_apply_discount_early" string="Giữ C/K cho TT 1 Phần" invisible="0"/>
+				<field name="keep_apply_discount_early" string="Giữ C/K cho TT 1 Phần" invisible="1"/>
 			</xpath>
 		</field>
 	</record>

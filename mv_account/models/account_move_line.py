@@ -36,5 +36,14 @@ class AccountMoveLine(models.Model):
         )
 
         action["context"]["default_keep_apply_discount_early"] = apply_early_discount
+        amount_discount_for_partial = (
+            invoice.invoice_payment_term_id._get_amount_due_after_discount(
+                invoice.amount_total, invoice.amount_tax
+            )
+            or 0.0
+        )
+        action["context"]["amount_discount_for_partial"] = (
+            invoice.amount_total - amount_discount_for_partial
+        )
 
         return action
