@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from markupsafe import Markup
 from odoo.addons.mv_sale.models.sale_order import GROUP_SALES_MANAGER
 
 from odoo import api, fields, models
@@ -97,6 +98,17 @@ class SaleOrderLine(models.Model):
         return result
 
     def unlink(self):
+        for line in self:
+            if (
+                line.product_id.product_tmpl_id.detailed_type == "service"
+                and line.product_id.default_code == "CKT"
+            ):
+                msg_body = "Dòng %s đã xóa, số tiền: %s" % (
+                    line.product_id.name,
+                    line.price_unit,
+                )
+                line.order_id.message_post(body=Markup(msg_body))
+
         orders_to_update = self.filtered(
             lambda sol: sol.product_id
             and sol.product_id.default_code
@@ -167,12 +179,3 @@ class SaleOrderLine(models.Model):
                 sol.price_subtotal_before_discount = 0
 
     # /// CONSTRAINTS Methods
-
-    @api.constrains("order_id", "order_id.sate")
-    def _check_product_qty(self):
-        for sol in self:
-            if sol.product_id and sol.product_id.default_code:
-                if sol.product_id.default_code == "CKT" and sol.product_uom_qty < 0:
-                    raise ValidationError(
-                        _("The quantity of the product must be greater than 0.")
-                    )

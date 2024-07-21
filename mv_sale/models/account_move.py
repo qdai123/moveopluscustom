@@ -6,6 +6,8 @@ class AccountMove(models.Model):
     _inherit = "account.move"
 
     def action_post(self):
+        super().action_post()
+
         # Gather all unique invoice origins
         invoice_origins = {move.invoice_origin for move in self if move.invoice_origin}
 
@@ -21,11 +23,9 @@ class AccountMove(models.Model):
                     lambda so: so.name == invoice_origin and not so.date_invoice
                 )
                 if orders_to_update:
-                    date_invoice = self.filtered(
+                    invoice_date = self.filtered(
                         lambda m: m.invoice_origin == invoice_origin
-                    ).mapped("date_invoice")
+                    ).mapped("invoice_date")
                     # Assuming all moves with the same invoice_origin have the same date_invoice
-                    if date_invoice:
-                        orders_to_update.write({"date_invoice": date_invoice[0]})
-
-        return super().action_post()
+                    if invoice_date:
+                        orders_to_update.write({"date_invoice": invoice_date[0]})
