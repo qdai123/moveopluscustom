@@ -8,8 +8,9 @@
 		<field name="priority">20</field>
 		<field name="arch" type="xml">
 			<xpath expr="//field[@name='partner_id']" position="after">
-				<field name="partner_agency" optional="hidden"/>
-				<field name="partner_white_agency" optional="hidden"/>
+				<field name="partner_agency" column_invisible="1"/>
+				<field name="partner_white_agency" column_invisible="1"/>
+				<field name="partner_southern_agency" column_invisible="1"/>
 			</xpath>
 		</field>
 	</record>
@@ -33,11 +34,11 @@
 				<field name="recompute_discount_agency" invisible="1"/>
             </xpath>
 			<xpath expr="//group[@name='order_details']" position="inside">
-				<field name="check_discount_10" invisible="1"/>
-				<field name="quantity_change" invisible="1"/>
-				<field name="bonus_max" invisible="1"/>
-				<field name="bonus_order" invisible="1"/>
-				<field name="bonus_remaining" invisible="1"/>
+				<field name="check_discount_10" invisible="0"/>
+				<field name="quantity_change" invisible="0"/>
+				<field name="bonus_max" invisible="0"/>
+				<field name="bonus_order" invisible="0"/>
+				<field name="bonus_remaining" invisible="0"/>
 			</xpath>
 			<xpath expr="//field[@name='payment_term_id']" position="after">
 				<field string="Đổi trả hàng" name="is_order_returns" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>

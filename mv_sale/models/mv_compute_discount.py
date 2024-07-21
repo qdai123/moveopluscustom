@@ -193,11 +193,13 @@ class MvComputeDiscount(models.Model):
         # - Product category is eligible for discount
         # - Product type is 'product'
         # - Quantity delivered is greater than 0
+        # - Quantity invoiced is greater than 0
         order_lines = sale_orders.order_line.filtered(
             lambda order: order.order_id.partner_id.is_agency
             and order.order_id.check_category_product(order.product_id.categ_id)
             and order.product_id.detailed_type == "product"
             and order.qty_delivered > 0
+            and order.qty_invoiced > 0
         )
 
         # Fetch partners at once
