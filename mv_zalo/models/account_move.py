@@ -54,6 +54,7 @@ class AccountMove(models.Model):
     bank_transfer_details = fields.Text(
         compute="_compute_bank_transfer_details", store=True
     )
+    bank_transfer_amount = fields.Integer(compute="_compute_amount_early", store=True)
     payment_early_discount_percentage = fields.Float(
         compute="_compute_payment_early_discount_percentage", store=True
     )
@@ -99,6 +100,7 @@ class AccountMove(models.Model):
                 if record.amount_residual > 0
                 else record.amount_total
             )
+            record.bank_transfer_amount = record.amount_must_pay
 
     # === PARTNER FIELDS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)
