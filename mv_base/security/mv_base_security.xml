@@ -10,7 +10,7 @@
 			<field name="perm_write" eval="True"/>
 			<field name="perm_create" eval="True"/>
 			<field name="perm_unlink" eval="False"/>
-			<field name="domain_force">['|', (create_uid, '=', user.id), (write_uid, '=', user.id)]</field>
+			<field name="domain_force">['|', ('create_uid', '=', user.id), ('write_uid', '=', user.id)]</field>
 		</record>
 	</data>
 </odoo>
