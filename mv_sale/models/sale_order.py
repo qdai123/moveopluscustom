@@ -17,27 +17,34 @@ GROUP_SALES_MANAGER = "sales_team.group_sale_manager"
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    # === Permission/Flags Fields ===#
+    # === BASE FIELDS ===#
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
     discount_agency_set = fields.Boolean(
         compute="_compute_permissions",
         help="""Ghi nhận: Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
     )
-    is_sales_manager = fields.Boolean(compute="_compute_permissions")
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(
         compute="_compute_permissions",
         string="Discount Agency Amount should be recomputed",
     )
+    is_order_returns = fields.Boolean(
+        default=False, help="Ghi nhận: Là đơn đổi/trả hàng."
+    )  # TODO: Needs study cases for SO Returns
+    date_invoice = fields.Datetime(readonly=True)
+    quantity_change = fields.Float(readonly=True)
 
-    @api.depends(
-        "state", "order_line", "order_line.product_id", "order_line.product_uom_qty"
-    )
-    @api.depends_context("uid", "compute_discount_agency", "recompute_discount_agency")
+    @api.depends("state", "order_line.product_id", "order_line.product_uom_qty")
+    @api.depends_context("uid")
     def _compute_permissions(self):
         for order in self:
+            # [>] Check if the user is a Sales Manager
+            order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
+            # [>] Check if the order has discount agency lines
             order.discount_agency_set = order.order_line._filter_discount_agency_lines(
                 order
             )
+            # [>] Check if the order is in a state where discount agency can be computed
             order.compute_discount_agency = (
                 order.state
                 in [
@@ -47,6 +54,7 @@ class SaleOrder(models.Model):
                 and not order.discount_agency_set
                 and order.partner_agency
             )
+            # [>] Check if the order is in a state where discount agency should be recomputed
             order.recompute_discount_agency = (
                 order.state
                 in [
@@ -56,26 +64,27 @@ class SaleOrder(models.Model):
                 and order.discount_agency_set
                 and order.partner_agency
             )
-            order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
 
-    # === Model: [res.partner] Fields ===#
-    partner_agency = fields.Boolean(related="partner_id.is_agency", store=True)
+    # === PARTNER FIELDS ===#
+    partner_agency = fields.Boolean(
+        related="partner_id.is_agency", store=True, readonly=True
+    )
     partner_white_agency = fields.Boolean(
-        related="partner_id.is_white_agency", store=True
+        related="partner_id.is_white_agency", store=True, readonly=True
     )
     partner_southern_agency = fields.Boolean(
-        related="partner_id.is_southern_agency", store=True
+        related="partner_id.is_southern_agency", store=True, readonly=True
     )
-    bank_guarantee = fields.Boolean(related="partner_id.bank_guarantee", store=True)
+    bank_guarantee = fields.Boolean(
+        related="partner_id.bank_guarantee", store=True, readonly=True
+    )
     discount_bank_guarantee = fields.Float(compute="_compute_discount", store=True)
     after_discount_bank_guarantee = fields.Float(
         compute="_compute_discount", store=True
     )
 
-    # === Model: [mv.compute.discount.line] Fields ===#
+    # === DISCOUNT POLICY FIELDS ===#
     discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
-
-    # === Bonus, Discount Fields ===#
     check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
     percentage = fields.Float(compute="_compute_discount", store=True)
     bonus_max = fields.Float(
@@ -91,12 +100,12 @@ class SaleOrder(models.Model):
     bonus_remaining = fields.Float(
         compute="_compute_partner_bonus",
         store=True,
-        help="Số tiền còn lại mà Đại lý có thể áp dụng để tính chiết khấu.",
+        help="Số tiền Đại lý có thể áp dụng để tính chiết khấu.",
     )
 
     def _compute_partner_bonus(self):
         for order in self:
-            if order.state != "cancel" and order.partner_id and order.partner_agency:
+            if order.state != "cancel" and order.partner_agency:
                 bonus_order = sum(
                     line.price_unit
                     for line in order.order_line._filter_discount_agency_lines(order)
@@ -125,7 +134,7 @@ class SaleOrder(models.Model):
                     - order.discount_bank_guarantee
                 ) / 2
 
-    # === Amount, Total Fields ===#
+    # === AMOUNT/TOTAL FIELDS ===#
     total_price_no_service = fields.Float(
         compute="_compute_discount",
         store=True,
@@ -156,12 +165,6 @@ class SaleOrder(models.Model):
         store=True,
         help="Total price after discount for a month",
     )
-    # === Other Fields ===#
-    is_order_returns = fields.Boolean(
-        default=False, help="Ghi nhận: Là đơn đổi/trả hàng."
-    )  # TODO: Needs study cases for SO Returns
-    date_invoice = fields.Datetime(readonly=True)
-    quantity_change = fields.Float(readonly=True)
 
     def check_category_product(self, categ_id):
         """
@@ -927,6 +930,30 @@ class SaleOrder(models.Model):
             else:
                 order.with_context(action_confirm=True).action_recompute_discount()
 
+    # ==================================
+    # TOOLING
+    # ==================================
+
+    def field_exists(self, model_name, field_name):
+        """
+        Check if a field exists on the model.
+
+        Args:
+            model_name (str): The name of Model to check.
+            field_name (str): The name of Field to check.
+
+        Returns:
+            bool: True if the field exists, False otherwise.
+        """
+        # Get the definition of each field on the model
+        f = self.env[model_name].fields_get()
+
+        # Check if the field name is in the keys of the fields dictionary
+        return field_name in f.keys()
+
+    def _is_order_returns(self):
+        return self.is_order_returns
+
     # =============================================================
     # TRIGGER Methods (Public)
     # These methods are called when a record is updated or deleted.
@@ -970,27 +997,3 @@ class SaleOrder(models.Model):
                 _logger.error("Failed to update partner discount amount: %s", e)
 
         return True
-
-    # ==================================
-    # TOOLING
-    # ==================================
-
-    def field_exists(self, model_name, field_name):
-        """
-        Check if a field exists on the model.
-
-        Args:
-            model_name (str): The name of Model to check.
-            field_name (str): The name of Field to check.
-
-        Returns:
-            bool: True if the field exists, False otherwise.
-        """
-        # Get the definition of each field on the model
-        f = self.env[model_name].fields_get()
-
-        # Check if the field name is in the keys of the fields dictionary
-        return field_name in f.keys()
-
-    def _is_order_returns(self):
-        return self.is_order_returns

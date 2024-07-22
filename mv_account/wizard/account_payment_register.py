@@ -1,53 +1,155 @@
 # -*- coding: utf-8 -*-
-from odoo import models
+from odoo import api, fields, models
 
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = "account.payment.register"
+
+    # === FIELDS ===
+    keep_apply_discount_early = fields.Boolean(default=False, readonly=True)
+    amount_discount_for_partial = fields.Monetary(
+        compute="_compute_amount_discount_for_partial",
+        currency_field="currency_id",
+        store=True,
+    )
 
     # /// MOVEOPLUS OVERRIDE ///
 
     def _get_total_amount_using_same_currency(
         self, batch_result, early_payment_discount=True
     ):
+
+        # TODO: This method needs to implement the logic to calculate the total amount for MO+
+
         self.ensure_one()
+        keep_open_for_early_payment_discount = self.keep_apply_discount_early
+
         amount = 0.0
         mode = False
         moves = batch_result["lines"].mapped("move_id")
         for move in moves:
-            # MOVEOPLUS OVERRIDE: Check Payment State in ['not_paid', 'partial'] for Early Payment Discount
-            for_payment_state_unpaid = move._is_eligible_for_early_payment_discount(
-                move.currency_id, self.payment_date
-            )
-            for_payment_state_partial = (
-                move._is_eligible_for_early_payment_discount_partial(
+            is_eligible_for_early_payment_discount = (
+                move._is_eligible_for_early_payment_discount(
                     move.currency_id, self.payment_date
                 )
             )
             if early_payment_discount and (
-                for_payment_state_unpaid or for_payment_state_partial
+                is_eligible_for_early_payment_discount
+                or keep_open_for_early_payment_discount
             ):
                 amount += move.invoice_payment_term_id._get_amount_due_after_discount(
-                    (
-                        move.amount_total
-                        if for_payment_state_unpaid
-                        else move.amount_residual
-                    ),
-                    move.amount_tax,
-                )
+                    move.amount_total, move.amount_tax
+                )  # todo currencies
                 mode = "early_payment"
             else:
                 for aml in batch_result["lines"].filtered(
-                    lambda line: line.move_id.id == move.id
+                    lambda l: l.move_id.id == move.id
                 ):
                     amount += aml.amount_residual_currency
         return abs(amount), mode
+
+    @api.depends("keep_apply_discount_early")
+    @api.depends_context("amount_discount_for_partial")
+    def _compute_amount_discount_for_partial(self):
+        for wizard in self:
+            amount_discount_by_context = self.env.context.get(
+                "amount_discount_for_partial"
+            )
+            if (
+                wizard.can_edit_wizard
+                and wizard.keep_apply_discount_early
+                and amount_discount_by_context
+            ):
+                wizard.amount_discount_for_partial = amount_discount_by_context
+            else:
+                wizard.amount_discount_for_partial = 0.0
+
+    @api.depends(
+        "can_edit_wizard",
+        "keep_apply_discount_early",
+        "source_amount",
+        "source_amount_currency",
+        "source_currency_id",
+        "company_id",
+        "currency_id",
+        "payment_date",
+    )
+    def _compute_amount(self):
+        for wizard in self:
+            if (
+                not wizard.journal_id
+                or not wizard.currency_id
+                or not wizard.payment_date
+            ):
+                wizard.amount = wizard.amount
+            elif (
+                not wizard.keep_apply_discount_early
+                and wizard.source_currency_id
+                and wizard.can_edit_wizard
+            ):
+                batch_result = wizard._get_batches()[0]
+                wizard.amount = (
+                    wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
+                        batch_result
+                    )[0]
+                )
+            elif (
+                wizard.keep_apply_discount_early
+                and wizard.source_currency_id
+                and wizard.can_edit_wizard
+            ):
+                batch_result = wizard._get_batches()[0]
+                total_amount_residual_in_wizard_currency = (
+                    wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
+                        batch_result, early_payment_discount=False
+                    )[0]
+                )
+                wizard.amount = (
+                    total_amount_residual_in_wizard_currency
+                    - wizard.amount_discount_for_partial
+                )
+            else:
+                # The wizard is not editable so no partial payment allowed and then, 'amount' is not used.
+                wizard.amount = None
+
+    @api.depends(
+        "can_edit_wizard",
+        "amount",
+        "keep_apply_discount_early",
+        "amount_discount_for_partial",
+    )
+    def _compute_payment_difference(self):
+        for wizard in self:
+            if (
+                not wizard.keep_apply_discount_early
+                and wizard.can_edit_wizard
+                and wizard.payment_date
+            ):
+                batch_result = wizard._get_batches()[0]
+                total_amount_residual_in_wizard_currency = (
+                    wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
+                        batch_result, early_payment_discount=False
+                    )[0]
+                )
+                wizard.payment_difference = (
+                    total_amount_residual_in_wizard_currency - wizard.amount
+                )
+            elif (
+                wizard.keep_apply_discount_early
+                and wizard.can_edit_wizard
+                and wizard.payment_date
+            ):
+                wizard.payment_difference = wizard.amount_discount_for_partial
+            else:
+                wizard.payment_difference = 0.0
 
     # -------------------------------------------------------------------------
     # BUSINESS METHODS (OVERRIDE)
     # -------------------------------------------------------------------------
 
     def _create_payment_vals_from_wizard(self, batch_result):
+        keep_open_for_early_payment_discount = self.keep_apply_discount_early
+
         payment_vals = {
             "date": self.payment_date,
             "amount": self.amount,
@@ -68,18 +170,12 @@ class AccountPaymentRegister(models.TransientModel):
             if self.early_payment_discount_mode:
                 epd_aml_values_list = []
                 for aml in batch_result["lines"]:
-                    # MOVEOPLUS OVERRIDE: Check Payment State in ['not_paid', 'partial'] for Early Payment Discount
-                    for_payment_state_unpaid = (
+                    if (
                         aml.move_id._is_eligible_for_early_payment_discount(
                             self.currency_id, self.payment_date
                         )
-                    )
-                    for_payment_state_partial = (
-                        aml.move_id._is_eligible_for_early_payment_discount_partial(
-                            self.currency_id, self.payment_date
-                        )
-                    )
-                    if for_payment_state_unpaid or for_payment_state_partial:
+                        or keep_open_for_early_payment_discount
+                    ):
                         epd_aml_values_list.append(
                             {
                                 "aml": aml,
@@ -168,22 +264,17 @@ class AccountPaymentRegister(models.TransientModel):
         total_amount, mode = self._get_total_amount_using_same_currency(batch_result)
         currency = self.env["res.currency"].browse(batch_values["source_currency_id"])
         if mode == "early_payment":
+            keep_open_for_early_payment_discount = self.keep_apply_discount_early
             payment_vals["amount"] = total_amount
 
             epd_aml_values_list = []
             for aml in batch_result["lines"]:
-                # MOVEOPLUS OVERRIDE: Check Payment State in ['not_paid', 'partial'] for Early Payment Discount
-                for_payment_state_unpaid = (
+                if (
                     aml.move_id._is_eligible_for_early_payment_discount(
                         currency, self.payment_date
                     )
-                )
-                for_payment_state_partial = (
-                    aml.move_id._is_eligible_for_early_payment_discount_partial(
-                        currency, self.payment_date
-                    )
-                )
-                if for_payment_state_unpaid or for_payment_state_partial:
+                    or keep_open_for_early_payment_discount
+                ):
                     epd_aml_values_list.append(
                         {
                             "aml": aml,

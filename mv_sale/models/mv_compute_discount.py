@@ -146,101 +146,6 @@ class MvComputeDiscount(models.Model):
     # BUSINESS Methods
     # =================================
 
-    def action_reload_discount_line(self):
-        # TODO: Implement this method to reload discount lines - Phat Dang <phat.dangminh@moveoplus.com>
-        try:
-            _logger.info("Starting to reload discount lines.")
-            compute_discount_line = self.env["mv.compute.discount.line"]
-            parent_discount = self.filtered(lambda rec: rec.line_ids)
-            for line in parent_discount.line_ids:
-                total_sales = 0
-
-                if line.is_two_month:
-                    if line.month_parent == "1":
-                        first_month_of_two = "12/" + str(int(line.parent_id.year) - 1)
-                        second_month_of_two = "12/" + str(int(line.parent_id.year) - 1)
-                    else:
-                        first_month_of_two = (
-                            str(int(line.month_parent) - 1) + "/" + line.parent_id.year
-                        )
-                        second_month_of_two = (
-                            str(int(line.month_parent) - 1) + "/" + line.parent_id.year
-                        )
-                    line_ids = compute_discount_line.search(
-                        [
-                            (
-                                "name",
-                                "in",
-                                [first_month_of_two, second_month_of_two],
-                            ),
-                            ("partner_id", "=", line.partner_id.id),
-                        ]
-                    )
-                    total_sales += (
-                        sum(line_ids.mapped("amount_total")) + line.amount_total
-                    )
-
-                # [>] Tính toán lại Tiền Chiết Khấu Quý
-                if line.is_quarter:
-                    first_month_of_quarter = (
-                        str(int(line.month_parent) - 1) + "/" + line.parent_id.year
-                    )
-                    second_month_of_quarter = (
-                        str(int(line.month_parent) - 1) + "/" + line.parent_id.year
-                    )
-                    line_ids = compute_discount_line.search(
-                        [
-                            (
-                                "name",
-                                "in",
-                                [first_month_of_quarter, second_month_of_quarter],
-                            ),
-                            ("partner_id", "=", line.partner_id.id),
-                        ]
-                    )
-                    total_sales += (
-                        sum(line_ids.mapped("amount_total")) + line.amount_total
-                    )
-
-                # [>] Tính toán lại Tiền Chiết Khấu Năm (Tính cả năm)
-                if line.is_year:
-                    for month in range(12):
-                        month_used = str(month + 1) + "/" + line.parent_id.year
-                        line_name = compute_discount_line.search(
-                            [
-                                ("name", "=", month_used),
-                                ("partner_id", "=", line.partner_id.id),
-                            ]
-                        )
-                        total_sales += line_name.amount_total
-
-                self._calculate_discounts_for_line(total_sales, line)
-            _logger.info("Successfully reloaded discount lines.")
-        except Exception as e:
-            _logger.error("Error reloading discount lines: %s", e)
-
-    def _calculate_discounts_for_line(self, total_sales, line):
-        discount_types = [
-            (
-                "is_promote_discount",
-                "promote_discount_percentage",
-                "promote_discount_money",
-            ),
-            ("is_month", "month", "month_money"),
-            ("is_two_month", "two_month", "two_money"),
-            ("is_quarter", "quarter", "quarter_money"),
-            ("is_year", "year", "year_money"),
-        ]
-        for (
-            is_discount_type,
-            discount_percentage_field,
-            discount_money_field,
-        ) in discount_types:
-            if getattr(line, is_discount_type):
-                percentage = getattr(line, discount_percentage_field) / 100
-                setattr(line, discount_money_field, total_sales * percentage)
-        line._compute_total_money()
-
     def action_reset_to_draft(self):
         """
         Resets the state of the current record to 'draft'.
@@ -288,11 +193,13 @@ class MvComputeDiscount(models.Model):
         # - Product category is eligible for discount
         # - Product type is 'product'
         # - Quantity delivered is greater than 0
+        # - Quantity invoiced is greater than 0
         order_lines = sale_orders.order_line.filtered(
             lambda order: order.order_id.partner_id.is_agency
             and order.order_id.check_category_product(order.product_id.categ_id)
             and order.product_id.detailed_type == "product"
             and order.qty_delivered > 0
+            and order.qty_invoiced > 0
         )
 
         # Fetch partners at once
@@ -601,6 +508,103 @@ class MvComputeDiscount(models.Model):
     # HELPER / PRIVATE Methods
     # =================================
 
+    # TODO: Implement this method to reload discount lines - Phat Dang <phat.dangminh@moveoplus.com>
+    def action_reload_discount_line(self):
+        try:
+            _logger.info("Starting to reload discount lines.")
+            compute_discount_line = self.env["mv.compute.discount.line"]
+            parent_discount = self.filtered(lambda rec: rec.line_ids)
+            for line in parent_discount.line_ids:
+                total_sales = 0
+
+                if line.is_two_month:
+                    if line.month_parent == "1":
+                        first_month_of_two = "12/" + str(int(line.parent_id.year) - 1)
+                        second_month_of_two = "12/" + str(int(line.parent_id.year) - 1)
+                    else:
+                        first_month_of_two = (
+                            str(int(line.month_parent) - 1) + "/" + line.parent_id.year
+                        )
+                        second_month_of_two = (
+                            str(int(line.month_parent) - 1) + "/" + line.parent_id.year
+                        )
+                    line_ids = compute_discount_line.search(
+                        [
+                            (
+                                "name",
+                                "in",
+                                [first_month_of_two, second_month_of_two],
+                            ),
+                            ("partner_id", "=", line.partner_id.id),
+                        ]
+                    )
+                    total_sales += (
+                        sum(line_ids.mapped("amount_total")) + line.amount_total
+                    )
+
+                # [>] Tính toán lại Tiền Chiết Khấu Quý
+                if line.is_quarter:
+                    first_month_of_quarter = (
+                        str(int(line.month_parent) - 1) + "/" + line.parent_id.year
+                    )
+                    second_month_of_quarter = (
+                        str(int(line.month_parent) - 1) + "/" + line.parent_id.year
+                    )
+                    line_ids = compute_discount_line.search(
+                        [
+                            (
+                                "name",
+                                "in",
+                                [first_month_of_quarter, second_month_of_quarter],
+                            ),
+                            ("partner_id", "=", line.partner_id.id),
+                        ]
+                    )
+                    total_sales += (
+                        sum(line_ids.mapped("amount_total")) + line.amount_total
+                    )
+
+                # [>] Tính toán lại Tiền Chiết Khấu Năm (Tính cả năm)
+                if line.is_year:
+                    for month in range(12):
+                        month_used = str(month + 1) + "/" + line.parent_id.year
+                        line_name = compute_discount_line.search(
+                            [
+                                ("name", "=", month_used),
+                                ("partner_id", "=", line.partner_id.id),
+                            ]
+                        )
+                        total_sales += line_name.amount_total
+
+                self._calculate_discounts_for_line(total_sales, line)
+            _logger.info("Successfully reloaded discount lines.")
+        except Exception as e:
+            _logger.error("Error reloading discount lines: %s", e)
+
+    def _calculate_discounts_for_line(self, total_sales, line):
+        discount_types = [
+            (
+                "is_promote_discount",
+                "promote_discount_percentage",
+                "promote_discount_money",
+            ),
+            ("is_month", "month", "month_money"),
+            ("is_two_month", "two_month", "two_money"),
+            ("is_quarter", "quarter", "quarter_money"),
+            ("is_year", "year", "year_money"),
+        ]
+        for (
+            is_discount_type,
+            discount_percentage_field,
+            discount_money_field,
+        ) in discount_types:
+            if getattr(line, is_discount_type):
+                percentage = getattr(line, discount_percentage_field) / 100
+                setattr(line, discount_money_field, total_sales * percentage)
+        line._compute_total_money()
+
+    # TODO: End of implementation - Phat Dang
+
     def _get_dates(self, report_date, month, year):
         """
         Computes the start and end dates of a given month and year.
@@ -665,9 +669,7 @@ class MvComputeDiscount(models.Model):
             Helps check user security for access to Discount/Discount Line approval
         :return: True/False
         """
-
-        access = self.env.user.has_group("mv_sale.group_mv_compute_discount_approver")
-        return access
+        return self.env.user.has_group("mv_sale.group_mv_compute_discount_approver")
 
     # ===================
     # REPORT Action/Data

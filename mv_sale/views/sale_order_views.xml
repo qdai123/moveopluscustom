@@ -8,8 +8,9 @@
 		<field name="priority">20</field>
 		<field name="arch" type="xml">
 			<xpath expr="//field[@name='partner_id']" position="after">
-				<field name="partner_agency" optional="hidden"/>
-				<field name="partner_white_agency" optional="hidden"/>
+				<field name="partner_agency" column_invisible="1"/>
+				<field name="partner_white_agency" column_invisible="1"/>
+				<field name="partner_southern_agency" column_invisible="1"/>
 			</xpath>
 		</field>
 	</record>

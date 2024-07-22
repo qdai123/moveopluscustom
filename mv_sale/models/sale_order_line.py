@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from markupsafe import Markup
 from odoo.addons.mv_sale.models.sale_order import GROUP_SALES_MANAGER
 
 from odoo import api, fields, models
@@ -22,29 +23,6 @@ class SaleOrderLine(models.Model):
 
     # ================================================== #
 
-    code_product = fields.Char(help="Do not recompute discount")
-    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
-    price_subtotal_before_discount = fields.Monetary(
-        compute="_compute_price_subtotal_before_discount",
-        store=True,
-        string="Price Subtotal before Discount",
-        currency_field="currency_id",
-    )
-
-    # === Discount Agency ===#
-    discount_line_id = fields.Many2one("mv.compute.discount.line")
-    is_discount_agency = fields.Boolean(
-        "Is a Discount Agency",
-        compute="_compute_is_discount_agency",
-        store=True,
-        compute_sudo=True,
-    )
-    recompute_discount_agency = fields.Boolean(
-        related="order_id.recompute_discount_agency"
-    )
-
-    # === OVERRIDE METHODS ===#
-
     def _auto_init(self):
         # MOVEO+ OVERRIDE: Create column to stop ORM from computing it himself (too slow)
         if not column_exists(self.env.cr, "sale_order_line", "is_discount_agency"):
@@ -60,78 +38,99 @@ class SaleOrderLine(models.Model):
             )
         return super()._auto_init()
 
-    # /// ORM Methods
+    code_product = fields.Char()
+    price_subtotal_before_discount = fields.Monetary(
+        "Subtotal before Discount",
+        compute="_compute_price_subtotal_before_discount",
+        store=True,
+        currency_field="currency_id",
+    )
+    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
+    discount_line_id = fields.Many2one("mv.compute.discount.line")
+    is_discount_agency = fields.Boolean(
+        "Agency Discount Product",
+        compute="_is_discount_agency",
+        store=True,
+        compute_sudo=True,
+    )
+    recompute_discount_agency = fields.Boolean(
+        related="order_id.recompute_discount_agency"
+    )
 
-    def _compute_product_uom_readonly(self):
-        # MOVEO+ OVERRIDE: TODO <Update Description>
-        for so_line in self:
-            so_line.product_uom_readonly = (
-                so_line.ids
-                and so_line.state in ["sale", "cancel"]
-                or (
-                    not so_line.is_sales_manager
-                    and so_line.product_template_id.detailed_type == "service"
-                )
-            )
+    # /// ORM Methods (OVERRIDE)
 
     def _compute_product_updatable(self):
-        # MOVEO+ OVERRIDE: TODO <Update Description>
-        for so_line in self:
-            if so_line.state == "cancel":
-                so_line.product_updatable = False
-            elif so_line.state == "sale" and (
-                so_line.order_id.locked
-                or so_line.qty_invoiced > 0
-                or so_line.qty_delivered > 0
-            ):
-                so_line.product_updatable = False
-            elif (
-                so_line.state not in ["cancel", "sale"]
-                and not so_line.is_sales_manager
-                and so_line.product_type == "service"
-            ):
-                so_line.product_updatable = True
-            else:
-                so_line.product_updatable = True
+        super()._compute_product_updatable()
+
+        for sol in self:
+            sol.product_updatable = (
+                not sol.is_sales_manager
+                and sol.state not in ["cancel", "sale"]
+                and sol.product_template_id.detailed_type == "service"
+            )
+
+    def _compute_product_uom_readonly(self):
+        super()._compute_product_uom_readonly()
+
+        for sol in self:
+            sol.product_uom_readonly = (
+                sol.ids
+                and sol.state in ["sale", "cancel"]
+                or (
+                    not sol.is_sales_manager
+                    and sol.product_template_id.detailed_type == "service"
+                )
+            )
 
     # /// CRUD Methods
 
     def write(self, vals):
-        OrderLines = super(SaleOrderLine, self).write(vals)
+        if any(sol.hidden_show_qty or sol.reward_id for sol in self):
+            return super().write(vals)
 
-        for so_line in self:
-            if so_line.hidden_show_qty or so_line.reward_id:
-                return OrderLines
-            else:
-                # [!] Khi có sự thay đổi về số lượng cần tính toán lại các dòng chiết khấu
-                if "product_uom_qty" in vals and vals.get("product_uom_qty"):
-                    so_line.order_id.action_clear_discount_lines()
+        result = super().write(vals)
 
-        return OrderLines
+        if "product_uom_qty" in vals and vals.get("product_uom_qty"):
+            unique_orders = set(sol.order_id for sol in self)
+            for order in unique_orders:
+                order.action_clear_discount_lines()
+
+        return result
 
     def unlink(self):
-        for so_line in self:
+        for line in self:
             if (
-                so_line.product_id
-                and so_line.product_id.default_code
-                and "Delivery_" not in so_line.product_id.default_code
+                line.product_id.product_tmpl_id.detailed_type == "service"
+                and line.product_id.default_code == "CKT"
             ):
-                order = so_line.order_id
-                order._compute_partner_bonus()
-                order._compute_bonus_order_line()
+                msg_body = "Dòng %s đã xóa, số tiền: %s" % (
+                    line.product_id.name,
+                    line.price_unit,
+                )
+                line.order_id.message_post(body=Markup(msg_body))
 
-        return super(SaleOrderLine, self).unlink()
+        orders_to_update = self.filtered(
+            lambda sol: sol.product_id
+            and sol.product_id.default_code
+            and "Delivery_" not in sol.product_id.default_code
+        ).mapped("order_id")
 
+        unique_orders = set(orders_to_update)
+        for order in unique_orders:
+            order._compute_partner_bonus()
+            order._compute_bonus_order_line()
+
+        return super().unlink()
+
+    # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
     @api.ondelete(at_uninstall=False)
     def _unlink_except_confirmed(self):
-        # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
         if not self.env.user.has_group(GROUP_SALES_MANAGER):
             return super(SaleOrderLine, self)._unlink_except_confirmed()
 
     # /// HOOKS Methods
 
     def _is_not_sellable_line(self):
-        # MOVEO+ OVERRIDE: TODO <Update Description>
         return self.hidden_show_qty or super()._is_not_sellable_line()
 
     # === MOVEOPLUS METHODS ===#
@@ -164,23 +163,19 @@ class SaleOrderLine(models.Model):
 
     # /// ORM Methods
 
-    @api.depends("product_id.product_tmpl_id.detailed_type", "product_id.default_code")
-    def _compute_is_discount_agency(self):
-        for so_line in self:
-            so_line.is_discount_agency = so_line._filter_discount_agency_lines(
-                so_line.order_id
-            )
+    @api.depends("product_id", "product_id.default_code")
+    def _is_discount_agency(self):
+        for sol in self:
+            sol.is_discount_agency = sol._filter_discount_agency_lines(sol.order_id)
 
     @api.depends("price_unit", "qty_delivered", "discount")
     def _compute_price_subtotal_before_discount(self):
-        for so_line in self:
-            if so_line.price_unit and so_line.qty_delivered and so_line.discount:
-                so_line.price_subtotal_before_discount = (
-                    so_line.price_unit * so_line.qty_delivered
-                ) - (
-                    (so_line.price_unit * so_line.qty_delivered)
-                    * so_line.discount
-                    / 100
-                )
+        for sol in self:
+            if sol.price_unit and sol.qty_delivered and sol.discount:
+                sol.price_subtotal_before_discount = (
+                    sol.price_unit * sol.qty_delivered
+                ) - ((sol.price_unit * sol.qty_delivered) * sol.discount / 100)
             else:
-                so_line.price_subtotal_before_discount = 0
+                sol.price_subtotal_before_discount = 0
+
+    # /// CONSTRAINTS Methods

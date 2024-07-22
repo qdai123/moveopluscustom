@@ -16,6 +16,8 @@
         "security/ir.model.access.csv",
         # VIEWS
         "views/report_invoice.xml",
+        # WIZARDS
+        "wizard/account_payment_register_views.xml",
     ],
     "license": "LGPL-3",
     "application": True,

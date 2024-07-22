@@ -53,6 +53,7 @@ class ZnsSendMessageWizard(models.TransientModel):
     @api.onchange("template_id")
     def onchange_template_id(self):  # FULL OVERRIDE
         if not self.template_id or not self.template_id.sample_data_ids:
+            self.template_data = json.dumps({})
             return
 
         use_type_mapping = {
@@ -68,13 +69,18 @@ class ZnsSendMessageWizard(models.TransientModel):
         for sample_id in self.template_id.sample_data_ids:
             related_record = use_type_mapping.get(self.use_type)
             if related_record:
-                data[sample_id.name] = (
-                    sample_id.value
-                    if not sample_id.field_id
-                    else self._get_sample_data_by(sample_id, related_record)
-                )
+                try:
+                    data[sample_id.name] = (
+                        sample_id.value
+                        if not sample_id.field_id
+                        else self._get_sample_data_by(sample_id, related_record)
+                    )
+                except Exception as e:
+                    _logger.error(
+                        f"Error extracting sample data for {sample_id.name}: {e}"
+                    )
 
-        self.template_data = json.dumps(data) if data else "{}"
+        self.template_data = json.dumps(data)
 
     def generate_zns_history(self, data, config_id=False):  # FULL OVERRIDE
         zns_history_id = self.env["zns.history"].search(
@@ -167,6 +173,42 @@ class ZnsSendMessageWizard(models.TransientModel):
             )
             zns_history_id.template_id.update_quota(daily_quota, remaining_quota)
             zns_history_id.get_message_status()
+
+    def _get_sample_data_by(self, sample_id, obj):  # FULL OVERRIDE
+        # Check if the 'field_id' is set
+        if not sample_id.field_id:
+            _logger.error("Field ID not found for sample_id: {}".format(sample_id))
+            return None
+
+        field_name = sample_id.field_id.name
+        field_type = sample_id.field_id.ttype
+        sample_type = sample_id.type
+        value = obj[field_name]
+
+        _logger.debug(
+            f"Processing Field: {field_name}, Type: {field_type}, Sample Type: {sample_type}"
+        )
+
+        try:
+            if field_type in ["date", "datetime"] and sample_type == "DATE":
+                return value.strftime("%d/%m/%Y") if value else None
+            elif field_type in ["float", "integer", "monetary"] and sample_type in [
+                "NUMBER",
+                "CURRENCY",
+            ]:
+                return str(value) if sample_type == "NUMBER" else int(value)
+            elif field_type in ["char", "text"] and sample_type == "STRING":
+                return value if value else None
+            elif field_type == "many2one" and sample_type == "STRING":
+                return str(value.name) if value else None
+            else:
+                _logger.error(
+                    f"Unhandled field type: {field_type} or sample type: {sample_type}"
+                )
+                return None
+        except Exception as e:
+            _logger.error(f"Error processing sample data for {field_name}: {e}")
+            return None
 
     def send_email_action(self):  # FULL OVERRIDE
         try:

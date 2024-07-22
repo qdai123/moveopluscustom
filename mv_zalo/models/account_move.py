@@ -54,6 +54,7 @@ class AccountMove(models.Model):
     bank_transfer_details = fields.Text(
         compute="_compute_bank_transfer_details", store=True
     )
+    bank_transfer_amount = fields.Float(compute="_compute_amount_early", store=True)
     payment_early_discount_percentage = fields.Float(
         compute="_compute_payment_early_discount_percentage", store=True
     )
@@ -72,15 +73,9 @@ class AccountMove(models.Model):
     @api.depends("name", "invoice_payment_term_id")
     def _compute_bank_transfer_details(self):
         for record in self:
-            today = fields.Date.today()
             if record.name and record.invoice_payment_term_id:
-                record.bank_transfer_details = "THANH TOAN HOA DON {invoice_name}-{year}{month}{day}/{partner_id}".format(
-                    invoice_name=record.name,
-                    year=today.year,
-                    month=today.month,
-                    day=today.day,
-                    partner_id=record.partner_id.id,
-                )
+                invoice_number = record.name.replace("/", "")
+                record.bank_transfer_details = f"MO{invoice_number}"
 
     @api.depends("invoice_payment_term_id", "invoice_payment_term_id.early_discount")
     def _compute_payment_early_discount_percentage(self):
@@ -99,12 +94,12 @@ class AccountMove(models.Model):
     @api.depends("amount_total", "amount_residual")
     def _compute_amount_early(self):
         for record in self:
+            currency = record.currency_id
             record.amount_paid_already = record.amount_total - record.amount_residual
-            record.amount_must_pay = (
-                record.amount_residual
-                if record.amount_residual > 0
-                else record.amount_total
-            )
+            # Simplify the logic for amount_must_pay
+            record.amount_must_pay = max(record.amount_residual, 0)
+            # Use currency rounding instead of round to ensure correct monetary rounding
+            record.bank_transfer_amount = currency.round(record.amount_must_pay)
 
     # === PARTNER FIELDS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)
@@ -123,6 +118,10 @@ class AccountMove(models.Model):
     )
 
     # /// ACTIONS ///
+
+    def action_reload_bank_transfer_details(self):
+        self._compute_bank_transfer_details()
+        return True
 
     def action_send_message_zns(self):
         self.ensure_one()
@@ -146,6 +145,8 @@ class AccountMove(models.Model):
                 self.id,
             )
             return
+
+        self.action_reload_bank_transfer_details()  # Reload the bank transfer details
 
         # Prepare the context for the wizard view
         view_id = self.env.ref("biz_zalo_zns.view_zns_send_message_wizard_form")
@@ -245,7 +246,7 @@ class AccountMove(models.Model):
             # Recompute Invoice Data
             inv._compute_amount_early()
             inv._compute_payment_early_discount_percentage()
-            inv._compute_bank_transfer_details()
+            inv.action_reload_bank_transfer_details()  # Reload the bank transfer details
 
             inv.send_zns_message(
                 {
@@ -378,11 +379,11 @@ class AccountMove(models.Model):
         try:
             if field_type in ["date", "datetime"] and sample_type == "DATE":
                 return value.strftime("%d/%m/%Y") if value else None
-            elif (
-                field_type in ["float", "integer", "monetary"]
-                and sample_type == "NUMBER"
-            ):
-                return str(value)
+            elif field_type in ["float", "integer", "monetary"] and sample_type in [
+                "NUMBER",
+                "CURRENCY",
+            ]:
+                return str(value) if sample_type == "NUMBER" else int(value)
             elif field_type in ["char", "text"] and sample_type == "STRING":
                 return value if value else None
             elif field_type == "many2one" and sample_type == "STRING":
