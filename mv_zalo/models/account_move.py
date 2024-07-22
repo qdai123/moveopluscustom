@@ -72,15 +72,9 @@ class AccountMove(models.Model):
     @api.depends("name", "invoice_payment_term_id")
     def _compute_bank_transfer_details(self):
         for record in self:
-            today = fields.Date.today()
             if record.name and record.invoice_payment_term_id:
-                record.bank_transfer_details = "THANH TOAN HOA DON {invoice_name}-{year}{month}{day}/{partner_id}".format(
-                    invoice_name=record.name,
-                    year=today.year,
-                    month=today.month,
-                    day=today.day,
-                    partner_id=record.partner_id.id,
-                )
+                invoice_number = record.name.replace("/", "")
+                record.bank_transfer_details = f"MO{invoice_number}"
 
     @api.depends("invoice_payment_term_id", "invoice_payment_term_id.early_discount")
     def _compute_payment_early_discount_percentage(self):
@@ -124,6 +118,10 @@ class AccountMove(models.Model):
 
     # /// ACTIONS ///
 
+    def action_reload_bank_transfer_details(self):
+        self._compute_bank_transfer_details()
+        return True
+
     def action_send_message_zns(self):
         self.ensure_one()
 
@@ -146,6 +144,8 @@ class AccountMove(models.Model):
                 self.id,
             )
             return
+
+        self.action_reload_bank_transfer_details()  # Reload the bank transfer details
 
         # Prepare the context for the wizard view
         view_id = self.env.ref("biz_zalo_zns.view_zns_send_message_wizard_form")
@@ -245,7 +245,7 @@ class AccountMove(models.Model):
             # Recompute Invoice Data
             inv._compute_amount_early()
             inv._compute_payment_early_discount_percentage()
-            inv._compute_bank_transfer_details()
+            inv.action_reload_bank_transfer_details()  # Reload the bank transfer details
 
             inv.send_zns_message(
                 {
