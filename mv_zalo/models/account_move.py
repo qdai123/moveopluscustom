@@ -54,7 +54,7 @@ class AccountMove(models.Model):
     bank_transfer_details = fields.Text(
         compute="_compute_bank_transfer_details", store=True
     )
-    bank_transfer_amount = fields.Integer(compute="_compute_amount_early", store=True)
+    bank_transfer_amount = fields.Float(compute="_compute_amount_early", store=True)
     payment_early_discount_percentage = fields.Float(
         compute="_compute_payment_early_discount_percentage", store=True
     )
@@ -94,13 +94,12 @@ class AccountMove(models.Model):
     @api.depends("amount_total", "amount_residual")
     def _compute_amount_early(self):
         for record in self:
+            currency = record.currency_id
             record.amount_paid_already = record.amount_total - record.amount_residual
-            record.amount_must_pay = (
-                record.amount_residual
-                if record.amount_residual > 0
-                else record.amount_total
-            )
-            record.bank_transfer_amount = record.amount_must_pay
+            # Simplify the logic for amount_must_pay
+            record.amount_must_pay = max(record.amount_residual, 0)
+            # Use currency rounding instead of round to ensure correct monetary rounding
+            record.bank_transfer_amount = currency.round(record.amount_must_pay)
 
     # === PARTNER FIELDS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)

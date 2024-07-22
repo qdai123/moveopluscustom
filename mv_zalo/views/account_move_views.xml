@@ -9,6 +9,7 @@
 			<xpath expr="//notebook" position="inside">
 				<page string="ZNS" name="page_zalo_zns" groups="mv_zalo.group_mv_zalo_manager">
 					<group>
+						<field name="bank_transfer_amount"/>
 						<field name="zns_notification_sent" string="ZNS Sent"/>
 						<field name="zns_history_id" invisible="1"/>
 						<field name="zns_history_status"
