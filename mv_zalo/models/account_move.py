@@ -379,11 +379,11 @@ class AccountMove(models.Model):
         try:
             if field_type in ["date", "datetime"] and sample_type == "DATE":
                 return value.strftime("%d/%m/%Y") if value else None
-            elif (
-                field_type in ["float", "integer", "monetary"]
-                and sample_type == "NUMBER"
-            ):
-                return str(value)
+            elif field_type in ["float", "integer", "monetary"] and sample_type in [
+                "NUMBER",
+                "CURRENCY",
+            ]:
+                return str(value) if sample_type == "NUMBER" else int(value)
             elif field_type in ["char", "text"] and sample_type == "STRING":
                 return value if value else None
             elif field_type == "many2one" and sample_type == "STRING":
