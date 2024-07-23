@@ -56,7 +56,7 @@ def ZNS_GENERATE_MESSAGE(data, sent_time):
 
 def ZNS_GET_MESSAGE_TEMPLATE(zns_message_id, zns_quota, sent_time):
     return (
-        '<p class="mb-0">Đã gửi tin nhắn ZNS</p>'
+        """<p class="mb-0">Đã gửi tin nhắn ZNS</p>"""
         + """
             <ul class="o_Message_trackingValues mb-0 ps-4">
                 <li>

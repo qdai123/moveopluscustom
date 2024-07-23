@@ -50,11 +50,11 @@ class AccountMove(models.Model):
         ICPSudo = self.env["ir.config_parameter"].sudo()
         return ICPSudo.get_param("mv_zalo.zns_payment_notification_template_id", "")
 
-    # === INVOICE / PAYMENT FIELDS ===#
+    # === ZALO ZNS HELPER FIELDS ===#
     bank_transfer_details = fields.Text(
-        compute="_compute_bank_transfer_details", store=True
+        "Bank Transfer Notes", compute="_compute_bank_transfer", store=True
     )
-    bank_transfer_amount = fields.Float(compute="_compute_amount_early", store=True)
+    bank_transfer_amount = fields.Float("Bank Transfer Amount", digits=(16, 2))
     payment_early_discount_percentage = fields.Float(
         compute="_compute_payment_early_discount_percentage", store=True
     )
@@ -71,11 +71,12 @@ class AccountMove(models.Model):
     )
 
     @api.depends("name", "invoice_payment_term_id")
-    def _compute_bank_transfer_details(self):
+    def _compute_bank_transfer(self):
         for record in self:
             if record.name and record.invoice_payment_term_id:
                 invoice_number = record.name.replace("/", "")
                 record.bank_transfer_details = f"MO{invoice_number}"
+                record.bank_transfer_amount = round(record.amount_must_pay)
 
     @api.depends("invoice_payment_term_id", "invoice_payment_term_id.early_discount")
     def _compute_payment_early_discount_percentage(self):
@@ -94,12 +95,8 @@ class AccountMove(models.Model):
     @api.depends("amount_total", "amount_residual")
     def _compute_amount_early(self):
         for record in self:
-            currency = record.currency_id
             record.amount_paid_already = record.amount_total - record.amount_residual
-            # Simplify the logic for amount_must_pay
             record.amount_must_pay = max(record.amount_residual, 0)
-            # Use currency rounding instead of round to ensure correct monetary rounding
-            record.bank_transfer_amount = currency.round(record.amount_must_pay)
 
     # === PARTNER FIELDS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)
@@ -120,7 +117,7 @@ class AccountMove(models.Model):
     # /// ACTIONS ///
 
     def action_reload_bank_transfer_details(self):
-        self._compute_bank_transfer_details()
+        self._compute_bank_transfer()
         return True
 
     def action_send_message_zns(self):
@@ -383,16 +380,11 @@ class AccountMove(models.Model):
                 "NUMBER",
                 "CURRENCY",
             ]:
-                return str(value) if sample_type == "NUMBER" else int(value)
+                return int(value) if sample_type == "CURRENCY" else str(value)
             elif field_type in ["char", "text"] and sample_type == "STRING":
                 return value if value else None
             elif field_type == "many2one" and sample_type == "STRING":
                 return str(value.name) if value else None
-            else:
-                _logger.error(
-                    f"Unhandled field type: {field_type} or sample type: {sample_type}"
-                )
-                return None
         except Exception as e:
             _logger.error(f"Error processing sample data for {field_name}: {e}")
             return None
