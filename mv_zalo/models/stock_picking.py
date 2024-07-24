@@ -74,11 +74,13 @@ class StockPicking(models.Model):
             )
             return
 
-        phone_number = (
-            picking.partner_id.phone
-            if picking.partner_id and picking.partner_id.phone
-            else picking.partner_id.mobile
-        ) or None
+        phone_number = picking.partner_id.mobile
+        if not phone_number:
+            raise UserError(
+                "Không tìm thấy số điện thoại của khách hàng %s"
+                % picking.partner_id.name
+            )
+
         valid_phone_number = (
             convert_valid_phone_number(phone_number) if phone_number else False
         )

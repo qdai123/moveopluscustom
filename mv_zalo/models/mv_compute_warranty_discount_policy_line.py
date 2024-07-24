@@ -158,10 +158,9 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         }
 
         # Extract data
-        # phone = zns_convert_valid_phonenumber(
-        #     self.partner_mobile or self.partner_id.mobile
-        # )
-        phone = zns_convert_valid_phonenumber("84707144248")
+        phone = zns_convert_valid_phonenumber(
+            self.partner_mobile or self.partner_id.mobile
+        )
         tracking_id = self.id
         template_id = zns_template.template_id
         template_data = json.dumps(template_data_sample)
