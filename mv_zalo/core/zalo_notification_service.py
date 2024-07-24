@@ -2,6 +2,7 @@
 import logging
 import re
 
+import pytz
 from odoo.addons.biz_zalo_common.models.common import CODE_ERROR_ZNS
 
 # from odoo.tools import DEFAULT_SERVER_DATE_FORMAT as DATE_FORMAT
@@ -16,6 +17,14 @@ VIETNAM_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
 
 
 # ||| ==== ZALO Notification Service - ZNS ==== |||
+
+ZNS_PAYMENT_NOTIFICATION_TEMPLATE = "mv_zalo.zns_payment_notification_template_id"
+ZNS_CKSL_POLICY_NOTIFICATION_TEMPLATE = (
+    "mv_zalo.zns_compute_discount_ckt_notification_template_id"
+)
+ZNS_CKKH_POLICY_NOTIFICATION_TEMPLATE = (
+    "mv_zalo.zns_compute_discount_warranty_notification_template_id"
+)
 
 
 def ZNS_GET_DATA_BY_TEMPLATE(record_id, model):
@@ -62,10 +71,6 @@ def ZNS_GET_PAYLOAD(phone, template_id, template_data, tracking_id):
     }
 
 
-def ZNS_GENERATE_MESSAGE(data, sent_time):
-    return ZNS_GET_MESSAGE_TEMPLATE(data.get("msg_id"), data.get("quota"), sent_time)
-
-
 def ZNS_GET_MESSAGE_TEMPLATE(zns_message_id, zns_quota, sent_time):
     return (
         """<p class="mb-0">Đã gửi tin nhắn ZNS</p>"""
@@ -94,6 +99,10 @@ def ZNS_GET_MESSAGE_TEMPLATE(zns_message_id, zns_quota, sent_time):
             zns_message_id=zns_message_id, sent_time=sent_time, zns_quota=zns_quota
         )
     )
+
+
+def ZNS_GENERATE_MESSAGE(data, sent_time):
+    return ZNS_GET_MESSAGE_TEMPLATE(data.get("msg_id"), data.get("quota"), sent_time)
 
 
 # ||| ==== HELPER FUNCTIONS ==== |||
@@ -144,3 +153,22 @@ def zns_convert_valid_phonenumber(phonenumber):
 
     # Return the phone number as-is if no changes are needed
     return valid_phonenumber if valid_phonenumber else None
+
+
+def zns_get_time_formatted(time, user_timezone="Asia/Ho_Chi_Minh"):
+    """
+    Converts a given datetime object to the specified timezone.
+
+    Parameters:
+    - time (datetime): A timezone-aware datetime object.
+    - user_timezone (str): The name of the timezone to convert `time` to. Defaults to 'Asia/Ho_Chi_Minh'.
+
+    Returns:
+    - datetime: The converted datetime object in the specified timezone.
+    """
+    try:
+        user_tz = pytz.timezone(user_timezone)
+        return time.astimezone(user_tz)
+    except (pytz.UnknownTimeZoneError, ValueError) as e:
+        _logger.error(f"Error converting ZNS Timezone: {e}")
+        return None
