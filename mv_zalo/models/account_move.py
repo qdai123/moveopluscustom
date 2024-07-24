@@ -274,15 +274,12 @@ class AccountMove(models.Model):
     def _cron_notification_invoice_date_due(self, date_before=False, phone=False):
         def sanitize_phone(phonenumber=phone):
 
-            if not phonenumber:
-                pass
-
-            digits = "".join(filter(str.isdigit, phonenumber))
-            if len(digits) not in [10, 11]:
-                raise ValidationError(
-                    _("Phone number must contain exactly 10 or 11 digits")
-                )
-            return digits
+            if phonenumber:
+                digits = "".join(filter(str.isdigit, phonenumber))
+                if len(digits) not in [10, 11]:
+                    _logger.error("Phone number must contain exactly 10 or 11 digits")
+                    pass
+                return digits
 
         testing_phone = sanitize_phone(phone) if phone else False
 

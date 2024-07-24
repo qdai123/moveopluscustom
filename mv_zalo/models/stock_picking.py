@@ -4,6 +4,7 @@ import logging
 from odoo.addons.biz_zalo_common.models.common import convert_valid_phone_number
 
 from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
