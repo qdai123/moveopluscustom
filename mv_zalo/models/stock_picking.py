@@ -4,6 +4,7 @@ import logging
 from odoo.addons.biz_zalo_common.models.common import convert_valid_phone_number
 
 from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -74,11 +75,13 @@ class StockPicking(models.Model):
             )
             return
 
-        phone_number = (
-            picking.partner_id.phone
-            if picking.partner_id and picking.partner_id.phone
-            else picking.partner_id.mobile
-        ) or None
+        phone_number = picking.partner_id.mobile
+        if not phone_number:
+            raise UserError(
+                "Không tìm thấy số điện thoại của khách hàng %s"
+                % picking.partner_id.name
+            )
+
         valid_phone_number = (
             convert_valid_phone_number(phone_number) if phone_number else False
         )

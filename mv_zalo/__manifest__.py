@@ -33,6 +33,7 @@
         "views/mv_compute_warranty_discount_policy_line_views.xml",
         "views/res_config_settings_views.xml",
         # WIZARDS
+        "wizard/zns_send_message_testing_wizard_views.xml",
         "wizard/zns_send_message_wizard_views.xml",
     ],
     "license": "LGPL-3",

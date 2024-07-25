@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_employee_form_mr_hr" model="ir.ui.view">
+            <field name="name">view_employee_form_mr_hr</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='job_id']" position="after">
+                    <field name="category_id" force_save="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="hr_kanban_view_employees_mr_hr" model="ir.ui.view">
+            <field name="name">hr_kanban_view_employees_mr_hr</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.hr_kanban_view_employees"/>
+            <field name="arch" type="xml">
+                <xpath expr="//span[@class='o_kanban_record_subtitle']" position="replace">
+                    <div t-if="record.level.raw_value != '0'">
+                        <field name="job_title"/> - <field name="category_id"/> - Bậc <field name="level"/>
+                    </div>
+                    <span t-elif="record.category_id.raw_value" class="o_kanban_record_subtitle">
+                        <field name="job_title"/> - <field name="category_id"/>
+                    </span>
+                    <span t-else="" class="o_kanban_record_subtitle">
+                        <field name="job_title"/>
+                    </span>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

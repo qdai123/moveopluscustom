@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record model="ir.ui.view" id="basic_salary_tree">
+            <field name="name">basic_salary_tree</field>
+            <field name="model">basic.salary</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="salary"/>
+                    <field name="category_id" options="{'no_create': True}"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="basic_salary_form">
+            <field name="name">basic_salary_form</field>
+            <field name="model">basic.salary</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="code"/>
+                                <field name="name"/>
+                            </group>
+                            <group>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="display_name" force_save="1"/>
+                                <field name="salary"/>
+                                <field name="category_id"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Config lever">
+                                <field name="line_ids" nolabel="1">
+                                    <tree editable="bottom">
+                                        <field name="date"/>
+                                        <field name="level"/>
+                                        <field name="salary"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="basic_salary_action" model="ir.actions.act_window">
+            <field name="name">Level salary</field>
+            <field name="res_model">basic.salary</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="basic_salary_menu" name="Level salary" action="basic_salary_action"
+                  parent="hr.menu_config_recruitment" sequence="40"/>
+
+    </data>
+</odoo>

@@ -2,53 +2,30 @@
 import json
 import logging
 
-import pytz
 from markupsafe import Markup
 from odoo.addons.biz_zalo_common.models.common import (
-    CODE_ERROR_ZNS,
-    convert_valid_phone_number,
     get_datetime,
 )
-from odoo.addons.mv_zalo.zalo_oa_functional import (
-    ZNS_GENERATE_MESSAGE,
+from odoo.addons.mv_zalo.core.zalo_notification_service import (
+    CODE_ERROR_ZNS,
+    ZNS_CKKH_POLICY_NOTIFICATION_TEMPLATE,
+    ZNS_GET_DATA_BY_TEMPLATE,
     ZNS_GET_PAYLOAD,
+    zns_convert_valid_phonenumber,
 )
 
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
 
-CODE_ERROR_ZNS = dict(CODE_ERROR_ZNS)
-
-
-def get_zns_time(time, user_timezone="Asia/Ho_Chi_Minh"):
-    """
-    Converts a given datetime object to the specified timezone.
-
-    Parameters:
-    - time (datetime): A timezone-aware datetime object.
-    - user_timezone (str): The name of the timezone to convert `time` to. Defaults to 'Asia/Ho_Chi_Minh'.
-
-    Returns:
-    - datetime: The converted datetime object in the specified timezone.
-    """
-    try:
-        user_tz = pytz.timezone(user_timezone)
-        return time.astimezone(user_tz)
-    except (pytz.UnknownTimeZoneError, ValueError) as e:
-        _logger.error(f"Error converting ZNS Timezone: {e}")
-        return None
-
 
 class MvComputeWarrantyDiscountPolicyLine(models.Model):
     _inherit = "mv.compute.warranty.discount.policy.line"
 
     @api.model
-    def _get_zns_compute_discount_warranty_notification_template(self):
+    def _get_zns_template(self):
         ICPSudo = self.env["ir.config_parameter"].sudo()
-        return ICPSudo.get_param(
-            "mv_zalo.zns_compute_discount_warranty_notification_template", ""
-        )
+        return ICPSudo.get_param(ZNS_CKKH_POLICY_NOTIFICATION_TEMPLATE, "")
 
     # === ZALO ZNS FIELDS ===#
     zns_notification_sent = fields.Boolean(
@@ -62,6 +39,7 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     # === PARTNER FIELDS for ZNS ===#
     short_name = fields.Char(related="partner_id.short_name", store=True)
     partner_phone = fields.Char(related="partner_id.phone", store=True)
+    partner_mobile = fields.Char(related="partner_id.mobile", store=True)
     partner_company_registry = fields.Char(
         related="partner_id.company_registry", store=True
     )
@@ -88,12 +66,12 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         if not self.partner_id:
             return
 
-        phone_number = self.partner_phone or self.partner_id.phone
+        phone_number = self.partner_mobile or self.partner_id.mobile
         if not phone_number:
             _logger.error("Partner has no phone number.")
             return
 
-        valid_phone_number = convert_valid_phone_number(phone_number)
+        valid_phone_number = zns_convert_valid_phonenumber(phone_number)
         if not valid_phone_number:
             _logger.error("Invalid phone number for partner")
             return
@@ -147,7 +125,7 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
             _logger.error("ZNS Configuration is not found!")
             return
 
-        template_id = self._get_zns_compute_discount_warranty_notification_template()
+        template_id = self._get_zns_template()
         if not template_id:
             _logger.error("ZNS Notification Template not found.")
             return
@@ -174,13 +152,15 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
             sample_data.name: (
                 sample_data.value
                 if not sample_data.field_id
-                else self._get_sample_data_by(sample_data, self)
+                else ZNS_GET_DATA_BY_TEMPLATE(sample_data, self)
             )
             for sample_data in zns_sample_data
         }
 
         # Extract data
-        phone = convert_valid_phone_number(self.partner_phone)
+        phone = zns_convert_valid_phonenumber(
+            self.partner_mobile or self.partner_id.mobile
+        )
         tracking_id = self.id
         template_id = zns_template.template_id
         template_data = json.dumps(template_data_sample)
@@ -213,19 +193,12 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
 
         # Process successful response
         if response_data.get("data"):
-            for r_data in response_data["data"]:
-                sent_time = (
-                    get_datetime(r_data["sent_time"]) if r_data["sent_time"] else ""
-                )
-                formatted_sent_time = get_zns_time(sent_time) if sent_time else ""
-                zns_message = ZNS_GENERATE_MESSAGE(r_data, formatted_sent_time)
-                self.generate_zns_history(r_data, ZNSConfiguration)
-                self.parent_id.message_post(body=Markup(zns_message))
-                self.zns_notification_sent = True
+            self.generate_zns_history(response_data.get("data"), ZNSConfiguration)
+            self.zns_notification_sent = True
 
-                _logger.info(
-                    f">>> Send Message ZNS successfully for Partner: {self.partner_id.name} <<<"
-                )
+            _logger.info(
+                f">>> Send Message ZNS successfully for Partner: {self.partner_id.name} <<<"
+            )
 
     def _retrieve_zns_configuration(self):
         ZNSConfiguration = self.env["zalo.config"].search(
@@ -237,7 +210,7 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         return ZNSConfiguration
 
     def generate_zns_history(self, data, config_id=False):
-        template_id = self._get_zns_compute_discount_warranty_notification_template()
+        template_id = self._get_zns_template()
         if not template_id or template_id is None:
             _logger.error("ZNS Notification Template not found.")
             return False
@@ -255,7 +228,7 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         )
 
         if not zns_history_id:
-            origin = self.name
+            origin = self.parent_name
             zns_history_id = zns_history_id.create(
                 {
                     "msg_id": data.get("msg_id"),
@@ -281,39 +254,3 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
             zns_history_id.get_message_status()
 
         self.zns_history_id = zns_history_id.id if zns_history_id else False
-
-    def _get_sample_data_by(self, sample_id, obj):
-        # Check if the 'field_id' is set
-        if not sample_id.field_id:
-            _logger.error("Field ID not found for sample_id: {}".format(sample_id))
-            return None
-
-        field_name = sample_id.field_id.name
-        field_type = sample_id.field_id.ttype
-        sample_type = sample_id.type
-        value = obj[field_name]
-
-        _logger.debug(
-            f"Processing Field: {field_name}, Type: {field_type}, Sample Type: {sample_type}"
-        )
-
-        try:
-            if field_type in ["date", "datetime"] and sample_type == "DATE":
-                return value.strftime("%d/%m/%Y") if value else None
-            elif (
-                field_type in ["float", "integer", "monetary"]
-                and sample_type == "NUMBER"
-            ):
-                return str(value)
-            elif field_type in ["char", "text"] and sample_type == "STRING":
-                return value if value else None
-            elif field_type == "many2one" and sample_type == "STRING":
-                return str(value.name) if value else None
-            else:
-                _logger.error(
-                    f"Unhandled field type: {field_type} or sample type: {sample_type}"
-                )
-                return None
-        except Exception as e:
-            _logger.error(f"Error processing sample data for {field_name}: {e}")
-            return None

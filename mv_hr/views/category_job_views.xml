@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record model="ir.ui.view" id="category_job_tree">
+            <field name="name">category_job_tree</field>
+            <field name="model">category.job</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="job_ids"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="category_job_form">
+            <field name="name">category_job_form</field>
+            <field name="model">category.job</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <field name="code"/>
+                            <field name="name"/>
+                        </group>
+                        <notebook>
+                            <page string="Job positions">
+                                <field name="job_ids" nolabel="1" widget="many2many">
+                                    <tree>
+                                        <field name="name"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="category_job_action" model="ir.actions.act_window">
+            <field name="name">Category job</field>
+            <field name="res_model">category.job</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="category_job_menu" name="Category job" action="category_job_action"
+                  parent="hr.menu_config_recruitment" sequence="30"/>
+
+    </data>
+</odoo>

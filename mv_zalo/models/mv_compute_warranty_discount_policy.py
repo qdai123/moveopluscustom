@@ -24,7 +24,12 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
     def send_zns_notification(self):
         if self.line_ids:
-            for line in self.line_ids:
+            for line in self.line_ids.filtered(
+                lambda r: r.partner_id
+                and r.partner_id.mobile
+                and not r.zns_notification_sent
+            ):
                 line.send_zns_message()
+                line.partner_id.sudo().action_update_discount_amount()
 
         return False
