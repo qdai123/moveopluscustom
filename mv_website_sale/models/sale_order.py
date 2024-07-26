@@ -10,38 +10,18 @@ class SaleOrder(models.Model):
     # === MOVEOPLUS OVERRIDE === #
 
     def _compute_cart_info(self):
-        # Call the parent class's _compute_cart_info method
+        self.so_trigger_update()
         super(SaleOrder, self)._compute_cart_info()
-
-        # Iterate over each order in the recordset
         for order in self:
-            # Calculate the total quantity of all service lines that are not reward lines
-            # This is done by summing the "product_uom_qty" field of each line in the order's "website_order_line" field
-            # that has a product with a "detailed_type" not equal to "product" and is not a reward line
-            service_lines_qty = sum(
-                line.product_uom_qty
-                for line in order.website_order_line
-                if line.product_id.product_tmpl_id.detailed_type != "product"
-                and not line.is_reward_line
+            service_lines = order.website_order_line.filtered(
+                lambda line: line.product_template_id.detailed_type == "service"
             )
-
-            # Subtract the total quantity of service lines from the order's "cart_quantity"
-            # The int() function is used to ensure that the result is an integer
-            order.cart_quantity -= int(service_lines_qty)
-            order._compute_partner_bonus()
-            order._compute_bonus_order_line()
-
-    # /// ORM/CRUD
-
-    def copy(self, default=None):
-        orders = super(SaleOrder, self).copy(default)
-
-        orders._update_programs_and_rewards()
-        orders._auto_apply_rewards()
-
-        return orders
+            if service_lines:
+                order.cart_quantity -= int(sum(service_lines.mapped("product_uom_qty")))
 
     # === MOVEOPLUS METHODS === #
+
+    # /// VALIDATION
 
     def check_show_warning(self):
         order = self
@@ -63,3 +43,12 @@ class SaleOrder(models.Model):
             or order.discount_agency_set
         )
         return is_partner_agency and not agency_discount_line
+
+    # /// TOOLING
+
+    def _is_partner_agency_order(self):
+        self.ensure_one()
+        return (
+            self.partner_id.id == request.website.user_id.sudo().partner_id.id
+            and self.partner_agency
+        )

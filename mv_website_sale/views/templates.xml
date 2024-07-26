@@ -29,6 +29,7 @@
 	<template id="mv_website_sale.total" name="MOVEO+ Inherited: Total" inherit_id="website_sale.total">
 		<xpath expr="//div[@id='cart_total']/table" position="before">
 			<t t-set="is_partner_agency" t-value="website_sale_order and website_sale_order.partner_id and website_sale_order.partner_id.is_agency"/>
+			<t t-set="is_partner_agency_has_bank_guarantee" t-value="website_sale_order and website_sale_order.partner_id and website_sale_order.partner_id.is_agency and website_sale_order.partner_id.bank_guarantee"/>
 			<t t-set="partner_discount_amount" t-value="website_sale_order.partner_id.amount_currency if is_partner_agency else 0"/>
 		</xpath>
 		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total_untaxed']" position="attributes">
@@ -60,7 +61,9 @@
 					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</td>
 			</tr>
-			<t t-if="is_partner_agency or partner_agency_set">
+
+			<!-- [MO+] START: Chiết Khấu áp dụng theo chương trình -->
+			<t t-if="is_partner_agency">
 				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.reward_id)" t-as="so_line">
 					<tr id="order_total_reward_line">
 						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
@@ -75,19 +78,42 @@
 					</tr>
 				</t>
 			</t>
-			<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.product_id.default_code in ['CKT', 'CKBL'])" t-as="so_line">
-				<tr>
+			<!-- [MO+] END: Chiết Khấu áp dụng theo chương trình -->
+
+			<!-- [MO+] START: Chiết Khấu Sản Lượng theo Tháng/Quý/Năm -->
+			<t t-if="is_partner_agency">
+				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.product_id.default_code == 'CKT')" t-as="so_line">
+					<tr id="order_total_reward_line">
+						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
+							Chiết khấu Sản Lượng (Tháng/Quý/Năm)
+						</td>
+						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
+							<span t-out="so_line.price_unit"
+							      class="monetary_field"
+							      style="white-space: nowrap;"
+							      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+						</td>
+					</tr>
+				</t>
+			</t>
+			<!-- [MO+] END: Chiết Khấu Sản Lượng theo Tháng/Quý/Năm -->
+
+			<!-- [MO+] START: Chiết Khấu Bảo Lãnh Ngân Hàng -->
+			<t t-if="is_partner_agency_has_bank_guarantee">
+				<tr id="order_discount_bank_guarantee">
 					<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
-						<t t-out="so_line.name_short"/>
+						Chiết khấu bảo lãnh Ngân Hàng
 					</td>
 					<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-						<span t-out="so_line.price_unit"
+						<span t-out="-website_sale_order.discount_bank_guarantee"
 						      class="monetary_field"
 						      style="white-space: nowrap;"
 						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 					</td>
 				</tr>
 			</t>
+			<!-- [MO+] END: Chiết Khấu Bảo Lãnh Ngân Hàng -->
+
 		</xpath>
 		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total_taxes']" position="after">
 			<tr id="order_total_price_after_discount" class="border-top">

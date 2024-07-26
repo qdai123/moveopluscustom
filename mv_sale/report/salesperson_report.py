@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
+import logging
+
+from odoo.addons.mv_sale.models.sale_order import (
+    GROUP_SALESPERSON,
+    GROUP_SALES_ALL,
+    GROUP_SALES_MANAGER,
+)
+
 from odoo import _, api, fields, models, tools
+
+_logger = logging.getLogger(__name__)
 
 
 class SalespersonReport(models.Model):
@@ -38,13 +48,48 @@ class SalespersonReport(models.Model):
     country_id = fields.Many2one("res.country", "Quốc gia", readonly=True)
     delivery_address = fields.Char("Địa chỉ giao hàng", compute="_compute_sale_id")
 
+    @api.model
+    def web_search_read(
+        self, domain, specification, offset=0, limit=None, order=None, count_limit=None
+    ):
+        """
+        Perform a search and read operation on the model, modifying the domain based on user group.
+
+        :param domain: List of tuples specifying the search domain.
+        :param specification: List of fields to read.
+        :param offset: Number of records to skip.
+        :param limit: Maximum number of records to return.
+        :param order: Sorting order.
+        :param count_limit: Maximum number of records to count.
+        :return: Result of the search and read operation.
+        """
+        User = self.env.user
+        salesperson_only = User.has_group(GROUP_SALESPERSON) and not (
+            User.has_group(GROUP_SALES_MANAGER) and User.has_group(GROUP_SALES_ALL)
+        )
+        if salesperson_only:
+            domain = [
+                "|",
+                ("sale_id.user_id", "=", User.id),
+                ("sale_id.user_id", "=", False),
+            ] + domain
+
+        result = super().web_search_read(
+            domain,
+            specification,
+            offset=offset,
+            limit=limit,
+            order=order,
+            count_limit=count_limit,
+        )
+        return result
+
     @api.depends("sale_id", "sale_id.partner_shipping_id")
     def _compute_sale_id(self):
         for record in self:
-            if record.sale_id and record.sale_id.partner_shipping_id:
-                record.delivery_address = (
-                    record.sale_id.partner_shipping_id.full_address_vi
-                )
+            order = record.sale_id.sudo()
+            if order and order.partner_shipping_id:
+                record.delivery_address = order.partner_shipping_id.full_address_vi
 
     # ==================================
     # SQL Queries / Initialization

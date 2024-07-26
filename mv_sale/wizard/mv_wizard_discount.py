@@ -246,17 +246,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
 
         if not wizard.discount_agency_set:
             """Create SOline(s) discount according to wizard configuration"""
-            # discount_product = self._get_mv_discount_product()
-            # vals_list = [
-            #     {
-            #         **self._prepare_mv_discount_line_values(
-            #             product=discount_product, amount=self.discount_amount_apply
-            #         ),
-            #     }
-            # ]
-            # order.order_line.create(vals_list)
             order.compute_discount_for_partner(wizard.discount_amount_apply)
-            order._handle_bank_guarantee_discount()
 
         order._update_programs_and_rewards()
         order._auto_apply_rewards()
@@ -289,17 +279,6 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             )
             order._compute_partner_bonus()
             order._compute_bonus_order_line()
-
-        # [>] For Product Discount with code 'CKBL'
-        if order.bank_guarantee:
-            total_order_discount_CKBL = (
-                order.total_price_after_discount
-                * order.partner_id.discount_bank_guarantee
-                / DISCOUNT_PERCENTAGE_DIVISOR
-            )
-            order.order_line.filtered(
-                lambda line: line.product_id.default_code == "CKBL"
-            ).write({"price_unit": -total_order_discount_CKBL})
 
         order._update_programs_and_rewards()
         order._auto_apply_rewards()

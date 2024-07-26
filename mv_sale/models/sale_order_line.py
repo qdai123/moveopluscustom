@@ -13,16 +13,6 @@ _logger = logging.getLogger(__name__)
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
 
-    # === Permission/Flags Fields ===#
-    is_sales_manager = fields.Boolean(compute="_compute_permissions")
-
-    @api.depends_context("uid")
-    def _compute_permissions(self):
-        for record in self:
-            record.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
-
-    # ================================================== #
-
     def _auto_init(self):
         # MOVEO+ OVERRIDE: Create column to stop ORM from computing it himself (too slow)
         if not column_exists(self.env.cr, "sale_order_line", "is_discount_agency"):
@@ -53,34 +43,37 @@ class SaleOrderLine(models.Model):
         store=True,
         compute_sudo=True,
     )
-    recompute_discount_agency = fields.Boolean(
-        related="order_id.recompute_discount_agency"
-    )
+    recompute_discount_agency = fields.Boolean(default=False)
+
+    # === Permission/Flags Fields ===#
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
+
+    @api.depends("order_id")
+    @api.depends_context("uid")
+    def _compute_permissions(self):
+        for sol in self:
+            sol.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
 
     # /// ORM Methods (OVERRIDE)
 
     def _compute_product_updatable(self):
-        super()._compute_product_updatable()
-
-        for sol in self:
-            sol.product_updatable = (
-                not sol.is_sales_manager
-                and sol.state not in ["cancel", "sale"]
-                and sol.product_template_id.detailed_type == "service"
-            )
+        service_lines = self.filtered(
+            lambda line: line.product_template_id.detailed_type == "service"
+            and line.state not in ["cancel", "sale"]
+            and not line.is_sales_manager
+        )
+        super(SaleOrderLine, self - service_lines)._compute_product_updatable()
+        service_lines.product_updatable = True
 
     def _compute_product_uom_readonly(self):
-        super()._compute_product_uom_readonly()
-
-        for sol in self:
-            sol.product_uom_readonly = (
-                sol.ids
-                and sol.state in ["sale", "cancel"]
-                or (
-                    not sol.is_sales_manager
-                    and sol.product_template_id.detailed_type == "service"
-                )
-            )
+        service_lines = self.filtered(
+            lambda line: line.ids
+            and line.product_template_id.detailed_type == "service"
+            and line.state not in ["cancel", "sale"]
+            and not line.is_sales_manager
+        )
+        super(SaleOrderLine, self - service_lines)._compute_product_uom_readonly()
+        service_lines.product_uom_readonly = True
 
     # /// CRUD Methods
 
@@ -93,7 +86,10 @@ class SaleOrderLine(models.Model):
         if "product_uom_qty" in vals and vals.get("product_uom_qty"):
             unique_orders = set(sol.order_id for sol in self)
             for order in unique_orders:
-                order.action_clear_discount_lines()
+                order.order_line.filtered(
+                    lambda line: line.product_template_id.detailed_type == "service"
+                    and line.product_id.default_code in ["CKT", "CKBL"]
+                ).write({"recompute_discount_agency": True})
 
         return result
 

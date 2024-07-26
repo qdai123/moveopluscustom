@@ -75,7 +75,7 @@
 				        groups="base.group_system"/>
 			</xpath>
 			<xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="before">
-				<field name="is_sales_manager" column_invisible="True"/>
+				<field name="is_sales_manager" string="Is Manager?" column_invisible="1"/>
 			</xpath>
 			<!-- ===== [START] Readonly by Groups of Sales for Order Lines ===== -->
 			<xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="attributes">
