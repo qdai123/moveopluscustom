@@ -15,12 +15,53 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
     # === MOVEOPLUS OVERRIDE ===#
 
-    # /// Cart
+    # /// CART
+
+    @http.route()
+    def cart(self, **post):
+        """
+        Handle the cart view, compute necessary discounts and bonuses, and update the partner's discount amount if applicable.
+
+        :param post: Dictionary containing POST data.
+        :return: The result of the parent class's cart method.
+        """
+        _logger.debug(f">>> Cart [POST]: {post} <<<")
+
+        try:
+            order = request.website.sale_get_order()
+            if not order:
+                _logger.error("No order found.")
+                return request.redirect("/shop/cart")
+
+            # Compute partner bonus and bonus order line
+            order.sudo()._compute_partner_bonus()
+            order.sudo()._compute_bonus_order_line()
+
+            # If the partner is an agency, update the partner's discount amount
+            if order.partner_id.is_agency:
+                order.sudo().partner_id.action_update_discount_amount()
+
+            # Call the parent class's cart method
+            return super(MoveoplusWebsiteSale, self).cart(**post)
+
+        except Exception as e:
+            _logger.error(f"Error in cart method: {e}")
+            return request.redirect("/shop/cart")
 
     def _cart_values(self, **post):
+        """
+        Calculate and return various discount-related values for the current cart.
+
+        :param post: Dictionary containing POST data.
+        :return: Dictionary with calculated discount values.
+        """
         _logger.debug(f">>> MOVEO+ Cart Value [POST]: {post} <<<")
 
         order = request.website.sale_get_order()
+        if not order:
+            _logger.error("No order found.")
+            return {}
+
         discount_amount_invalid = order.partner_id.amount_currency < order.bonus_order
         discount_amount_maximum = order.bonus_max
         discount_amount_applied = (
@@ -29,29 +70,11 @@ class MoveoplusWebsiteSale(WebsiteSale):
         total_remaining = order.partner_id.amount_currency - order.bonus_order
         discount_amount_remaining = total_remaining if total_remaining > 0 else 0.0
 
-        # /// Chiết khấu bảo lãnh ngân hàng
-        total_discount_CKBL = (
-            order.total_price_after_discount
-            * order.partner_id.discount_bank_guarantee
-            / DISCOUNT_PERCENTAGE_DIVISOR
-        )
-        # /// Chiết khấu Đại lý
-        total_discount_agency = sum(
-            order.order_line.filtered(
-                lambda line: line.product_id.default_code == "CKSLL"
-            ).mapped("price_unit")
-        )
-        # /// Chiết khấu Đại lý vùng trắng
-        total_discount_white_agency = sum(
-            order.order_line.filtered(
-                lambda line: line.product_id.default_code == "CKSLVT"
-            ).mapped("price_unit")
-        )
-        # /// Chiết khấu Đại lý miền Nam
-        total_discount_southern_agency = sum(
-            order.order_line.filtered(
-                lambda line: line.product_id.default_code == "CKSLMN"
-            ).mapped("price_unit")
+        total_discount_CKBL = self._calculate_bank_guarantee_discount(order)
+        total_discount_agency = self._calculate_agency_discount(order, "CKSLL")
+        total_discount_white_agency = self._calculate_agency_discount(order, "CKSLVT")
+        total_discount_southern_agency = self._calculate_agency_discount(
+            order, "CKSLMN"
         )
 
         values_update = {
@@ -88,98 +111,149 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
         return values_update
 
-    @http.route()
-    def cart(self, **post):
-        order = request.website.sale_get_order()
-        order.sudo()._compute_partner_bonus()
-        order.sudo()._compute_bonus_order_line()
+    def _calculate_bank_guarantee_discount(self, order):
+        """
+        Calculate the bank guarantee discount for the order.
 
-        if order.partner_id.is_agency:
-            order.sudo().partner_id.action_update_discount_amount()
+        :param order: The current sale order.
+        :return: The calculated bank guarantee discount.
+        """
+        return (
+            order.total_price_after_discount
+            * order.partner_id.discount_bank_guarantee
+            / DISCOUNT_PERCENTAGE_DIVISOR
+        )
 
-        return super(MoveoplusWebsiteSale, self).cart(**post)
+    def _calculate_agency_discount(self, order, product_code):
+        """
+        Calculate the agency discount for the order based on the product code.
 
-    @http.route()
-    def cart_update_json(self, *args, **kwargs):
-        return super(MoveoplusWebsiteSale, self).cart_update_json(*args, **kwargs)
+        :param order: The current sale order.
+        :param product_code: The product code to filter the discount lines.
+        :return: The calculated agency discount.
+        """
+        return sum(
+            order.order_line.filtered(
+                lambda line: line.product_id.default_code == product_code
+            ).mapped("price_unit")
+        )
 
-    # /// Checkout
-
-    def checkout_values(self, order, **kw):
-        values_checkout = super(MoveoplusWebsiteSale, self).checkout_values(order, **kw)
-
-        # [>] Hide Discount Amount Input
-        values_checkout["hide_discount_amount"] = True
-
-        return values_checkout
+    # /// CHECKOUT
 
     @http.route()
     def checkout(self, **post):
-        redirect = post.get("r", "/shop/cart")
+        """
+        Handle the checkout process, including checking for warnings and missing partner discounts.
 
-        # [!] WARNING for buying more than 4 tires
-        order = request.website.sale_get_order()
-        if order.partner_id.is_agency and order.check_show_warning():
-            return request.redirect("%s?show_warning=1" % redirect)
+        :param post: Dictionary containing POST data.
+        :return: The result of the parent class's checkout method.
+        """
+        _logger.debug(f">>> Checkout [POST]: {post} <<<")
 
-        # [!] WARNING for missing partner discount line
-        if order.check_missing_partner_discount():
-            return request.redirect("%s?missing_partner_discount=1" % redirect)
+        try:
+            redirect = post.get("r", "/shop/cart")
+            order = request.website.sale_get_order()
+            if not order:
+                _logger.error("No order found.")
+                return request.redirect(redirect)
 
-        return super(MoveoplusWebsiteSale, self).checkout(**post)
+            # Check if the partner is an agency and if a warning should be shown
+            if order.partner_id.is_agency and order.check_show_warning():
+                return request.redirect(f"{redirect}?show_warning=1")
 
-    # /// Payment
+            # Check if the partner discount line is missing
+            if order.check_missing_partner_discount():
+                return request.redirect(f"{redirect}?missing_partner_discount=1")
 
-    def _get_shop_payment_values(self, order, **kwargs):
-        res = super(MoveoplusWebsiteSale, self)._get_shop_payment_values(
-            order, **kwargs
-        )
+            # Call the parent class's checkout method
+            return super(MoveoplusWebsiteSale, self).checkout(**post)
 
-        # Update the submit button label (use for Moveo Plus only)
-        res["submit_button_label"] = "Đặt Hàng Ngay"
+        except Exception as e:
+            _logger.error(f"Error in checkout method: {e}")
+            return request.redirect("/shop/cart")
 
-        # [>] Hide Discount Amount Input
-        res["hide_discount_amount"] = True
+    def checkout_values(self, order, **kw):
+        vals = super().checkout_values(order, **kw)
 
-        return res
+        # [>] ADDITIONAL VALUES 'hide_discount_amount'
+        vals["hide_discount_amount"] = True
+
+        return vals
+
+    # /// PAYMENT
 
     @http.route()
     def shop_payment(self, **post):
-        order = request.website.sale_get_order()
-        if order.bonus_order > 0:
-            order.compute_discount_for_partner(0)
+        """
+        Handle the shop payment process, including computing discounts for the partner if applicable.
 
-        return super(MoveoplusWebsiteSale, self).shop_payment(**post)
+        :param post: Dictionary containing POST data.
+        :return: The result of the parent class's shop_payment method.
+        """
+        _logger.debug(f">>> Shop Payment [POST]: {post} <<<")
 
-    @http.route()
-    def shop_payment_confirmation(self, **post):
-        return super(MoveoplusWebsiteSale, self).shop_payment_confirmation(**post)
+        try:
+            order = request.website.sale_get_order()
+            if not order:
+                _logger.error("No order found.")
+                return request.redirect("/shop/cart")
+
+            # If the order has a bonus, compute the discount for the partner
+            if order.bonus_order > 0:
+                order.compute_discount_for_partner(0)
+
+            # Call the parent class's shop_payment method
+            return super(MoveoplusWebsiteSale, self).shop_payment(**post)
+
+        except Exception as e:
+            _logger.error(f"Error in shop_payment method: {e}")
+            return request.redirect("/shop/cart")
+
+    def _get_shop_payment_values(self, order, **kwargs):
+        vals = super()._get_shop_payment_values(order, **kwargs)
+
+        # Update the submit button label (use for Moveo Plus only)
+        vals["submit_button_label"] = "Đặt Hàng Ngay"
+
+        # [>] ADDITIONAL VALUES 'hide_discount_amount'
+        vals["hide_discount_amount"] = True
+
+        return vals
 
     def _prepare_shop_payment_confirmation_values(self, order):
-        res = super(
-            MoveoplusWebsiteSale, self
-        )._prepare_shop_payment_confirmation_values(order)
+        vals = super()._prepare_shop_payment_confirmation_values(order)
 
-        # [>] Hide Discount Amount Input
-        res["hide_discount_amount"] = True
+        # [>] ADDITIONAL VALUES 'hide_discount_amount'
+        vals["hide_discount_amount"] = True
 
-        return res
+        return vals
 
     # === MOVEOPLUS METHODS ===#
 
     @http.route(
-        ["/shop/apply_discount"],
-        type="http",
-        auth="public",
-        website=True,
-        sitemap=False,
+        "/shop/apply_discount", type="http", auth="public", website=True, sitemap=False
     )
     def applying_partner_discount(self, discount_amount, **post):
-        redirect_shop_cart = post.get("r", "/shop/cart")
+        """
+        Apply the partner discount to the current order.
 
+        :param discount_amount: The amount of discount to apply.
+        :param post: Dictionary containing POST data.
+        :return: Redirect to the shop cart.
+        """
+        _logger.debug(
+            f">>> Applying Partner Discount [POST]: {post}, discount_amount: {discount_amount} <<<"
+        )
+
+        redirect_shop_cart = post.get("r", "/shop/cart")
         order = request.website.sale_get_order()
-        order._compute_partner_bonus()
-        order._compute_bonus_order_line()
+        if not order:
+            _logger.error("No order found.")
+            return request.redirect(redirect_shop_cart)
+
+        # Compute necessary discounts and bonuses
+        order.sudo()._compute_partner_bonus()
+        order.sudo()._compute_bonus_order_line()
 
         discount_amount_apply = float(discount_amount)
         if discount_amount_apply < 0:
@@ -197,24 +271,21 @@ class MoveoplusWebsiteSale(WebsiteSale):
             and discount_amount_apply > discount_amount_maximum
         ) or (discount_amount_applied != 0 and total_applied > discount_amount_maximum):
             return request.redirect(
-                "%s?discount_amount_apply_exceeded=%s"
-                % (redirect_shop_cart, discount_amount_maximum)
+                f"{redirect_shop_cart}?discount_amount_apply_exceeded={discount_amount_maximum}"
             )
 
         total_remaining = order.partner_id.amount_currency - order.bonus_order
-        discount_amount_remaining = total_remaining if total_remaining > 0 else 0.0
+        discount_amount_remaining = total_remaining if total_remaining != 0 else 0.0
 
         is_update = order.recompute_discount_agency
-        # delivery_set = any(line.is_delivery for line in order.order_line)
         discount_agency_set = order.order_line._filter_discount_agency_lines(order)
 
         if not is_update:
-            """Create SOline(s) discount according to wizard configuration"""
+            # Create SOline(s) discount according to wizard configuration
             if not discount_agency_set:
                 order.compute_discount_for_partner(discount_amount_apply)
-                order._handle_bank_guarantee_discount()
         else:
-            """Update SOline(s) discount according to wizard configuration"""
+            # Update SOline(s) discount according to wizard configuration
             if discount_agency_set:
                 total_order_discount_CKT = (
                     (discount_amount_apply + discount_amount_applied)
@@ -234,16 +305,6 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 )
                 order._compute_partner_bonus()
                 order._compute_bonus_order_line()
-
-            if order.bank_guarantee:
-                total_order_discount_CKBL = (
-                    order.total_price_after_discount
-                    * order.partner_id.discount_bank_guarantee
-                    / DISCOUNT_PERCENTAGE_DIVISOR
-                )
-                order.order_line.filtered(
-                    lambda line: line.product_id.default_code == "CKBL"
-                ).write({"price_unit": -total_order_discount_CKBL})
 
         order.with_context(
             applying_partner_discount=True

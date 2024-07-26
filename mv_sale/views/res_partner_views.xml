@@ -20,6 +20,11 @@
 						</group>
 						<group invisible="not is_agency">
 							<field name="amount" invisible="1"/>
+							<field name="waiting_amount_currency"
+							       string="Chiết khấu chờ duyệt"
+							       class="fw-bold"
+							       decoration-info="waiting_amount_currency &gt; 0"
+							       decoration-muted="waiting_amount_currency == 0"/>
 							<label for="amount_currency" string="Tiền chiết khấu hiện có"/>
 							<div class="row">
 								<field name="amount_currency"
@@ -118,14 +123,27 @@
 						<tree default_order="id desc">
 							<field name="currency_id" column_invisible="True"/>
 							<field string="Đơn hàng" name="name"/>
-							<field string="Tiền chiết khấu" name="bonus_order" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+							<field string="Tiền chiết khấu (Đã áp dụng)" name="bonus_order" widget="monetary" options="{'currency_field': 'currency_id'}"/>
 							<field string="Trạng thái" name="state" widget="badge" decoration-info="state in ['draft', 'sent']" decoration-success="state == 'sale'"/>
 						</tree>
 					</field>
 					<group name="total_group" col="6" class="mt-2 mt-md-0">
 						<group colspan="4"/>
 						<group class="oe_subtotal_footer" colspan="2" name="sale_bonus_order_total">
-							<field string="Tổng tiền chiết khấu" name="total_so_bonus_order" class="fw-bold" colspan="2" readonly="True"/>
+							<field string="Báo giá (Chưa xác nhận)"
+							       name="total_so_quotations_discount"
+							       class="fw-bold"
+							       colspan="2"
+							       readonly="True"
+							       decoration-warning="total_so_quotations_discount &gt; 0"
+							       decoration-muted="total_so_quotations_discount == 0"/>
+							<field string="Tổng tiền chiết khấu (Đã áp dụng)"
+							       name="total_so_bonus_order"
+							       class="fw-bold"
+							       colspan="2"
+							       readonly="True"
+							       decoration-success="total_so_bonus_order &gt; 0"
+							       decoration-muted="total_so_bonus_order == 0"/>
 						</group>
 						<div class="clearfix"/>
 					</group>

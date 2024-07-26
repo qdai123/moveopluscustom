@@ -12,6 +12,8 @@ DISCOUNT_QUANTITY_THRESHOLD = 10
 QUANTITY_THRESHOLD = 4
 
 GROUP_SALES_MANAGER = "sales_team.group_sale_manager"
+GROUP_SALES_ALL = "sales_team.group_sale_salesman_all_leads"
+GROUP_SALESPERSON = "sales_team.group_sale_salesman"
 
 
 class SaleOrder(models.Model):
@@ -122,11 +124,17 @@ class SaleOrder(models.Model):
                 and order.order_line
                 and order.order_line.product_id
             ):
-                bonus_order = sum(
-                    line.price_unit
-                    for line in order.order_line._filter_discount_agency_lines(order)
+                order.bonus_order = (
+                    self.env["sale.order.line"]
+                    .search(
+                        [
+                            ("order_id", "=", order.id),
+                            ("product_id.default_code", "=", "CKT"),
+                        ],
+                        limit=1,
+                    )
+                    .price_unit
                 )
-                order.bonus_order = abs(bonus_order)
                 order.bonus_max = (
                     order.total_price_no_service
                     - order.total_price_discount
@@ -198,7 +206,7 @@ class SaleOrder(models.Model):
     @api.depends("order_line", "order_line.product_id", "order_line.product_uom_qty")
     def _compute_discount(self):
         for order in self:
-            # RESET all discount values
+            # Trả về mặc định các giá trị gốc
             order.percentage = 0
             order.check_discount_10 = False
             order.total_price_no_service = 0
@@ -207,18 +215,21 @@ class SaleOrder(models.Model):
             order.total_price_discount_10 = 0
             order.total_price_after_discount_10 = 0
             order.total_price_after_discount_month = 0
+            order.discount_bank_guarantee = 0
+            order.after_discount_bank_guarantee = 0
 
             # [!] Kiểm tra có phải Đại lý trực thuộc của MOVEO+ hay không?
             partner_agency = order.partner_id.is_agency
-            if order.order_line:
-                # TODO: Do không còn áp dụng cách tính cũ, nên cần check lại toàn bộ phần tính toán theo số lượng 10 lốp này
-                # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
-                order.check_discount_10 = (
-                    order.check_discount_applicable() if partner_agency else False
-                )
-                # [!] Tính tổng tiền giá sản phẩm không bao gồm hàng Dịch Vụ,
-                #      tính giá gốc ban đầu, không bao gồm Thuế
-                order.calculate_discount_values()
+
+            # TODO: Do không còn áp dụng cách tính cũ, nên cần check lại toàn bộ phần tính toán theo số lượng 10 lốp này
+            # [!] Kiểm tra xem thỏa điều kiện để mua đủ trên 10 lốp xe continental
+            order.check_discount_10 = (
+                order.check_discount_applicable() if partner_agency else False
+            )
+
+            # [!] Tính tổng tiền giá sản phẩm không bao gồm hàng Dịch Vụ,
+            #      tính giá gốc ban đầu, không bao gồm Thuế
+            order.calculate_discount_values()
 
             # [!] Nếu không còn dòng sản phẩm nào thì xóa hết các dòng chiết khấu bao gồm cả phương thức giao hàng
             order.handle_discount_lines()
@@ -259,9 +270,22 @@ class SaleOrder(models.Model):
         order.total_price_after_discount = (
             order.total_price_no_service - order.total_price_discount
         )
-
         order.total_price_discount_10 = (
             order.total_price_after_discount / DISCOUNT_PERCENTAGE_DIVISOR
+        )
+
+        # [>] Tính Chiết Khấu Bảo Lãnh Ngân Hàng
+        if order.bank_guarantee:
+            order.discount_bank_guarantee = (
+                order.total_price_after_discount
+                * order.partner_id.discount_bank_guarantee
+                / DISCOUNT_PERCENTAGE_DIVISOR
+            )
+            if order.discount_bank_guarantee > 0:
+                order.with_context(bank_guarantee=True).create_discount_bank_guarantee()
+
+        order.after_discount_bank_guarantee = (
+            order.total_price_after_discount - order.discount_bank_guarantee
         )
         order.total_price_after_discount_10 = (
             order.after_discount_bank_guarantee - order.total_price_discount_10
@@ -269,6 +293,10 @@ class SaleOrder(models.Model):
         order.total_price_after_discount_month = (
             order.total_price_after_discount_10 - order.bonus_order
         )
+
+        # [>] Update the Sale Order's Bonus Order
+        order._update_programs_and_rewards()
+        order._auto_apply_rewards()
 
     def handle_discount_lines(self):
         """
@@ -480,16 +508,6 @@ class SaleOrder(models.Model):
             )
             _logger.info("Created discount line for bank guarantee.")
 
-    def _handle_bank_guarantee_discount(self):
-        if self.bank_guarantee:
-            self.discount_bank_guarantee = (
-                self.total_price_after_discount
-                * self.partner_id.discount_bank_guarantee
-                / DISCOUNT_PERCENTAGE_DIVISOR
-            )
-            if self.discount_bank_guarantee > 0:
-                self.with_context(bank_guarantee=True).create_discount_bank_guarantee()
-
     def _calculate_quantity_change(self):
         return sum(
             line.product_uom_qty
@@ -601,12 +619,12 @@ class SaleOrder(models.Model):
         return True
 
     def action_draft(self):
-        res = super(SaleOrder, self).action_draft()
+        orders = super(SaleOrder, self).action_draft()
 
         for order in self:
             order._reset_discount_agency(order_state="draft")
 
-        return res
+        return orders
 
     def action_cancel(self):
         res = super(SaleOrder, self).action_cancel()
@@ -850,86 +868,6 @@ class SaleOrder(models.Model):
             )
             raise ValidationError(error_message)
 
-    def _handle_agency_discount(self):
-        # FIXME: This method is not used anywhere in the codebase.
-        orders = self.filtered(
-            lambda so: not so.is_order_returns and so.partner_id.is_agency
-        )
-        orders.mapped(
-            "partner_id"
-        ).action_update_discount_amount()  # Update partner's discount amount
-        for order in orders:
-            quotation_bonus_order = (
-                self.env["sale.order.line"]
-                .search(
-                    [
-                        ("order_id", "=", order.id),
-                        ("product_id.default_code", "=", "CKT"),
-                    ],
-                    limit=1,
-                )
-                .price_unit
-            )
-            if order.partner_id.amount_currency < abs(quotation_bonus_order):
-                # [>] Xử lý chiết khấu khi có sự thay đổi hoặc đang dùng ở một đơn khác của Đại lý\
-                quotations_discount_applied = (
-                    self.env["sale.order"]
-                    .search(
-                        [
-                            ("id", "!=", order.id),
-                            ("state", "in", ["draft", "sent"]),
-                            ("partner_id", "=", order.partner_id.id),
-                            "|",
-                            ("partner_id.is_agency", "=", True),
-                            ("partner_agency", "=", True),
-                        ]
-                    )
-                    .filtered(
-                        lambda so: so.order_line.filtered(
-                            lambda so_line: so_line._filter_discount_agency_lines(so)
-                        )
-                    )
-                )
-                quotations_discount_applied._compute_partner_bonus()
-                quotations_discount_applied._compute_bonus_order_line()
-                order_lines_delivery = order.order_line.filtered(
-                    lambda sol: sol.is_delivery
-                )
-                carrier = (
-                    (
-                        order.with_company(
-                            order.company_id
-                        ).partner_shipping_id.property_delivery_carrier_id
-                        or order.with_company(
-                            order.company_id
-                        ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
-                    )
-                    if not order_lines_delivery
-                    else order.carrier_id
-                )
-
-                return {
-                    "name": "Cập nhật chiết khấu",
-                    "type": "ir.actions.act_window",
-                    "res_model": "mv.wizard.discount",
-                    "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
-                    "views": [
-                        (self.env.ref("mv_sale.mv_wiard_discount_view_form").id, "form")
-                    ],
-                    "context": {
-                        "default_sale_order_id": order.id,
-                        "partner_id": order.partner_id.id,
-                        "default_partner_id": order.partner_id.id,
-                        "default_discount_amount_apply": order.bonus_remaining,
-                        "default_carrier_id": carrier.id,
-                        "default_total_weight": order._get_estimated_weight(),
-                        "default_discount_amount_invalid": True,
-                    },
-                    "target": "new",
-                }
-            else:
-                order.with_context(action_confirm=True).action_recompute_discount()
-
     # ==================================
     # TOOLING
     # ==================================
@@ -960,40 +898,11 @@ class SaleOrder(models.Model):
     # TODO: Update theses functional - Phat Dang <phat.dangminh@moveoplus.com>
     # =============================================================
 
-    def trigger_update(self):
+    def so_trigger_update(self):
         """=== This method is called when a record is updated or deleted ==="""
         try:
-            # Update the discount amount in the sale order
-            # self._update_sale_order_discount_amount()
-
-            # Update the partner's discount amount
-            self._update_partner_discount_amount()
+            self._compute_partner_bonus()  # Update partner bonus
+            self._compute_bonus_order_line()  # Update bonus order line
         except Exception as e:
-            # Log any exceptions that occur
             _logger.error("Failed to trigger update recordset: %s", e)
-
-    # def _update_sale_order_discount_amount(self):
-    #     for order in self:
-    #         print(f"Write your logic code here. {order.name_get()}")
-    #
-    #     return True
-
-    def _update_partner_discount_amount(self):
-        for order in self.filtered(
-            lambda so: not so.is_order_returns
-            and so.partner_agency
-            and so.discount_agency_set
-        ):
-            try:
-                # Calculate the total bonus
-                total_bonus = order.partner_id.amount_currency - order.bonus_order
-
-                # Update the partner's discount amount
-                order.partner_id.write(
-                    {"amount": total_bonus, "amount_currency": total_bonus}
-                )
-            except Exception as e:
-                # Log any exceptions that occur
-                _logger.error("Failed to update partner discount amount: %s", e)
-
-        return True
+            return False
