@@ -8,7 +8,7 @@
         - Odoo Inherits: website_sale, website_sale_loyalty
         - Moveoplus Inherits: mv_sale
     """,
-    "author": "Phat Dang <phat.dangminh@moveoplus.com>",
+    "author": "MOVEOPLUS system development team",
     "depends": [
         # Odoo
         "website_sale",

@@ -7,7 +7,7 @@
     The kernel of MOVEO PLUS, needed for all installation.
     ===================================================
     """,
-    "author": "Phat Dang <phat.dangminh@moveoplus.com>",
+    "author": "MOVEOPLUS system development team",
     "depends": ["base", "base_setup", "mail"],
     "data": [
         # SECURITY
