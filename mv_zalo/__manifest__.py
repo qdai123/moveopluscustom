@@ -4,7 +4,7 @@
     "version": "17.0.1.0",
     "category": "Moveoplus/MV Zalo",
     "description": "Base on Zalo modules to customize new features",
-    "author": "Phat Dang <phat.dangminh@moveoplus.com>",
+    "author": "MOVEOPLUS system development team",
     "depends": [
         # Odoo
         "account",
