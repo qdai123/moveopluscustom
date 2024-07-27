@@ -36,37 +36,6 @@ class SaleOrder(models.Model):
     date_invoice = fields.Datetime(readonly=True)
     quantity_change = fields.Float(readonly=True)
 
-    @api.depends("state", "order_line.product_id", "order_line.product_uom_qty")
-    @api.depends_context("uid")
-    def _compute_permissions(self):
-        for order in self:
-            # [>] Check if the user is a Sales Manager
-            order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
-            # [>] Check if the order has discount agency lines
-            order.discount_agency_set = order.order_line._filter_discount_agency_lines(
-                order
-            )
-            # [>] Check if the order is in a state where discount agency can be computed
-            order.compute_discount_agency = (
-                order.state
-                in [
-                    "draft",
-                    "sent",
-                ]
-                and not order.discount_agency_set
-                and order.partner_agency
-            )
-            # [>] Check if the order is in a state where discount agency should be recomputed
-            order.recompute_discount_agency = (
-                order.state
-                in [
-                    "draft",
-                    "sent",
-                ]
-                and order.discount_agency_set
-                and order.partner_agency
-            )
-
     # === PARTNER FIELDS ===#
     partner_agency = fields.Boolean(
         related="partner_id.is_agency", store=True, readonly=True
@@ -104,6 +73,64 @@ class SaleOrder(models.Model):
         store=True,
         help="Số tiền Đại lý có thể áp dụng để tính chiết khấu.",
     )
+
+    @api.depends("state", "order_line.product_id", "order_line.product_uom_qty")
+    @api.depends_context("uid")
+    def _compute_permissions(self):
+        """
+        Compute permissions for each sale order based on the user's role and order state.
+
+        This method checks if the user is a Sales Manager, if the order has discount agency lines,
+        and if the order is in a state where discount agency can be computed or should be recomputed.
+
+        :return: None
+        """
+        _logger.debug("Starting '_compute_permissions' computation.")
+
+        for order in self:
+            try:
+                # Check if the user is a Sales Manager
+                order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
+                _logger.debug(
+                    f"Order {order.id}: is_sales_manager = {order.is_sales_manager}"
+                )
+
+                # Check if the order has discount agency lines
+                order.discount_agency_set = (
+                    order.order_line._filter_discount_agency_lines(order)
+                )
+                _logger.debug(
+                    f"Order {order.id}: discount_agency_set = {order.discount_agency_set}"
+                )
+
+                # Check if the order is in a state where discount agency can be computed
+                order.compute_discount_agency = (
+                    order.state in ["draft", "sent"]
+                    and not order.discount_agency_set
+                    and order.partner_agency
+                )
+                _logger.debug(
+                    f"Order {order.id}: compute_discount_agency = {order.compute_discount_agency}"
+                )
+
+                # Check if the order is in a state where discount agency should be recomputed
+                order.recompute_discount_agency = (
+                    order.state in ["draft", "sent"]
+                    and order.discount_agency_set
+                    and order.partner_agency
+                )
+                _logger.debug(
+                    f"Order {order.id}: recompute_discount_agency = {order.recompute_discount_agency}"
+                )
+
+            except Exception as e:
+                _logger.error(f"Error computing permissions for order {order.id}: {e}")
+                order.is_sales_manager = False
+                order.discount_agency_set = False
+                order.compute_discount_agency = False
+                order.recompute_discount_agency = False
+
+        _logger.debug("Completed '_compute_permissions' computation.")
 
     def _compute_partner_bonus(self):
         for order in self:

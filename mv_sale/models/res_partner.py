@@ -10,7 +10,13 @@ _logger = logging.getLogger(__name__)
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    # ===TRƯỜNG CƠ SỞ DỮ LIỆU
+    def name_get(self):
+        res = []
+        for partner in self:
+            res.append((partner.id, partner.partner_agency_name))
+        return res
+
+    # === TRƯỜNG CƠ SỞ DỮ LIỆU
     # line_ids: Nội dung chi tiết chiết khấu được áp dụng cho Đại Lý
     # amount/amount_currency: Ví tiền được chiết khấu cho Đại lý sử dụng
     # waiting_amount_currency: Ví tiền chờ duyệt
@@ -39,6 +45,9 @@ class ResPartner(models.Model):
     # Đại lý Miền Nam (Southern Agency): Đại lý phân phối sản phẩm tại miền Nam
     # Bảo lãnh ngân hàng, Chiết khấu bảo lãnh ngân hàng (%)
     # ===#
+    partner_agency_name = fields.Char(
+        "Tên Đại Lý", compute="_compute_partner_agency_name", recursive=True
+    )
     is_agency = fields.Boolean("Đại lý", tracking=True)
     is_white_agency = fields.Boolean("Đại lý vùng trắng", tracking=True)
     is_southern_agency = fields.Boolean("Đại lý miền Nam", tracking=True)
@@ -149,6 +158,37 @@ class ResPartner(models.Model):
                 if partner.company_id
                 else self.env.company.currency_id
             )
+
+    @api.depends("name", "is_agency", "is_white_agency", "is_southern_agency")
+    def _compute_partner_agency_name(self):
+        """
+        Compute the agency name for each partner based on their agency type.
+
+        This method constructs the agency name by appending the agency type
+        (White Agency or Southern Agency) to the partner's name.
+
+        :return: None
+        """
+        _logger.debug("Starting '_compute_partner_agency_name' computation.")
+
+        for partner in self.filtered("is_agency"):
+            try:
+                path_agency = "Đại lý"
+                if partner.is_white_agency:
+                    path_agency += " Vùng Trắng"
+                elif partner.is_southern_agency:
+                    path_agency += " Miền Nam"
+                partner.partner_agency_name = f"{partner.name} / {path_agency}"
+                _logger.debug(
+                    f"Computed agency name for partner {partner.id}: {partner.partner_agency_name}"
+                )
+            except Exception as e:
+                _logger.error(
+                    f"Error computing agency name for partner {partner.id}: {e}"
+                )
+                partner.partner_agency_name = partner.name
+
+        _logger.debug("Completed '_compute_partner_agency_name' computation.")
 
     @api.depends("sale_order_ids")
     def _compute_sale_order(self):

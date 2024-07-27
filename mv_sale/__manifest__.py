@@ -51,6 +51,8 @@
         "wizard/mv_wizard_promote_discount_line_views.xml",
         "wizard/mv_wizard_update_partner_discount_views.xml",
         "wizard/sale_order_cancel_views.xml",
+        "wizard/mass_cancel_orders_views.xml",
+        "wizard/sale_make_invoice_advance_views.xml",
         # MENU
         "views/menus.xml",
     ],
