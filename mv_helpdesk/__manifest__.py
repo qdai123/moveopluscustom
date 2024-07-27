@@ -4,7 +4,7 @@
     "version": "17.0.1.0",
     "category": "Moveoplus/MV Helpdesk",
     "description": "Base on Helpdesk module to customize new features",
-    "author": "Phat Dang <phat.dangminh@moveoplus.com>",
+    "author": "MOVEOPLUS system development team",
     "depends": [
         # Odoo (Enterprise)
         "helpdesk",
