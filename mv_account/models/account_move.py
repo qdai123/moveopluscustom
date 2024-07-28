@@ -39,15 +39,13 @@ class AccountMove(models.Model):
                             move.amount_total, move.amount_tax
                         )
                     )
-                reconciled_partials = move._get_all_reconciled_invoice_partials()
-                for i, reconciled_partial in enumerate(reconciled_partials):
-                    move.invoice_payments_widget["content"][i].update(
-                        {
-                            "is_early_discount": True,
-                            "early_discount": f"{early_discount:.2f}%",
-                            "amount_early_discount": amount_early_discount,
-                        }
-                    )
+                move.invoice_payments_widget["content"][0].update(
+                    {
+                        "is_early_discount": True,
+                        "early_discount": f"{early_discount:.2f}%",
+                        "amount_early_discount": amount_early_discount,
+                    }
+                )
 
             _logger.debug("Completed '_compute_payments_widget_reconciled_info'.")
 
