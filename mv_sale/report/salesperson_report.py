@@ -26,6 +26,9 @@ class SalespersonReport(models.Model):
     product_country_of_origin = fields.Many2one(
         "res.country", "Quốc Gia (Sản phẩm)", readonly=True
     )
+    product_category_id = fields.Many2one(
+        "product.category", "Danh mục sản phẩm", readonly=True
+    )
     product_att_size_lop = fields.Char("Size (lốp)", readonly=True)
     product_att_ma_gai = fields.Char("Mã gai", readonly=True)
     product_att_rim_diameter_inch = fields.Char("Đường kính Mâm", readonly=True)
@@ -34,6 +37,7 @@ class SalespersonReport(models.Model):
     qrcode = fields.Char("QR-Code", readonly=True)
     # ==== Sale FIELDS ==== #
     sale_id = fields.Many2one("sale.order", "Mã đơn hàng", readonly=True)
+    sale_user_id = fields.Many2one("res.users", "Nhân viên kinh doanh", readonly=True)
     sale_date_order = fields.Date("Ngày đặt hàng", readonly=True)
     sale_day_order = fields.Char("Ngày", readonly=True)
     sale_month_order = fields.Char("Tháng", readonly=True)
@@ -52,29 +56,7 @@ class SalespersonReport(models.Model):
     def web_search_read(
         self, domain, specification, offset=0, limit=None, order=None, count_limit=None
     ):
-        """
-        Perform a search and read operation on the model, modifying the domain based on user group.
-
-        :param domain: List of tuples specifying the search domain.
-        :param specification: List of fields to read.
-        :param offset: Number of records to skip.
-        :param limit: Maximum number of records to return.
-        :param order: Sorting order.
-        :param count_limit: Maximum number of records to count.
-        :return: Result of the search and read operation.
-        """
-        User = self.env.user
-        salesperson_only = User.has_group(GROUP_SALESPERSON) and not (
-            User.has_group(GROUP_SALES_MANAGER) and User.has_group(GROUP_SALES_ALL)
-        )
-        if salesperson_only:
-            domain = [
-                "|",
-                ("sale_id.user_id", "=", User.id),
-                ("sale_id.user_id", "=", False),
-            ] + domain
-
-        result = super().web_search_read(
+        return super(SalespersonReport, self).web_search_read(
             domain,
             specification,
             offset=offset,
@@ -82,7 +64,6 @@ class SalespersonReport(models.Model):
             order=order,
             count_limit=count_limit,
         )
-        return result
 
     @api.depends("sale_id", "sale_id.partner_shipping_id")
     def _compute_sale_id(self):
@@ -97,8 +78,20 @@ class SalespersonReport(models.Model):
 
     @api.model
     def _sql_orders(self):
+        AND_CLAUSE = (
+            (
+                """
+            AND (so.is_order_returns = FALSE OR so.is_order_returns IS NULL)
+            AND (so.user_id = %s OR so.user_id IS NULL)
+        """
+                % self.env.user.id
+            )
+            if self.env.user.has_group(GROUP_SALESPERSON)
+            else "AND (so.is_order_returns = FALSE OR so.is_order_returns IS NULL)"
+        )
         return f"""
             SELECT so.id                             AS sale_id,
+                   so.user_id                        AS sale_user_id,
                    so.date_order::DATE               AS sale_date_order,
                    EXTRACT(DAY FROM so.date_order)   AS sale_day_order,
                    EXTRACT(MONTH FROM so.date_order) AS sale_month_order,
@@ -114,8 +107,7 @@ class SalespersonReport(models.Model):
                      INNER JOIN res_partner partner ON (so.partner_id = partner.id AND partner.is_agency = TRUE)
                      INNER JOIN res_partner partner_shipping ON (so.partner_shipping_id = partner_shipping.id)
             WHERE so.state = 'sale'
-              AND so.is_order_returns = FALSE 
-                OR so.is_order_returns IS NULL
+                {AND_CLAUSE}
         """
 
     def _query(self):
@@ -137,6 +129,7 @@ class SalespersonReport(models.Model):
         return f"""
             orders AS ({self._sql_orders()}),
             order_lines AS (SELECT so.sale_id,
+                                   so.sale_user_id,
                                    so.sale_date_order,
                                    so.sale_day_order,
                                    so.sale_month_order,
@@ -151,6 +144,7 @@ class SalespersonReport(models.Model):
                                    pp.id                AS product_id,
                                    pt.id                AS product_template_id,
                                    pt.country_of_origin AS product_country_of_origin,
+                                   pt.categ_id          AS product_category_id,
                                    stl.name             AS serial_number,
                                    stl.ref              AS qrcode
                              FROM sale_order_line sol
@@ -206,6 +200,7 @@ class SalespersonReport(models.Model):
     def _group_by_clause(self):
         return """
             GROUP BY line.sale_id,
+                     line.sale_user_id,
                      line.sale_date_order,
                      line.sale_day_order,
                      line.sale_month_order,
@@ -220,6 +215,7 @@ class SalespersonReport(models.Model):
                      line.product_id,
                      line.product_template_id,
                      line.product_country_of_origin,
+                     line.product_category_id,
                      line.serial_number,
                      line.qrcode,
                      pa.product_att_size_lop,
