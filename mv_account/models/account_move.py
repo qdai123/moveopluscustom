@@ -9,6 +9,48 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
+    def _compute_payments_widget_reconciled_info(self):
+        """
+        Compute the payments widget reconciled information.
+
+        This method updates the payments widget with early payment discount information
+        if the invoice is eligible for such discounts.
+
+        :return: None
+        """
+        _logger.debug("Starting '_compute_payments_widget_reconciled_info'.")
+
+        super()._compute_payments_widget_reconciled_info()
+        for move in self:
+            if (
+                move.invoice_payments_widget
+                and move.state == "posted"
+                and move.is_invoice(include_receipts=True)
+            ):
+                early_discount = 0.0
+                amount_early_discount = 0.0
+                if move._is_eligible_for_early_payment_discount_partial(
+                    move.currency_id, move.invoice_date
+                ):
+                    early_discount = move.invoice_payment_term_id.early_discount
+                    amount_early_discount = (
+                        move.amount_total
+                        - move.invoice_payment_term_id._get_amount_due_after_discount(
+                            move.amount_total, move.amount_tax
+                        )
+                    )
+                reconciled_partials = move._get_all_reconciled_invoice_partials()
+                for i, reconciled_partial in enumerate(reconciled_partials):
+                    move.invoice_payments_widget["content"][i].update(
+                        {
+                            "is_early_discount": True,
+                            "early_discount": f"{early_discount:.2f}%",
+                            "amount_early_discount": amount_early_discount,
+                        }
+                    )
+
+            _logger.debug("Completed '_compute_payments_widget_reconciled_info'.")
+
     # -------------------------------------------------------------------------
     # EARLY PAYMENT DISCOUNT - UPDATE by MOVEO+
     # -------------------------------------------------------------------------
