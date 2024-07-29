@@ -52,6 +52,7 @@ class HelpdeskStockMoveLineReport(models.Model):
     ticket_stage_id = fields.Many2one("helpdesk.stage", readonly=True)
     parent_partner_id = fields.Many2one("res.partner", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
+    partner_company_registry = fields.Char(readonly=True)
     partner_email = fields.Char(readonly=True)
     partner_phone = fields.Char(readonly=True)
 
@@ -65,21 +66,21 @@ class HelpdeskStockMoveLineReport(models.Model):
         ticket_stage_new = self._get_new_stage()
         ticket_stage_done = self._get_done_stage()
         return f"""
-            SELECT t.id                         AS ticket_id,
-                        t.ticket_ref               AS ticket_ref,
+                SELECT  t.id                    AS ticket_id,
+                        t.ticket_ref            AS ticket_ref,
                         t.ticket_type_id        AS ticket_type_id,
-                        t.stage_id                AS ticket_stage_id,
+                        t.stage_id              AS ticket_stage_id,
                         p.parent_id             AS parent_partner_id,
                         t.partner_id,
+                        p.company_registry      AS partner_company_registry,
                         t.partner_email,
                         t.partner_phone,
                         t.create_date           AS ticket_create_date,
-                        t.ticket_update_date AS ticket_write_date
-                 FROM helpdesk_ticket AS t
-                          JOIN res_partner AS p ON (p.id = t.partner_id)
-                 WHERE t.team_id = {warranty_team_id} 
-                    AND t.stage_id IN ({ticket_stage_new}, {ticket_stage_done})
-                 ORDER BY t.create_date DESC
+                        t.ticket_update_date    AS ticket_write_date
+                FROM helpdesk_ticket AS t
+                    JOIN res_partner AS p ON (p.id = t.partner_id)
+                WHERE t.team_id = {warranty_team_id}  AND t.stage_id IN ({ticket_stage_new}, {ticket_stage_done})
+                ORDER BY t.create_date DESC
         """
 
     def _query(self):

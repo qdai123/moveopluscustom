@@ -23,6 +23,7 @@
                         <group string="Thông tin Đại lý" name="group_customer_info">
                             <field name="parent_partner_id" string="Đại lý (Cha)" invisible="not parent_partner_id" options="{'no_open': True}"/>
                             <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+                            <field name="partner_company_registry" string="Mã đại lý"/>
                             <field name="partner_email" string="Email"/>
                             <field name="partner_phone" string="Điện thoại"/>
                         </group>
@@ -86,6 +87,7 @@
 				<field name="week_number" string="Số tuần" optional="show"/>
 				<field name="parent_partner_id" string="Đại lý (Cha)" options="{'no_open': True}" optional="hidden"/>
 				<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+				<field name="partner_company_registry" string="Mã đại lý"/>
 				<field name="partner_email" string="Email" optional="hidden"/>
 				<field name="partner_phone" string="Điện thoại" optional="hidden"/>
 				<field name="ticket_id" column_invisible="True"/>
