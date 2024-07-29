@@ -16,6 +16,19 @@ class ResPartner(models.Model):
             res.append((partner.id, partner.partner_agency_name))
         return res
 
+    @api.model
+    def auto_update_data(self):
+        for record in self.filtered("is_agency"):
+            # Calculate total discount money from different sources
+            total_amount_discount_approved, total_amount_discount_waiting_approve = (
+                self._calculate_total_discounts(record)
+            )
+
+            # Calculate wallet amount
+            wallet = total_amount_discount_approved - record.total_so_bonus_order
+            record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
+            record.waiting_amount_currency = total_amount_discount_waiting_approve
+
     # === TRƯỜNG CƠ SỞ DỮ LIỆU
     # line_ids: Nội dung chi tiết chiết khấu được áp dụng cho Đại Lý
     # amount/amount_currency: Ví tiền được chiết khấu cho Đại lý sử dụng
@@ -46,7 +59,7 @@ class ResPartner(models.Model):
     # Bảo lãnh ngân hàng, Chiết khấu bảo lãnh ngân hàng (%)
     # ===#
     partner_agency_name = fields.Char(
-        "Tên Đại Lý", compute="_compute_partner_agency_name", recursive=True
+        "Tên Đại Lý", compute="_compute_partner_agency_name", store=True
     )
     is_agency = fields.Boolean("Đại lý", tracking=True)
     is_white_agency = fields.Boolean("Đại lý vùng trắng", tracking=True)
@@ -87,7 +100,18 @@ class ResPartner(models.Model):
     # =================================
 
     def action_update_discount_amount(self):
+        """
+        Update the discount amount for partner agencies.
+
+        This method processes orders with discounts applied, calculates the total discount
+        money from different sources, and updates the wallet amount for each partner agency.
+
+        :return: dict: A success notification if triggered manually, otherwise None.
+        """
+        _logger.debug("Starting 'action_update_discount_amount'.")
+
         for record in self.filtered("is_agency"):
+            # Initialize discount-related fields
             record.sale_mv_ids = None
             record.total_so_bonus_order = 0
             record.total_so_quotations_discount = 0
@@ -113,16 +137,18 @@ class ResPartner(models.Model):
             )
 
             # Calculate wallet amount
-            wallet = (
-                total_amount_discount_approved
-                - total_amount_discount_waiting_approve
-                - record.total_so_bonus_order
-            )
+            wallet = total_amount_discount_approved - record.total_so_bonus_order
             record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
             record.waiting_amount_currency = total_amount_discount_waiting_approve
 
-            # [>.CONTEXT] Trigger update manual notification
+            # Auto update data
+            self.auto_update_data()
+
+            # Trigger update manual notification if context is set
             if self.env.context.get("trigger_manual_update", False):
+                _logger.debug(
+                    "Manual update triggered, returning success notification."
+                )
                 return {
                     "type": "ir.actions.client",
                     "tag": "display_notification",
@@ -134,7 +160,7 @@ class ResPartner(models.Model):
                     },
                 }
 
-        return True
+        _logger.debug("Completed 'action_update_discount_amount'.")
 
     # =================================
     # CONSTRAINS Methods
