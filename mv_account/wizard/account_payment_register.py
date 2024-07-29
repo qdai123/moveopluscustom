@@ -30,20 +30,7 @@ class AccountPaymentRegister(models.TransientModel):
         _logger.debug("Starting '_onchange_payment_date'.")
 
         try:
-            first_day_of_month = fields.Date.today().replace(day=1)
-            if self.payment_date and self.payment_date < first_day_of_month:
-                _logger.warning(
-                    "Payment date is before the first day of the current month."
-                )
-                return {
-                    "warning": {
-                        "title": _("Warning"),
-                        "message": _(
-                            "Ngày thanh toán phải thuộc ngày của tháng có Ngày Đến Hạn, vui lòng chọn lại!"
-                        ),
-                    }
-                }
-            else:
+            if self.payment_date:
                 self._compute_amount()
                 self._compute_payment_difference()
                 _logger.debug(
