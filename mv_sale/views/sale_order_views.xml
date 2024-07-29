@@ -1,124 +1,203 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- ====== MOVEO PLUS INHERIT: VIEWS ====== -->
 <odoo>
-    <record id="view_order_form_mv_sale" model="ir.ui.view">
-        <field name="name">view_order_form_mv_sale</field>
-        <field name="model">sale.order</field>
-        <field name="inherit_id" ref="sale.view_order_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//group[@name='order_details']" position="inside">
-                <field name="check_discount_10" invisible="1"/>
-                <field name="bonus_order" invisible="1"/>
-            </xpath>
-            <xpath expr="//header" position="inside">
-                <field name="flag_delivery" invisible="1"/>
-                <field name="is_sales_manager" invisible="1"/>
-                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Chiết khấu tự động" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or flag_delivery"/>
-                <button name="action_compute_discount_month" id="action_compute_discount_month" data-hotkey="q" string="Nhập chiết khấu sản lượng" class="btn-primary" type="object" context="{'validate_analytic': True}" invisible="state not in ['sent', 'draft'] or not flag_delivery"/>
-            </xpath>
-            <xpath expr="//field[@name='date_order']" position="attributes">
-                <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
-            </xpath>
-            <xpath expr="//field[@name='pricelist_id']" position="attributes">
-                <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
-            </xpath>
-            <xpath expr="//field[@name='payment_term_id']" position="attributes">
-                <attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="before">
-                <field name="is_sales_manager" column_invisible="True"/>
-            </xpath>
-            <!-- ===== [START] Readonly by Groups of Sales for Order Lines ===== -->
-            <xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="attributes">
-                <attribute name="context">
-                    {
-                    'partner_id': parent.partner_id,
-                    'quantity': product_uom_qty,
-                    'pricelist': parent.pricelist_id,
-                    'uom':product_uom,
-                    'company_id': parent.company_id,
-                    'default_lst_price': price_unit,
-                    'default_description_sale': name,
-                    'check_domain_access_on_sales_groups': True
-                    }
-                </attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='product_template_id']" position="attributes">
-                <attribute name="context">
-                    {
-                    'partner_id': parent.partner_id,
-                    'quantity': product_uom_qty,
-                    'pricelist': parent.pricelist_id,
-                    'uom':product_uom,
-                    'company_id': parent.company_id,
-                    'default_list_price': price_unit,
-                    'default_description_sale': name,
-                    'check_domain_access_on_sales_groups': True
-                    }
-                </attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='name']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='product_uom_qty']" position="attributes">
-                <attribute name="readonly">is_downpayment or (not is_sales_manager and product_type == 'service')</attribute>
-                <attribute name="sum">Total product_uom_qty</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='qty_delivered']" position="attributes">
-                <attribute name="readonly">(qty_delivered_method != 'manual' or is_downpayment) or (not is_sales_manager and product_type == 'service')</attribute>
-                <attribute name="sum">Total qty_delivered</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='qty_invoiced']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                <attribute name="sum">Total qty_invoiced</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='customer_lead']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_qty']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                <attribute name="sum">Total product_packaging_qty</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_id']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="attributes">
-                <attribute name="readonly">not is_sales_manager</attribute>
-                <attribute name="sum">Total price_unit</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='purchase_price']" position="attributes">
-                <attribute name="sum">Total purchase_price</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='tax_id']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='discount']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                <attribute name="sum">Total price_subtotal</attribute>
-            </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='price_total']" position="attributes">
-                <attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
-                <attribute name="sum">Total price_total</attribute>
-            </xpath>
-            <!-- ===== [END] Readonly by Groups of Sales for Order Lines ===== -->
-        </field>
-    </record>
+	<record id="mv_sale_inherit_sale_order_tree" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.sale.order.tree</field>
+		<field name="model">sale.order</field>
+		<field name="inherit_id" ref="sale.sale_order_tree"/>
+		<field name="priority">20</field>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='partner_id']" position="after">
+				<field name="partner_agency" column_invisible="1"/>
+				<field name="partner_white_agency" column_invisible="1"/>
+				<field name="partner_southern_agency" column_invisible="1"/>
+			</xpath>
+		</field>
+	</record>
 
-    <record id="mv_sale_inherit_view_order_form_hq" model="ir.ui.view">
-        <field name="name">mv_sale.inherit.view.order.form.hq</field>
-        <field name="model">sale.order</field>
-        <field name="inherit_id" ref="biz_viettel_sinvoice_v2.view_order_form_hq"/>
-        <field name="priority">30</field>
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='order_line']/tree/field[@name='price_discount_inv']" position="attributes">
-                <attribute name="sum">Total price_discount_inv</attribute>
+	<record id="view_order_form_mv_sale" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.order.form</field>
+		<field name="model">sale.order</field>
+		<field name="inherit_id" ref="sale.view_order_form"/>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='partner_id']" position="before">
+				<field name="is_sales_manager" invisible="1"/>
             </xpath>
-            <xpath expr="//field[@name='order_line']/tree/field[@name='price_total_before_discount']" position="attributes">
-                <attribute name="sum">Total price_total_before_discount</attribute>
+			<xpath expr="//field[@name='partner_id']" position="after">
+				<field name="partner_agency" invisible="1"/>
+				<field name="partner_white_agency" invisible="1"/>
+				<field name="partner_southern_agency" invisible="1"/>
+			</xpath>
+			<xpath expr="//field[@name='partner_id']" position="after">
+				<field name="discount_agency_set" invisible="1"/>
+				<field name="compute_discount_agency" invisible="1"/>
+				<field name="recompute_discount_agency" invisible="1"/>
             </xpath>
-        </field>
-    </record>
+			<xpath expr="//group[@name='order_details']" position="inside">
+				<field name="check_discount_10" invisible="1"/>
+				<field name="quantity_change" invisible="1"/>
+				<field name="bonus_max" invisible="1"/>
+				<field name="bonus_order" invisible="1"/>
+				<field name="bonus_remaining" invisible="1"/>
+			</xpath>
+			<xpath expr="//field[@name='payment_term_id']" position="after">
+				<field string="Đổi trả hàng" name="is_order_returns" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
+			</xpath>
+			<xpath expr="//header" position="inside">
+				<button string="Chiết khấu tự động"
+				        type="object"
+				        class="btn-primary"
+				        name="action_compute_discount"
+				        context="{'validate_analytic': True, 'compute_discount_agency': True}"
+				        invisible="not compute_discount_agency or recompute_discount_agency or is_order_returns"/>
+				<button string="Cập nhật chiết khấu"
+				        type="object"
+				        class="btn-primary"
+				        name="action_recompute_discount"
+				        context="{'validate_analytic': True, 'recompute_discount_agency': True}"
+				        invisible="compute_discount_agency or not recompute_discount_agency or is_order_returns"/>
+			</xpath>
+			<xpath expr="//field[@name='date_order']" position="attributes">
+				<attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
+			</xpath>
+			<xpath expr="//field[@name='pricelist_id']" position="attributes">
+				<attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
+			</xpath>
+			<xpath expr="//field[@name='payment_term_id']" position="attributes">
+				<attribute name="readonly">not is_sales_manager or state in ['sale', 'cancel']</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']" position="before">
+				<button string="Clean Discount Lines"
+				        type="object"
+				        name="action_clear_discount_lines"
+				        class="btn btn-link btn-sm lh-1 fa fa-trash o_clear_discount_lines_button"
+				        invisible="not partner_agency or is_order_returns or state in ['sale', 'cancel']"
+				        groups="base.group_system"/>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="before">
+				<field name="is_sales_manager" string="Is Manager?" column_invisible="1"/>
+			</xpath>
+			<!-- ===== [START] Readonly by Groups of Sales for Order Lines ===== -->
+			<xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="attributes">
+				<attribute name="context">
+					{
+					'partner_id': parent.partner_id,
+					'quantity': product_uom_qty,
+					'pricelist': parent.pricelist_id,
+					'uom':product_uom,
+					'company_id': parent.company_id,
+					'default_lst_price': price_unit,
+					'default_description_sale': name,
+					'check_domain_access_on_sales_groups': True
+					}
+				</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='product_template_id']" position="attributes">
+				<attribute name="context">
+					{
+					'partner_id': parent.partner_id,
+					'quantity': product_uom_qty,
+					'pricelist': parent.pricelist_id,
+					'uom':product_uom,
+					'company_id': parent.company_id,
+					'default_list_price': price_unit,
+					'default_description_sale': name,
+					'check_domain_access_on_sales_groups': True
+					}
+				</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='name']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='product_uom_qty']" position="attributes">
+				<attribute name="readonly">is_downpayment or (not is_sales_manager and product_type == 'service')
+				</attribute>
+				<attribute name="sum">Total product_uom_qty</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='qty_delivered']" position="attributes">
+				<attribute name="readonly">(qty_delivered_method != 'manual' or is_downpayment) or (not is_sales_manager
+					and product_type == 'service')
+				</attribute>
+				<attribute name="sum">Total qty_delivered</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='qty_invoiced']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+				<attribute name="sum">Total qty_invoiced</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='customer_lead']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_qty']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+				<attribute name="sum">Total product_packaging_qty</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='product_packaging_id']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="attributes">
+				<attribute name="readonly">not is_sales_manager</attribute>
+				<attribute name="sum">Total price_unit</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='purchase_price']" position="attributes">
+				<attribute name="sum">Total purchase_price</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='tax_id']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='discount']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+				<attribute name="sum">Total price_subtotal</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='price_total']" position="attributes">
+				<attribute name="readonly">not is_sales_manager and product_type == 'service'</attribute>
+				<attribute name="sum">Total price_total</attribute>
+			</xpath>
+			<!-- ===== [END] Readonly by Groups of Sales for Order Lines ===== -->
+			<xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="after">
+				<field name="price_subtotal_before_discount" widget="monetary"
+				       sum="Total price_subtotal_before_discount" optional="hidden"/>
+			</xpath>
+			<xpath expr="//div[@name='so_button_below_order_lines']//button[@name='action_open_discount_wizard']" position="attributes">
+				<!-- MOVEO PLUS Override: Hide Discount Button to handle new case from MOVEO PLUS Workflow on Sales -->
+				<attribute name="invisible">True</attribute>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="mv_sale_inherit_view_sales_order_filter" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.view.sales.order.filter</field>
+		<field name="model">sale.order</field>
+		<field name="inherit_id" ref="sale.view_sales_order_filter"/>
+		<field name="priority">20</field>
+		<field name="arch" type="xml">
+			<xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+				<separator/>
+				<filter string="Đại lý" domain="[('partner_agency', '=', True)]" name="partner_agency_filter"/>
+				<filter string="Đại lý Vùng Trắng" domain="[('partner_white_agency', '=', True)]" name="partner_white_agency_filter"/>
+				<filter string="Đại lý Miền Nam" domain="[('partner_southern_agency', '=', True)]" name="partner_southern_agency_filter"/>
+				<separator/>
+				<filter string="Đơn đổi trả" domain="[('is_order_returns', '=', True)]" name="order_return_filter"/>
+				<separator/>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="mv_sale_inherit_view_order_form_hq" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.view.order.form.hq</field>
+		<field name="model">sale.order</field>
+		<field name="inherit_id" ref="biz_viettel_sinvoice_v2.view_order_form_hq"/>
+		<field name="priority">30</field>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='order_line']/tree/field[@name='price_discount_inv']" position="attributes">
+				<attribute name="sum">Total price_discount_inv</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='price_total_before_discount']"
+			       position="attributes">
+				<attribute name="sum">Total price_total_before_discount</attribute>
+			</xpath>
+		</field>
+	</record>
 </odoo>

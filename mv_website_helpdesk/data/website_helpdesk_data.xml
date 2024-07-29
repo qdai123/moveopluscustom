@@ -3,14 +3,15 @@
     <function model="ir.model.fields" name="formbuilder_whitelist">
         <value>helpdesk.ticket</value>
         <value eval="[
-            'partner_name',
-            'partner_email',
             'name',
             'description',
             'team_id',
             'partner_id',
+            'partner_name',
+            'partner_email',
             'portal_lot_serial_number',
             'sub_dealer_name',
+            'tel_activation',
             'license_plates',
             'mileage'
         ]"/>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data noupdate="0">
+		<!-- There is having only 1 Group can be used to Manage ZALO Features -->
+
+        <record model="ir.module.category" id="module_category_module_mv_zalo">
+            <field name="name">ZALO Management</field>
+            <field name="parent_id" ref="mv_base.module_category_moveoplus"/>
+        </record>
+
+        <record model="res.groups" id="group_mv_zalo_manager">
+            <field name="name">Manager</field>
+            <field name="category_id" ref="module_category_module_mv_zalo"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        </record>
+	</data>
+</odoo>

@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- MOVEO+: Apply Partner Discount Form on Sale Order (Portal Only) -->
+	<template id="mv_apply_partner_bonus_form" name="MOVEO+ Form: Apply Partner Discount Form">
+		<!-- Checkout context:
+            - redirect: The route to redirect to when a customer enters partner discount; default: `None`.
+            - website_sale_order: The current order.
+        -->
+		<form t-attf-action="/shop/apply_discount#{redirect and '?r=' + redirect or ''}" method="post" name="applying_partner_discount">
+			<input type="hidden" name="csrf_token" t-att-value="request.csrf_token()" t-nocache="The csrf token must always be up to date."/>
+			<div class="input-group w-100 my-2">
+				<input name="discount_amount"
+				       type="number"
+				       id="applying_partner_discount_input"
+				       class="form-control"
+				       t-attf-value="{{website_sale_order.bonus_remaining if website_sale_order.bonus_remaining > 0 else 0}}"
+				       min="0"/>
+				<a href="#" role="button" id="button-apply" class="btn btn-secondary a-submit">Áp dụng</a>
+			</div>
+		</form>
+		<t t-if="request.params.get('discount_amount_apply_exceeded')" name="invalid_bonus">
+			<div class="alert alert-danger text-start" role="alert">Tiền chiết khấu áp dụng không được lớn hơn số tiền chiết khấu tối đa.</div>
+		</t>
+	</template>
+
+	<!-- ======================================================= -->
+
+	<!-- MOVEO+ Inherited: Total (website_sale.total) -->
+	<template id="mv_website_sale.total" name="MOVEO+ Inherited: Total" inherit_id="website_sale.total">
+		<xpath expr="//div[@id='cart_total']/table" position="before">
+			<t t-set="is_partner_agency" t-value="website_sale_order and website_sale_order.partner_id and website_sale_order.partner_id.is_agency"/>
+			<t t-set="is_partner_agency_has_bank_guarantee" t-value="website_sale_order and website_sale_order.partner_id and website_sale_order.partner_id.is_agency and website_sale_order.partner_id.bank_guarantee"/>
+			<t t-set="partner_discount_amount" t-value="website_sale_order.partner_id.amount_currency if is_partner_agency else 0"/>
+		</xpath>
+		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total_untaxed']" position="attributes">
+			<attribute name="t-attf-style">display: none;</attribute>
+		</xpath>
+		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total_taxes']" position="attributes">
+			<attribute name="t-attf-style">display: none;</attribute>
+		</xpath>
+		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total_untaxed']" position="before">
+			<tr id="order_total_price_no_service">
+				<td id="cart_total_before_discount" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
+					Giá chưa chiết khấu
+				</td>
+				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
+					<span t-field="website_sale_order.total_price_no_service"
+					      class="monetary_field"
+					      style="white-space: nowrap;"
+					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				</td>
+			</tr>
+			<tr id="order_percentage_for_each_product">
+				<td id="cart_total_discount_on_product" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
+					Chiết khấu (Sản phẩm) <t t-out="'({}%)'.format(int(website_sale_order.percentage))"/>
+				</td>
+				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
+					<span t-out="-website_sale_order.total_price_discount"
+					      class="monetary_field"
+					      style="white-space: nowrap;"
+					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				</td>
+			</tr>
+
+			<!-- [MO+] START: Chiết Khấu áp dụng theo chương trình -->
+			<t t-if="is_partner_agency">
+				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.reward_id)" t-as="so_line">
+					<tr id="order_total_reward_line">
+						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
+							<t t-out="so_line.name_short"/>
+						</td>
+						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
+							<span t-out="so_line.price_unit"
+							      class="monetary_field"
+							      style="white-space: nowrap;"
+							      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+						</td>
+					</tr>
+				</t>
+			</t>
+			<!-- [MO+] END: Chiết Khấu áp dụng theo chương trình -->
+
+			<!-- [MO+] START: Chiết Khấu Sản Lượng theo Tháng/Quý/Năm -->
+			<t t-if="is_partner_agency">
+				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.product_id.default_code == 'CKT')" t-as="so_line">
+					<tr id="order_total_reward_line">
+						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
+							Chiết khấu Sản Lượng (Tháng/Quý/Năm)
+						</td>
+						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
+							<span t-out="so_line.price_unit"
+							      class="monetary_field"
+							      style="white-space: nowrap;"
+							      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+						</td>
+					</tr>
+				</t>
+			</t>
+			<!-- [MO+] END: Chiết Khấu Sản Lượng theo Tháng/Quý/Năm -->
+
+			<!-- [MO+] START: Chiết Khấu Bảo Lãnh Ngân Hàng -->
+			<t t-if="is_partner_agency_has_bank_guarantee">
+				<tr id="order_discount_bank_guarantee">
+					<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
+						Chiết khấu bảo lãnh Ngân Hàng
+					</td>
+					<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
+						<span t-out="-website_sale_order.discount_bank_guarantee"
+						      class="monetary_field"
+						      style="white-space: nowrap;"
+						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					</td>
+				</tr>
+			</t>
+			<!-- [MO+] END: Chiết Khấu Bảo Lãnh Ngân Hàng -->
+
+		</xpath>
+		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total_taxes']" position="after">
+			<tr id="order_total_price_after_discount" class="border-top">
+				<td id="cart_total_after_discount" class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
+					Giá sau chiết khấu
+				</td>
+				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
+					<span t-field="website_sale_order.amount_untaxed"
+					      class="monetary_field"
+					      style="white-space: nowrap;"
+					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				</td>
+			</tr>
+			<tr id="order_total_taxes">
+				<td colspan="2" class="text-muted border-0 ps-0 pt-0 pb-3">Thuế</td>
+				<td class="text-end border-0 pe-0 pt-0 pb-3 text-muted">
+					<span t-field="website_sale_order.amount_tax"
+					      class="monetary_field"
+					      style="white-space: nowrap;"
+					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				</td>
+			</tr>
+		</xpath>
+		<xpath expr="//div[@id='cart_total']/table//tr[@id='order_total']" position="after">
+			<tr t-if="is_partner_agency and not hide_discount_amount" id="order_total_partner_discount_amount">
+				<td colspan="2" class="border-0 ps-0 pt-3">
+					<span class="fw-bold">
+						<i class="fa fa-fw fa-money me-1 text-success"/>Tiền chiết khấu hiện có
+						<p class="fw-normal">
+							<small class="text-muted">(Lưu ý: Số tiền chiết khấu sử dụng không vượt quá
+								<b>
+									<t t-out="float(website_sale_order.bonus_max)" class="monetary_field" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+								</b>
+							</small>
+						</p>
+					</span>
+				</td>
+				<td class="text-end text-success border-0 px-0 pt-3">
+					<strong t-field="website_sale_order.bonus_remaining"
+					        class="monetary_field text-end p-0"
+					        t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+				</td>
+			</tr>
+		</xpath>
+		<xpath expr="//div[@id='cart_total']/table/tr[last()]" position="after">
+			<tr t-if="is_partner_agency and not hide_discount_amount" id="order_partner_discount_amount_apply_form">
+				<td colspan="3" class="text-end text-xl-end border-0 p-0">
+					<span>
+						<div class="mv_apply_partner_bonus_form">
+							<t t-call="mv_website_sale.mv_apply_partner_bonus_form"/>
+						</div>
+					</span>
+				</td>
+			</tr>
+		</xpath>
+	</template>
+
+	<!-- MOVEO+ Inherited: Navigations Buttons (website_sale.navigation_buttons) -->
+	<template id="mv_website_sale.navigation_buttons" name="MOVEO+ Inherited: Navigations Buttons" inherit_id="website_sale.navigation_buttons">
+		<xpath expr="//a[@name='website_sale_main_button']" position="after">
+			<div class="warning_checkout" style="padding-top: inherit;">
+				<t t-if="request.params.get('show_warning')" name="show_warning">
+					<div class="alert alert-danger text-center" role="alert">Bạn phải đặt từ 4 lốp xe trở lên!</div>
+				</t>
+				<t t-if="request.params.get('missing_partner_discount')" name="missing_partner_discount">
+					<div class="alert alert-danger text-center" role="alert">Vui lòng áp dụng Chiết khấu cho đơn hàng!</div>
+				</t>
+			</div>
+		</xpath>
+	</template>
+
+	<!-- MOVEO+ Inherited: Brand Promotion (website_sale.brand_promotion) -->
+	<template id="mv_website_sale.brand_promotion" name="MOVEO+ Inherited: Brand Promotion" inherit_id="website_sale.brand_promotion">
+		<!-- Replace: Remove the brand promotion message -->
+		<xpath expr="//t[@t-call='web.brand_promotion_message']" position="replace"/>
+	</template>
+
+	<template id="mv_website_sale.cart_line_product_no_link_mv_sale" inherit_id="website_sale_loyalty.cart_line_product_no_link">
+		<!-- TODO: Fix after -->
+		<xpath expr="//t[@t-if='line.is_reward_line']" position="after">
+			<t t-elif="line.hidden_show_qty">
+				<strong t-field="line.name"/>
+			</t>
+		</xpath>
+	</template>
+
+	<template id="mv_website_sale.cart_lines_mv_sale" inherit_id="website_sale.cart_lines">
+		<!-- TODO: Fix after -->
+		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']" position="replace">
+			<div t-foreach="website_sale_order.website_order_line"
+			     t-as="line">
+				<t t-if="line.product_id and line.product_id.detailed_type != 'service'">
+					<div t-attf-class="o_cart_product d-flex align-items-stretch gap-3 #{line.linked_line_id and 'optional_product info'} #{not line_last and 'border-bottom pb-4'} #{line_index &gt; 0 and 'pt-4'}"
+					     t-attf-data-product-id="#{line.product_id and line.product_id.id}">
+						<img t-if="line._is_not_sellable_line() and line.product_id.image_128"
+						     t-att-src="image_data_uri(line.product_id.image_128)"
+						     class="o_image_64_max  img rounded"
+						     t-att-alt="line.name_short"/>
+						<div t-else=""
+						     t-field="line.product_id.image_128"
+						     t-options="{'widget': 'image', 'qweb_img_responsive': False, 'class': 'o_image_64_max rounded'}"/>
+						<div class="flex-grow-1">
+							<t t-call="website_sale.cart_line_product_link">
+								<h6 t-field="line.name_short" class="d-inline align-top h6 fw-bold"/>
+							</t>
+							<t t-call="website_sale.cart_line_description_following_lines">
+								<t t-set="div_class" t-valuef="d-none d-md-block"/>
+							</t>
+							<div>
+								<a href='#'
+								   class="js_delete_product d-none d-md-inline-block small"
+								   aria-label="Remove from cart"
+								   title="Remove from cart">Xóa
+								</a>
+								<button class="js_delete_product btn btn-light d-inline-block d-md-none"
+								        title="remove">
+									<i class="fa fa-trash-o"/>
+								</button>
+							</div>
+						</div>
+						<div class="d-flex flex-column align-items-end">
+							<div t-attf-class="css_quantity input-group mb-2"
+							     name="website_sale_cart_line_quantity">
+								<t t-if="not line._is_not_sellable_line()">
+									<t t-if="show_qty">
+										<a href="#"
+										   class="js_add_cart_json btn btn-link d-inline-block border-end-0"
+										   aria-label="Remove one"
+										   title="Remove one">
+											<i class="position-relative z-index-1 fa fa-minus"/>
+										</a>
+										<input type="text"
+										       class="js_quantity quantity form-control border-start-0 border-end-0"
+										       t-att-data-line-id="line.id"
+										       t-att-data-product-id="line.product_id.id"
+										       t-att-value="int(line.product_uom_qty) == line.product_uom_qty and int(line.product_uom_qty) or line.product_uom_qty"/>
+										<t t-if="line._get_shop_warning(clear=False)">
+											<a href="#" class="btn btn-link">
+												<i class='fa fa-warning text-warning'
+												   t-att-title="line._get_shop_warning()"
+												   role="img"
+												   aria-label="Warning"/>
+											</a>
+										</t>
+										<a t-else=""
+										   href="#"
+										   class="js_add_cart_json d-inline-block float_left btn btn-link border-start-0"
+										   aria-label="Add one"
+										   title="Add one">
+											<i class="fa fa-plus position-relative z-index-1"/>
+										</a>
+									</t>
+									<t t-else="">
+										<input type="hidden"
+										       class="js_quantity form-control quantity"
+										       t-att-data-line-id="line.id"
+										       t-att-data-product-id="line.product_id.id"
+										       t-att-value="int(line.product_uom_qty) == line.product_uom_qty and int(line.product_uom_qty) or line.product_uom_qty"/>
+									</t>
+								</t>
+								<t t-else="">
+									<span class="w-100 text-muted" t-esc="int(line.product_uom_qty)"/>
+									<input type="hidden"
+									       class="js_quantity quantity form-control"
+									       t-att-data-line-id="line.id"
+									       t-att-data-product-id="line.product_id.id"
+									       t-att-value="line.product_uom_qty"/>
+								</t>
+							</div>
+							<div class="mb-0 h6 fw-bold text-end" name="website_sale_cart_line_price">
+								<t t-if="line.discount">
+									<del t-attf-class="#{'text-danger mr8'}"
+									     style="white-space: nowrap;"
+									     t-out="line.price_unit * line.product_uom_qty"
+									     t-options="{'widget': 'monetary', 'display_currency': website.currency_id}"/>
+								</t>
+								<t t-if="website.show_line_subtotals_tax_selection == 'tax_excluded'"
+								   t-set='product_price'
+								   t-value='line.price_subtotal'/>
+								<t t-else=""
+								   t-set='product_price'
+								   t-value='line.price_total'/>
+								<span t-out="product_price" style="white-space: nowrap;"
+								      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+								<small t-if="not line._is_not_sellable_line() and line.product_id.base_unit_price"
+								       class="cart_product_base_unit_price d-block text-muted"
+								       groups="website_sale.group_show_uom_price">
+									<t t-call='website_sale.base_unit_price'>
+										<t t-set='product' t-value='line.product_id'/>
+										<t t-set='combination_info'
+										   t-value="{'base_unit_price': product._get_base_unit_price(product_price/line.product_uom_qty)}"/>
+									</t>
+								</small>
+							</div>
+						</div>
+					</div>
+				</t>
+			</div>
+		</xpath>
+	</template>
+
+	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">
+		<!-- TODO: Fix after -->
+		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="replace">
+			<tr t-foreach="website_sale_order.website_order_line" t-as="line"
+			    t-att-class="line_last and 'border-transparent'">
+				<t t-set="o_cart_sum_padding_top" t-value="'pt-3' if line_size &gt; 1 and not line_first else 'pt-0'"/>
+				<td t-if="not line.product_id" colspan="2"/>
+				<t t-else="">
+					<t t-if="line.product_id and line.product_id.detailed_type != 'service'">
+						<td t-attf-class="td-img ps-0 #{o_cart_sum_padding_top}">
+							<span t-if="line._is_not_sellable_line() and line.product_id.image_128">
+								<img t-att-src="image_data_uri(line.product_id.image_128)"
+								     class="o_image_64_max img rounded" t-att-alt="line.name_short"/>
+							</span>
+							<span t-else="" t-field="line.product_id.image_128"
+							      t-options="{'widget': 'image', 'qweb_img_responsive': False, 'class': 'o_image_64_max rounded'}"/>
+						</td>
+						<td t-attf-class="#{o_cart_sum_padding_top} td-product_name td-qty w-100"
+						    name="website_sale_cart_summary_product_name">
+							<h6>
+								<t t-out="int(line.product_uom_qty)"/>
+								<t t-if="line._get_shop_warning(clear=False)">
+									<i class="fa fa-warning text-warning" role="img"
+									   t-att-title="line._get_shop_warning()" aria-label="Warning"/>
+								</t>
+								x
+								<t t-out="line.name_short"/>
+							</h6>
+						</td>
+					</t>
+				</t>
+				<t t-if="line.product_id and line.product_id.detailed_type != 'service'">
+					<td t-attf-class="#{o_cart_sum_padding_top} td-price pe-0 text-end"
+					    name="website_sale_cart_summary_line_price">
+						<span t-if="website.show_line_subtotals_tax_selection == 'tax_excluded'"
+						      t-field="line.price_subtotal" style="white-space: nowrap;"
+						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+						<span t-else="" t-field="line.price_total" style="white-space: nowrap;"
+						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					</td>
+				</t>
+			</tr>
+		</xpath>
+	</template>
+
+</odoo>

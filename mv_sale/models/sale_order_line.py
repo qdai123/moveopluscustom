@@ -1,104 +1,234 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
-from odoo.exceptions import UserError, AccessError, ValidationError
+import logging
+
+from markupsafe import Markup
+from odoo.addons.mv_sale.models.sale_order import GROUP_SALES_MANAGER
+
+from odoo import api, fields, models
+from odoo.tools.sql import column_exists, create_column
+
+_logger = logging.getLogger(__name__)
 
 
 class SaleOrderLine(models.Model):
-    _inherit = 'sale.order.line'
+    _inherit = "sale.order.line"
 
-    hidden_show_qty = fields.Boolean(help="Do not show change qty in website", default=False, copy=False)
-    discount_line_id = fields.Many2one("mv.compute.discount.line")
-    code_product = fields.Char(help="Do not recompute discount")
+    def _auto_init(self):
+        # MOVEO+ OVERRIDE: Create column to stop ORM from computing it himself (too slow)
+        if not column_exists(self.env.cr, "sale_order_line", "is_discount_agency"):
+            create_column(self.env.cr, "sale_order_line", "is_discount_agency", "bool")
+            self.env.cr.execute(
+                """
+                UPDATE sale_order_line line
+                SET is_discount_agency = (pt.type = 'service' AND pp.default_code = 'CKT')
+                FROM product_product pp
+                LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                WHERE pp.id = line.product_id
+            """
+            )
+        return super()._auto_init()
 
-    # SUPPORT Fields:
-    is_sales_manager = fields.Boolean(
-        compute='_compute_is_sales_manager',
-        default=lambda self: self.env.user.has_group("sales_team.group_sale_manager")
+    code_product = fields.Char()
+    price_subtotal_before_discount = fields.Monetary(
+        "Subtotal before Discount",
+        compute="_compute_price_subtotal_before_discount",
+        store=True,
+        currency_field="currency_id",
     )
+    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
+    discount_line_id = fields.Many2one("mv.compute.discount.line")
+    is_discount_agency = fields.Boolean(
+        "Agency Discount Product",
+        compute="_is_discount_agency",
+        store=True,
+        compute_sudo=True,
+    )
+    recompute_discount_agency = fields.Boolean(default=False)
 
-    @api.depends_context('uid')
-    def _compute_is_sales_manager(self):
-        is_manager = self.env.user.has_group("sales_team.group_sale_manager")
+    # === Permission/Flags Fields ===#
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
 
-        for user in self:
-            user.is_sales_manager = is_manager
+    @api.depends("order_id")
+    @api.depends_context("uid")
+    def _compute_permissions(self):
+        for sol in self:
+            sol.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
 
-    @api.model
-    def fields_get(self, allfields=None, attributes=None):
-        fields = super(SaleOrderLine, self).fields_get(allfields, attributes)
-        return fields
+    # /// ORM Methods
 
-    def _is_not_sellable_line(self):
-        return self.hidden_show_qty or super()._is_not_sellable_line()
+    @api.depends("product_id", "product_id.default_code")
+    def _is_discount_agency(self):
+        for sol in self:
+            sol.is_discount_agency = sol._filter_discount_agency_lines(sol.order_id)
 
-    @api.depends('state')
-    def _compute_product_uom_readonly(self):
-        # OVERRIDE to set access groups of Sales
-        for line in self:
-            # line.ids checks whether it's a new record not yet saved
-            line.product_uom_readonly = line.ids and line.state in ['sale', 'cancel'] or (
-                    not line.is_sales_manager and line.product_template_id.detailed_type == 'service')
+    @api.depends("qty_delivered", "price_unit", "discount")
+    def _compute_price_subtotal_before_discount(self):
+        """
+        Compute the subtotal before discount for each sale order line.
 
-    @api.depends('product_id', 'state', 'qty_invoiced', 'qty_delivered')
+        This method calculates the subtotal before discount by multiplying the
+        price unit by the quantity delivered and then applying the discount.
+
+        :return: None
+        """
+        _logger.debug("Starting computation of price_subtotal_before_discount.")
+
+        for sol in self:
+            try:
+                if sol.price_unit and sol.qty_delivered and sol.discount:
+                    sol.price_subtotal_before_discount = (
+                        sol.price_unit * sol.qty_delivered
+                    ) - ((sol.price_unit * sol.qty_delivered) * sol.discount / 100)
+                    _logger.debug(
+                        f"Computed subtotal before discount for line {sol.id}: {sol.price_subtotal_before_discount}"
+                    )
+                else:
+                    sol.price_subtotal_before_discount = 0
+                    _logger.debug(
+                        f"Set subtotal before discount to 0 for line {sol.id} due to missing values."
+                    )
+            except Exception as e:
+                _logger.error(
+                    f"Error computing subtotal before discount for line {sol.id}: {e}"
+                )
+                sol.price_subtotal_before_discount = 0
+
     def _compute_product_updatable(self):
-        # OVERRIDE to set access groups of Sales
-        for line in self:
-            if line.state == 'cancel':
-                line.product_updatable = False
-            elif line.state == 'sale' and (
-                    line.order_id.locked
-                    or line.qty_invoiced > 0
-                    or line.qty_delivered > 0
-            ):
-                line.product_updatable = False
-            elif line.state not in ["cancel", "sale"] and not line.is_sales_manager and line.product_type == 'service':
-                line.product_updatable = True
-            else:
-                line.product_updatable = True
+        service_lines = self.filtered(
+            lambda line: line.product_template_id.detailed_type == "service"
+            and line.state not in ["cancel", "sale"]
+            and not line.is_sales_manager
+        )
+        super(SaleOrderLine, self - service_lines)._compute_product_updatable()
+        service_lines.product_updatable = True
 
-    def unlink(self):
-        for record in self:
-            # FIXME: Need to double-check on Workflow of Sales
-            # if not record.is_sales_manager and record.product_type == "service":
-            #     raise AccessError(_("Bạn không có quyền xoá các loại Sản phẩm thuộc Dịch Vụ. "
-            #                         "\nVui lòng liên hệ với Quản trị viên để được hỗ trợ!"))
+    def _compute_product_uom_readonly(self):
+        service_lines = self.filtered(
+            lambda line: line.ids
+            and line.product_template_id.detailed_type == "service"
+            and line.state not in ["cancel", "sale"]
+            and not line.is_sales_manager
+        )
+        super(SaleOrderLine, self - service_lines)._compute_product_uom_readonly()
+        service_lines.product_uom_readonly = True
 
-            if record.product_id and record.product_id.default_code and record.product_id.default_code.find(
-                    'Delivery_') > -1:
-                pass
-            else:
-                order_id = record.order_id
-                order_id.partner_id.write({
-                    'amount': order_id.partner_id.amount + order_id.bonus_order
-                })
-                order_id.write({
-                    'bonus_order': 0
-                })
-        return super(SaleOrderLine, self).unlink()
+    # /// CRUD Methods
 
     def write(self, vals):
-        res = super().write(vals)
-        for record in self:
-            if record.hidden_show_qty or record.reward_id:
-                return res
-            else:
-                order_id = record.order_id
-                order_line = order_id.order_line.filtered(lambda x: x.product_id.default_code == 'CKT')
-                if vals.get('product_uom_qty', False) and len(order_line) > 0:
-                    order_line.unlink()
-                return res
+        """
+        Override the write method to handle specific logic for sale order lines.
 
-    @api.constrains("product_uom_qty")
-    def _check_order_not_free_qty_today(self):
-        for so_line in self.filtered(
-                lambda line: (line.order_id.state != 'draft' or line.state != 'draft')
-                             and line.product_template_id.detailed_type != "service"):
-            if so_line.product_uom_qty > so_line.free_qty_today:
-                error_message = (
-                        "Bạn không được phép đặt quá số lượng hiện tại:"
-                        "\n- Sản phẩm: %s"
-                        "\n- Số lượng hiện tại: %s Cái"
-                        "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho." % (
-                            so_line.product_template_id.name, int(so_line.free_qty_today)
-                        ))
-                raise ValidationError(error_message)
+        :param vals: Dictionary of values to write.
+        :return: Boolean indicating the success of the write operation.
+        """
+        _logger.debug(f"Write called with vals: {vals}")
+
+        try:
+            if "product_uom_qty" in vals and vals["product_uom_qty"]:
+                self._set_recompute_discount_agency()
+
+            if any(sol.hidden_show_qty or sol.reward_id for sol in self):
+                return super(SaleOrderLine, self).write(vals)
+
+            return super(SaleOrderLine, self).write(vals)
+
+        except Exception as e:
+            _logger.error(f"Error in write method: {e}")
+            return
+
+    def unlink(self):
+        """
+        Override the unlink method to handle specific logic for sale order lines.
+
+        :return: Boolean indicating the success of the unlink operation.
+        """
+        _logger.debug("Starting unlink operation for sale order lines.")
+
+        try:
+            for line in self:
+                if line._get_discount_agency_line():
+                    line.order_id.message_post(
+                        body=Markup(
+                            "Dòng %s đã xóa, số tiền: %s"
+                            % (
+                                line.product_id.name,
+                                line.price_unit,
+                            )
+                        )
+                    )
+
+            orders_to_update = self.filtered(
+                lambda sol: sol.product_id
+                and sol.product_id.default_code
+                and "Delivery_" not in sol.product_id.default_code
+            ).mapped("order_id")
+
+            unique_orders = set(orders_to_update)
+            for order in unique_orders:
+                order._compute_partner_bonus()
+                order._compute_bonus_order_line()
+
+            result = super(SaleOrderLine, self).unlink()
+            _logger.debug("Completed unlink operation for sale order lines.")
+            return result
+
+        except Exception as e:
+            _logger.error(f"Error in unlink method: {e}")
+            return
+
+    # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_confirmed(self):
+        if not self.env.user.has_group(GROUP_SALES_MANAGER):
+            return super(SaleOrderLine, self)._unlink_except_confirmed()
+
+    # /// HOOKS Methods
+
+    def _is_not_sellable_line(self):
+        return (
+            self.hidden_show_qty
+            or self.is_discount_agency
+            or super()._is_not_sellable_line()
+        )
+
+    # /// HELPERS Methods
+
+    def _set_recompute_discount_agency(self):
+        """
+        Set the recompute_discount_agency flag to True for lines that need it.
+        """
+        lines_to_update = self.filtered(lambda line: line._get_discount_agency_line())
+        lines_to_update.write({"recompute_discount_agency": True})
+
+    def _get_discount_agency_line(self):
+        """
+            Lấy dòng chiết khấu sản lượng của Đại lý
+        :return: sale.order.line recordset
+        """
+        return self._filter_discount_agency_lines(self.order_id)
+
+    def _filter_discount_agency_lines(self, order=False):
+        """
+            Tìm kiếm các dòng có tính chiết khấu sản lượng (Tháng/Quý/Năm) của Đại lý
+        :param order: Base on sale.order recordset
+        :return: sale.order.line recordset
+        """
+        try:
+            # [>] Ensure that the method is called on a single record
+            # self.ensure_one()
+
+            # [>] Return an empty recordset if no order_id is provided
+            if not order:
+                return self.browse()
+
+            # [>] Filter the order lines based on the conditions
+            # [1] The product is a service
+            # [2] The product is a service with default code "CKT"
+            agency_order_lines = order.order_line.filtered(
+                lambda sol: sol.product_id.product_tmpl_id.detailed_type == "service"
+                and sol.product_id.default_code == "CKT"
+            )
+            return agency_order_lines
+        except Exception as e:
+            _logger.error(f"Failed to filter agency order lines: {e}")
+            return self.env["sale.order.line"]

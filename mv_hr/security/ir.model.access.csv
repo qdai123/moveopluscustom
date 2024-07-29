@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_basic_salary,basic.salary,model_basic_salary,base.group_user,1,1,1,1
+access_basic_salary_line,basic.salary.line,model_basic_salary_line,base.group_user,1,1,1,1
+access_category_job,category.job,model_category_job,base.group_user,1,1,1,1

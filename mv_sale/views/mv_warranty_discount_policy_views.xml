@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- Model: MOVEO PLUS Warranty Discount Policy (Configuration) -->
+
+	<record model="ir.ui.view" id="mv_warranty_discount_policy_tree_view">
+		<field name="name">mv.warranty.discount.policy.tree</field>
+		<field name="model">mv.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
+				<field name="name" string="Chính sách"/>
+				<field name="date_from" string="Ngày bắt đầu"/>
+				<field name="date_to" string="Ngày kết thúc"/>
+				<field name="policy_status" string="Trạng thái" widget="badge" decoration-info="policy_status == 'open'" decoration-primary="policy_status == 'applying'" decoration-muted="policy_status == 'close'"/>
+			</tree>
+		</field>
+	</record>
+
+	<record model="ir.ui.view" id="mv_warranty_discount_policy_form_view">
+		<field name="name">mv.warranty.discount.policy.form</field>
+		<field name="model">mv.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<form string="MOVEO PLUS Warranty Discount Policy FORM" duplicate="false">
+				<header>
+					<field name="can_access" invisible="True"/>
+					<button class="btn btn-primary" name="action_apply" type="object" string="Áp dụng" invisible="not id or (can_access and policy_status != 'open') or not can_access"/>
+					<button class="btn btn-primary" name="action_close" type="object" string="Kết thúc" invisible="not id or (can_access and policy_status in ['open', 'close']) or not can_access"/>
+					<button class="btn btn-secondary" name="action_reset_to_open" type="object" string="Mở lại chính sách" invisible="not id or (can_access and policy_status != 'close') or not can_access"/>
+					<field name="policy_status" widget="statusbar" statusbar_visible="open"/>
+				</header>
+				<sheet string="Warranty Discount Policy Form">
+					<field name="active" invisible="True"/>
+					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<div class="oe_title pe-0">
+                        <h1 class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100">
+                                <field name="name" widget="text" class="text-truncate" readonly="policy_status in ['applying', 'close']"/>
+                            </div>
+                        </h1>
+                    </div>
+					<group>
+						<group>
+							<field name="date_from" string="Bắt đầu" readonly="policy_status in ['applying', 'close']"/>
+						</group>
+						<group>
+							<field name="date_to" string="Kết thúc" readonly="policy_status in ['applying', 'close']"/>
+						</group>
+					</group>
+					<notebook>
+						<page string="Cấu hình / Điều kiện" name="page_conditions_config">
+							<field mode="tree" name="line_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_warranty_discount_policy_id': id}">
+								<tree editable="bottom" default_order="sequence">
+									<field name="warranty_discount_policy_id" column_invisible="True"/>
+									<field name="currency_id" column_invisible="True"/>
+									<field name="sequence" widget="handle"/>
+									<field name="quantity_from"/>
+									<field name="quantity_to"/>
+									<field name="discount_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+									<field name="explanation"/>
+									<field name="explanation_code" optional="hidden"/>
+								</tree>
+							</field>
+						</page>
+						<page string="Biến thể" name="page_product_attribute_config">
+							<label for="product_attribute_ids" string="Thuộc tính áp dụng"/>
+							<!-- Note: ('attribute_code', 'ilike', 'rim_') -->
+							<div class="o_row">
+								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" readonly="policy_status in ['applying', 'close']" options="{'not_delete': True}"/>
+							</div>
+						</page>
+						<page string="Khách hàng / Đại lý" name="page_partner_retailer">
+							<field name="partner_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_warranty_discount_policy_ids': active_ids}">
+								<tree default_order="level" editable="bottom" delete="false" limit="80">
+									<field name="partner_id" string="Khách hàng / Đại lý"/>
+									<field name="date" string="Ngày hiệu lực"/>
+									<field name="level" string="Cấp bậc"/>
+									<field name="min_debt"/>
+									<field name="max_debt"/>
+									<field name="number_debt"/>
+								</tree>
+							</field>
+						</page>
+					</notebook>
+				</sheet>
+			</form>
+		</field>
+	</record>
+
+	<record model="ir.ui.view" id="mv_warranty_discount_policy_search_view">
+		<field name="name">mv.warranty.discount.policy.search</field>
+		<field name="model">mv.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<search string="MOVEO PLUS Warranty Discount Policy SEARCH">
+				<field name="name" string="Chính sách"/>
+				<filter string="Current Year" name="filter_current_year" domain="[('date_from', '&gt;=', (context_today()).strftime('%Y-01-01')), ('date_from', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
+				<separator/>
+				<filter string="Archived" name="inactive" domain="[('active','=',False)]"/>
+			</search>
+		</field>
+	</record>
+
+	<record id="mv_warranty_discount_policy_action_view" model="ir.actions.act_window">
+		<field name="name">Cấu hình chiết khấu kích hoạt</field>
+		<field name="res_model">mv.warranty.discount.policy</field>
+		<field name="view_mode">tree,form</field>
+		<field name="view_id" ref="mv_warranty_discount_policy_tree_view"/>
+		<field name="search_view_id" ref="mv_warranty_discount_policy_search_view"/>
+		<field name="context">{'search_default_filter_current_year': 1}</field>
+	</record>
+</odoo>

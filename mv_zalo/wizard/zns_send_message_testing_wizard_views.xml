@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="mv_zalo_wizard_zns_send_message_testing_form_view" model="ir.ui.view">
+		<field name="name">mv_zalo.wizard.zns.send.message.testing.form</field>
+		<field name="model">zns.send.message.testing.wizard</field>
+		<field name="arch" type="xml">
+			<form string="Wizard: ZNS Send Message (TESTING) FORM">
+				<sheet>
+					<group>
+						<group>
+							<field name="template_id" options="{'no_open': True}"/>
+							<field name="template_preview_url"/>
+						</group>
+						<group/>
+					</group>
+					<group string="# Testing API">
+						<group>
+							<field name="model_testing"/>
+							<field name="record_testing_id"/>
+						</group>
+						<group>
+							<field name="phonenumber"/>
+							<field name="data_send"/>
+						</group>
+					</group>
+					<footer>
+						<button string="Send" name="send_message" type="object" class="btn-primary"/>
+						<button string="Discard" class="btn-secondary" special="cancel"/>
+					</footer>
+				</sheet>
+			</form>
+		</field>
+	</record>
+
+	<record id="mv_zalo_wizard_zns_send_message_testing_action_view" model="ir.actions.act_window">
+		<field name="name">Wizard: ZNS Send Message (TESTING)</field>
+		<field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+		<field name="res_model">zns.send.message.testing.wizard</field>
+		<field name="view_mode">form</field>
+		<field name="view_id" ref="mv_zalo_wizard_zns_send_message_testing_form_view"/>
+		<field name="target">new</field>
+	</record>
+
+	<menuitem id="mv_zalo_menu_zns_send_message_testing"
+	          name="ZNS Send Message (TESTING)"
+	          action="mv_zalo_wizard_zns_send_message_testing_action_view"
+	          parent="biz_zalo_zns.zalo_zns_menu"
+	          groups="base.group_system"
+	          sequence="30"
+	/>
+</odoo>

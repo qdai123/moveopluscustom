@@ -3,7 +3,10 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 from odoo.addons.http_routing.models.ir_http import slug
 
-from odoo.addons.mv_helpdesk.models.helpdesk_ticket import ticket_type_sub_dealer, ticket_type_end_user
+from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
+    SUB_DEALER_CODE,
+    END_USER_CODE,
+)
 
 
 class HelpdeskTeam(models.Model):
@@ -29,47 +32,73 @@ class HelpdeskTeam(models.Model):
         "use_website_helpdesk_forum",
         "use_website_helpdesk_slides",
         "use_website_helpdesk_knowledge",
-        "use_website_helpdesk_warranty_activation")
+        "use_website_helpdesk_warranty_activation",
+    )
     def _onchange_use_website_helpdesk(self):
         if self.use_website_helpdesk_warranty_activation:
             self.is_published = True
         else:
-            if not (
+            if (
+                not (
                     self.use_website_helpdesk_form
                     or self.use_website_helpdesk_forum
                     or self.use_website_helpdesk_slides
-                    or self.use_website_helpdesk_knowledge) and self.website_published:
+                    or self.use_website_helpdesk_knowledge
+                )
+                and self.website_published
+            ):
                 self.is_published = False
             elif self.use_website_helpdesk_form and not self.website_published:
                 self.is_published = True
 
-    @api.depends("name", "use_website_helpdesk_form", "use_website_helpdesk_warranty_activation", "company_id")
+    @api.depends(
+        "name",
+        "use_website_helpdesk_form",
+        "use_website_helpdesk_warranty_activation",
+        "company_id",
+    )
     def _compute_form_url(self):
         for team in self:
             base_url = team.get_base_url()
-            if team.use_website_helpdesk_form and not team.use_website_helpdesk_warranty_activation:
-                team.feature_form_url = (team.use_website_helpdesk_form and team.name and team.id) and (
-                        base_url + '/helpdesk/' + slug(team)) or False
-            elif team.use_website_helpdesk_warranty_activation and not team.use_website_helpdesk_form:
-                team.feature_form_url = (team.use_website_helpdesk_warranty_activation and team.name and team.id) and (
-                        base_url + '/kich-hoat-bao-hanh') or False
+            if (
+                team.use_website_helpdesk_form
+                and not team.use_website_helpdesk_warranty_activation
+            ):
+                team.feature_form_url = (
+                    (team.use_website_helpdesk_form and team.name and team.id)
+                    and (base_url + "/helpdesk/" + slug(team))
+                    or False
+                )
+            elif (
+                team.use_website_helpdesk_warranty_activation
+                and not team.use_website_helpdesk_form
+            ):
+                team.feature_form_url = (
+                    (
+                        team.use_website_helpdesk_warranty_activation
+                        and team.name
+                        and team.id
+                    )
+                    and (base_url + "/kich-hoat-bao-hanh")
+                    or False
+                )
 
     @api.depends(
         "use_website_helpdesk_knowledge",
         "use_website_helpdesk_slides",
         "use_website_helpdesk_forum",
-        "use_website_helpdesk_warranty_activation"
+        "use_website_helpdesk_warranty_activation",
     )
     def _compute_use_website_helpdesk_form(self):
         # Override to add new CASE "website_helpdesk_warranty_activation"
         teams = self.filtered(
             lambda team: not team.use_website_helpdesk_form
-                         and not team.use_website_helpdesk_warranty_activation
-                         and (
-                                 team.use_website_helpdesk_knowledge
-                                 or team.use_website_helpdesk_slides
-                                 or team.use_website_helpdesk_forum
-                         )
+            and not team.use_website_helpdesk_warranty_activation
+            and (
+                team.use_website_helpdesk_knowledge
+                or team.use_website_helpdesk_slides
+                or team.use_website_helpdesk_forum
+            )
         )
         teams.use_website_helpdesk_form = True
 
@@ -82,28 +111,35 @@ class HelpdeskTeam(models.Model):
     def _get_field_modules(self):
         field_modules = super(HelpdeskTeam, self)._get_field_modules()
         # Override to add new CASE "website_helpdesk_warranty_activation"
-        field_modules.update({"use_website_helpdesk_warranty_activation": "website_helpdesk_warranty_activation"})
+        field_modules.update(
+            {
+                "use_website_helpdesk_warranty_activation": "website_helpdesk_warranty_activation"
+            }
+        )
         return field_modules
 
     @api.constrains(
         "use_website_helpdesk_form",
         "use_website_helpdesk_warranty_activation",
         "website_id",
-        "company_id"
+        "company_id",
     )
     def _check_website_company(self):
         # Override to add new CASE "website_helpdesk_warranty_activation"
         if any(
-                (t.use_website_helpdesk_form
-                 or t.use_website_helpdesk_warranty_activation)
-                and t.website_id
-                and t.website_id.company_id != t.company_id
-                for t in self
+            (t.use_website_helpdesk_form or t.use_website_helpdesk_warranty_activation)
+            and t.website_id
+            and t.website_id.company_id != t.company_id
+            for t in self
         ):
-            raise ValidationError(_("The team company and the website company should match"))
+            raise ValidationError(
+                _("The team company and the website company should match")
+            )
 
     def _ensure_website_menu(self):
-        with_website_warranty = self.filtered_domain([("use_website_helpdesk_warranty_activation", '=', True)])
+        with_website_warranty = self.filtered_domain(
+            [("use_website_helpdesk_warranty_activation", "=", True)]
+        )
         if with_website_warranty:
             if not with_website_warranty.is_published:
                 with_website_warranty.is_published = True
@@ -116,17 +152,24 @@ class HelpdeskTicket(models.Model):
     _inherit = "helpdesk.ticket"
 
     def _default_team_id(self):
-        team_id = self.env["helpdesk.team"].search([
-            ("member_ids", "in", self.env.uid),
-            ("use_website_helpdesk_warranty_activation", "=", True)
-        ], limit=1).id
+        team_id = (
+            self.env["helpdesk.team"]
+            .search(
+                [
+                    ("member_ids", "in", self.env.uid),
+                    ("use_website_helpdesk_warranty_activation", "=", True),
+                ],
+                limit=1,
+            )
+            .id
+        )
         if not team_id:
             team_id = self.env["helpdesk.team"].search([], limit=1).id
         return team_id
 
     team_id = fields.Many2one(
         comodel_name="helpdesk.team",
-        string='Helpdesk Team',
+        string="Helpdesk Team",
         default=_default_team_id,
         index=True,
         tracking=True,
@@ -137,27 +180,39 @@ class HelpdeskTicket(models.Model):
         store=True,
     )
 
-    @api.onchange("team_id")
-    def onchange_team_id(self):
-        if self.team_id and self.team_id.use_website_helpdesk_warranty_activation:
-            ticket_type_for_warranty = self.env["helpdesk.ticket.type"].sudo().search([
-                "|",
-                ("name", "in", [ticket_type_sub_dealer, ticket_type_end_user]),
-                ("code", "=", "BH"),
-            ], limit=2) or []
-            domain = [("id", "in", ticket_type_for_warranty.ids)]
-        else:
-            ticket_type_not_for_warranty = self.env["helpdesk.ticket.type"].sudo().search([
-                ("name", "not in", [ticket_type_sub_dealer, ticket_type_end_user])
-            ]) or []
-            domain = [("id", "in", ticket_type_not_for_warranty.ids)]
-
-        return {"domain": {"ticket_type_id": domain}}
-
     @api.depends("team_id", "team_id.use_website_helpdesk_warranty_activation")
     def _compute_ticket_warranty_activation(self):
+        """
+        Compute the ticket_warranty_activation field based on the team_id's use_website_helpdesk_warranty_activation field.
+        Sets the ticket_warranty_activation field to True if the team_id is set and the team uses website helpdesk warranty activation.
+        """
         for ticket in self:
-            ticket.ticket_warranty_activation = False
-            if ticket.team_id and ticket.team_id.use_website_helpdesk_warranty_activation:
-                ticket.ticket_warranty_activation = True
-                ticket.sudo().onchange_team_id()
+            ticket.ticket_warranty_activation = (
+                ticket.team_id
+                and ticket.team_id.use_website_helpdesk_warranty_activation
+            )
+
+    @api.onchange("team_id")
+    def onchange_team_id(self):
+        if not self.team_id:
+            self.write({"ticket_type_id": False})
+            return {"domain": {"ticket_type_id": []}}
+
+        ticket_type_domain = [
+            (
+                "user_for_warranty_activation",
+                "=",
+                self.team_id.use_website_helpdesk_warranty_activation,
+            ),
+            (
+                "code",
+                (
+                    "in"
+                    if self.team_id.use_website_helpdesk_warranty_activation
+                    else "not in"
+                ),
+                [SUB_DEALER_CODE, END_USER_CODE],
+            ),
+        ]
+
+        return {"domain": {"ticket_type_id": ticket_type_domain}}
