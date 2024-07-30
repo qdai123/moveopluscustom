@@ -479,8 +479,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         ticket_product_moves = self._fetch_ticket_product_moves(tickets)
 
         # Fetch partners at once
-        # partners = self._fetch_partners(ticket_product_moves)
-        partners = self.env["res.partner"].browse(219)
+        partners = self._fetch_partners(ticket_product_moves)
+        # partners = self.env["res.partner"].browse(219)
         if not partners:
             raise UserError(
                 "Không tìm thấy Đại lý đăng ký trong tháng {}/{}".format(
