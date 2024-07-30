@@ -31,7 +31,9 @@ class ResPartner(models.Model):
 
             # Re-update data 'sale_mv_ids'
             orders_discount_applied = self._get_orders_with_discount(record, "sale")
-            record.sale_mv_ids = [(6, 0, orders_discount_applied.ids)]
+            record.sale_mv_ids = [
+                (6, 0, orders_discount_applied.ids if orders_discount_applied else [])
+            ]
 
     # === TRƯỜNG CƠ SỞ DỮ LIỆU
     # line_ids: Nội dung chi tiết chiết khấu được áp dụng cho Đại Lý

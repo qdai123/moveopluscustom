@@ -637,7 +637,7 @@ class SaleOrder(models.Model):
 
         # Unlink the discount lines
         if discount_lines:
-            discount_lines.sudo().unlink()
+            discount_lines.unlink()
 
         return True
 
