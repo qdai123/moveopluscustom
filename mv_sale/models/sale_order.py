@@ -133,46 +133,40 @@ class SaleOrder(models.Model):
         _logger.debug("Completed '_compute_permissions' computation.")
 
     def _compute_partner_bonus(self):
-        for order in self:
-            if order.state != "cancel" and order.partner_agency:
-                bonus_order = (
-                    self.env["sale.order.line"]
-                    .search(
-                        [
-                            ("order_id", "=", order.id),
-                            ("product_id.default_code", "=", "CKT"),
-                        ],
-                        limit=1,
-                    )
-                    .price_unit
-                )
-                order.bonus_remaining = order.partner_id.amount_currency - bonus_order
+        for order in self.filtered("partner_agency"):
+            if order.state == "cancel" or not order.partner_agency:
+                order.bonus_remaining = 0
+                continue
 
-    @api.depends("state", "order_line", "order_line.product_id")
+            partner_wallet = order.partner_id.amount_currency
+            bonus_order_line = order.order_line._get_discount_agency_line()
+
+            if bonus_order_line:
+                bonus_order = abs(bonus_order_line[0].price_unit)
+                remaining_bonus = partner_wallet - bonus_order
+                order.bonus_remaining = remaining_bonus if remaining_bonus > 0 else 0
+            else:
+                order.bonus_remaining = partner_wallet
+
+    @api.depends("state", "order_line.product_id")
     def _compute_bonus_order_line(self):
-        for order in self:
-            if (
-                order.state != "cancel"
-                and order.order_line
-                and order.order_line.product_id
-            ):
-                order.bonus_order = (
-                    self.env["sale.order.line"]
-                    .search(
-                        [
-                            ("order_id", "=", order.id),
-                            ("product_id.default_code", "=", "CKT"),
-                        ],
-                        limit=1,
-                    )
-                    .price_unit
-                )
+        for order in self.filtered("partner_agency"):
+            if order.state != "cancel" and order.order_line:
+                bonus_order_line = order.order_line._get_discount_agency_line()
+                if bonus_order_line:
+                    order.bonus_order = abs(bonus_order_line[0].price_unit)
+                else:
+                    order.bonus_order = 0
+
                 order.bonus_max = (
                     order.total_price_no_service
                     - order.total_price_discount
                     - order.total_price_discount_10
                     - order.discount_bank_guarantee
                 ) / 2
+            else:
+                order.bonus_order = 0
+                order.bonus_max = 0
 
     # === AMOUNT/TOTAL FIELDS ===#
     total_price_no_service = fields.Float(
@@ -639,14 +633,11 @@ class SaleOrder(models.Model):
 
     def action_clear_discount_lines(self):
         # Filter the order lines based on the conditions
-        discount_lines = self.order_line.filtered(
-            lambda line: line.product_id.default_code
-            and line.product_id.default_code.startswith("CK")
-        )
+        discount_lines = self.order_line._get_discount_agency_line()
 
         # Unlink the discount lines
         if discount_lines:
-            discount_lines.unlink()
+            discount_lines.sudo().unlink()
 
         return True
 

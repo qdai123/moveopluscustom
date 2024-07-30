@@ -52,19 +52,6 @@ class SalespersonReport(models.Model):
     country_id = fields.Many2one("res.country", "Quốc gia", readonly=True)
     delivery_address = fields.Char("Địa chỉ giao hàng", compute="_compute_sale_id")
 
-    @api.model
-    def web_search_read(
-        self, domain, specification, offset=0, limit=None, order=None, count_limit=None
-    ):
-        return super(SalespersonReport, self).web_search_read(
-            domain,
-            specification,
-            offset=offset,
-            limit=limit,
-            order=order,
-            count_limit=count_limit,
-        )
-
     @api.depends("sale_id", "sale_id.partner_shipping_id")
     def _compute_sale_id(self):
         for record in self:
@@ -227,4 +214,27 @@ class SalespersonReport(models.Model):
         tools.drop_view_if_exists(self._cr, self._table)
         self._cr.execute(
             "CREATE OR REPLACE VIEW %s AS (%s);" % (self._table, self._query())
+        )
+
+    @api.model
+    def web_search_read(
+        self, domain, specification, offset=0, limit=None, order=None, count_limit=None
+    ):
+        has_orders_today = self.env["sale.order"].search_count(
+            [
+                ("state", "=", "sale"),
+                ("date_order", "=", fields.Date.today()),
+            ]
+        )
+        if has_orders_today > 0:
+            _logger.debug("SalespersonReport: Orders found today.")
+            self.init()
+
+        return super(SalespersonReport, self).web_search_read(
+            domain,
+            specification,
+            offset=offset,
+            limit=limit,
+            order=order,
+            count_limit=count_limit,
         )

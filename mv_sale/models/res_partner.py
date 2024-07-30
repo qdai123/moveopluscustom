@@ -29,6 +29,10 @@ class ResPartner(models.Model):
             record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
             record.waiting_amount_currency = total_amount_discount_waiting_approve
 
+            # Re-update data 'sale_mv_ids'
+            orders_discount_applied = self._get_orders_with_discount(record, "sale")
+            record.sale_mv_ids = [(6, 0, orders_discount_applied.ids)]
+
     # === TRƯỜNG CƠ SỞ DỮ LIỆU
     # line_ids: Nội dung chi tiết chiết khấu được áp dụng cho Đại Lý
     # amount/amount_currency: Ví tiền được chiết khấu cho Đại lý sử dụng
@@ -293,6 +297,7 @@ class ResPartner(models.Model):
         :param is_sale: Boolean indicating if the orders are in 'sale' state.
         """
         orders._compute_partner_bonus()
+        orders._compute_bonus_order_line()
         if is_sale:
             record.sale_mv_ids = [(6, 0, orders.ids)]
             record.total_so_bonus_order = sum(orders.mapped("bonus_order"))

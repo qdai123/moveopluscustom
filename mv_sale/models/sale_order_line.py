@@ -121,20 +121,21 @@ class SaleOrderLine(models.Model):
         :param vals: Dictionary of values to write.
         :return: Boolean indicating the success of the write operation.
         """
-        _logger.debug(f"Write called with vals: {vals}")
 
-        try:
-            if "product_uom_qty" in vals and vals["product_uom_qty"]:
-                self._set_recompute_discount_agency()
+        if "product_uom_qty" in vals and vals["product_uom_qty"]:
+            self._set_recompute_discount_agency()
 
-            if any(sol.hidden_show_qty or sol.reward_id for sol in self):
-                return super(SaleOrderLine, self).write(vals)
-
+        if any(sol.hidden_show_qty or sol.reward_id for sol in self):
             return super(SaleOrderLine, self).write(vals)
 
-        except Exception as e:
-            _logger.error(f"Error in write method: {e}")
-            return
+        return super(SaleOrderLine, self).write(vals)
+
+    def _set_recompute_discount_agency(self):
+        """
+        Set the recompute_discount_agency flag to True for lines that need it.
+        """
+        lines_to_update = self._get_discount_agency_line()
+        lines_to_update.write({"recompute_discount_agency": True})
 
     def unlink(self):
         """
@@ -142,39 +143,31 @@ class SaleOrderLine(models.Model):
 
         :return: Boolean indicating the success of the unlink operation.
         """
-        _logger.debug("Starting unlink operation for sale order lines.")
 
-        try:
-            for line in self:
-                if line._get_discount_agency_line():
-                    line.order_id.message_post(
-                        body=Markup(
-                            "Dòng %s đã xóa, số tiền: %s"
-                            % (
-                                line.product_id.name,
-                                line.price_unit,
-                            )
-                        )
+        for order_line in self:
+            sol_discount_agency = order_line._get_discount_agency_line()
+            sol_discount_agency.order_id.message_post(
+                body=Markup(
+                    "Dòng %s đã bị xóa, số tiền: %s"
+                    % (
+                        sol_discount_agency.product_id.name,
+                        sol_discount_agency.price_unit,
                     )
+                )
+            )
 
-            orders_to_update = self.filtered(
-                lambda sol: sol.product_id
-                and sol.product_id.default_code
-                and "Delivery_" not in sol.product_id.default_code
-            ).mapped("order_id")
+        orders_to_update = self.filtered(
+            lambda sol: sol.product_id
+            and sol.product_id.default_code
+            and "Delivery_" not in sol.product_id.default_code
+        ).mapped("order_id")
 
-            unique_orders = set(orders_to_update)
-            for order in unique_orders:
-                order._compute_partner_bonus()
-                order._compute_bonus_order_line()
+        unique_orders = set(orders_to_update)
+        for order in unique_orders:
+            order._compute_partner_bonus()
+            order._compute_bonus_order_line()
 
-            result = super(SaleOrderLine, self).unlink()
-            _logger.debug("Completed unlink operation for sale order lines.")
-            return result
-
-        except Exception as e:
-            _logger.error(f"Error in unlink method: {e}")
-            return
+        return super(SaleOrderLine, self).unlink()
 
     # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
     @api.ondelete(at_uninstall=False)
@@ -192,13 +185,6 @@ class SaleOrderLine(models.Model):
         )
 
     # /// HELPERS Methods
-
-    def _set_recompute_discount_agency(self):
-        """
-        Set the recompute_discount_agency flag to True for lines that need it.
-        """
-        lines_to_update = self.filtered(lambda line: line._get_discount_agency_line())
-        lines_to_update.write({"recompute_discount_agency": True})
 
     def _get_discount_agency_line(self):
         """

@@ -16,7 +16,7 @@
 			<t t-if="print_with_payments">
 				<t t-if="o.payment_state != 'invoicing_legacy'">
 					<t t-set="discount_vals" t-value="o.sudo().invoice_payments_widget and o.sudo().invoice_payments_widget['content'][0] or []"/>
-					<tr t-if="discount_vals['is_early_discount']">
+					<tr t-if="discount_vals and discount_vals['is_early_discount']">
 						<td>
 							<i class="oe_form_field text-end oe_payment_label">Early Discount (<t t-out="discount_vals['early_discount']">0.5%</t>)</i>
 						</td>
