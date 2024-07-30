@@ -27,12 +27,11 @@ class AccountMove(models.Model):
                 and move.state == "posted"
                 and move.is_invoice(include_receipts=True)
             ):
-                early_discount = 0.0
+                early_discount = move.invoice_payment_term_id.early_discount
                 amount_early_discount = 0.0
                 if move._is_eligible_for_early_payment_discount_partial(
                     move.currency_id, move.invoice_date
                 ):
-                    early_discount = move.invoice_payment_term_id.early_discount
                     amount_early_discount = (
                         move.amount_total
                         - move.invoice_payment_term_id._get_amount_due_after_discount(

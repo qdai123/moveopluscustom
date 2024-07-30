@@ -135,13 +135,18 @@ class SaleOrder(models.Model):
     def _compute_partner_bonus(self):
         for order in self:
             if order.state != "cancel" and order.partner_agency:
-                bonus_order = sum(
-                    line.price_unit
-                    for line in order.order_line._filter_discount_agency_lines(order)
+                bonus_order = (
+                    self.env["sale.order.line"]
+                    .search(
+                        [
+                            ("order_id", "=", order.id),
+                            ("product_id.default_code", "=", "CKT"),
+                        ],
+                        limit=1,
+                    )
+                    .price_unit
                 )
-                order.bonus_remaining = order.partner_id.amount_currency - abs(
-                    bonus_order
-                )
+                order.bonus_remaining = order.partner_id.amount_currency - bonus_order
 
     @api.depends("state", "order_line", "order_line.product_id")
     def _compute_bonus_order_line(self):

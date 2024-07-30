@@ -83,7 +83,7 @@
 			<!-- [MO+] START: Chiết Khấu Sản Lượng theo Tháng/Quý/Năm -->
 			<t t-if="is_partner_agency">
 				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.product_id.default_code == 'CKT')" t-as="so_line">
-					<tr id="order_total_reward_line">
+					<tr id="order_total_discount_by_month_quarter_year">
 						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
 							Chiết khấu Sản Lượng (Tháng/Quý/Năm)
 						</td>

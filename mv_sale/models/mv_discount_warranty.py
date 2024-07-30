@@ -286,24 +286,30 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     _name = "mv.compute.warranty.discount.policy"
     _description = _("Compute Warranty Discount Policy")
 
-    def _do_readonly(self):
-        for rec in self:
-            if rec.state in ["done"]:
-                rec.do_readonly = True
-            else:
-                rec.do_readonly = False
-
     # ACCESS / RULE Fields:
     do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
 
-    @api.depends("month", "year")
-    def _compute_name(self):
-        for rec in self:
-            if rec.month and rec.year:
-                rec.name = "{}/{}".format(str(rec.month), str(rec.year))
-            else:
-                dt = datetime.now().replace(day=1)
-                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+    def _do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+
+        :return: None
+        """
+        _logger.debug("Starting '_do_readonly'.")
+
+        try:
+            for rec in self:
+                rec.do_readonly = rec.state == "done"
+                _logger.debug(f"Record {rec.id}: do_readonly set to {rec.do_readonly}.")
+
+        except Exception as e:
+            _logger.error(f"Error in '_do_readonly': {e}")
+            return
+
+        _logger.debug("Completed '_do_readonly'.")
 
     # BASE Fields:
     month = fields.Selection(get_months())
@@ -316,6 +322,34 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         readonly=True,
         tracking=True,
     )
+
+    @api.depends("year", "month")
+    def _compute_name(self):
+        """
+        Compute the name based on the month and year.
+
+        This method sets the `name` field to "month/year" if both `month` and `year` are set.
+        If either is not set, it uses the current month and year.
+
+        :return: None
+        """
+        _logger.debug("Starting '_compute_name'.")
+
+        try:
+            for rec in self:
+                if rec.month and rec.year:
+                    rec.name = "{}/{}".format(str(rec.month), str(rec.year))
+                else:
+                    dt = datetime.now().replace(day=1)
+                    rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+                _logger.debug(f"Record {rec.id}: name set to {rec.name}.")
+
+        except Exception as e:
+            _logger.error(f"Error in '_compute_name': {e}")
+            return
+
+        _logger.debug("Completed '_compute_name'.")
+
     # RELATION Fields:
     warranty_discount_policy_id = fields.Many2one(
         comodel_name="mv.warranty.discount.policy",
@@ -325,16 +359,36 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
     @api.depends("year", "month")
     def _compute_compute_date(self):
-        for rec in self:
-            if rec.month and rec.year:
-                rec.compute_date = datetime.now().replace(
-                    day=1, month=int(rec.month), year=int(rec.year)
+        """
+        Compute the `compute_date` based on the month and year.
+
+        This method sets the `compute_date` field to the first day of the given month and year
+        if both `month` and `year` are set. If either is not set, it uses the first day of the current month and year.
+
+        :return: None
+        """
+        _logger.debug("Starting '_compute_compute_date'.")
+
+        try:
+            for rec in self:
+                if rec.month and rec.year:
+                    rec.compute_date = datetime.now().replace(
+                        day=1, month=int(rec.month), year=int(rec.year)
+                    )
+                else:
+                    rec.compute_date = datetime.now().replace(day=1)
+                _logger.debug(
+                    f"Record {rec.id}: compute_date set to {rec.compute_date}."
                 )
-            else:
-                rec.compute_date = datetime.now().replace(day=1)
+
+        except Exception as e:
+            _logger.error(f"Error in '_compute_compute_date': {e}")
+            return
+
+        _logger.debug("Completed '_compute_compute_date'.")
 
     # =================================
-    # BUSINESS Methods
+    # ACTION Methods
     # =================================
 
     def action_reset_to_draft(self):
@@ -352,19 +406,29 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             return False
 
     def action_done(self):
-        if not self._access_approve():
-            raise AccessError("Bạn không có quyền duyệt!")
+        """
+        Mark the record as done and update related records.
 
-        for rec in self.filtered(lambda r: len(r.line_ids) > 0):
-            for line in rec.line_ids:
-                self.env["res.partner"].sudo().browse(
-                    line.partner_id.id
-                ).action_update_discount_amount()
-                line.helpdesk_ticket_product_moves_ids.mapped(
-                    "helpdesk_ticket_id"
-                ).write(
-                    {
-                        "stage_id": self.env["helpdesk.stage"]
+        This method checks if the user has the necessary access rights, updates the discount amount for partners,
+        and changes the stage of related helpdesk tickets before marking the record as done.
+
+        :return: None
+        """
+        _logger.debug("Starting 'action_done' for records: %s", self.ids)
+
+        try:
+            if not self._access_approve():
+                raise AccessError("Bạn không có quyền duyệt!")
+
+            for rec in self.filtered(lambda r: len(r.line_ids) > 0):
+                for line in rec.line_ids:
+                    partner = self.env["res.partner"].sudo().browse(line.partner_id.id)
+                    partner.action_update_discount_amount()
+                    helpdesk_tickets = line.helpdesk_ticket_product_moves_ids.mapped(
+                        "helpdesk_ticket_id"
+                    )
+                    stage_id = (
+                        self.env["helpdesk.stage"]
                         .search(
                             [
                                 (
@@ -378,13 +442,23 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                             limit=1,
                         )
                         .id
-                    }
-                )
-            rec.state = "done"
+                    )
+                    helpdesk_tickets.write({"stage_id": stage_id})
+                rec.state = "done"
+
+            _logger.debug("Completed 'action_done' for records: %s", self.ids)
+
+        except Exception as e:
+            _logger.error("Error in 'action_done': %s", e)
+            raise UserError(_("An unexpected error occurred. Please try again."))
 
     def action_reset(self):
         if self.state == "confirm":
             self.action_reset_to_draft()
+
+    # =================================
+    # BUSINESS Methods
+    # =================================
 
     def action_calculate_discount_line(self):
         self.ensure_one()
@@ -405,7 +479,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         ticket_product_moves = self._fetch_ticket_product_moves(tickets)
 
         # Fetch partners at once
-        partners = self._fetch_partners(ticket_product_moves)
+        # partners = self._fetch_partners(ticket_product_moves)
+        partners = self.env["res.partner"].browse(219)
         if not partners:
             raise UserError(
                 "Không tìm thấy Đại lý đăng ký trong tháng {}/{}".format(
@@ -705,11 +780,28 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     # =================================
 
     def unlink(self):
-        self._validate_policy_done_not_unlink()
-        self.env["mv.compute.warranty.discount.policy.line"].search(
-            [("parent_id", "=", False)]
-        ).unlink()
-        return super(MvComputeWarrantyDiscountPolicy, self).unlink()
+        """
+        Unlink the current record after validating and cleaning up related records.
+
+        This method ensures that the policy is not in the "done" state before unlinking.
+        It also removes any `mv.compute.warranty.discount.policy.line` records with `parent_id` set to `False`.
+
+        :return: bool: Result of the unlink operation.
+        """
+        _logger.debug("Starting 'unlink' for records: %s", self.ids)
+
+        try:
+            self._validate_policy_done_not_unlink()
+            self.env["mv.compute.warranty.discount.policy.line"].search(
+                [("parent_id", "=", False)]
+            ).unlink()
+            result = super(MvComputeWarrantyDiscountPolicy, self).unlink()
+            _logger.debug("Completed 'unlink' for records: %s", self.ids)
+            return result
+
+        except Exception as e:
+            _logger.error("Error in 'unlink': %s", e)
+            return False
 
     # =================================
     # CONSTRAINS / VALIDATION Methods
