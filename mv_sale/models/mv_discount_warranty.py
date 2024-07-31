@@ -300,14 +300,9 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         """
         _logger.debug("Starting '_do_readonly'.")
 
-        try:
-            for rec in self:
-                rec.do_readonly = rec.state == "done"
-                _logger.debug(f"Record {rec.id}: do_readonly set to {rec.do_readonly}.")
-
-        except Exception as e:
-            _logger.error(f"Error in '_do_readonly': {e}")
-            return
+        for rec in self:
+            rec.do_readonly = rec.state == "done"
+            _logger.debug(f"Record {rec.id}: do_readonly set to {rec.do_readonly}.")
 
         _logger.debug("Completed '_do_readonly'.")
 
@@ -335,18 +330,13 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         """
         _logger.debug("Starting '_compute_name'.")
 
-        try:
-            for rec in self:
-                if rec.month and rec.year:
-                    rec.name = "{}/{}".format(str(rec.month), str(rec.year))
-                else:
-                    dt = datetime.now().replace(day=1)
-                    rec.name = "{}/{}".format(str(dt.month), str(dt.year))
-                _logger.debug(f"Record {rec.id}: name set to {rec.name}.")
-
-        except Exception as e:
-            _logger.error(f"Error in '_compute_name': {e}")
-            return
+        for rec in self:
+            if rec.month and rec.year:
+                rec.name = "{}/{}".format(str(rec.month), str(rec.year))
+            else:
+                dt = datetime.now().replace(day=1)
+                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+            _logger.debug(f"Record {rec.id}: name set to {rec.name}.")
 
         _logger.debug("Completed '_compute_name'.")
 
@@ -369,21 +359,14 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         """
         _logger.debug("Starting '_compute_compute_date'.")
 
-        try:
-            for rec in self:
-                if rec.month and rec.year:
-                    rec.compute_date = datetime.now().replace(
-                        day=1, month=int(rec.month), year=int(rec.year)
-                    )
-                else:
-                    rec.compute_date = datetime.now().replace(day=1)
-                _logger.debug(
-                    f"Record {rec.id}: compute_date set to {rec.compute_date}."
+        for rec in self:
+            if rec.month and rec.year:
+                rec.compute_date = datetime.now().replace(
+                    day=1, month=int(rec.month), year=int(rec.year)
                 )
-
-        except Exception as e:
-            _logger.error(f"Error in '_compute_compute_date': {e}")
-            return
+            else:
+                rec.compute_date = datetime.now().replace(day=1)
+            _logger.debug(f"Record {rec.id}: compute_date set to {rec.compute_date}.")
 
         _logger.debug("Completed '_compute_compute_date'.")
 
@@ -480,7 +463,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         # Fetch partners at once
         partners = self._fetch_partners(ticket_product_moves)
-        # partners = self.env["res.partner"].browse(219)
         if not partners:
             raise UserError(
                 "Không tìm thấy Đại lý đăng ký trong tháng {}/{}".format(
@@ -533,13 +515,22 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         results = []
         policy_used = self.warranty_discount_policy_id
         compute_date = self.compute_date
-
-        for partner in partners.filtered(
+        partners_mapped_with_policy = policy_used.partner_ids.mapped("partner_id").ids
+        partners_to_compute_discount = partners.filtered(
             lambda p: p.is_agency
-            and p.id in policy_used.partner_ids.mapped("partner_id").ids
-        ):
+            and p.id in partners_mapped_with_policy
+            or p.parent_id.is_agency
+            and p.parent_id.id in partners_mapped_with_policy
+        )
+
+        for partner in partners_to_compute_discount:
             # Prepare values to calculate discount
-            vals = self._prepare_values_to_calculate_discount(partner, compute_date)
+            if not partner.is_agency:
+                vals = self._prepare_values_to_calculate_discount(
+                    partner.parent_id, compute_date
+                )
+            else:
+                vals = self._prepare_values_to_calculate_discount(partner, compute_date)
 
             partner_tickets_registered = ticket_product_moves.filtered(
                 lambda t: t.partner_id.id == partner.id
@@ -790,18 +781,13 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         """
         _logger.debug("Starting 'unlink' for records: %s", self.ids)
 
-        try:
-            self._validate_policy_done_not_unlink()
-            self.env["mv.compute.warranty.discount.policy.line"].search(
-                [("parent_id", "=", False)]
-            ).unlink()
-            result = super(MvComputeWarrantyDiscountPolicy, self).unlink()
-            _logger.debug("Completed 'unlink' for records: %s", self.ids)
-            return result
-
-        except Exception as e:
-            _logger.error("Error in 'unlink': %s", e)
-            return False
+        self._validate_policy_done_not_unlink()
+        self.env["mv.compute.warranty.discount.policy.line"].search(
+            [("parent_id", "=", False)]
+        ).unlink()
+        result = super(MvComputeWarrantyDiscountPolicy, self).unlink()
+        _logger.debug("Completed 'unlink' for records: %s", self.ids)
+        return result
 
     # =================================
     # CONSTRAINS / VALIDATION Methods

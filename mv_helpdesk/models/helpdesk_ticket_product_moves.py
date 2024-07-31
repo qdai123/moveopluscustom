@@ -171,7 +171,70 @@ class HelpdeskTicketProductMoves(models.Model):
     # ACTION / BUTTON ACTION Methods
     # ==================================
 
+    @api.model
+    def auto_remove_duplicates(self):
+        """
+        Automatically remove duplicate records from the 'mv.helpdesk.ticket.product.moves' model.
+
+        This method identifies duplicate records based on a combination of relevant fields and removes them.
+
+        :return: None
+        """
+        try:
+            unique_records = {}
+            duplicates = self.browse()
+
+            for record in self:
+                key_full_codes = (
+                    record.helpdesk_ticket_id.id,
+                    record.product_id.id,
+                    record.lot_name,
+                    record.qr_code,
+                )
+                key_missing_serial = (
+                    record.helpdesk_ticket_id.id,
+                    record.product_id.id,
+                    False,
+                    record.qr_code,
+                )
+                key_missing_qrcode = (
+                    record.helpdesk_ticket_id.id,
+                    record.product_id.id,
+                    record.lot_name,
+                    False,
+                )
+                if key_full_codes in unique_records:
+                    duplicates |= record
+                elif key_missing_serial in unique_records:
+                    duplicates |= record
+                elif key_missing_qrcode in unique_records:
+                    duplicates |= record
+                else:
+                    unique_records[key] = record
+
+            if duplicates:
+                duplicates.unlink()
+                _logger.info(
+                    f"Removed {len(duplicates)} duplicate records from 'mv.helpdesk.ticket.product.moves'."
+                )
+
+            return unique_records
+
+        except Exception as e:
+            _logger.error(f"Error in 'auto_remove_duplicates': {e}")
+            raise ValidationError(_("Failed to remove duplicates!"))
+
     def action_reload(self):
+        """
+        Reload the data for each line in the recordset.
+
+        This method removes duplicate records, reloads ticket information, product activation details,
+        and updates customer activation details from the helpdesk ticket.
+
+        :return: None
+        """
+        _logger.debug("Starting 'action_reload' for records: %s", self.ids)
+
         for line in self:
             try:
                 if line.helpdesk_ticket_id:
@@ -188,11 +251,14 @@ class HelpdeskTicketProductMoves(models.Model):
                     )
                     line.customer_mileage_activation = line.helpdesk_ticket_id.mileage
                 else:
-                    line.customer_phone_activation = line.customer_date_activation = (
-                        line.customer_license_plates_activation
-                    ) = line.customer_mileage_activation = False
+                    line.customer_phone_activation = False
+                    line.customer_date_activation = False
+                    line.customer_license_plates_activation = False
+                    line.customer_mileage_activation = False
             except Exception as e:
                 _logger.error(f"Failed to reload data for line {line.id}: {e}")
+
+        _logger.debug("Completed 'action_reload' for records: %s", self.ids)
 
     def action_open_stock(self):
         self.ensure_one()

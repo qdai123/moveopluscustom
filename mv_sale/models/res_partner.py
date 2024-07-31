@@ -13,7 +13,7 @@ class ResPartner(models.Model):
     def name_get(self):
         res = []
         for partner in self:
-            res.append((partner.id, partner.partner_agency_name))
+            res.append((partner.id, partner.partner_agency_name or partner.name))
         return res
 
     @api.model
