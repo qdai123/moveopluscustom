@@ -611,8 +611,6 @@ class SaleOrder(models.Model):
             }
 
     def _reset_discount_agency(self, order_state=None):
-        self.ensure_one()
-
         # [>] Reset Bonus, Discount Fields
         if order_state == "draft":
             self._compute_partner_bonus()
@@ -634,12 +632,11 @@ class SaleOrder(models.Model):
     def action_clear_discount_lines(self):
         # Filter the order lines based on the conditions
         discount_lines = self.order_line._get_discount_agency_line()
+        discount_lines += self.order_line.filtered(lambda sol: sol.is_reward_line)
 
         # Unlink the discount lines
         if discount_lines:
-            discount_lines.unlink()
-
-        return True
+            discount_lines.sudo().unlink()
 
     def action_draft(self):
         orders = super(SaleOrder, self).action_draft()
