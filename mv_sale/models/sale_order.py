@@ -320,10 +320,6 @@ class SaleOrder(models.Model):
             order.total_price_after_discount_10 - order.bonus_order
         )
 
-        # [>] Update the Sale Order's Bonus Order
-        order._update_programs_and_rewards()
-        order._auto_apply_rewards()
-
     def handle_discount_lines(self):
         """
         Removes discount lines from the order if there are no more products in the order.
@@ -354,9 +350,13 @@ class SaleOrder(models.Model):
     # ==================================
 
     def write(self, vals):
-        context = self.env.context.copy()
-        _logger.debug(f"Context: {context}")
-        return super(SaleOrder, self.with_context(context)).write(vals)
+        if "product_uom_qty" in vals and vals["product_uom_qty"]:
+            # [>] Update the Sale Order's Bonus Order
+            for order in self:
+                order._update_programs_and_rewards()
+                order._auto_apply_rewards()
+
+        return super(SaleOrder, self).write(vals)
 
     # ==================================
     # BUSINESS Methods
