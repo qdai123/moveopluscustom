@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record model="ir.ui.view" id="mv_discount_partner_history_view_tree">
+		<field name="name">mv_sale.mv.discount.partner.history.tree</field>
+		<field name="model">mv.discount.partner.history</field>
+		<field name="arch" type="xml">
+			<tree default_order="create_date desc"
+			      limit="10"
+			      create="false"
+			      edit="false"
+			      delete="false"
+			      import="false"
+			      export_xlsx="false"
+			      duplicate="false"
+			      sample="true">
+				<field name="create_date" string="Ngày ghi nhận"/>
+				<field name="create_uid" widget="many2one_avatar_user" string="Người thao tác"/>
+				<field name="history_description" class="fw-bold"/>
+				<field name="total_money" widget="monetary" sum="Total money" optional="hidden"/>
+				<field name="total_money_discount_display"
+				       decoration-success="is_positive_money"
+                       decoration-danger="is_negative_money"
+                       decoration-muted="total_money == 0"/>
+				<field name="partner_id" string="Đại lý được chiết khấu" options='{"no_open": True}'/>
+				<field column_invisible="1" name="is_positive_money"/>
+				<field column_invisible="1" name="is_negative_money"/>
+				<field column_invisible="1" name="sale_order_id"/>
+				<field column_invisible="1" name="sale_order_discount_money_apply"/>
+				<field column_invisible="1" name="production_discount_policy_id"/>
+				<field column_invisible="1" name="production_discount_policy_total_money"/>
+				<field column_invisible="1" name="warranty_discount_policy_id"/>
+				<field column_invisible="1" name="warranty_discount_policy_total_money"/>
+				<field column_invisible="1" name="partner_currency_id"/>
+			</tree>
+		</field>
+	</record>
+
+	<record model="ir.actions.act_window" id="mv_discount_partner_history_action_view">
+		<field name="name">Lịch sử chiết khấu Đại lý</field>
+		<field name="res_model">mv.discount.partner.history</field>
+		<field name="view_mode">tree</field>
+		<field name="view_id" ref="mv_discount_partner_history_view_tree"/>
+		<field name="domain">[]</field>
+		<field name="context">{}</field>
+	</record>
+</odoo>

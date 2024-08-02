@@ -1544,12 +1544,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
 
 class MvComputeWarrantyDiscountPolicyLine(models.Model):
-    _name = _description = "mv.compute.warranty.discount.policy.line"
-
-    def _get_company_currency(self):
-        for rec in self:
-            company = rec.partner_id.company_id or self.env.company
-            rec.currency_id = company.sudo().currency_id
+    _name = "mv.compute.warranty.discount.policy.line"
+    _description = _("Compute Warranty Discount (%) Line for Partner")
 
     currency_id = fields.Many2one(
         "res.currency", compute="_get_company_currency", store=True
@@ -1612,6 +1608,11 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         digits=(16, 2),
         currency_field="currency_id",
     )
+
+    def _get_company_currency(self):
+        for rec in self:
+            company = rec.partner_id.company_id or self.env.company
+            rec.currency_id = company.sudo().currency_id
 
     @api.depends("parent_compute_date")
     def _compute_parent_name(self):

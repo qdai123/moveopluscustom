@@ -251,6 +251,27 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         order._update_programs_and_rewards()
         order._auto_apply_rewards()
 
+        # [>] Add History Discount
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=f"Áp dụng chiết khấu cho đơn {selection_label}, có mã đơn là {order.name}",
+                sale_order_id=order.id,
+                sale_order_discount_money_apply=order.bonus_order,
+                total_money=order.bonus_order,
+                total_money_discount_display=(
+                    "- {:,.2f}".format(order.bonus_order)
+                    if order.bonus_order > 0
+                    else "{:,.2f}".format(order.bonus_order)
+                ),
+                is_negative_money=True if order.bonus_order > 0 else False,
+            )
+
         return True
 
     def action_update(self):
@@ -282,6 +303,31 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
 
         order._update_programs_and_rewards()
         order._auto_apply_rewards()
+
+        # [>] Add History Discount
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=(
+                    f"Cập nhật chiết khấu cho đơn {selection_label}, có mã đơn là {order.name}"
+                    if not self.env.context.get("action_confirm", False)
+                    else f"Xác nhận chiết khấu cho đơn hàng {order.name}"
+                ),
+                sale_order_id=order.id,
+                sale_order_discount_money_apply=order.bonus_order,
+                total_money=order.bonus_order,
+                total_money_discount_display=(
+                    "- {:,.2f}".format(order.bonus_order)
+                    if order.bonus_order > 0
+                    else "{:,.2f}".format(order.bonus_order)
+                ),
+                is_negative_money=True if order.bonus_order > 0 else False,
+            )
 
         return True
 

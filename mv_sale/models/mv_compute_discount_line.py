@@ -11,13 +11,6 @@ class MvComputeDiscountLine(models.Model):
     _description = _("Compute Discount (%) Line for Partner")
     _rec_name = "partner_id"
 
-    def _get_company_currency(self):
-        for record in self:
-            if record.partner_id.company_id:
-                record.currency_id = record.partner_id.sudo().company_id.currency_id
-            else:
-                record.currency_id = self.env.company.currency_id
-
     # Parent Model Fields:
     parent_id = fields.Many2one("mv.compute.discount")
     name = fields.Char(related="parent_id.name", store=True)
@@ -35,7 +28,7 @@ class MvComputeDiscountLine(models.Model):
             ("imqualified", "Chưa Đạt"),
             ("qualified_by_approving", "Duyệt cho Đạt"),
         ],
-        "Trạng thái",
+        "Đạt/Chưa Đạt",
         compute="_compute_partner_sales_state",
         store=True,
     )
@@ -83,6 +76,13 @@ class MvComputeDiscountLine(models.Model):
         "% chiết khấu khuyến khích", digits=(16, 1)
     )
     promote_discount_money = fields.Float("Số tiền chiết khấu khuyến khích")
+
+    def _get_company_currency(self):
+        for record in self:
+            if record.partner_id.company_id:
+                record.currency_id = record.partner_id.sudo().company_id.currency_id
+            else:
+                record.currency_id = self.env.company.currency_id
 
     @api.depends("quantity", "quantity_from")
     def _compute_partner_sales_state(self):
@@ -269,7 +269,7 @@ class MvComputeDiscountLine(models.Model):
         )
 
     # =================================
-    # ACTION VIEW Methods
+    # ACTION VIEWS Methods
     # =================================
 
     def action_view_two_month(self):

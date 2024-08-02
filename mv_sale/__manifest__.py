@@ -29,6 +29,7 @@
         # VIEWS
         "views/mv_discount_views.xml",
         "views/mv_discount_partner_views.xml",
+        "views/mv_discount_partner_history_views.xml",
         "views/mv_promote_discount_line_views.xml",
         "views/mv_warranty_discount_policy_views.xml",
         "views/mv_white_place_discount_line_views.xml",

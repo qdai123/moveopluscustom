@@ -501,6 +501,7 @@ class MvComputeDiscount(models.Model):
                 "edit": False,
                 "tree_view_ref": "mv_sale.mv_compute_discount_line_tree",
                 "form_view_ref": "mv_sale.mv_compute_discount_line_form",
+                "search_default_filter_partner_sales_state": True,
             },
         }
 
