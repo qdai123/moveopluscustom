@@ -27,25 +27,34 @@ class AccountMove(models.Model):
                 and move.state == "posted"
                 and move.is_invoice(include_receipts=True)
             ):
-                early_discount = 0.0
-                amount_early_discount = 0.0
-                if move._is_eligible_for_early_payment_discount_partial(
-                    move.currency_id, move.invoice_date
+                early_discount = move.invoice_payment_term_id.early_discount
+                early_discount_percentage = (
+                    move.invoice_payment_term_id.discount_percentage
+                )
+                early_discount_date = (
+                    move.invoice_payment_term_id._get_last_discount_date(
+                        move.invoice_date
+                    )
+                )
+                if (
+                    early_discount
+                    and not move.invoice_date
+                    or early_discount_date
+                    and move.invoice_date <= early_discount_date
                 ):
-                    early_discount = move.invoice_payment_term_id.early_discount
                     amount_early_discount = (
                         move.amount_total
                         - move.invoice_payment_term_id._get_amount_due_after_discount(
                             move.amount_total, move.amount_tax
                         )
                     )
-                move.invoice_payments_widget["content"][0].update(
-                    {
-                        "is_early_discount": True,
-                        "early_discount": f"{early_discount:.2f}%",
-                        "amount_early_discount": amount_early_discount,
-                    }
-                )
+                    move.invoice_payments_widget["content"][0].update(
+                        {
+                            "is_early_discount": True,
+                            "early_discount": f"{early_discount_percentage} %",
+                            "amount_early_discount": amount_early_discount or 0.0,
+                        }
+                    )
 
             _logger.debug("Completed '_compute_payments_widget_reconciled_info'.")
 
