@@ -10,31 +10,6 @@ _logger = logging.getLogger(__name__)
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    def name_get(self):
-        res = []
-        for partner in self:
-            res.append((partner.id, partner.partner_agency_name or partner.name))
-        return res
-
-    @api.model
-    def auto_update_data(self):
-        for record in self.filtered("is_agency"):
-            # Calculate total discount money from different sources
-            total_amount_discount_approved, total_amount_discount_waiting_approve = (
-                self._calculate_total_discounts(record)
-            )
-
-            # Calculate wallet amount
-            wallet = total_amount_discount_approved - record.total_so_bonus_order
-            record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
-            record.waiting_amount_currency = total_amount_discount_waiting_approve
-
-            # Re-update data 'sale_mv_ids'
-            orders_discount_applied = self._get_orders_with_discount(record, "sale")
-            record.sale_mv_ids = [
-                (6, 0, orders_discount_applied.ids if orders_discount_applied else [])
-            ]
-
     # === TRƯỜNG CƠ SỞ DỮ LIỆU
     # line_ids: Nội dung chi tiết chiết khấu được áp dụng cho Đại Lý
     # amount/amount_currency: Ví tiền được chiết khấu cho Đại lý sử dụng
@@ -100,6 +75,45 @@ class ResPartner(models.Model):
         domain=[("parent_id", "!=", False)],
         string="Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
     )
+
+    def name_get(self):
+        res = []
+        for partner in self:
+            res.append((partner.id, partner.partner_agency_name or partner.name))
+        return res
+
+    @api.model
+    def auto_update_data(self):
+        for record in self.filtered("is_agency"):
+            # Calculate total discount money from different sources
+            total_amount_discount_approved, total_amount_discount_waiting_approve = (
+                self._calculate_total_discounts(record)
+            )
+
+            # Calculate wallet amount
+            wallet = total_amount_discount_approved - record.total_so_bonus_order
+            record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
+            record.waiting_amount_currency = total_amount_discount_waiting_approve
+
+            # Re-update data 'sale_mv_ids'
+            orders_discount_applied = self._get_orders_with_discount(record, "sale")
+            record.sale_mv_ids = [
+                (6, 0, orders_discount_applied.ids if orders_discount_applied else [])
+            ]
+
+    @api.model
+    def get_discount_history(self, partner_id):
+        if not partner_id:
+            return []
+
+        domain = [("partner_id", "=", partner_id)]
+        order_by = "create_date desc"
+
+        discount_history_records = self.env["mv.discount.partner.history"].search(
+            domain, order=order_by
+        )
+
+        return discount_history_records
 
     # =================================
     # BUSINESS Methods
@@ -391,6 +405,31 @@ class ResPartner(models.Model):
                 ]
 
         return res
+
+    # =================================
+    # ACTION Methods
+    # =================================
+
+    def action_activation_for_agency(self):
+        for partner in self:
+            partner.write({"is_agency": True})
+
+    def action_view_partner_discount_history(self):
+        self.ensure_one()
+        return {
+            "name": f"Lịch sử chiết khấu Đại lý: {self.name}",
+            "type": "ir.actions.act_window",
+            "res_model": "mv.discount.partner.history",
+            "view_mode": "tree",
+            "views": [
+                [
+                    self.env.ref("mv_sale.mv_discount_partner_history_view_tree").id,
+                    "tree",
+                ]
+            ],
+            "domain": [("partner_id", "=", self.id)],
+            "context": {"default_partner_id": self.id},
+        }
 
     # ==================================
     # CRON SERVICE Methods

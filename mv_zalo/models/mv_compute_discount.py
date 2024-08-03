@@ -29,7 +29,7 @@ class MvComputeDiscount(models.Model):
                 and r.partner_id.mobile
                 and not r.zns_notification_sent
             ):
-                line.send_zns_message()
-                line.partner_id.sudo().action_update_discount_amount()
+                line.sudo().send_zns_message()
+                line.sudo().partner_id.action_update_discount_amount()
 
         return False

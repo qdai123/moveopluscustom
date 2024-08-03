@@ -6,23 +6,41 @@ class MvPromoteDiscountLine(models.Model):
     _name = "mv.promote.discount.line"
     _description = _("MOVEO PLUS Promote Discount Line (%)")
     _order = "promote_discount"
-    _rec_name = "promote_discount"
-    _rec_names_search = ["promote_discount"]
+    _rec_names_search = ["name", "promote_discount"]
 
     @api.model
     def name_get(self):
         res = []
         for record in self:
             if self._context.get("wizard_promote_discount_search", False):
-                name = "{:.0f}%".format(record.promote_discount)
-                res.append((record.id, name))
+                name_fmt = "{:.0f} % ({} - {})".format(
+                    record.promote_discount,
+                    record.quantity_minimum,
+                    record.quantity_maximum,
+                )
+                res.append((record.id, name_fmt))
         return res
 
+    name = fields.Char(compute="_compute_name", store=True)
     parent_id = fields.Many2one("mv.discount", readonly=True)
     pricelist_id = fields.Many2one("product.pricelist", "Chính sách giá")
     quantity_minimum = fields.Integer("Số lượng Min")
     quantity_maximum = fields.Integer("Số lượng Max")
     promote_discount = fields.Float("Chiết khấu khuyến khích (%)", digits=(16, 2))
+
+    @api.depends("promote_discount", "quantity_minimum", "quantity_maximum")
+    def _compute_name(self):
+        for record in self:
+            if (
+                record.promote_discount
+                and record.quantity_minimum
+                and record.quantity_maximum
+            ):
+                record.name = "{:.0f} % ({} - {})".format(
+                    record.promote_discount,
+                    record.quantity_minimum,
+                    record.quantity_maximum,
+                )
 
     @api.onchange("pricelist_id")
     def _onchange_pricelist(self):
