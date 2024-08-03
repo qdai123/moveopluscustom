@@ -474,49 +474,51 @@ class MvComputeDiscount(models.Model):
                     )
 
                 for partner_id, total_money in partners_updates.items():
-                    partner = self.env["res.partner"].browse(partner_id)
+                    partner = self.env["res.partner"].sudo().browse(partner_id)
                     partner.write({"amount": partner.amount + total_money})
 
                 # Create history line for discount
                 for line in record.line_ids.filtered(lambda rec: rec.parent_id):
-                    record.create_history_line(
+                    self.create_history_line(
                         line,
                         "done",
                         "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
                     )
 
-            record.state = "done"
+            record.write({"state": "done"})
 
     def action_undo(self):
         # Create history line for discount
         for record in self:
             if record.line_ids:
                 for line in record.line_ids.filtered(lambda rec: rec.parent_id):
-                    record.create_history_line(
+                    self.create_history_line(
                         line,
                         "cancel",
-                        "Chiết khấu sản lượng tháng %s đã hủy." % line.name,
+                        "Chiết khấu sản lượng tháng %s đã bị từ chối và đang chờ xem xét."
+                        % line.name,
                     )
 
             record.write({"state": "draft", "line_ids": False})
 
     def create_history_line(self, record, state, description):
-        money_display = "{:,.2f}".format(record.total_money)
-        is_waiting_approval = state == "confirm" and record.total_money > 0
-        is_positive_money = state == "done" and record.total_money > 0
-        is_negative_money = state == "cancel" and record.total_money > 0
+        total_money = record.total_money
+        money_display = "{:,.2f}".format(total_money)
+        is_waiting_approval = state == "confirm" and total_money > 0
+        is_positive_money = state == "done" and total_money > 0
+        is_negative_money = state == "cancel" and total_money > 0
 
         if state == "done":
-            money_display = "+ " + money_display
+            money_display = "+ " + money_display if total_money > 0 else money_display
         elif state == "cancel":
-            money_display = "- " + money_display
+            money_display = "- " + money_display if total_money > 0 else money_display
 
         return self.env["mv.discount.partner.history"]._create_history_line(
-            partner_id=record.partner_id.id,
+            partner_id=record.sudo().partner_id.id,
             history_description=description,
             production_discount_policy_id=record.id,
-            production_discount_policy_total_money=record.total_money,
-            total_money=record.total_money,
+            production_discount_policy_total_money=total_money,
+            total_money=total_money,
             total_money_discount_display=money_display,
             is_waiting_approval=is_waiting_approval,
             is_positive_money=is_positive_money,

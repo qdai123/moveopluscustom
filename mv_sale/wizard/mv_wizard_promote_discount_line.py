@@ -60,20 +60,27 @@ class MVWizardPromoteDiscountLine(models.TransientModel):
             total_money_promote_discount = (
                 discount_line.amount_total * promote_discount_percentage
             )
-            money_display = "+ {:,.2f}".format(total_money_promote_discount)
+            is_positive_money = total_money_promote_discount > 0
+            description = (
+                "Đã duyệt Chiết Khấu Khuyến Khích cho đại lý, đang chờ duyệt tổng tháng %s."
+                % discount_line.name
+            )
             self.env["mv.discount.partner.history"]._create_history_line(
                 partner_id=discount_line.partner_id.id,
-                history_description=f"Đã duyệt chiết khấu khuyến khích tháng {discount_line.name} cho đại lý.",
+                history_description=description,
                 production_discount_policy_id=discount_line.id,
                 production_discount_policy_total_money=total_money_promote_discount,
                 total_money=total_money_promote_discount,
-                total_money_discount_display=money_display,
+                total_money_discount_display=(
+                    "+ {:,.2f}".format(total_money_promote_discount)
+                    if total_money_promote_discount > 0
+                    else "{:,.2f}".format(total_money_promote_discount)
+                ),
                 is_waiting_approval=False,
-                is_positive_money=True,
+                is_positive_money=is_positive_money,
                 is_negative_money=False,
             )
-
-            # Tracking value
+            # Tracking for user
             compute_discount.message_post(
                 body=Markup(
                     """
