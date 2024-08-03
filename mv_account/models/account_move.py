@@ -31,13 +31,16 @@ class AccountMove(models.Model):
                 early_discount_percentage = (
                     move.invoice_payment_term_id.discount_percentage
                 )
+                early_discount_date = (
+                    move.invoice_payment_term_id._get_last_discount_date(
+                        move.invoice_date
+                    )
+                )
                 if (
                     early_discount
                     and not move.invoice_date
-                    or move.invoice_date
-                    <= move.invoice_payment_term_id._get_last_discount_date(
-                        move.invoice_date
-                    )
+                    or early_discount_date
+                    and move.invoice_date <= early_discount_date
                 ):
                     amount_early_discount = (
                         move.amount_total
