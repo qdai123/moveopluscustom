@@ -147,9 +147,6 @@ class MvComputeDiscount(models.Model):
     # =================================
 
     def action_reset_to_draft(self):
-        """
-        Resets the state of the current record to 'draft'.
-        """
         try:
             self.ensure_one()
             if self.state != "draft":
@@ -423,67 +420,30 @@ class MvComputeDiscount(models.Model):
                     "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
                 )
 
-    def _prepare_values_for_confirmation(self, partner_id, report_date):
-        """Gets the data and returns it the right format for render."""
-        self.ensure_one()
-
-        return {
-            "month_parent": int(report_date.month),
-            "partner_id": partner_id.id,
-            "discount_line_id": False,
-            "currency_id": False,
-            "level": 0,
-            "sale_ids": [],
-            "order_line_ids": [],
-            "quantity": 0,
-            "quantity_discount": 0,
-            "quantity_from": 0,
-            "quantity_to": 0,
-            "amount_total": 0,
-            # Compute for a month
-            "is_month": False,
-            "month": 0.0,  # % chiết khấu tháng
-            "month_money": 0.0,
-            # Compute for 2 months
-            "is_two_month": False,
-            "amount_two_month": 0.0,
-            "two_month": 0.0,  # % chiết khấu 2 tháng
-            "two_money": 0,
-            # Compute for quarter
-            "is_quarter": False,
-            "quarter": 0.0,  # % chiết khấu quý
-            "quarter_money": 0,
-            # Compute for year
-            "is_year": False,
-            "year": 0.0,  # % chiết khấu năm
-            "year_money": 0,
-        }
-
     def action_done(self):
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
-        for record in self:
-            if record.line_ids:
-                partners_updates = {}
-                for discount_line in record.line_ids:
-                    partner_id = discount_line.partner_id.id
-                    total_money = discount_line.total_money
-                    partners_updates[partner_id] = (
-                        partners_updates.get(partner_id, 0) + total_money
-                    )
+        for record in self.filtered(lambda r: len(r.line_ids) > 0):
+            partners_updates = {}
+            for discount_line in record.line_ids:
+                partner_id = discount_line.partner_id.id
+                total_money = discount_line.total_money
+                partners_updates[partner_id] = (
+                    partners_updates.get(partner_id, 0) + total_money
+                )
 
-                for partner_id, total_money in partners_updates.items():
-                    partner = self.env["res.partner"].sudo().browse(partner_id)
-                    partner.write({"amount": partner.amount + total_money})
+            for partner_id, total_money in partners_updates.items():
+                partner = self.env["res.partner"].sudo().browse(partner_id)
+                partner.write({"amount": partner.amount + total_money})
 
-                # Create history line for discount
-                for line in record.line_ids.filtered(lambda rec: rec.parent_id):
-                    self.create_history_line(
-                        line,
-                        "done",
-                        "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
-                    )
+            # Create history line for discount
+            for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "done",
+                    "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
+                )
 
             record.write({"state": "done"})
 
@@ -524,6 +484,42 @@ class MvComputeDiscount(models.Model):
             is_positive_money=is_positive_money,
             is_negative_money=is_negative_money,
         )
+
+    def _prepare_values_for_confirmation(self, partner_id, report_date):
+        """Gets the data and returns it the right format for render."""
+        self.ensure_one()
+
+        return {
+            "month_parent": int(report_date.month),
+            "partner_id": partner_id.id,
+            "discount_line_id": False,
+            "currency_id": False,
+            "level": 0,
+            "sale_ids": [],
+            "order_line_ids": [],
+            "quantity": 0,
+            "quantity_discount": 0,
+            "quantity_from": 0,
+            "quantity_to": 0,
+            "amount_total": 0,
+            # Compute for a month
+            "is_month": False,
+            "month": 0.0,  # % chiết khấu tháng
+            "month_money": 0.0,
+            # Compute for 2 months
+            "is_two_month": False,
+            "amount_two_month": 0.0,
+            "two_month": 0.0,  # % chiết khấu 2 tháng
+            "two_money": 0,
+            # Compute for quarter
+            "is_quarter": False,
+            "quarter": 0.0,  # % chiết khấu quý
+            "quarter_money": 0,
+            # Compute for year
+            "is_year": False,
+            "year": 0.0,  # % chiết khấu năm
+            "year_money": 0,
+        }
 
     # =================================
     # ACTION Methods

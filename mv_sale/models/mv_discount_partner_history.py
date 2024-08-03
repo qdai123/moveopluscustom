@@ -47,7 +47,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
     # === CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===
     warranty_discount_policy_id = fields.Many2one(
         string="Chính sách Chiết Khấu Kích Hoạt Bảo Hành",
-        comodel_name="mv.discount",
+        comodel_name="mv.compute.warranty.discount.policy.line",
         domain=[("parent_id", "!=", False), ("partner_id", "=", partner_id)],
     )
     warranty_discount_policy_total_money = fields.Monetary(
