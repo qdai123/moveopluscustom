@@ -268,6 +268,29 @@ class MvComputeDiscountLine(models.Model):
             % (self.env.user.name, self.partner_id.name, str(total_year))
         )
 
+    def create_history_line(self, record, state, description):
+        money_display = "{:,.2f}".format(record.total_money)
+        is_positive_money = (
+            state in ["approve_promote_discount"] and record.total_money > 0
+        )
+
+        if state == "done":
+            money_display = "+ " + money_display
+        elif state == "cancel":
+            money_display = "- " + money_display
+
+        return self.env["mv.discount.partner.history"]._create_history_line(
+            partner_id=record.partner_id.id,
+            history_description=description,
+            production_discount_policy_id=record.id,
+            production_discount_policy_total_money=record.total_money,
+            total_money=record.total_money,
+            total_money_discount_display=money_display,
+            is_waiting_approval=False,
+            is_positive_money=is_positive_money,
+            is_negative_money=False,
+        )
+
     # =================================
     # ACTION VIEWS Methods
     # =================================

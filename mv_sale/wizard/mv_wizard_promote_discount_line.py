@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from markupsafe import Markup
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 
 
 class MVWizardPromoteDiscountLine(models.TransientModel):
-    _name = _description = "mv.wizard.promote.discount.line"
+    _name = "mv.wizard.promote.discount.line"
+    _description = _("MO+ Wizard Promote Discount Line")
 
     compute_discount_id = fields.Many2one("mv.compute.discount", readonly=True)
     compute_discount_line_id = fields.Many2one(
@@ -13,7 +14,9 @@ class MVWizardPromoteDiscountLine(models.TransientModel):
     )
     partner_id = fields.Many2one("res.partner", readonly=True)
     promote_discount = fields.Many2one(
-        "mv.promote.discount.line", context={"wizard_promote_discount_search": True}
+        "mv.promote.discount.line",
+        domain=[("parent_id", "!=", False)],
+        context={"wizard_promote_discount_search": True},
     )
     promote_discount_percentage = fields.Float("% Promote Discount")
 
@@ -41,26 +44,45 @@ class MVWizardPromoteDiscountLine(models.TransientModel):
             promote_discount_percentage = (
                 self.promote_discount_percentage or promote_discount / 100
             )
+            total_money_promote_discount = (
+                discount_line.amount_total * promote_discount_percentage
+            )
             vals.update(
                 {
                     "partner_sales_state": "qualified_by_approving",
                     "is_promote_discount": True,
                     "promote_discount_percentage": promote_discount,
-                    "promote_discount_money": discount_line.amount_total
-                    * promote_discount_percentage,
+                    "promote_discount_money": total_money_promote_discount,
                 }
             )
             discount_line.write(vals)
+            # Create history line for discount
+            total_money_promote_discount = (
+                discount_line.amount_total * promote_discount_percentage
+            )
+            money_display = "+ {:,.2f}".format(total_money_promote_discount)
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=discount_line.partner_id.id,
+                history_description=f"Đã duyệt chiết khấu khuyến khích tháng {discount_line.name} cho đại lý.",
+                production_discount_policy_id=discount_line.id,
+                production_discount_policy_total_money=total_money_promote_discount,
+                total_money=total_money_promote_discount,
+                total_money_discount_display=money_display,
+                is_waiting_approval=False,
+                is_positive_money=True,
+                is_negative_money=False,
+            )
 
             # Tracking value
-            tracking_text = """
-                <div class="o_mail_notification">
-                    %s đã xác nhận chiết khấu khuyến khích cho %s. <br/>
-                    Với số tiền là: <b>%s</b>
-                </div>
-            """
             compute_discount.message_post(
-                body=Markup(tracking_text)
+                body=Markup(
+                    """
+                    <div class="o_mail_notification">
+                        %s đã xác nhận chiết khấu khuyến khích cho %s. <br/>
+                        Với số tiền là: <b>%s</b>
+                    </div>
+                """
+                )
                 % (
                     self.env.user.name,
                     self.partner_id.name,

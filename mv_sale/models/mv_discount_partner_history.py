@@ -16,6 +16,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
     partner_currency_id = fields.Many2one(
         comodel_name="res.currency", related="partner_id.currency_id"
     )
+    is_waiting_approval = fields.Boolean(string="Đang chờ duyệt", default=False)
     is_positive_money = fields.Boolean(string="Là chiết khấu dương", default=False)
     is_negative_money = fields.Boolean(string="Là chiết khấu âm", default=False)
     total_money = fields.Monetary(
