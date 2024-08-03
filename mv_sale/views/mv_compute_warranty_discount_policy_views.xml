@@ -55,17 +55,17 @@
 									<field name="first_quantity_from" column_invisible="True"/>
 									<field name="first_count" string="Số lượng"/>
 									<field name="first_quantity_to" column_invisible="True"/>
-									<field name="first_warranty_policy_money" string="Tiền chiết khấu" optional="hidden"/>
+									<field name="first_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 1)" optional="hidden"/>
 									<field name="first_warranty_policy_total_money" string="Thành tiền"/>
 									<field name="second_warranty_policy_requirement_id" string="Điều kiện 2" widget="badge" decoration-success="second_count > 0" decoration-muted="second_count == 0"/>
 									<field name="second_quantity_from" column_invisible="True"/>
 									<field name="second_count" string="Số lượng"/>
 									<field name="second_quantity_to" column_invisible="True"/>
-									<field name="second_warranty_policy_money" string="Tiền chiết khấu" optional="hidden"/>
+									<field name="second_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 2)" optional="hidden"/>
 									<field name="second_warranty_policy_total_money" string="Thành tiền"/>
 									<field name="third_warranty_policy_requirement_id" string="Điều kiện 3" column_invisible="True"/>
 									<field name="third_count" string="Số lượng" column_invisible="True"/>
-									<field name="third_warranty_policy_money" string="Tiền chiết khấu" column_invisible="True"/>
+									<field name="third_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 3)" column_invisible="True"/>
 									<field name="third_warranty_policy_total_money" string="Thành tiền" column_invisible="True"/>
 									<field name="total_amount_currency" string="Tổng số tiền" widget="monetary"/>
 								</tree>
