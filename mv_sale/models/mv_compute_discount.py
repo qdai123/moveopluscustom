@@ -508,7 +508,7 @@ class MvComputeDiscount(models.Model):
         is_positive_money = state == "done" and total_money > 0
         is_negative_money = state == "cancel" and total_money > 0
 
-        if state == "done":
+        if state in ["confirm", "done"]:
             money_display = "+ " + money_display if total_money > 0 else money_display
         elif state == "cancel":
             money_display = "- " + money_display if total_money > 0 else money_display
