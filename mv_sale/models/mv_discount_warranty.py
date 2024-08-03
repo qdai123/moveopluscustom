@@ -298,13 +298,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         :return: None
         """
-        _logger.debug("Starting '_do_readonly'.")
-
         for rec in self:
             rec.do_readonly = rec.state == "done"
-            _logger.debug(f"Record {rec.id}: do_readonly set to {rec.do_readonly}.")
-
-        _logger.debug("Completed '_do_readonly'.")
 
     # BASE Fields:
     month = fields.Selection(get_months())
@@ -328,17 +323,12 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         :return: None
         """
-        _logger.debug("Starting '_compute_name'.")
-
         for rec in self:
             if rec.month and rec.year:
                 rec.name = "{}/{}".format(str(rec.month), str(rec.year))
             else:
                 dt = datetime.now().replace(day=1)
                 rec.name = "{}/{}".format(str(dt.month), str(dt.year))
-            _logger.debug(f"Record {rec.id}: name set to {rec.name}.")
-
-        _logger.debug("Completed '_compute_name'.")
 
     # RELATION Fields:
     warranty_discount_policy_id = fields.Many2one(
@@ -357,8 +347,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         :return: None
         """
-        _logger.debug("Starting '_compute_compute_date'.")
-
         for rec in self:
             if rec.month and rec.year:
                 rec.compute_date = datetime.now().replace(
@@ -366,82 +354,17 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 )
             else:
                 rec.compute_date = datetime.now().replace(day=1)
-            _logger.debug(f"Record {rec.id}: compute_date set to {rec.compute_date}.")
-
-        _logger.debug("Completed '_compute_compute_date'.")
-
-    # =================================
-    # ACTION Methods
-    # =================================
-
-    def action_reset_to_draft(self):
-        """
-        Resets the state of the current record to 'draft'.
-        """
-        try:
-            self.ensure_one()
-            if self.state != "draft":
-                self.state = "draft"
-                self.line_ids.unlink()  # Remove all lines
-                return True
-        except Exception as e:
-            _logger.error("Failed to reset to draft: %s", e)
-            return False
-
-    def action_done(self):
-        """
-        Mark the record as done and update related records.
-
-        This method checks if the user has the necessary access rights, updates the discount amount for partners,
-        and changes the stage of related helpdesk tickets before marking the record as done.
-
-        :return: None
-        """
-        _logger.debug("Starting 'action_done' for records: %s", self.ids)
-
-        try:
-            if not self._access_approve():
-                raise AccessError("Bạn không có quyền duyệt!")
-
-            for rec in self.filtered(lambda r: len(r.line_ids) > 0):
-                for line in rec.line_ids:
-                    partner = self.env["res.partner"].sudo().browse(line.partner_id.id)
-                    partner.action_update_discount_amount()
-                    helpdesk_tickets = line.helpdesk_ticket_product_moves_ids.mapped(
-                        "helpdesk_ticket_id"
-                    )
-                    stage_id = (
-                        self.env["helpdesk.stage"]
-                        .search(
-                            [
-                                (
-                                    "id",
-                                    "=",
-                                    self.env.ref(
-                                        "mv_website_helpdesk.warranty_stage_done"
-                                    ).id,
-                                )
-                            ],
-                            limit=1,
-                        )
-                        .id
-                    )
-                    helpdesk_tickets.write({"stage_id": stage_id})
-                rec.state = "done"
-
-            _logger.debug("Completed 'action_done' for records: %s", self.ids)
-
-        except Exception as e:
-            _logger.error("Error in 'action_done': %s", e)
-            raise UserError(_("An unexpected error occurred. Please try again."))
-
-    def action_reset(self):
-        if self.state == "confirm":
-            self.action_reset_to_draft()
 
     # =================================
     # BUSINESS Methods
     # =================================
+
+    def action_reset_to_draft(self):
+        self.ensure_one()
+        if self.state != "draft":
+            self.state = "draft"
+            self.line_ids.unlink()  # Remove all lines
+            return True
 
     def action_calculate_discount_line(self):
         self.ensure_one()
@@ -480,6 +403,93 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             )
 
         self.write({"line_ids": results, "state": "confirm"})
+
+        # Create history line for discount
+        if self.line_ids:
+            for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "confirm",
+                    "Chiết khấu kích hoạt bảo hành tháng %s đang chờ duyệt."
+                    % line.parent_name,
+                    line.total_amount_currency,
+                )
+
+    def action_done(self):
+        if not self._access_approve():
+            raise AccessError("Bạn không có quyền duyệt!")
+
+        for record in self.filtered(lambda r: len(r.line_ids) > 0):
+            for line in record.line_ids:
+                partner = self.env["res.partner"].sudo().browse(line.partner_id.id)
+                partner.action_update_discount_amount()
+                helpdesk_tickets = line.helpdesk_ticket_product_moves_ids.mapped(
+                    "helpdesk_ticket_id"
+                )
+                helpdesk_stage_done = self.env.ref(
+                    "mv_website_helpdesk.warranty_stage_done"
+                ).id
+                stage_id = (
+                    self.env["helpdesk.stage"]
+                    .search(
+                        [("id", "=", helpdesk_stage_done)],
+                        limit=1,
+                    )
+                    .id
+                )
+                helpdesk_tickets.write({"stage_id": stage_id})
+
+            # Create history line for discount
+            for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "done",
+                    "Chiết khấu kích hoạt bảo hành tháng %s đã được duyệt."
+                    % line.parent_name,
+                    line.total_amount_currency,
+                )
+
+            record.write({"state": "done"})
+
+    def action_reset(self):
+        if self.state == "confirm":
+
+            # Create history line for discount
+            for record in self:
+                if record.line_ids:
+                    for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                        self.create_history_line(
+                            line,
+                            "cancel",
+                            "Chiết khấu kích hoạt bảo hành tháng %s đã bị từ chối và đang chờ xem xét."
+                            % line.parent_name,
+                            line.total_amount_currency,
+                        )
+
+            self.action_reset_to_draft()
+
+    def create_history_line(self, record, state, description, total_money):
+        money_display = "{:,.2f}".format(total_money)
+        is_waiting_approval = state == "confirm" and total_money > 0
+        is_positive_money = state == "done" and total_money > 0
+        is_negative_money = state == "cancel" and total_money > 0
+
+        if state in ["confirm", "done"]:
+            money_display = "+ " + money_display if total_money > 0 else money_display
+        elif state == "cancel":
+            money_display = "- " + money_display if total_money > 0 else money_display
+
+        return self.env["mv.discount.partner.history"]._create_history_line(
+            partner_id=record.sudo().partner_id.id,
+            history_description=description,
+            warranty_discount_policy_id=record.id,
+            warranty_discount_policy_total_money=total_money,
+            total_money=total_money,
+            total_money_discount_display=money_display,
+            is_waiting_approval=is_waiting_approval,
+            is_positive_money=is_positive_money,
+            is_negative_money=is_negative_money,
+        )
 
     def _prepare_values_to_calculate_discount(self, partner, compute_date):
         self.ensure_one()
@@ -779,15 +789,12 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         :return: bool: Result of the unlink operation.
         """
-        _logger.debug("Starting 'unlink' for records: %s", self.ids)
-
         self._validate_policy_done_not_unlink()
         self.env["mv.compute.warranty.discount.policy.line"].search(
             [("parent_id", "=", False)]
         ).unlink()
-        result = super(MvComputeWarrantyDiscountPolicy, self).unlink()
-        _logger.debug("Completed 'unlink' for records: %s", self.ids)
-        return result
+
+        return super(MvComputeWarrantyDiscountPolicy, self).unlink()
 
     # =================================
     # CONSTRAINS / VALIDATION Methods
@@ -1544,12 +1551,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
 
 class MvComputeWarrantyDiscountPolicyLine(models.Model):
-    _name = _description = "mv.compute.warranty.discount.policy.line"
-
-    def _get_company_currency(self):
-        for rec in self:
-            company = rec.partner_id.company_id or self.env.company
-            rec.currency_id = company.sudo().currency_id
+    _name = "mv.compute.warranty.discount.policy.line"
+    _description = _("Compute Warranty Discount (%) Line for Partner")
 
     currency_id = fields.Many2one(
         "res.currency", compute="_get_company_currency", store=True
@@ -1612,6 +1615,11 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         digits=(16, 2),
         currency_field="currency_id",
     )
+
+    def _get_company_currency(self):
+        for rec in self:
+            company = rec.partner_id.company_id or self.env.company
+            rec.currency_id = company.sudo().currency_id
 
     @api.depends("parent_compute_date")
     def _compute_parent_name(self):

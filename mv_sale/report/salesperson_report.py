@@ -63,41 +63,13 @@ class SalespersonReport(models.Model):
     # SQL Queries / Initialization
     # ==================================
 
-    @api.model
-    def _sql_orders(self):
-        AND_CLAUSE = (
-            (
-                """
-            AND (so.is_order_returns = FALSE OR so.is_order_returns IS NULL)
-            AND (so.user_id = %s OR so.user_id IS NULL)
-        """
-                % self.env.user.id
-            )
-            if self.env.user.has_group(GROUP_SALESPERSON)
-            else "AND (so.is_order_returns = FALSE OR so.is_order_returns IS NULL)"
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute(
+            "CREATE OR REPLACE VIEW %s AS (%s);" % (self._table, self.query())
         )
-        return f"""
-            SELECT so.id                             AS sale_id,
-                   so.user_id                        AS sale_user_id,
-                   so.date_order::DATE               AS sale_date_order,
-                   EXTRACT(DAY FROM so.date_order)   AS sale_day_order,
-                   EXTRACT(MONTH FROM so.date_order) AS sale_month_order,
-                   EXTRACT(YEAR FROM so.date_order)  AS sale_year_order,
-                   partner.id                        AS partner_id,
-                   partner.company_registry          AS partner_company_registry,
-                   partner_shipping.street,
-                   partner_shipping.wards_id,
-                   partner_shipping.district_id,
-                   partner_shipping.state_id,
-                   partner_shipping.country_id
-            FROM sale_order so
-                     INNER JOIN res_partner partner ON (so.partner_id = partner.id AND partner.is_agency = TRUE)
-                     INNER JOIN res_partner partner_shipping ON (so.partner_shipping_id = partner_shipping.id)
-            WHERE so.state = 'sale'
-                {AND_CLAUSE}
-        """
 
-    def _query(self):
+    def query(self):
         return f"""
               WITH 
               {self._with_clause()}
@@ -113,8 +85,37 @@ class SalespersonReport(models.Model):
         att_rim_diameter_inch = self.env.context.get(
             "attribute_rim_diameter_inch", "rim_diameter_inch"
         )
+        AND_CLAUSE = (
+            (
+                """
+                AND (so.is_order_returns = FALSE OR so.is_order_returns IS NULL)
+                AND (so.user_id = %s OR so.user_id IS NULL)
+            """
+                % self.env.user.id
+            )
+            if not self.env.user.has_group(GROUP_SALES_ALL)
+            and not self.env.user.has_group(GROUP_SALES_MANAGER)
+            else "AND (so.is_order_returns = FALSE OR so.is_order_returns IS NULL)"
+        )
+
         return f"""
-            orders AS ({self._sql_orders()}),
+            orders AS (SELECT so.id                             AS sale_id,
+                              so.user_id                        AS sale_user_id,
+                              so.date_order::DATE               AS sale_date_order,
+                              EXTRACT(DAY FROM so.date_order)   AS sale_day_order,
+                              EXTRACT(MONTH FROM so.date_order) AS sale_month_order,
+                              EXTRACT(YEAR FROM so.date_order)  AS sale_year_order,
+                              partner.id                        AS partner_id,
+                              partner.company_registry          AS partner_company_registry,
+                              partner_shipping.street,
+                              partner_shipping.wards_id,
+                              partner_shipping.district_id,
+                              partner_shipping.state_id,
+                              partner_shipping.country_id
+                      FROM sale_order so
+                            INNER JOIN res_partner partner ON (so.partner_id = partner.id AND partner.is_agency = TRUE)
+                            INNER JOIN res_partner partner_shipping ON (so.partner_shipping_id = partner_shipping.id)
+                      WHERE so.state = 'sale' {AND_CLAUSE}),
             order_lines AS (SELECT so.sale_id,
                                    so.sale_user_id,
                                    so.sale_date_order,
@@ -209,12 +210,6 @@ class SalespersonReport(models.Model):
                      pa.product_att_ma_gai,
                      pa.product_att_rim_diameter_inch
         """
-
-    def init(self):
-        tools.drop_view_if_exists(self._cr, self._table)
-        self._cr.execute(
-            "CREATE OR REPLACE VIEW %s AS (%s);" % (self._table, self._query())
-        )
 
     @api.model
     def web_search_read(

@@ -79,14 +79,8 @@ class SaleOrderLine(models.Model):
                     sol.price_subtotal_before_discount = (
                         sol.price_unit * sol.qty_delivered
                     ) - ((sol.price_unit * sol.qty_delivered) * sol.discount / 100)
-                    _logger.debug(
-                        f"Computed subtotal before discount for line {sol.id}: {sol.price_subtotal_before_discount}"
-                    )
                 else:
                     sol.price_subtotal_before_discount = 0
-                    _logger.debug(
-                        f"Set subtotal before discount to 0 for line {sol.id} due to missing values."
-                    )
             except Exception as e:
                 _logger.error(
                     f"Error computing subtotal before discount for line {sol.id}: {e}"

@@ -8,15 +8,8 @@ from odoo.tools.misc import formatLang
 
 class MvComputeDiscountLine(models.Model):
     _name = "mv.compute.discount.line"
-    _description = _("Compute Discount (%) Line for Partner")
+    _description = _("Compute Discount (%) Line for Partner Agency")
     _rec_name = "partner_id"
-
-    def _get_company_currency(self):
-        for record in self:
-            if record.partner_id.company_id:
-                record.currency_id = record.partner_id.sudo().company_id.currency_id
-            else:
-                record.currency_id = self.env.company.currency_id
 
     # Parent Model Fields:
     parent_id = fields.Many2one("mv.compute.discount")
@@ -35,7 +28,7 @@ class MvComputeDiscountLine(models.Model):
             ("imqualified", "Chưa Đạt"),
             ("qualified_by_approving", "Duyệt cho Đạt"),
         ],
-        "Trạng thái",
+        "Đạt/Chưa Đạt",
         compute="_compute_partner_sales_state",
         store=True,
     )
@@ -58,23 +51,23 @@ class MvComputeDiscountLine(models.Model):
 
     # Chiết Khấu 1 Tháng
     is_month = fields.Boolean()
-    month = fields.Float("% chiết khấu tháng")
+    month = fields.Float("% chiết khấu tháng", digits=(16, 1))
     month_money = fields.Integer("Số tiền chiết khấu tháng")
 
     # Chiết Khấu 2 Tháng
     is_two_month = fields.Boolean()
     amount_two_month = fields.Float("Số tiền 2 Tháng")
-    two_month = fields.Float("% chiết khấu 2 tháng")
+    two_month = fields.Float("% chiết khấu 2 tháng", digits=(16, 1))
     two_money = fields.Integer("Số tiền chiết khấu 2 tháng")
 
     # Chiết Khấu Quý
     is_quarter = fields.Boolean()
-    quarter = fields.Float("% chiết khấu quý")
+    quarter = fields.Float("% chiết khấu quý", digits=(16, 1))
     quarter_money = fields.Integer("Số tiền chiết khấu quý")
 
     # Chiết Khấu Năm
     is_year = fields.Boolean()
-    year = fields.Float("% chiết khấu năm")
+    year = fields.Float("% chiết khấu năm", digits=(16, 1))
     year_money = fields.Integer("Số tiền chiết khấu năm")
 
     # Chiết Khấu Khuyến Khích
@@ -83,6 +76,13 @@ class MvComputeDiscountLine(models.Model):
         "% chiết khấu khuyến khích", digits=(16, 1)
     )
     promote_discount_money = fields.Float("Số tiền chiết khấu khuyến khích")
+
+    def _get_company_currency(self):
+        for record in self:
+            if record.partner_id.company_id:
+                record.currency_id = record.partner_id.sudo().company_id.currency_id
+            else:
+                record.currency_id = self.env.company.currency_id
 
     @api.depends("quantity", "quantity_from")
     def _compute_partner_sales_state(self):
@@ -116,6 +116,8 @@ class MvComputeDiscountLine(models.Model):
     # =================================
 
     def action_approve_for_promote(self):
+        self.ensure_one()
+
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
@@ -141,66 +143,89 @@ class MvComputeDiscountLine(models.Model):
         }
 
     def action_approve_for_month(self):
+        self.ensure_one()
+
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
         vals = {}
         discount_line_env = self.env["mv.compute.discount.line"]
-        for rec in self.filtered(lambda r: r.quantity < r.quantity_from):
-            # Case 1:
+        if self.quantity < self.quantity_from:
+            is_two_months = False
+            # |||| Case 1: For a month
             vals.update(
                 {
-                    "partner_sales_state": "qualified_by_approving",
                     "is_month": True,
-                    "month": rec.discount_line_id.month,
-                    "month_money": rec.amount_total * rec.discount_line_id.month / 100,
+                    "partner_sales_state": "qualified_by_approving",
+                    "month": self.discount_line_id.month,
+                    "month_money": self.amount_total
+                    * self.discount_line_id.month
+                    / 100,
                 }
             )
-            # Case 2:
+            # |||| Case 2: For two months
             amount_by_two_month = 0
             previous_month = "{}/{}".format(
-                str(int(rec.month_parent) - 1), rec.parent_id.year
+                str(int(self.month_parent) - 1), self.parent_id.year
             )
             discount_line_previous_month = discount_line_env.search(
                 [
-                    ("partner_id", "=", rec.partner_id.id),
+                    ("partner_id", "=", self.partner_id.id),
                     ("is_month", "=", True),
                     ("is_two_month", "=", False),
                     ("name", "=", previous_month),
                 ]
             )
             if discount_line_previous_month:
+                is_two_months = True
                 for line in discount_line_previous_month:
                     amount_by_two_month += line.amount_total
 
                 vals.update(
                     {
                         "is_two_month": True,
-                        "two_month": rec.discount_line_id.two_month,
-                        "two_money": (amount_by_two_month + rec.amount_total)
-                        * rec.discount_line_id.two_month
+                        "two_month": self.discount_line_id.two_month,
+                        "two_money": (amount_by_two_month + self.amount_total)
+                        * self.discount_line_id.two_month
                         / 100,
                     }
                 )
-
-            rec.write(vals)
-
-            tracking_text = """
-                <div class="o_mail_notification">
-                    %s đã xác nhận chiết khấu tháng cho %s. <br/>
-                    Với số tiền là: <b>%s</b>
-                </div>
-            """
-            rec.parent_id.message_post(
-                body=Markup(tracking_text)
+            self.write(vals)
+            # Create history line for discount
+            total_money = (
+                vals["two_money"] + vals["month_money"]
+                if is_two_months
+                else vals["month_money"]
+            )
+            self.create_history_line(
+                self,
+                "approve_for_two_months",
+                "Đã duyệt Chiết Khấu Tháng cho đại lý, đang chờ duyệt tổng tháng %s."
+                % self.name,
+                total_money,
+            )
+            # Tracking for user
+            self.parent_id.message_post(
+                body=Markup(
+                    """
+                    <div class="o_mail_notification">
+                        %s đã xác nhận chiết khấu tháng cho %s. <br/>
+                        Với số tiền là: <b>%s</b>
+                    </div>
+                """
+                )
                 % (
                     self.env.user.name,
-                    rec.partner_id.name,
-                    self.format_value(amount=rec.month_money, currency=rec.currency_id),
+                    self.partner_id.name,
+                    self.format_value(
+                        amount=self.month_money, currency=self.currency_id
+                    ),
                 )
             )
 
     def action_quarter(self):
+        self.ensure_one()
+
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
@@ -217,27 +242,41 @@ class MvComputeDiscountLine(models.Model):
                 amount_two_month += line.amount_total
         self.write(
             {
-                "partner_sales_state": "qualified_by_approving",
                 "is_quarter": True,
+                "partner_sales_state": "qualified_by_approving",
                 "quarter": self.discount_line_id.quarter,
                 "quarter_money": (amount_two_month + self.amount_total)
                 * self.discount_line_id.quarter
                 / 100,
             }
         )
-
-        tracking_text = """
-            <div class="o_mail_notification">
-                %s đã xác nhận chiết khấu quý cho %s. <br/>
-                Với số tiền là: <b>%s</b>
-            </div>
-        """
+        # Create history line for discount
+        total_money = (
+            (amount_two_month + self.amount_total) * self.discount_line_id.quarter / 100
+        )
+        self.create_history_line(
+            self,
+            "approve_for_quarter",
+            "Đã duyệt Chiết Khấu Quý cho đại lý, đang chờ duyệt tổng tháng %s."
+            % self.name,
+            total_money,
+        )
+        # Tracking for user
         self.parent_id.message_post(
-            body=Markup(tracking_text)
+            body=Markup(
+                """
+                <div class="o_mail_notification">
+                    %s đã xác nhận chiết khấu quý cho %s. <br/>
+                    Với số tiền là: <b>%s</b>
+                </div>
+            """
+            )
             % (self.env.user.name, self.partner_id.name, str(self.quarter_money))
         )
 
     def action_year(self):
+        self.ensure_one()
+
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
@@ -250,26 +289,63 @@ class MvComputeDiscountLine(models.Model):
                 total_year += line_ids.amount_total
         self.write(
             {
-                "partner_sales_state": "qualified_by_approving",
                 "is_year": True,
+                "partner_sales_state": "qualified_by_approving",
                 "year": self.discount_line_id.year,
                 "year_money": total_year * self.discount_line_id.year / 100,
             }
         )
-
-        tracking_text = """
-            <div class="o_mail_notification">
-                %s đã xác nhận chiết khấu năm cho %s. <br/>
-                Với số tiền là: <b>%s</b>
-            </div>
-        """
+        # Create history line for discount
+        total_money = total_year * self.discount_line_id.year / 100
+        self.create_history_line(
+            self,
+            "approve_for_quarter",
+            "Đã duyệt Chiết Khấu Năm cho đại lý, đang chờ duyệt tổng tháng %s."
+            % self.name,
+            total_money,
+        )
+        # Tracking for user
         self.parent_id.message_post(
-            body=Markup(tracking_text)
+            body=Markup(
+                """
+                <div class="o_mail_notification">
+                    %s đã xác nhận chiết khấu năm cho %s. <br/>
+                    Với số tiền là: <b>%s</b>
+                </div>
+            """
+            )
             % (self.env.user.name, self.partner_id.name, str(total_year))
         )
 
+    def create_history_line(self, record, state, description, total_money):
+        is_positive_money = (
+            state
+            in [
+                "approve_for_month",
+                "approve_for_two_months",
+                "approve_for_quarter",
+                "approve_for_year",
+            ]
+            and total_money > 0
+        )
+        return self.env["mv.discount.partner.history"]._create_history_line(
+            partner_id=record.partner_id.id,
+            history_description=description,
+            production_discount_policy_id=record.id,
+            production_discount_policy_total_money=total_money,
+            total_money=total_money,
+            total_money_discount_display=(
+                "+ {:,.2f}".format(total_money)
+                if total_money > 0
+                else "{:,.2f}".format(total_money)
+            ),
+            is_waiting_approval=False,
+            is_positive_money=is_positive_money,
+            is_negative_money=False,
+        )
+
     # =================================
-    # ACTION VIEW Methods
+    # ACTION VIEWS Methods
     # =================================
 
     def action_view_two_month(self):

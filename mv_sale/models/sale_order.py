@@ -91,10 +91,6 @@ class SaleOrder(models.Model):
             try:
                 # Check if the user is a Sales Manager
                 order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
-                _logger.debug(
-                    f"Order {order.id}: is_sales_manager = {order.is_sales_manager}"
-                )
-
                 # Check if the order has discount agency lines
                 order.discount_agency_set = (
                     order.order_line._filter_discount_agency_lines(order)
@@ -102,25 +98,17 @@ class SaleOrder(models.Model):
                 _logger.debug(
                     f"Order {order.id}: discount_agency_set = {order.discount_agency_set}"
                 )
-
                 # Check if the order is in a state where discount agency can be computed
                 order.compute_discount_agency = (
                     order.state in ["draft", "sent"]
                     and not order.discount_agency_set
                     and order.partner_agency
                 )
-                _logger.debug(
-                    f"Order {order.id}: compute_discount_agency = {order.compute_discount_agency}"
-                )
-
                 # Check if the order is in a state where discount agency should be recomputed
                 order.recompute_discount_agency = (
                     order.state in ["draft", "sent"]
                     and order.discount_agency_set
                     and order.partner_agency
-                )
-                _logger.debug(
-                    f"Order {order.id}: recompute_discount_agency = {order.recompute_discount_agency}"
                 )
 
             except Exception as e:
@@ -142,7 +130,7 @@ class SaleOrder(models.Model):
             bonus_order_line = order.order_line._get_discount_agency_line()
 
             if bonus_order_line:
-                bonus_order = abs(bonus_order_line[0].price_unit)
+                bonus_order = abs(bonus_order_line[0].sudo().price_unit)
                 remaining_bonus = partner_wallet - bonus_order
                 order.bonus_remaining = remaining_bonus if remaining_bonus > 0 else 0
             else:
@@ -154,7 +142,7 @@ class SaleOrder(models.Model):
             if order.state != "cancel" and order.order_line:
                 bonus_order_line = order.order_line._get_discount_agency_line()
                 if bonus_order_line:
-                    order.bonus_order = abs(bonus_order_line[0].price_unit)
+                    order.bonus_order = abs(bonus_order_line[0].sudo().price_unit)
                 else:
                     order.bonus_order = 0
 
@@ -611,6 +599,40 @@ class SaleOrder(models.Model):
             }
 
     def _reset_discount_agency(self, order_state=None):
+        total_money_to_store_history = self.bonus_order
+        is_positive_money = total_money_to_store_history > 0
+        if order_state == "cancel":
+            description = f"Hủy đơn {self.name}, tiền chiết khấu đã được hoàn về ví."
+            money_to_update_history = (
+                "+ {:,.2f}".format(total_money_to_store_history)
+                if total_money_to_store_history > 0
+                else "{:,.2f}".format(total_money_to_store_history)
+            )
+        elif order_state == "draft":
+            description = f"Đơn {self.name} đã được điều chỉnh về báo giá."
+            money_to_update_history = (
+                "+ {:,.2f}".format(total_money_to_store_history)
+                if total_money_to_store_history > 0
+                else "{:,.2f}".format(total_money_to_store_history)
+            )
+        else:
+            description = f"Đơn {self.name} đang trong tình trạng xử lý."
+            money_to_update_history = "{:,.2f}".format(total_money_to_store_history)
+
+        # Create history line for discount
+        if self.partner_id and self.partner_agency:
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=self.partner_id.id,
+                history_description=description,
+                sale_order_id=self.id,
+                sale_order_discount_money_apply=total_money_to_store_history,
+                total_money=total_money_to_store_history,
+                total_money_discount_display=money_to_update_history,
+                is_waiting_approval=False,
+                is_positive_money=is_positive_money,
+                is_negative_money=False,
+            )
+
         # [>] Reset Bonus, Discount Fields
         if order_state == "draft":
             self._compute_partner_bonus()
@@ -626,7 +648,7 @@ class SaleOrder(models.Model):
                 self.partner_id.sudo().action_update_discount_amount()
 
         # [>] Remove Discount Agency Lines
-        if self.state in ["draft", "cancel"]:
+        if order_state in ["draft", "cancel"]:
             self.action_clear_discount_lines()
 
     def action_clear_discount_lines(self):
@@ -639,20 +661,16 @@ class SaleOrder(models.Model):
             discount_lines.sudo().unlink()
 
     def action_draft(self):
-        orders = super(SaleOrder, self).action_draft()
-
         for order in self:
             order._reset_discount_agency(order_state="draft")
 
-        return orders
+        return super(SaleOrder, self).action_draft()
 
     def action_cancel(self):
-        res = super(SaleOrder, self).action_cancel()
-
         for order in self:
             order._reset_discount_agency(order_state="cancel")
 
-        return res
+        return super(SaleOrder, self).action_cancel()
 
     def action_confirm(self):
         # Filter orders into categories for processing
@@ -679,6 +697,29 @@ class SaleOrder(models.Model):
                 raise UserError(error_message)
 
             self._process_agency_orders(orders_agency)
+            # Create history line for discount
+            for order in orders_agency:
+                total_money_to_store_history = order.bonus_order
+                is_negative_money = total_money_to_store_history > 0
+                description = (
+                    f"Đã xác nhận đơn {order.name}, tiền chiết khấu đã được cập nhật."
+                )
+                money_to_update_history = (
+                    "- {:,.2f}".format(total_money_to_store_history)
+                    if total_money_to_store_history > 0
+                    else "{:,.2f}".format(total_money_to_store_history)
+                )
+                self.env["mv.discount.partner.history"]._create_history_line(
+                    partner_id=order.partner_id.id,
+                    history_description=description,
+                    sale_order_id=order.id,
+                    sale_order_discount_money_apply=total_money_to_store_history,
+                    total_money=total_money_to_store_history,
+                    total_money_discount_display=money_to_update_history,
+                    is_waiting_approval=False,
+                    is_positive_money=False,
+                    is_negative_money=is_negative_money,
+                )
             return super(SaleOrder, orders_agency).action_confirm()
 
         # Confirm orders not requiring special processing
@@ -891,6 +932,17 @@ class SaleOrder(models.Model):
     # ==================================
     # TOOLING
     # ==================================
+
+    def get_selection_label(self, model_name, field_name, record_id):
+        model = self.env[model_name]
+        field = model._fields[field_name]
+        selection_values = dict(field.selection)
+
+        record = model.browse(record_id)
+        selection_key = getattr(record, field_name)
+        selection_label = selection_values.get(selection_key, "Unknown")
+
+        return selection_key, selection_label
 
     def field_exists(self, model_name, field_name):
         """
