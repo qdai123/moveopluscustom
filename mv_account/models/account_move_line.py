@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class AccountMoveLine(models.Model):
@@ -10,6 +14,14 @@ class AccountMoveLine(models.Model):
     # -------------------------------------------------------------------------
 
     def action_register_payment(self):
+        """
+        Register payment action for account move lines.
+
+        This method overrides the default action to register payment, adding logic to determine
+        if early payment discounts should be applied based on the invoice conditions.
+
+        :return: dict: The action dictionary with updated context.
+        """
         action = super().action_register_payment()
 
         invoice = self.move_id
@@ -45,5 +57,7 @@ class AccountMoveLine(models.Model):
         action["context"]["amount_discount_for_partial"] = (
             invoice.amount_total - amount_discount_for_partial
         )
+
+        _logger.debug(f"Action context updated: {action['context']}")
 
         return action

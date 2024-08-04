@@ -54,7 +54,38 @@ class SaleOrderLine(models.Model):
         for sol in self:
             sol.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
 
-    # /// ORM Methods (OVERRIDE)
+    # /// ORM Methods
+
+    @api.depends("product_id", "product_id.default_code")
+    def _is_discount_agency(self):
+        for sol in self:
+            sol.is_discount_agency = sol._filter_discount_agency_lines(sol.order_id)
+
+    @api.depends("qty_delivered", "price_unit", "discount")
+    def _compute_price_subtotal_before_discount(self):
+        """
+        Compute the subtotal before discount for each sale order line.
+
+        This method calculates the subtotal before discount by multiplying the
+        price unit by the quantity delivered and then applying the discount.
+
+        :return: None
+        """
+        _logger.debug("Starting computation of price_subtotal_before_discount.")
+
+        for sol in self:
+            try:
+                if sol.price_unit and sol.qty_delivered and sol.discount:
+                    sol.price_subtotal_before_discount = (
+                        sol.price_unit * sol.qty_delivered
+                    ) - ((sol.price_unit * sol.qty_delivered) * sol.discount / 100)
+                else:
+                    sol.price_subtotal_before_discount = 0
+            except Exception as e:
+                _logger.error(
+                    f"Error computing subtotal before discount for line {sol.id}: {e}"
+                )
+                sol.price_subtotal_before_discount = 0
 
     def _compute_product_updatable(self):
         service_lines = self.filtered(
@@ -78,45 +109,50 @@ class SaleOrderLine(models.Model):
     # /// CRUD Methods
 
     def write(self, vals):
+        """
+        Override the write method to handle specific logic for sale order lines.
+
+        :param vals: Dictionary of values to write.
+        :return: Boolean indicating the success of the write operation.
+        """
+        res = super(SaleOrderLine, self).write(vals)
         if any(sol.hidden_show_qty or sol.reward_id for sol in self):
-            return super().write(vals)
+            return res
+        else:
+            if "product_uom_qty" in vals and vals["product_uom_qty"]:
+                for sol in self:
+                    sol._set_recompute_discount_agency()
+                    sol.order_id._reset_discount_agency(sol.order_id.state)
 
-        result = super().write(vals)
+            return res
 
-        if "product_uom_qty" in vals and vals.get("product_uom_qty"):
-            unique_orders = set(sol.order_id for sol in self)
-            for order in unique_orders:
-                order.order_line.filtered(
-                    lambda line: line.product_template_id.detailed_type == "service"
-                    and line.product_id.default_code in ["CKT", "CKBL"]
-                ).write({"recompute_discount_agency": True})
-
-        return result
+    def _set_recompute_discount_agency(self):
+        """
+        Set the recompute_discount_agency flag to True for lines that need it.
+        """
+        lines_to_update = self._get_discount_agency_line()
+        lines_to_update.write({"recompute_discount_agency": True})
 
     def unlink(self):
-        for line in self:
-            if (
-                line.product_id.product_tmpl_id.detailed_type == "service"
-                and line.product_id.default_code == "CKT"
-            ):
-                msg_body = "Dòng %s đã xóa, số tiền: %s" % (
-                    line.product_id.name,
-                    line.price_unit,
+        """
+        Override the unlink method to handle specific logic for sale order lines.
+
+        :return: Boolean indicating the success of the unlink operation.
+        """
+        for order_line in self:
+            sol_discount_agency = order_line._get_discount_agency_line()
+            if sol_discount_agency:
+                sol_discount_agency.order_id.message_post(
+                    body=Markup(
+                        "Dòng %s đã bị xóa, số tiền: %s"
+                        % (
+                            sol_discount_agency.product_id.name,
+                            sol_discount_agency.price_unit,
+                        )
+                    )
                 )
-                line.order_id.message_post(body=Markup(msg_body))
 
-        orders_to_update = self.filtered(
-            lambda sol: sol.product_id
-            and sol.product_id.default_code
-            and "Delivery_" not in sol.product_id.default_code
-        ).mapped("order_id")
-
-        unique_orders = set(orders_to_update)
-        for order in unique_orders:
-            order._compute_partner_bonus()
-            order._compute_bonus_order_line()
-
-        return super().unlink()
+        return super(SaleOrderLine, self).unlink()
 
     # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
     @api.ondelete(at_uninstall=False)
@@ -127,9 +163,20 @@ class SaleOrderLine(models.Model):
     # /// HOOKS Methods
 
     def _is_not_sellable_line(self):
-        return self.hidden_show_qty or super()._is_not_sellable_line()
+        return (
+            self.hidden_show_qty
+            or self.is_discount_agency
+            or super()._is_not_sellable_line()
+        )
 
-    # === MOVEOPLUS METHODS ===#
+    # /// HELPERS Methods
+
+    def _get_discount_agency_line(self):
+        """
+            Lấy dòng chiết khấu sản lượng của Đại lý
+        :return: sale.order.line recordset
+        """
+        return self._filter_discount_agency_lines(self.order_id)
 
     def _filter_discount_agency_lines(self, order=False):
         """
@@ -156,22 +203,3 @@ class SaleOrderLine(models.Model):
         except Exception as e:
             _logger.error(f"Failed to filter agency order lines: {e}")
             return self.env["sale.order.line"]
-
-    # /// ORM Methods
-
-    @api.depends("product_id", "product_id.default_code")
-    def _is_discount_agency(self):
-        for sol in self:
-            sol.is_discount_agency = sol._filter_discount_agency_lines(sol.order_id)
-
-    @api.depends("price_unit", "qty_delivered", "discount")
-    def _compute_price_subtotal_before_discount(self):
-        for sol in self:
-            if sol.price_unit and sol.qty_delivered and sol.discount:
-                sol.price_subtotal_before_discount = (
-                    sol.price_unit * sol.qty_delivered
-                ) - ((sol.price_unit * sol.qty_delivered) * sol.discount / 100)
-            else:
-                sol.price_subtotal_before_discount = 0
-
-    # /// CONSTRAINTS Methods

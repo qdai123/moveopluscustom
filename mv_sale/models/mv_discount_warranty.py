@@ -286,24 +286,20 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     _name = "mv.compute.warranty.discount.policy"
     _description = _("Compute Warranty Discount Policy")
 
-    def _do_readonly(self):
-        for rec in self:
-            if rec.state in ["done"]:
-                rec.do_readonly = True
-            else:
-                rec.do_readonly = False
-
     # ACCESS / RULE Fields:
     do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
 
-    @api.depends("month", "year")
-    def _compute_name(self):
+    def _do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+
+        :return: None
+        """
         for rec in self:
-            if rec.month and rec.year:
-                rec.name = "{}/{}".format(str(rec.month), str(rec.year))
-            else:
-                dt = datetime.now().replace(day=1)
-                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+            rec.do_readonly = rec.state == "done"
 
     # BASE Fields:
     month = fields.Selection(get_months())
@@ -316,6 +312,24 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         readonly=True,
         tracking=True,
     )
+
+    @api.depends("year", "month")
+    def _compute_name(self):
+        """
+        Compute the name based on the month and year.
+
+        This method sets the `name` field to "month/year" if both `month` and `year` are set.
+        If either is not set, it uses the current month and year.
+
+        :return: None
+        """
+        for rec in self:
+            if rec.month and rec.year:
+                rec.name = "{}/{}".format(str(rec.month), str(rec.year))
+            else:
+                dt = datetime.now().replace(day=1)
+                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+
     # RELATION Fields:
     warranty_discount_policy_id = fields.Many2one(
         comodel_name="mv.warranty.discount.policy",
@@ -325,6 +339,14 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
     @api.depends("year", "month")
     def _compute_compute_date(self):
+        """
+        Compute the `compute_date` based on the month and year.
+
+        This method sets the `compute_date` field to the first day of the given month and year
+        if both `month` and `year` are set. If either is not set, it uses the first day of the current month and year.
+
+        :return: None
+        """
         for rec in self:
             if rec.month and rec.year:
                 rec.compute_date = datetime.now().replace(
@@ -338,53 +360,11 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     # =================================
 
     def action_reset_to_draft(self):
-        """
-        Resets the state of the current record to 'draft'.
-        """
-        try:
-            self.ensure_one()
-            if self.state != "draft":
-                self.state = "draft"
-                self.line_ids.unlink()  # Remove all lines
-                return True
-        except Exception as e:
-            _logger.error("Failed to reset to draft: %s", e)
-            return False
-
-    def action_done(self):
-        if not self._access_approve():
-            raise AccessError("Bạn không có quyền duyệt!")
-
-        for rec in self.filtered(lambda r: len(r.line_ids) > 0):
-            for line in rec.line_ids:
-                self.env["res.partner"].sudo().browse(
-                    line.partner_id.id
-                ).action_update_discount_amount()
-                line.helpdesk_ticket_product_moves_ids.mapped(
-                    "helpdesk_ticket_id"
-                ).write(
-                    {
-                        "stage_id": self.env["helpdesk.stage"]
-                        .search(
-                            [
-                                (
-                                    "id",
-                                    "=",
-                                    self.env.ref(
-                                        "mv_website_helpdesk.warranty_stage_done"
-                                    ).id,
-                                )
-                            ],
-                            limit=1,
-                        )
-                        .id
-                    }
-                )
-            rec.state = "done"
-
-    def action_reset(self):
-        if self.state == "confirm":
-            self.action_reset_to_draft()
+        self.ensure_one()
+        if self.state != "draft":
+            self.state = "draft"
+            self.line_ids.unlink()  # Remove all lines
+            return True
 
     def action_calculate_discount_line(self):
         self.ensure_one()
@@ -424,6 +404,93 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         self.write({"line_ids": results, "state": "confirm"})
 
+        # Create history line for discount
+        if self.line_ids:
+            for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "confirm",
+                    "Chiết khấu kích hoạt bảo hành tháng %s đang chờ duyệt."
+                    % line.parent_name,
+                    line.total_amount_currency,
+                )
+
+    def action_done(self):
+        if not self._access_approve():
+            raise AccessError("Bạn không có quyền duyệt!")
+
+        for record in self.filtered(lambda r: len(r.line_ids) > 0):
+            for line in record.line_ids:
+                partner = self.env["res.partner"].sudo().browse(line.partner_id.id)
+                partner.action_update_discount_amount()
+                helpdesk_tickets = line.helpdesk_ticket_product_moves_ids.mapped(
+                    "helpdesk_ticket_id"
+                )
+                helpdesk_stage_done = self.env.ref(
+                    "mv_website_helpdesk.warranty_stage_done"
+                ).id
+                stage_id = (
+                    self.env["helpdesk.stage"]
+                    .search(
+                        [("id", "=", helpdesk_stage_done)],
+                        limit=1,
+                    )
+                    .id
+                )
+                helpdesk_tickets.write({"stage_id": stage_id})
+
+            # Create history line for discount
+            for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "done",
+                    "Chiết khấu kích hoạt bảo hành tháng %s đã được duyệt."
+                    % line.parent_name,
+                    line.total_amount_currency,
+                )
+
+            record.write({"state": "done"})
+
+    def action_reset(self):
+        if self.state == "confirm":
+
+            # Create history line for discount
+            for record in self:
+                if record.line_ids:
+                    for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                        self.create_history_line(
+                            line,
+                            "cancel",
+                            "Chiết khấu kích hoạt bảo hành tháng %s đã bị từ chối và đang chờ xem xét."
+                            % line.parent_name,
+                            line.total_amount_currency,
+                        )
+
+            self.action_reset_to_draft()
+
+    def create_history_line(self, record, state, description, total_money):
+        money_display = "{:,.2f}".format(total_money)
+        is_waiting_approval = state == "confirm" and total_money > 0
+        is_positive_money = state == "done" and total_money > 0
+        is_negative_money = state == "cancel" and total_money > 0
+
+        if state in ["confirm", "done"]:
+            money_display = "+ " + money_display if total_money > 0 else money_display
+        elif state == "cancel":
+            money_display = "- " + money_display if total_money > 0 else money_display
+
+        return self.env["mv.discount.partner.history"]._create_history_line(
+            partner_id=record.sudo().partner_id.id,
+            history_description=description,
+            warranty_discount_policy_id=record.id,
+            warranty_discount_policy_total_money=total_money,
+            total_money=total_money,
+            total_money_discount_display=money_display,
+            is_waiting_approval=is_waiting_approval,
+            is_positive_money=is_positive_money,
+            is_negative_money=is_negative_money,
+        )
+
     def _prepare_values_to_calculate_discount(self, partner, compute_date):
         self.ensure_one()
         return {
@@ -458,13 +525,22 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         results = []
         policy_used = self.warranty_discount_policy_id
         compute_date = self.compute_date
-
-        for partner in partners.filtered(
+        partners_mapped_with_policy = policy_used.partner_ids.mapped("partner_id").ids
+        partners_to_compute_discount = partners.filtered(
             lambda p: p.is_agency
-            and p.id in policy_used.partner_ids.mapped("partner_id").ids
-        ):
+            and p.id in partners_mapped_with_policy
+            or p.parent_id.is_agency
+            and p.parent_id.id in partners_mapped_with_policy
+        )
+
+        for partner in partners_to_compute_discount:
             # Prepare values to calculate discount
-            vals = self._prepare_values_to_calculate_discount(partner, compute_date)
+            if not partner.is_agency:
+                vals = self._prepare_values_to_calculate_discount(
+                    partner.parent_id, compute_date
+                )
+            else:
+                vals = self._prepare_values_to_calculate_discount(partner, compute_date)
 
             partner_tickets_registered = ticket_product_moves.filtered(
                 lambda t: t.partner_id.id == partner.id
@@ -705,10 +781,19 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     # =================================
 
     def unlink(self):
+        """
+        Unlink the current record after validating and cleaning up related records.
+
+        This method ensures that the policy is not in the "done" state before unlinking.
+        It also removes any `mv.compute.warranty.discount.policy.line` records with `parent_id` set to `False`.
+
+        :return: bool: Result of the unlink operation.
+        """
         self._validate_policy_done_not_unlink()
         self.env["mv.compute.warranty.discount.policy.line"].search(
             [("parent_id", "=", False)]
         ).unlink()
+
         return super(MvComputeWarrantyDiscountPolicy, self).unlink()
 
     # =================================
@@ -1466,12 +1551,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
 
 class MvComputeWarrantyDiscountPolicyLine(models.Model):
-    _name = _description = "mv.compute.warranty.discount.policy.line"
-
-    def _get_company_currency(self):
-        for rec in self:
-            company = rec.partner_id.company_id or self.env.company
-            rec.currency_id = company.sudo().currency_id
+    _name = "mv.compute.warranty.discount.policy.line"
+    _description = _("Compute Warranty Discount (%) Line for Partner")
 
     currency_id = fields.Many2one(
         "res.currency", compute="_get_company_currency", store=True
@@ -1534,6 +1615,11 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         digits=(16, 2),
         currency_field="currency_id",
     )
+
+    def _get_company_currency(self):
+        for rec in self:
+            company = rec.partner_id.company_id or self.env.company
+            rec.currency_id = company.sudo().currency_id
 
     @api.depends("parent_compute_date")
     def _compute_parent_name(self):

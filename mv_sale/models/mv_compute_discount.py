@@ -147,9 +147,6 @@ class MvComputeDiscount(models.Model):
     # =================================
 
     def action_reset_to_draft(self):
-        """
-        Resets the state of the current record to 'draft'.
-        """
         try:
             self.ensure_one()
             if self.state != "draft":
@@ -224,8 +221,6 @@ class MvComputeDiscount(models.Model):
             total_quantity_delivered = 0
             total_quantity_for_discount = 0
             total_sales = 0
-            total_discount = 0
-            total_sales_after_discount = 0
 
             vals = self._prepare_values_for_confirmation(partner_id, self.report_date)
             partner = self.env["res.partner"].sudo().browse(partner_id.id)
@@ -252,16 +247,16 @@ class MvComputeDiscount(models.Model):
 
             # [UP] Update Quantity (Get only with [qty_delivered] field)
             total_quantity_delivered += sum(
-                order_by_partner_agency.filtered(
-                    lambda line: line.price_unit > 0
-                ).mapped("qty_delivered")
+                order_by_partner_agency.filtered(lambda rec: rec.price_unit > 0).mapped(
+                    "qty_delivered"
+                )
             )
             vals["quantity"] = total_quantity_delivered
 
             # [UP] Update Quantity Discount (Get only with [qty_delivered] field)
             total_quantity_for_discount += sum(
                 order_by_partner_agency.filtered(
-                    lambda line: line.price_unit == 0
+                    lambda rec: rec.price_unit == 0
                 ).mapped("qty_delivered")
             )
             vals["quantity_discount"] = total_quantity_for_discount
@@ -281,7 +276,7 @@ class MvComputeDiscount(models.Model):
                 # [UP] Update Total Sales
                 total_sales += sum(
                     order_by_partner_agency.filtered(
-                        lambda line: line.price_unit > 0
+                        lambda rec: rec.price_unit > 0
                     ).mapped("price_subtotal_before_discount")
                 )
                 vals["amount_total"] = total_sales
@@ -289,7 +284,7 @@ class MvComputeDiscount(models.Model):
                 level = line_ids[-1].level
                 discount_id = line_ids[-1].parent_id
                 discount_line_id = discount_id.line_ids.filtered(
-                    lambda line: line.level == level
+                    lambda rec: rec.level == level
                 )
                 vals["level"] = discount_line_id.level
                 total_quantity_minimum += discount_line_id.quantity_from
@@ -416,6 +411,80 @@ class MvComputeDiscount(models.Model):
 
         self.write({"line_ids": list_line_ids, "state": "confirm"})
 
+        # Create history line for discount
+        if self.line_ids:
+            for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "confirm",
+                    "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
+                )
+
+    def action_done(self):
+        if not self._access_approve():
+            raise AccessError("Bạn không có quyền duyệt!")
+
+        for record in self.filtered(lambda r: len(r.line_ids) > 0):
+            partners_updates = {}
+            for discount_line in record.line_ids:
+                partner_id = discount_line.partner_id.id
+                total_money = discount_line.total_money
+                partners_updates[partner_id] = (
+                    partners_updates.get(partner_id, 0) + total_money
+                )
+
+            for partner_id, total_money in partners_updates.items():
+                partner = self.env["res.partner"].sudo().browse(partner_id)
+                partner.write({"amount": partner.amount + total_money})
+
+            # Create history line for discount
+            for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "done",
+                    "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
+                )
+
+            record.write({"state": "done"})
+
+    def action_undo(self):
+        # Create history line for discount
+        for record in self:
+            if record.line_ids:
+                for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                    self.create_history_line(
+                        line,
+                        "cancel",
+                        "Chiết khấu sản lượng tháng %s đã bị từ chối và đang chờ xem xét."
+                        % line.name,
+                    )
+
+            record.write({"state": "draft", "line_ids": False})
+
+    def create_history_line(self, record, state, description):
+        total_money = record.total_money
+        money_display = "{:,.2f}".format(total_money)
+        is_waiting_approval = state == "confirm" and total_money > 0
+        is_positive_money = state == "done" and total_money > 0
+        is_negative_money = state == "cancel" and total_money > 0
+
+        if state in ["confirm", "done"]:
+            money_display = "+ " + money_display if total_money > 0 else money_display
+        elif state == "cancel":
+            money_display = "- " + money_display if total_money > 0 else money_display
+
+        return self.env["mv.discount.partner.history"]._create_history_line(
+            partner_id=record.sudo().partner_id.id,
+            history_description=description,
+            production_discount_policy_id=record.id,
+            production_discount_policy_total_money=total_money,
+            total_money=total_money,
+            total_money_discount_display=money_display,
+            is_waiting_approval=is_waiting_approval,
+            is_positive_money=is_positive_money,
+            is_negative_money=is_negative_money,
+        )
+
     def _prepare_values_for_confirmation(self, partner_id, report_date):
         """Gets the data and returns it the right format for render."""
         self.ensure_one()
@@ -452,28 +521,9 @@ class MvComputeDiscount(models.Model):
             "year_money": 0,
         }
 
-    def action_done(self):
-        if not self._access_approve():
-            raise AccessError("Bạn không có quyền duyệt!")
-
-        for rec in self:
-            if rec.line_ids:
-                for discount_line in rec.line_ids:
-                    discount_line.partner_id.write(
-                        {
-                            "amount": discount_line.partner_id.amount
-                            + discount_line.total_money
-                        }
-                    )
-            rec.state = "done"
-
-    def action_undo(self):
-        self.write(
-            {
-                "state": "draft",
-                "line_ids": False,
-            }
-        )
+    # =================================
+    # ACTION Methods
+    # =================================
 
     def action_view_tree(self):
         return {
@@ -501,6 +551,7 @@ class MvComputeDiscount(models.Model):
                 "edit": False,
                 "tree_view_ref": "mv_sale.mv_compute_discount_line_tree",
                 "form_view_ref": "mv_sale.mv_compute_discount_line_form",
+                "search_default_filter_partner_sales_state": True,
             },
         }
 

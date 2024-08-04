@@ -7,14 +7,14 @@
 		<field name="inherit_id" ref="base.view_partner_form"/>
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
-				<page string="Chiết khấu" name="page_partner_discount_info">
+				<page string="Chiết khấu" name="page_partner_discount_info" invisible="not is_agency">
 					<group>
 						<group>
 							<field name="is_agency"/>
-							<field name="is_white_agency"/>
-							<field name="is_southern_agency"/>
-							<label for="bank_guarantee" string="Bảo lãnh ngân hàng"/>
-							<div class="o_row">
+							<field name="is_white_agency" invisible="not is_agency"/>
+							<field name="is_southern_agency" invisible="not is_agency"/>
+							<label for="bank_guarantee" string="Bảo lãnh ngân hàng" invisible="not is_agency"/>
+							<div class="o_row" invisible="not is_agency">
 								<field name="bank_guarantee"/>-<field name="discount_bank_guarantee" invisible="not bank_guarantee"/>
 							</div>
 						</group>
@@ -148,6 +148,25 @@
 						<div class="clearfix"/>
 					</group>
 				</page>
+			</xpath>
+			<xpath expr="//header" position="inside">
+				<button name="action_activation_for_agency"
+				        class="btn btn-primary"
+				        type="object"
+				        invisible="is_agency">
+					<i class="fa fa-fw fa-check-square-o"/>
+					<span>Kích hoạt Đại lý</span>
+				</button>
+				<button name="action_view_partner_discount_history"
+				        type="object"
+				        class="oe_stat_button"
+				        icon="fa-history"
+				        context="{'default_partner_id': active_id}"
+				        invisible="not is_agency">
+					<div class="o_field_widget o_stat_info">
+						<span class="o_stat_text">Lịch sử chiết khấu</span>
+					</div>
+				</button>
 			</xpath>
 		</field>
 	</record>

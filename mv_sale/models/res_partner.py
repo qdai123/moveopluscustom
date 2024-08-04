@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    # ===TRƯỜNG CƠ SỞ DỮ LIỆU
+    # === TRƯỜNG CƠ SỞ DỮ LIỆU
     # line_ids: Nội dung chi tiết chiết khấu được áp dụng cho Đại Lý
     # amount/amount_currency: Ví tiền được chiết khấu cho Đại lý sử dụng
     # waiting_amount_currency: Ví tiền chờ duyệt
@@ -39,6 +39,9 @@ class ResPartner(models.Model):
     # Đại lý Miền Nam (Southern Agency): Đại lý phân phối sản phẩm tại miền Nam
     # Bảo lãnh ngân hàng, Chiết khấu bảo lãnh ngân hàng (%)
     # ===#
+    partner_agency_name = fields.Char(
+        "Tên Đại Lý", compute="_compute_partner_agency_name", store=True
+    )
     is_agency = fields.Boolean("Đại lý", tracking=True)
     is_white_agency = fields.Boolean("Đại lý vùng trắng", tracking=True)
     is_southern_agency = fields.Boolean("Đại lý miền Nam", tracking=True)
@@ -73,12 +76,62 @@ class ResPartner(models.Model):
         string="Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
     )
 
+    def name_get(self):
+        res = []
+        for partner in self:
+            res.append((partner.id, partner.partner_agency_name or partner.name))
+        return res
+
+    @api.model
+    def auto_update_data(self):
+        for record in self.filtered("is_agency"):
+            # Calculate total discount money from different sources
+            total_amount_discount_approved, total_amount_discount_waiting_approve = (
+                self._calculate_total_discounts(record)
+            )
+
+            # Calculate wallet amount
+            wallet = total_amount_discount_approved - record.total_so_bonus_order
+            record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
+            record.waiting_amount_currency = total_amount_discount_waiting_approve
+
+            # Re-update data 'sale_mv_ids'
+            orders_discount_applied = self._get_orders_with_discount(record, "sale")
+            record.sale_mv_ids = [
+                (6, 0, orders_discount_applied.ids if orders_discount_applied else [])
+            ]
+
+    @api.model
+    def get_discount_history(self, partner_id):
+        if not partner_id:
+            return []
+
+        domain = [("partner_id", "=", partner_id)]
+        order_by = "create_date desc"
+
+        discount_history_records = self.env["mv.discount.partner.history"].search(
+            domain, order=order_by
+        )
+
+        return discount_history_records
+
     # =================================
     # BUSINESS Methods
     # =================================
 
     def action_update_discount_amount(self):
+        """
+        Update the discount amount for partner agencies.
+
+        This method processes orders with discounts applied, calculates the total discount
+        money from different sources, and updates the wallet amount for each partner agency.
+
+        :return: dict: A success notification if triggered manually, otherwise None.
+        """
+        _logger.debug("Starting 'action_update_discount_amount'.")
+
         for record in self.filtered("is_agency"):
+            # Initialize discount-related fields
             record.sale_mv_ids = None
             record.total_so_bonus_order = 0
             record.total_so_quotations_discount = 0
@@ -104,16 +157,18 @@ class ResPartner(models.Model):
             )
 
             # Calculate wallet amount
-            wallet = (
-                total_amount_discount_approved
-                - total_amount_discount_waiting_approve
-                - record.total_so_bonus_order
-            )
+            wallet = total_amount_discount_approved - record.total_so_bonus_order
             record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
             record.waiting_amount_currency = total_amount_discount_waiting_approve
 
-            # [>.CONTEXT] Trigger update manual notification
+            # Auto update data
+            self.auto_update_data()
+
+            # Trigger update manual notification if context is set
             if self.env.context.get("trigger_manual_update", False):
+                _logger.debug(
+                    "Manual update triggered, returning success notification."
+                )
                 return {
                     "type": "ir.actions.client",
                     "tag": "display_notification",
@@ -125,7 +180,7 @@ class ResPartner(models.Model):
                     },
                 }
 
-        return True
+        _logger.debug("Completed 'action_update_discount_amount'.")
 
     # =================================
     # CONSTRAINS Methods
@@ -149,6 +204,37 @@ class ResPartner(models.Model):
                 if partner.company_id
                 else self.env.company.currency_id
             )
+
+    @api.depends("name", "is_agency", "is_white_agency", "is_southern_agency")
+    def _compute_partner_agency_name(self):
+        """
+        Compute the agency name for each partner based on their agency type.
+
+        This method constructs the agency name by appending the agency type
+        (White Agency or Southern Agency) to the partner's name.
+
+        :return: None
+        """
+        _logger.debug("Starting '_compute_partner_agency_name' computation.")
+
+        for partner in self.filtered("is_agency"):
+            try:
+                path_agency = "Đại lý"
+                if partner.is_white_agency:
+                    path_agency += " Vùng Trắng"
+                elif partner.is_southern_agency:
+                    path_agency += " Miền Nam"
+                partner.partner_agency_name = f"{partner.name} / {path_agency}"
+                _logger.debug(
+                    f"Computed agency name for partner {partner.id}: {partner.partner_agency_name}"
+                )
+            except Exception as e:
+                _logger.error(
+                    f"Error computing agency name for partner {partner.id}: {e}"
+                )
+                partner.partner_agency_name = partner.name
+
+        _logger.debug("Completed '_compute_partner_agency_name' computation.")
 
     @api.depends("sale_order_ids")
     def _compute_sale_order(self):
@@ -227,6 +313,7 @@ class ResPartner(models.Model):
         :param is_sale: Boolean indicating if the orders are in 'sale' state.
         """
         orders._compute_partner_bonus()
+        orders._compute_bonus_order_line()
         if is_sale:
             record.sale_mv_ids = [(6, 0, orders.ids)]
             record.total_so_bonus_order = sum(orders.mapped("bonus_order"))
@@ -318,6 +405,31 @@ class ResPartner(models.Model):
                 ]
 
         return res
+
+    # =================================
+    # ACTION Methods
+    # =================================
+
+    def action_activation_for_agency(self):
+        for partner in self:
+            partner.write({"is_agency": True})
+
+    def action_view_partner_discount_history(self):
+        self.ensure_one()
+        return {
+            "name": f"Lịch sử chiết khấu Đại lý: {self.name}",
+            "type": "ir.actions.act_window",
+            "res_model": "mv.discount.partner.history",
+            "view_mode": "tree",
+            "views": [
+                [
+                    self.env.ref("mv_sale.mv_discount_partner_history_view_tree").id,
+                    "tree",
+                ]
+            ],
+            "domain": [("partner_id", "=", self.id)],
+            "context": {"default_partner_id": self.id},
+        }
 
     # ==================================
     # CRON SERVICE Methods

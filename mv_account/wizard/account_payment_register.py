@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import api, fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class AccountPaymentRegister(models.TransientModel):
@@ -13,44 +17,96 @@ class AccountPaymentRegister(models.TransientModel):
         store=True,
     )
 
-    # /// MOVEOPLUS OVERRIDE ///
+    @api.onchange("payment_date")
+    def _onchange_payment_date(self):
+        """
+        Handle changes to the payment date.
+
+        This method checks if the payment date is within the valid range and updates the amount
+        and payment difference accordingly.
+
+        :return: dict: A warning message if the payment date is invalid, otherwise None.
+        """
+        if self.payment_date:
+
+            batch_result = self._get_batches()[0]
+            moves = batch_result["lines"].mapped("move_id")
+            for move in moves:
+                is_eligible_for_early_payment_discount = (
+                    move._is_eligible_for_early_payment_discount(
+                        move.currency_id, self.payment_date
+                    )
+                    or move._is_eligible_for_early_payment_discount_partial(
+                        move.currency_id, self.payment_date
+                    )
+                )
+                self.keep_apply_discount_early = is_eligible_for_early_payment_discount
+
+            if self.keep_apply_discount_early:
+                self._compute_amount_discount_for_partial()
+                self._compute_amount()
 
     def _get_total_amount_using_same_currency(
         self, batch_result, early_payment_discount=True
     ):
+        """
+        Compute the total amount using the same currency for the given batch result.
 
-        # TODO: This method needs to implement the logic to calculate the total amount for MO+
+        This method calculates the total amount for the batch result, considering early payment discounts
+        if applicable.
+
+        :param batch_result: The batch result containing the lines to process.
+        :param early_payment_discount: Boolean indicating whether to consider early payment discounts.
+        :return: Tuple containing the absolute total amount and the mode.
+        """
+        _logger.debug("Starting '_get_total_amount_using_same_currency' computation.")
 
         self.ensure_one()
-        keep_open_for_early_payment_discount = self.keep_apply_discount_early
-
         amount = 0.0
         mode = False
         moves = batch_result["lines"].mapped("move_id")
-        for move in moves:
-            is_eligible_for_early_payment_discount = (
-                move._is_eligible_for_early_payment_discount(
-                    move.currency_id, self.payment_date
+
+        try:
+            for move in moves:
+                is_eligible_for_early_payment_discount = (
+                    move._is_eligible_for_early_payment_discount(
+                        move.currency_id, self.payment_date
+                    )
                 )
-            )
-            if early_payment_discount and (
-                is_eligible_for_early_payment_discount
-                or keep_open_for_early_payment_discount
-            ):
-                amount += move.invoice_payment_term_id._get_amount_due_after_discount(
-                    move.amount_total, move.amount_tax
-                )  # todo currencies
-                mode = "early_payment"
-            else:
-                for aml in batch_result["lines"].filtered(
-                    lambda l: l.move_id.id == move.id
+                if early_payment_discount and (
+                    is_eligible_for_early_payment_discount
+                    or self.keep_apply_discount_early
                 ):
-                    amount += aml.amount_residual_currency
-        return abs(amount), mode
+                    amount += (
+                        move.invoice_payment_term_id._get_amount_due_after_discount(
+                            move.amount_total, move.amount_tax
+                        )
+                    )
+                    mode = "early_payment"
+                else:
+                    for aml in batch_result["lines"].filtered(
+                        lambda l: l.move_id.id == move.id
+                    ):
+                        amount += aml.amount_residual_currency
+                _logger.debug(f"Move {move.id}: amount = {amount}, mode = {mode}")
+
+            return abs(amount), mode
+
+        except Exception as e:
+            _logger.error(f"Error in '_get_total_amount_using_same_currency': {e}")
+            return 0, mode
 
     @api.depends("keep_apply_discount_early")
     @api.depends_context("amount_discount_for_partial")
     def _compute_amount_discount_for_partial(self):
+        """
+        Compute the amount discount for partial payments.
+
+        This method calculates the amount discount for partial payments based on the context,
+        whether the wizard can be edited, and if early payment discounts are applied.
+
+        :return: None
+        """
         for wizard in self:
             amount_discount_by_context = self.env.context.get(
                 "amount_discount_for_partial"
@@ -75,7 +131,31 @@ class AccountPaymentRegister(models.TransientModel):
         "payment_date",
     )
     def _compute_amount(self):
+        """
+        Compute the amount for the payment wizard.
+
+        This method calculates the amount based on whether the wizard can be edited,
+        if early payment discounts are applied, and other relevant fields.
+
+        :return: None
+        """
         for wizard in self:
+
+            batch_result = self._get_batches()[0]
+            moves = batch_result["lines"].mapped("move_id")
+            for move in moves:
+                is_eligible_for_early_payment_discount = (
+                    move._is_eligible_for_early_payment_discount(
+                        move.currency_id, wizard.payment_date
+                    )
+                    or move._is_eligible_for_early_payment_discount_partial(
+                        move.currency_id, wizard.payment_date
+                    )
+                )
+                wizard.keep_apply_discount_early = (
+                    is_eligible_for_early_payment_discount
+                )
+
             if (
                 not wizard.journal_id
                 or not wizard.currency_id
@@ -109,7 +189,6 @@ class AccountPaymentRegister(models.TransientModel):
                     - wizard.amount_discount_for_partial
                 )
             else:
-                # The wizard is not editable so no partial payment allowed and then, 'amount' is not used.
                 wizard.amount = None
 
     @api.depends(

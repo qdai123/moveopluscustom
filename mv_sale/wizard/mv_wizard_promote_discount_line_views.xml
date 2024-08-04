@@ -10,7 +10,7 @@
                 <field invisible="True" name="compute_discount_line_id"/>
                 <group>
                     <group>
-                        <field name="partner_id" string="Đại lý duyệt"/>
+                        <field name="partner_id" string="Đại lý được duyệt"/>
                         <field requited="True" name="promote_discount" string="% Khuyến Khích" options="{'no_open': True}"/>
                         <field invisible="True" name="promote_discount_percentage" widget="percentage"/>
                     </group>

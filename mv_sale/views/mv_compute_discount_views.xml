@@ -7,13 +7,51 @@
 			<form duplicate="false">
 				<header>
 					<field name="do_readonly" invisible="1"/>
-					<button name="action_reload_discount_line" type="object" class="oe_stat_button" string="Refresh (%)" invisible="1" groups="base.group_system"/>
-					<button name="print_report" string="Xuất báo cáo Excel" type="object" class="btn btn-info" invisible="state not in ['confirm', 'done']"/>
-					<button name="action_confirm" string="Tính Ck" type="object" class="oe_highlight" invisible="state != 'draft'"/>
-					<button name="action_view_tree" string="Xem chi tiết" type="object" class="oe_highlight"/>
-					<button name="action_done" string="Duyệt" type="object" class="oe_highlight" invisible="state != 'confirm'"/>
-					<button name="action_undo" string="Hủy" type="object" invisible="state != 'confirm'" confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa ?"/>
-					<button name="action_reset_to_draft" string="Trả về nháp" type="object" invisible="True"/>
+					<button name="action_reload_discount_line"
+					        type="object"
+					        class="oe_stat_button"
+					        string="Refresh (%)"
+					        groups="base.group_system"
+					        invisible="1"
+					/>
+					<button name="print_report"
+					        type="object"
+					        string="Xuất báo cáo Excel"
+					        class="btn btn-info"
+					        invisible="state not in ['confirm', 'done']"
+					/>
+					<button name="action_confirm"
+					        type="object"
+					        string="Tính chiết khấu"
+					        class="btn btn-primary"
+					        invisible="state != 'draft' or not id"
+					/>
+					<button name="action_view_tree"
+					        type="object"
+					        string="Xem chi tiết"
+					        class="btn btn-secondary"
+					        invisible="not line_ids"
+					/>
+					<button name="action_done"
+					        type="object"
+					        string="Duyệt"
+					        class="btn btn-primary"
+					        invisible="state != 'confirm'"
+					/>
+					<button name="action_undo"
+					        type="object"
+					        string="Hủy"
+					        class="btn btn-secondary"
+					        invisible="state != 'confirm'"
+					        confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa, bạn có chắc là muốn hủy?"
+					/>
+					<button name="action_reset_to_draft"
+					        type="object"
+					        string="Trả về nháp"
+					        class="btn btn-secondary"
+					        groups="base.group_system"
+					        invisible="1"
+					/>
 					<field name="state" widget="statusbar" statusbar_visible="draft,confirm,done"/>
 				</header>
 				<sheet>
@@ -33,27 +71,27 @@
 							<field invisible="True" name="level_promote_apply_for"/>
 							<field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': id}">
 								<tree default_order="level">
-									<field column_invisible="True" name="currency_id"/>
-									<field column_invisible="True" name="month_parent"/>
+									<field column_invisible="1" name="currency_id"/>
+									<field column_invisible="1" name="month_parent"/>
 									<field name="partner_id"/>
 									<field name="level" optional="show"/>
 									<field name="quantity_from" optional="hidden"/>
-									<field column_invisible="True" name="quantity_to"/>
+									<field column_invisible="1" name="quantity_to"/>
 									<field name="quantity" optional="show"/>
 									<field name="amount_total" string="Doanh thu" widget="monetary"/>
-									<field column_invisible="True" name="basic"/>
+									<field column_invisible="1" name="basic"/>
 									<field name="month" optional="hidden"/>
-									<field column_invisible="True" name="is_month"/>
+									<field column_invisible="1" name="is_month"/>
 									<field name="month_money" widget="monetary"/>
 									<field name="two_month" optional="hidden"/>
 									<field name="two_money" widget="monetary"/>
-									<field column_invisible="True" name="is_quarter"/>
+									<field column_invisible="1" name="is_quarter"/>
 									<field name="quarter" optional="hidden"/>
 									<field name="quarter_money" widget="monetary"/>
-									<field column_invisible="True" name="is_year"/>
+									<field column_invisible="1" name="is_year"/>
 									<field name="year" optional="hidden"/>
 									<field name="year_money" widget="monetary"/>
-									<field column_invisible="True" name="is_promote_discount"/>
+									<field column_invisible="1" name="is_promote_discount"/>
 									<field name="promote_discount_percentage" optional="hidden"/>
 									<field name="promote_discount_money" widget="monetary"/>
 									<field name="total_money" string="Tổng số tiền" widget="monetary"/>
@@ -63,28 +101,32 @@
 									        invisible="(quantity &gt; quantity_from) or is_month or parent.state == 'done'"
 									        string="Duyệt tháng"
 									        groups="mv_sale.group_mv_compute_discount_approver"
-									        confirm="Cho phép đại lý hưởng chiết khấu theo Tháng?"/>
+									        confirm="Cho phép đại lý hưởng chiết khấu theo Tháng?"
+									/>
 									<button name="action_quarter"
 									        class="btn btn-success"
 									        type="object"
 									        invisible="month_parent not in [3, 6, 9 ,12] or is_quarter or parent.state == 'done'"
 									        string="Duyệt Quý"
 									        groups="mv_sale.group_mv_compute_discount_approver"
-									        confirm="Cho phép đại lý hưởng chiết khấu theo Quý?"/>
+									        confirm="Cho phép đại lý hưởng chiết khấu theo Quý?"
+									/>
 									<button name="action_year"
 									        class="btn btn-success"
 									        type="object"
 									        invisible="month_parent not in [12] or is_year or parent.state == 'done'"
 									        string="Duyệt Năm"
 									        groups="mv_sale.group_mv_compute_discount_approver"
-									        confirm="Cho phép đại lý hưởng chiết khấu theo Năm?"/>
+									        confirm="Cho phép đại lý hưởng chiết khấu theo Năm?"
+									/>
 									<button name="action_approve_for_promote"
 									        class="btn btn-warning"
 									        type="object"
 									        invisible="is_promote_discount or level != parent.level_promote_apply_for or parent.state == 'done'"
 									        string="Duyệt Khuyến Khích"
 									        groups="mv_sale.group_mv_compute_discount_approver"
-									        confirm="Cho phép đại lý hưởng chiết khấu Khuyến Khích?"/>
+									        confirm="Cho phép đại lý hưởng chiết khấu Khuyến Khích?"
+									/>
 								</tree>
 							</field>
 						</page>
@@ -105,7 +147,7 @@
 		<field name="arch" type="xml">
 			<tree default_order="report_date desc" duplicate="false">
 				<field name="name" string="Tháng/Năm"/>
-				<field column_invisible="True" name="report_date"/>
+				<field column_invisible="1" name="report_date"/>
 				<field name="state" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'" widget="badge"/>
 			</tree>
 		</field>

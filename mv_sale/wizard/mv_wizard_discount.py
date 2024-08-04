@@ -251,13 +251,36 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         order._update_programs_and_rewards()
         order._auto_apply_rewards()
 
+        # Create history line for discount
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+            is_waiting_approval = wizard.discount_amount_apply > 0
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=f"Đã áp dụng chiết khấu cho đơn {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận.",
+                sale_order_id=order.id,
+                sale_order_discount_money_apply=wizard.discount_amount_apply,
+                total_money=wizard.discount_amount_apply,
+                total_money_discount_display=(
+                    "- {:,.2f}".format(wizard.discount_amount_apply)
+                    if wizard.discount_amount_apply > 0
+                    else "{:,.2f}".format(wizard.discount_amount_apply)
+                ),
+                is_waiting_approval=is_waiting_approval,
+                is_positive_money=False,
+                is_negative_money=False,
+            )
+
         return True
 
     def action_update(self):
         wizard = self.with_company(self.company_id)
         order = wizard.sale_order_id
 
-        # [>] For Product Discount with code 'CKT'
         if wizard.discount_agency_set:
             """Update SOline(s) discount according to wizard configuration"""
 
@@ -282,6 +305,30 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
 
         order._update_programs_and_rewards()
         order._auto_apply_rewards()
+
+        # Create history line for discount
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+            is_waiting_approval = wizard.discount_amount_apply > 0
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=f"Đã cập nhật bổ sung chiết khấu cho đơn {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận.",
+                sale_order_id=order.id,
+                sale_order_discount_money_apply=wizard.discount_amount_apply,
+                total_money=wizard.discount_amount_apply,
+                total_money_discount_display=(
+                    "- {:,.2f}".format(wizard.discount_amount_apply)
+                    if wizard.discount_amount_apply > 0
+                    else "{:,.2f}".format(wizard.discount_amount_apply)
+                ),
+                is_waiting_approval=is_waiting_approval,
+                is_positive_money=False,
+                is_negative_money=False,
+            )
 
         return True
 

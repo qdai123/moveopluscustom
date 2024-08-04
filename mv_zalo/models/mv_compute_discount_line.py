@@ -157,7 +157,7 @@ class MvComputeDiscountLine(models.Model):
         }
 
         # Extract data
-        phone = convert_valid_phone_number(
+        phone = zns_convert_valid_phonenumber(
             self.partner_mobile or self.partner_id.mobile
         )
         tracking_id = self.id
