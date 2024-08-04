@@ -609,7 +609,7 @@ class SaleOrder(models.Model):
                 else "{:,.2f}".format(total_money_to_store_history)
             )
         elif order_state == "draft":
-            description = f"Đơn {self.name} đã được điều chỉnh về báo giá."
+            description = f"Đơn {self.name} đã được điều chỉnh về báo giá, tiền chiết khấu đã được hoàn về ví."
             money_to_update_history = (
                 "+ {:,.2f}".format(total_money_to_store_history)
                 if total_money_to_store_history > 0
