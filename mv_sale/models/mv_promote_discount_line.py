@@ -13,7 +13,7 @@ class MvPromoteDiscountLine(models.Model):
         res = []
         for record in self:
             if self._context.get("wizard_promote_discount_search", False):
-                name_fmt = "{:.0f} % ({} - {})".format(
+                name_fmt = "{} % ({} - {})".format(
                     record.promote_discount,
                     record.quantity_minimum,
                     record.quantity_maximum,
@@ -36,7 +36,7 @@ class MvPromoteDiscountLine(models.Model):
                 and record.quantity_minimum
                 and record.quantity_maximum
             ):
-                record.name = "{:.0f} % ({} - {})".format(
+                record.name = "{} % ({} - {})".format(
                     record.promote_discount,
                     record.quantity_minimum,
                     record.quantity_maximum,
