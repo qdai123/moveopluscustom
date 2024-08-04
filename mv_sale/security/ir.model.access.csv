@@ -27,7 +27,7 @@ access_mv_promote_discount_line,mv.promote.discount.line,model_mv_promote_discou
 access_mv_white_place_discount_line,mv.white.place.discount.line,model_mv_white_place_discount_line,base.group_user,1,1,1,1
 access_mv_discount_partner,mv.discount.partner,model_mv_discount_partner,base.group_user,1,1,1,1
 access_mv_discount_partner_history,mv.discount.partner.history,model_mv_discount_partner_history,base.group_user,1,1,1,1
-access_mv_discount_partner_history_portal_user,mv.discount.partner.history.portal.user,model_mv_discount_partner_history,base.group_portal,1,0,0,0
+access_mv_discount_partner_history_portal_user,mv.discount.partner.history.portal.user,model_mv_discount_partner_history,base.group_portal,1,0,1,0
 access_mv_compute_discount,mv.compute.discount,model_mv_compute_discount,base.group_user,1,1,1,0
 access_mv_compute_discount_line,mv.compute.discount.line,model_mv_compute_discount_line,base.group_user,1,1,1,1
 access_mv_compute_discount_line_approver,mv.compute.discount.line Approver,model_mv_compute_discount_line,mv_sale.group_mv_compute_discount_approver,1,1,1,1

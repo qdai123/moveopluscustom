@@ -57,7 +57,7 @@
 	                        </td>
 	                        <td id="user_action" class="ps-5 lh-1">
 	                            <img t-if="history_line.create_uid" class="o_avatar o_portal_contact_img rounded" t-attf-src="#{image_data_uri(history_line.create_uid.sudo().avatar_128)}" alt="Contact"/>
-	                            <span t-field="history_line.create_uid"/>
+	                            <span style="white-space: break-spaces;" t-field="history_line.create_uid"/>
 	                        </td>
 	                        <td><span class="fw-bold" style="white-space: break-spaces;" t-field="history_line.history_description"/></td>
 	                        <td class="text-end">

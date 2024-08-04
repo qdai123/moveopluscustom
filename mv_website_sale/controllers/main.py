@@ -33,10 +33,6 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 _logger.error("No order found.")
                 return request.redirect("/shop/cart")
 
-            # Compute partner bonus and bonus order line
-            order.sudo()._compute_partner_bonus()
-            order.sudo()._compute_bonus_order_line()
-
             # If the partner is an agency, update the partner's discount amount
             if order.partner_id.is_agency:
                 order.sudo().partner_id.action_update_discount_amount()
@@ -306,9 +302,39 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 order._compute_partner_bonus()
                 order._compute_bonus_order_line()
 
-        order.with_context(
-            applying_partner_discount=True
-        )._update_programs_and_rewards()
-        order.with_context(applying_partner_discount=True)._auto_apply_rewards()
+        # Update the order's programs and rewards and auto-apply rewards with context
+        context = dict(request.env.context)
+        context.update({"applying_partner_discount": True})
+        order.with_context(context)._update_programs_and_rewards()
+        order.with_context(context)._auto_apply_rewards()
+
+        # Create history line for discount
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+            history_description = (
+                f"Đã áp dụng chiết khấu cho đơn {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận."
+                if not is_update
+                else f"Đã cập nhật bổ sung chiết khấu cho đơn có {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận."
+            )
+            is_waiting_approval = discount_amount_apply > 0
+            request.env["mv.discount.partner.history"].sudo()._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=history_description,
+                sale_order_id=order.id,
+                sale_order_discount_money_apply=discount_amount_apply,
+                total_money=discount_amount_apply,
+                total_money_discount_display=(
+                    "- {:,.2f}".format(discount_amount_apply)
+                    if discount_amount_apply > 0
+                    else "{:,.2f}".format(discount_amount_apply)
+                ),
+                is_waiting_approval=is_waiting_approval,
+                is_positive_money=False,
+                is_negative_money=False,
+            )
 
         return request.redirect(redirect_shop_cart)
