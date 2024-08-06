@@ -38,6 +38,17 @@
                 There are currently no discount histories for your account.
             </div>
 	        <t t-else="">
+		        <t t-set="partner" t-value="user_id.sudo().partner_id"/>
+		        <h6>
+					<i class="fa fa-fw fa-money me-1 text-success"/>Tổng tiền Chiết Khấu:
+					<t t-set="total_money_discount" t-value="partner.amount_currency - partner.total_so_quotations_discount"/>
+					<span class="text-success fw-bold">
+						<t class="monetary_field"
+						   t-out="total_money_discount"
+						   t-options="{'widget': 'monetary', 'display_currency': partner.property_product_pricelist.currency_id}"/>
+					</span>
+				</h6>
+		        <hr/>
 	            <t t-if="histories" t-call="portal.portal_table">
 	                <thead>
 	                    <tr>
@@ -49,7 +60,6 @@
 	                </thead>
 	                <t t-foreach="histories" t-as="history_line">
 		                <t t-set="positive_money" t-value="history_line.is_positive_money"/>
-		                <t t-set="waiting_approval" t-value="history_line.is_waiting_approval"/>
 		                <t t-set="negative_money" t-value="history_line.is_negative_money"/>
 	                    <tr>
 	                        <td class="text-start">
@@ -63,7 +73,6 @@
 	                        <td class="text-end">
 		                        <t t-if="history_line.total_money &gt; 0">
 			                        <span t-if="positive_money" class="fw-bold text-success" t-field="history_line.total_money_discount_display"/>
-			                        <span t-if="waiting_approval" class="fw-bold text-info" t-field="history_line.total_money_discount_display"/>
 			                        <span t-if="negative_money" class="fw-bold text-danger" t-field="history_line.total_money_discount_display"/>
 		                        </t>
 		                        <t t-else="">

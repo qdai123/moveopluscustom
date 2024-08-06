@@ -483,6 +483,9 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             partner_id=record.sudo().partner_id.id,
             history_description=description,
             warranty_discount_policy_id=record.id,
+            warranty_discount_policy_state=self.get_selection_label(
+                record._name, "parent_state", record.id
+            )[1],
             warranty_discount_policy_total_money=total_money,
             total_money=total_money,
             total_money_discount_display=money_display,
@@ -1548,6 +1551,21 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             report_date.year,
         )
         return output.read(), file_name.replace("-", "_")
+
+    # ==================================
+    # TOOLING
+    # ==================================
+
+    def get_selection_label(self, model_name, field_name, record_id):
+        model = self.env[model_name]
+        field = model._fields[field_name]
+        selection_values = dict(field.selection)
+
+        record = model.browse(record_id)
+        selection_key = getattr(record, field_name)
+        selection_label = selection_values.get(selection_key, "Unknown")
+
+        return selection_key, selection_label
 
 
 class MvComputeWarrantyDiscountPolicyLine(models.Model):

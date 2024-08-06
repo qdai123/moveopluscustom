@@ -263,6 +263,9 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                 partner_id=order.partner_id.id,
                 history_description=f"Đã áp dụng chiết khấu cho đơn {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận.",
                 sale_order_id=order.id,
+                sale_order_state=order.get_selection_label(
+                    order._name, "state", order.id
+                )[1],
                 sale_order_discount_money_apply=wizard.discount_amount_apply,
                 total_money=wizard.discount_amount_apply,
                 total_money_discount_display=(
@@ -318,6 +321,9 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                 partner_id=order.partner_id.id,
                 history_description=f"Đã cập nhật bổ sung chiết khấu cho đơn có {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận.",
                 sale_order_id=order.id,
+                sale_order_state=order.get_selection_label(
+                    order._name, "state", order.id
+                )[1],
                 sale_order_discount_money_apply=wizard.discount_amount_apply,
                 total_money=wizard.discount_amount_apply,
                 total_money_discount_display=(

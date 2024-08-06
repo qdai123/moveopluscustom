@@ -318,7 +318,7 @@ class MvComputeDiscountLine(models.Model):
         )
 
     def create_history_line(self, record, state, description, total_money):
-        is_positive_money = (
+        is_waiting_approval = (
             state
             in [
                 "approve_for_month",
@@ -332,6 +332,9 @@ class MvComputeDiscountLine(models.Model):
             partner_id=record.partner_id.id,
             history_description=description,
             production_discount_policy_id=record.id,
+            production_discount_policy_state=record.parent_id.get_selection_label(
+                record._name, "state", record.id
+            )[1],
             production_discount_policy_total_money=total_money,
             total_money=total_money,
             total_money_discount_display=(
@@ -339,8 +342,8 @@ class MvComputeDiscountLine(models.Model):
                 if total_money > 0
                 else "{:,.2f}".format(total_money)
             ),
-            is_waiting_approval=False,
-            is_positive_money=is_positive_money,
+            is_waiting_approval=is_waiting_approval,
+            is_positive_money=False,
             is_negative_money=False,
         )
 
