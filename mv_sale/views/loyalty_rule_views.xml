@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="mv_sale_inherit_loyalty_rule_view_form" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.loyalty.rule.form</field>
+		<field name="model">loyalty.rule</field>
+		<field name="priority">30</field>
+		<field name="inherit_id" ref="loyalty.loyalty_rule_view_form"/>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='minimum_qty']" position="after">
+				<field name="maximum_qty"/>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="mv_sale_inherit_loyalty_rule_view_kanban" model="ir.ui.view">
+		<field name="name">mv_sale.inherit.loyalty.rule.kanban</field>
+		<field name="model">loyalty.rule</field>
+		<field name="priority">30</field>
+		<field name="inherit_id" ref="loyalty.loyalty_rule_view_kanban"/>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='minimum_qty']" position="before">
+				<field name="maximum_qty"/>
+			</xpath>
+			<xpath expr="//t[@t-if='record.minimum_qty.raw_value > 0']" position="after">
+				<t t-if="record.maximum_qty.raw_value > 0"><span>If maximum <field name="maximum_qty"/> item(s) bought</span><br/></t>
+			</xpath>
+		</field>
+	</record>
+</odoo>
