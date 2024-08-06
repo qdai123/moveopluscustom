@@ -31,7 +31,12 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
         return values
 
     def _prepare_discount_history_domain(self, partner):
-        return [("partner_id", "child_of", [partner.commercial_partner_id.id])]
+        return [
+            ("partner_id", "child_of", [partner.commercial_partner_id.id]),
+            "|",
+            ("is_positive_money", "=", True),
+            ("is_negative_money", "=", True),
+        ]
 
     def _get_discount_history_searchbar_sortings(self):
         return {

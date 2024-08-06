@@ -600,7 +600,10 @@ class SaleOrder(models.Model):
 
     def _reset_discount_agency(self, order_state=None):
         total_money_to_store_history = self.bonus_order
-        is_positive_money = total_money_to_store_history > 0
+        is_waiting_approval = (
+            total_money_to_store_history > 0 and order_state != "cancel"
+        )
+        is_positive_money = total_money_to_store_history > 0 and order_state == "cancel"
         if order_state == "cancel":
             description = f"Hủy đơn {self.name}, tiền chiết khấu đã được hoàn về ví."
             money_to_update_history = (
@@ -609,7 +612,7 @@ class SaleOrder(models.Model):
                 else "{:,.2f}".format(total_money_to_store_history)
             )
         elif order_state == "draft":
-            description = f"Đơn {self.name} đã được điều chỉnh về báo giá, tiền chiết khấu đã được hoàn về ví."
+            description = f"Đơn {self.name} được điều chỉnh về báo giá, tiền chiết khấu đã được hoàn về ví."
             money_to_update_history = (
                 "+ {:,.2f}".format(total_money_to_store_history)
                 if total_money_to_store_history > 0
@@ -625,10 +628,13 @@ class SaleOrder(models.Model):
                 partner_id=self.partner_id.id,
                 history_description=description,
                 sale_order_id=self.id,
+                sale_order_state=self.get_selection_label(self._name, "state", self.id)[
+                    1
+                ],
                 sale_order_discount_money_apply=total_money_to_store_history,
                 total_money=total_money_to_store_history,
                 total_money_discount_display=money_to_update_history,
-                is_waiting_approval=False,
+                is_waiting_approval=is_waiting_approval,
                 is_positive_money=is_positive_money,
                 is_negative_money=False,
             )
@@ -697,12 +703,13 @@ class SaleOrder(models.Model):
                 raise UserError(error_message)
 
             self._process_agency_orders(orders_agency)
+
             # Create history line for discount
             for order in orders_agency:
                 total_money_to_store_history = order.bonus_order
                 is_negative_money = total_money_to_store_history > 0
                 description = (
-                    f"Đã xác nhận đơn {order.name}, tiền chiết khấu đã được cập nhật."
+                    f"Đã xác nhận đơn {order.name}, tiền chiết khấu đã được khấu trừ."
                 )
                 money_to_update_history = (
                     "- {:,.2f}".format(total_money_to_store_history)
@@ -713,6 +720,9 @@ class SaleOrder(models.Model):
                     partner_id=order.partner_id.id,
                     history_description=description,
                     sale_order_id=order.id,
+                    sale_order_state=self.get_selection_label(
+                        order._name, "state", order.id
+                    )[1],
                     sale_order_discount_money_apply=total_money_to_store_history,
                     total_money=total_money_to_store_history,
                     total_money_discount_display=money_to_update_history,

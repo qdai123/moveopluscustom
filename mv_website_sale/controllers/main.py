@@ -325,6 +325,9 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 partner_id=order.partner_id.id,
                 history_description=history_description,
                 sale_order_id=order.id,
+                sale_order_state=order.get_selection_label(
+                    order._name, "state", order.id
+                )[1],
                 sale_order_discount_money_apply=discount_amount_apply,
                 total_money=discount_amount_apply,
                 total_money_discount_display=(

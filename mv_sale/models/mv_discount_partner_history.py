@@ -9,18 +9,18 @@ class MvDiscountPolicyPartnerHistory(models.Model):
 
     # === FIELDS ===#
     partner_id = fields.Many2one(
-        comodel_name="res.partner",
-        string="Đại lý",
-        domain=[("is_agency", "=", True)],
+        comodel_name="res.partner", string="Đại lý", domain=[("is_agency", "=", True)]
     )
     partner_currency_id = fields.Many2one(
         comodel_name="res.currency", related="partner_id.currency_id"
     )
-    is_waiting_approval = fields.Boolean(string="Đang chờ duyệt", default=False)
-    is_positive_money = fields.Boolean(string="Là chiết khấu dương", default=False)
-    is_negative_money = fields.Boolean(string="Là chiết khấu âm", default=False)
+    is_waiting_approval = fields.Boolean(
+        string="Chiết khấu đang chờ duyệt", default=False
+    )
+    is_positive_money = fields.Boolean(string="Chiết khấu dương", default=False)
+    is_negative_money = fields.Boolean(string="Chiết khấu âm", default=False)
     total_money = fields.Monetary(
-        string="Tổng tiền", digits=(16, 2), currency_field="partner_currency_id"
+        string="Tổng tiền", currency_field="partner_currency_id", digits=(16, 2)
     )
     total_money_discount_display = fields.Char(string="Số tiền chiết khấu (+/-)")
     history_description = fields.Char(string="Diễn giải/Hành động", readonly=True)
@@ -28,6 +28,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
     sale_order_id = fields.Many2one(
         comodel_name="sale.order", string="Đơn hàng chiết khấu"
     )
+    sale_order_state = fields.Char(string="Trạng thái đơn hàng")
     sale_order_discount_money_apply = fields.Monetary(
         string="Tiền chiết khấu áp dụng",
         currency_field="partner_currency_id",
@@ -39,6 +40,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
         comodel_name="mv.compute.discount.line",
         domain=[("parent_id", "!=", False), ("partner_id", "=", partner_id)],
     )
+    production_discount_policy_state = fields.Char(string="Trạng thái CKSL")
     production_discount_policy_total_money = fields.Monetary(
         string="Tiền CKSL",
         currency_field="partner_currency_id",
@@ -50,6 +52,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
         comodel_name="mv.compute.warranty.discount.policy.line",
         domain=[("parent_id", "!=", False), ("partner_id", "=", partner_id)],
     )
+    warranty_discount_policy_state = fields.Char(string="Trạng thái CKKHBH")
     warranty_discount_policy_total_money = fields.Monetary(
         string="Tiền CKKHBH",
         currency_field="partner_currency_id",
