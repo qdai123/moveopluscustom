@@ -414,6 +414,11 @@ class ResPartner(models.Model):
         for partner in self:
             partner.write({"is_agency": True})
 
+    def action_update_discount_amount_for_wallet(self):
+        self.ensure_one()
+        # TODO: Action Update Discount Amount for Wallet - Phat Dang <phat.dangminh@moveoplus.com>
+        return True
+
     def action_view_partner_discount_history(self):
         self.ensure_one()
         return {

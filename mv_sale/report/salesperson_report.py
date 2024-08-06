@@ -23,6 +23,9 @@ class SalespersonReport(models.Model):
     # ==== Product FIELDS ==== #
     product_id = fields.Many2one("product.product", "Base Product", readonly=True)
     product_template_id = fields.Many2one("product.template", "Sản phẩm", readonly=True)
+    product_price_unit = fields.Float(
+        string="Đơn giá", digits="Product Price", readonly=True
+    )
     product_country_of_origin = fields.Many2one(
         "res.country", "Quốc Gia (Sản phẩm)", readonly=True
     )
@@ -99,14 +102,14 @@ class SalespersonReport(models.Model):
         )
 
         return f"""
-            orders AS (SELECT so.id                             AS sale_id,
-                              so.user_id                        AS sale_user_id,
-                              so.date_order::DATE               AS sale_date_order,
-                              EXTRACT(DAY FROM so.date_order)   AS sale_day_order,
-                              EXTRACT(MONTH FROM so.date_order) AS sale_month_order,
-                              EXTRACT(YEAR FROM so.date_order)  AS sale_year_order,
-                              partner.id                        AS partner_id,
-                              partner.company_registry          AS partner_company_registry,
+            orders AS (SELECT so.id                                      AS sale_id,
+                              so.user_id                                 AS sale_user_id,
+                              so.date_order::DATE                        AS sale_date_order,
+                              EXTRACT(DAY FROM so.date_order)            AS sale_day_order,
+                              EXTRACT(MONTH FROM so.date_order)          AS sale_month_order,
+                              EXTRACT(YEAR FROM so.date_order)           AS sale_year_order,
+                              partner.id                                 AS partner_id,
+                              partner.company_registry                   AS partner_company_registry,
                               partner_shipping.street,
                               partner_shipping.wards_id,
                               partner_shipping.district_id,
@@ -129,12 +132,13 @@ class SalespersonReport(models.Model):
                                    so.district_id,
                                    so.state_id,
                                    so.country_id,
-                                   pp.id                AS product_id,
-                                   pt.id                AS product_template_id,
-                                   pt.country_of_origin AS product_country_of_origin,
-                                   pt.categ_id          AS product_category_id,
-                                   stl.name             AS serial_number,
-                                   stl.ref              AS qrcode
+                                   pp.id                            AS product_id,
+                                   pt.id                            AS product_template_id,
+                                   COALESCE(pt.list_price, 0)       AS product_price_unit,
+                                   pt.country_of_origin             AS product_country_of_origin,
+                                   pt.categ_id                      AS product_category_id,
+                                   stl.name                         AS serial_number,
+                                   stl.ref                          AS qrcode
                              FROM sale_order_line sol
                                   JOIN orders so ON so.sale_id = sol.order_id
                                   JOIN product_product pp ON pp.id = sol.product_id
@@ -202,6 +206,7 @@ class SalespersonReport(models.Model):
                      line.country_id,
                      line.product_id,
                      line.product_template_id,
+                     line.product_price_unit,
                      line.product_country_of_origin,
                      line.product_category_id,
                      line.serial_number,
@@ -233,3 +238,28 @@ class SalespersonReport(models.Model):
             order=order,
             count_limit=count_limit,
         )
+
+    @api.model
+    def web_read_group(
+        self, domain, fields, groupby, limit=None, offset=0, orderby=False, lazy=True
+    ):
+        res = super(SalespersonReport, self).web_read_group(
+            domain,
+            fields,
+            groupby,
+            limit=limit,
+            offset=offset,
+            orderby=orderby,
+            lazy=lazy,
+        )
+
+        # Check if 'product_template_id' is in groupby and 'product_price_unit' is in fields
+        if "product_template_id" in groupby and "product_price_unit" in fields:
+            # Iterate over the result groups
+            for line in res["groups"]:
+                # Adjust 'product_price_unit' by dividing it by the count of 'product_template_id'
+                line["product_price_unit"] = (
+                    line["product_price_unit"] / line["product_template_id_count"]
+                )
+
+        return res

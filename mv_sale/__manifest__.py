@@ -39,9 +39,9 @@
         "views/product_attribute_views.xml",
         "views/res_partner_views.xml",
         "views/loyalty_program_views.xml",
+        "views/loyalty_rule_views.xml",
         "views/sale_order_views.xml",
         # TEMPLATES
-        "views/templates.xml",
         "views/sale_portal_templates.xml",
         # REPORT
         "report/discount_report_views.xml",

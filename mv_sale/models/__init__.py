@@ -3,6 +3,7 @@ from . import account_move
 from . import delivery_carrier
 from . import delivery_price_rule
 from . import loyalty_program
+from . import loyalty_rule
 from . import mail_message
 from . import mv_compute_discount
 from . import mv_compute_discount_line

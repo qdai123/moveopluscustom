@@ -1,5 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<!-- MOVEO+ Inherited: My Home Portal Discount Histories Layout (portal.portal_breadcrumbs) -->
+	<template id="portal_my_home_menu_discount_history" name="Portal layout : discount histories menu entries" inherit_id="portal.portal_breadcrumbs" priority="30">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-elif="page_name == 'discount_history'" t-attf-class="breadcrumb-item #{'active ' if not histories else ''}">
+                Lịch sử chiết khấu Đại lý <t t-if="histories" t-out="histories[0].partner_id.short_name"/>
+            </li>
+        </xpath>
+    </template>
+
+	<!-- MOVEO+ Inherited: My Home Portal Discount Histories Layout (portal.portal_my_home) -->
+	<template id="mv_sale.portal_my_home_discount_history" name="Show Discount Histories" customize_show="True" inherit_id="portal.portal_my_home" priority="100">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="before">
+	        <t t-set="portal_client_category_enable" t-value="True"/>
+            <t t-set="portal_service_category_enable" t-value="True"/>
+        </xpath>
+		<div id="portal_service_category" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/mv_sale/static/src/img/history.png'"/>
+                <t t-set="title">Discount History</t>
+                <t t-set="url" t-value="'/my/discount_histories'"/>
+                <t t-set="text">Follow, view on your discount histories</t>
+	            <t t-set="placeholder_count" t-value="'history_count'"/>
+            </t>
+        </div>
+    </template>
+
+	<!-- MOVEO+: My Portal Discount Histories Layout -->
+	<template id="portal_my_discount_history" name="My Discount Histories">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Your Discount Histories</t>
+            </t>
+            <div t-if="not histories" class="alert alert-warning" role="alert">
+                There are currently no discount histories for your account.
+            </div>
+	        <t t-else="">
+		        <t t-set="partner" t-value="user_id.sudo().partner_id"/>
+		        <h6>
+					<i class="fa fa-fw fa-money me-1 text-success"/>Tổng tiền Chiết Khấu:
+					<t t-set="total_money_discount" t-value="partner.amount_currency - partner.total_so_quotations_discount"/>
+					<span class="text-success fw-bold">
+						<t class="monetary_field"
+						   t-out="total_money_discount"
+						   t-options="{'widget': 'monetary', 'display_currency': partner.property_product_pricelist.currency_id}"/>
+					</span>
+				</h6>
+		        <hr/>
+	            <t t-if="histories" t-call="portal.portal_table">
+	                <thead>
+	                    <tr>
+	                        <th>Ngày ghi nhận</th>
+	                        <th id="user_action_header" class="ps-5">Người thao tác</th>
+		                    <th class="text-center">Diễn giải/Hành động</th>
+	                        <th class="text-end">Số tiền chiết khấu (+/-)</th>
+	                    </tr>
+	                </thead>
+	                <t t-foreach="histories" t-as="history_line">
+		                <t t-set="positive_money" t-value="history_line.is_positive_money"/>
+		                <t t-set="negative_money" t-value="history_line.is_negative_money"/>
+	                    <tr>
+	                        <td class="text-start">
+	                            <span t-field="history_line.create_date" t-options="{'widget': 'datetime', 'hide_seconds': True}"/>
+	                        </td>
+	                        <td id="user_action" class="ps-5 lh-1">
+	                            <img t-if="history_line.create_uid" class="o_avatar o_portal_contact_img rounded" t-attf-src="#{image_data_uri(history_line.create_uid.sudo().avatar_128)}" alt="Contact"/>
+	                            <span style="white-space: break-spaces;" t-field="history_line.create_uid"/>
+	                        </td>
+	                        <td><span class="fw-bold" style="white-space: break-spaces;" t-field="history_line.history_description"/></td>
+	                        <td class="text-end">
+		                        <t t-if="history_line.total_money &gt; 0">
+			                        <span t-if="positive_money" class="fw-bold text-success" t-field="history_line.total_money_discount_display"/>
+			                        <span t-if="negative_money" class="fw-bold text-danger" t-field="history_line.total_money_discount_display"/>
+		                        </t>
+		                        <t t-else="">
+			                        <span class="fw-bold text-muted" t-field="history_line.total_money_discount_display"/>
+		                        </t>
+	                        </td>
+	                    </tr>
+	                </t>
+	            </t>
+	        </t>
+        </t>
+    </template>
 
 	<!-- MOVEO+ Inherited: Sale Portal Layout Sidebar (sale.sale_order_portal_template) -->
 	<template id="mv_sale.sale_order_portal_template" name="MOVEO+ Inherited: Sale Portal Layout Sidebar" inherit_id="sale.sale_order_portal_template">
@@ -13,5 +98,4 @@
 			<attribute name="class">d-none</attribute>
 		</xpath>
 	</template>
-
 </odoo>

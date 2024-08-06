@@ -18,8 +18,9 @@
 				<field name="history_description" class="fw-bold"/>
 				<field name="total_money" widget="monetary" sum="Total money" optional="hidden"/>
 				<field name="total_money_discount_display"
+				       class="fw-bold"
+				       decoration-info="is_waiting_approval"
 				       decoration-success="is_positive_money"
-				       decoration-warning="is_waiting_approval"
                        decoration-danger="is_negative_money"
                        decoration-muted="total_money == 0"/>
 				<field name="partner_id" string="Đại lý" options='{"no_open": True}' optional="hidden"/>
@@ -27,10 +28,13 @@
 				<field column_invisible="1" name="is_positive_money"/>
 				<field column_invisible="1" name="is_negative_money"/>
 				<field column_invisible="1" name="sale_order_id"/>
+				<field column_invisible="1" name="sale_order_state"/>
 				<field column_invisible="1" name="sale_order_discount_money_apply"/>
 				<field column_invisible="1" name="production_discount_policy_id"/>
+				<field column_invisible="1" name="production_discount_policy_state"/>
 				<field column_invisible="1" name="production_discount_policy_total_money"/>
 				<field column_invisible="1" name="warranty_discount_policy_id"/>
+				<field column_invisible="1" name="warranty_discount_policy_state"/>
 				<field column_invisible="1" name="warranty_discount_policy_total_money"/>
 				<field column_invisible="1" name="partner_currency_id"/>
 			</tree>
