@@ -169,6 +169,7 @@
 				</td>
 			</tr>
 		</xpath>
+		<xpath expr="//tr[hasclass('oe_website_sale_gift_card')]" position="replace"/>
 	</template>
 
 	<!-- MOVEO+ Inherited: Navigations Buttons (website_sale.navigation_buttons) -->
@@ -192,7 +193,6 @@
 	</template>
 
 	<template id="mv_website_sale.cart_line_product_no_link_mv_sale" inherit_id="website_sale_loyalty.cart_line_product_no_link">
-		<!-- TODO: Fix after -->
 		<xpath expr="//t[@t-if='line.is_reward_line']" position="after">
 			<t t-elif="line.hidden_show_qty">
 				<strong t-field="line.name"/>
@@ -201,16 +201,14 @@
 	</template>
 
 	<template id="mv_website_sale.cart_lines_mv_sale" inherit_id="website_sale.cart_lines">
-		<!-- TODO: Fix after -->
 		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']" position="replace">
-			<div t-foreach="website_sale_order.website_order_line"
-			     t-as="line">
+			<div t-foreach="website_sale_order.website_order_line" t-as="line">
 				<t t-if="line.product_id and line.product_id.detailed_type != 'service'">
 					<div t-attf-class="o_cart_product d-flex align-items-stretch gap-3 #{line.linked_line_id and 'optional_product info'} #{not line_last and 'border-bottom pb-4'} #{line_index &gt; 0 and 'pt-4'}"
 					     t-attf-data-product-id="#{line.product_id and line.product_id.id}">
-						<img t-if="line._is_not_sellable_line() and line.product_id.image_128"
+						<img class="o_image_64_max img rounded"
+						     t-if="line._is_not_sellable_line() and line.product_id.image_128"
 						     t-att-src="image_data_uri(line.product_id.image_128)"
-						     class="o_image_64_max  img rounded"
 						     t-att-alt="line.name_short"/>
 						<div t-else=""
 						     t-field="line.product_id.image_128"
@@ -223,13 +221,8 @@
 								<t t-set="div_class" t-valuef="d-none d-md-block"/>
 							</t>
 							<div>
-								<a href='#'
-								   class="js_delete_product d-none d-md-inline-block small"
-								   aria-label="Remove from cart"
-								   title="Remove from cart">Xóa
-								</a>
-								<button class="js_delete_product btn btn-light d-inline-block d-md-none"
-								        title="remove">
+								<a href='#' class="js_delete_product d-none d-md-inline-block small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
+								<button class="js_delete_product btn btn-light d-inline-block d-md-none" title="remove">
 									<i class="fa fa-trash-o"/>
 								</button>
 							</div>
