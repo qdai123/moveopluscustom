@@ -15,10 +15,9 @@
 				<t t-set="partner" t-value="user_id.sudo().partner_id"/>
 				<h5>
 					<i class="fa fa-fw fa-money me-1 text-success"/>Tiền chiết khấu có thể áp dụng:
-					<t t-set="total_money_discount" t-value="partner.amount_currency - partner.total_so_quotations_discount"/>
-					<span t-attf-class="{{ 'text-success fw-bold' if total_money_discount &gt; 0 else 'text-muted fw-bold' }}">
+					<span t-attf-class="{{ 'text-success fw-bold' if partner.amount_currency &gt; 0 else 'text-muted fw-bold' }}">
 						<t class="monetary_field"
-						   t-out="total_money_discount or 0"
+						   t-out="partner.amount_currency"
 						   t-options="{'widget': 'monetary', 'display_currency': partner.property_product_pricelist.currency_id}"/>
 					</span>
 				</h5>

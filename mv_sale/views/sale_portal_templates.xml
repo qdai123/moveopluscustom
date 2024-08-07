@@ -41,10 +41,9 @@
 		        <t t-set="partner" t-value="user_id.sudo().partner_id"/>
 		        <h6>
 					<i class="fa fa-fw fa-money me-1 text-success"/>Tổng tiền Chiết Khấu:
-					<t t-set="total_money_discount" t-value="partner.amount_currency - partner.total_so_quotations_discount"/>
 					<span class="text-success fw-bold">
 						<t class="monetary_field"
-						   t-out="total_money_discount"
+						   t-out="partner.amount_currency"
 						   t-options="{'widget': 'monetary', 'display_currency': partner.property_product_pricelist.currency_id}"/>
 					</span>
 				</h6>
