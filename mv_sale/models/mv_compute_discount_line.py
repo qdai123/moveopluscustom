@@ -14,7 +14,7 @@ class MvComputeDiscountLine(models.Model):
     # Parent Model Fields:
     parent_id = fields.Many2one("mv.compute.discount")
     name = fields.Char(related="parent_id.name", store=True)
-    state = fields.Selection(related="parent_id.state", readonly=True)
+    state = fields.Selection(related="parent_id.state", store=True, readonly=True)
     month_parent = fields.Integer()
 
     # Base Fields:
@@ -332,9 +332,6 @@ class MvComputeDiscountLine(models.Model):
             partner_id=record.partner_id.id,
             history_description=description,
             production_discount_policy_id=record.id,
-            production_discount_policy_state=record.parent_id.get_selection_label(
-                record._name, "state", record.id
-            )[1],
             production_discount_policy_total_money=total_money,
             total_money=total_money,
             total_money_discount_display=(

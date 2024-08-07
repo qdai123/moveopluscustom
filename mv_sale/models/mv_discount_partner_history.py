@@ -40,7 +40,6 @@ class MvDiscountPolicyPartnerHistory(models.Model):
         comodel_name="mv.compute.discount.line",
         domain=[("parent_id", "!=", False), ("partner_id", "=", partner_id)],
     )
-    production_discount_policy_state = fields.Char(string="Trạng thái CKSL")
     production_discount_policy_total_money = fields.Monetary(
         string="Tiền CKSL",
         currency_field="partner_currency_id",
@@ -52,7 +51,6 @@ class MvDiscountPolicyPartnerHistory(models.Model):
         comodel_name="mv.compute.warranty.discount.policy.line",
         domain=[("parent_id", "!=", False), ("partner_id", "=", partner_id)],
     )
-    warranty_discount_policy_state = fields.Char(string="Trạng thái CKKHBH")
     warranty_discount_policy_total_money = fields.Monetary(
         string="Tiền CKKHBH",
         currency_field="partner_currency_id",
