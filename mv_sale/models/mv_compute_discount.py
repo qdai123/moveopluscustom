@@ -477,9 +477,6 @@ class MvComputeDiscount(models.Model):
             partner_id=record.sudo().partner_id.id,
             history_description=description,
             production_discount_policy_id=record.id,
-            production_discount_policy_state=self.get_selection_label(
-                record._name, "state", record.id
-            )[1],
             production_discount_policy_total_money=total_money,
             total_money=total_money,
             total_money_discount_display=money_display,
