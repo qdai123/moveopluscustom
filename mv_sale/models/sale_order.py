@@ -620,7 +620,7 @@ class SaleOrder(models.Model):
             )
         else:
             description = f"Đơn {self.name} đang trong tình trạng xử lý."
-            money_to_update_history = "{:,.2f}".format(total_money_to_store_history)
+            money_to_update_history = "(?) {:,.2f}".format(total_money_to_store_history)
 
         # Create history line for discount
         if self.partner_id and self.partner_agency:
@@ -650,11 +650,11 @@ class SaleOrder(models.Model):
             self.bonus_order = 0
             self.quantity_change = 0
 
+            # [>] Update the Partner's Bonus Wallet
             if self.partner_agency:
                 self.partner_id.sudo().action_update_discount_amount()
 
-        # [>] Remove Discount Agency Lines
-        if order_state in ["draft", "cancel"]:
+            # [>] Remove Discount Agency Lines
             self.action_clear_discount_lines()
 
     def action_clear_discount_lines(self):
@@ -854,7 +854,11 @@ class SaleOrder(models.Model):
             and not self.partner_white_agency
             and not self.partner_southern_agency
         ):
-            program_domain += [("partner_agency_ok", "=", self.partner_agency)]
+            program_domain += [
+                "|",
+                ("partner_agency_ok", "=", self.partner_agency),
+                ("apply_for_all_agency", "=", True),
+            ]
         # === ĐẠI LÝ VÙNG TRẮNG ===#
         elif (
             self.partner_agency
@@ -862,7 +866,9 @@ class SaleOrder(models.Model):
             and not self.partner_southern_agency
         ):
             program_domain += [
-                ("partner_white_agency_ok", "=", self.partner_white_agency)
+                "|",
+                ("partner_white_agency_ok", "=", self.partner_white_agency),
+                ("apply_for_all_agency", "=", True),
             ]
         # === ĐẠI LÝ MIỀN NAM ===#
         elif (
@@ -871,7 +877,9 @@ class SaleOrder(models.Model):
             and not self.partner_white_agency
         ):
             program_domain += [
-                ("partner_southern_agency_ok", "=", self.partner_southern_agency)
+                "|",
+                ("partner_southern_agency_ok", "=", self.partner_southern_agency),
+                ("apply_for_all_agency", "=", True),
             ]
 
         return program_domain
@@ -965,12 +973,19 @@ class SaleOrder(models.Model):
                 ordered_rule_products_qty = sum(
                     products_qties[product] for product in rule_products
                 )
-                if (
-                    ordered_rule_products_qty < rule.minimum_qty
-                    or ordered_rule_products_qty > rule.maximum_qty
-                    or not rule_products
-                ):
-                    continue
+                if rule.maximum_qty > 0:
+                    if (
+                        ordered_rule_products_qty > rule.maximum_qty
+                        or ordered_rule_products_qty < rule.minimum_qty
+                        or not rule_products
+                    ):
+                        continue
+                else:
+                    if (
+                        ordered_rule_products_qty < rule.minimum_qty
+                        or not rule_products
+                    ):
+                        continue
                 product_qty_matched = True
                 if not rule.reward_point_amount:
                     continue

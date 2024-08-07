@@ -11,6 +11,10 @@
 				<label class="o_form_label" for="apply_for" string="Áp dụng cho"/>
 				<div id="o_loyalty_program_applied_for_partners">
 					<span class="d-inline-block">
+						<field name="apply_for_all_agency" string="Tất cả" class="w-auto me-0"/>
+						<label for="apply_for_all_agency" class="me-3"/>
+					</span>
+					<span class="d-inline-block">
 						<field name="partner_agency_ok" string="Đại lý" class="w-auto me-0"/>
 						<label for="partner_agency_ok" class="me-3"/>
 					</span>

@@ -305,6 +305,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     month = fields.Selection(get_months())
     year = fields.Selection(get_years(), default=str(datetime.now().year))
     compute_date = fields.Datetime(compute="_compute_compute_date", store=True)
+    approved_date = fields.Datetime(readonly=True)
     name = fields.Char(compute="_compute_name", store=True)
     state = fields.Selection(
         selection=[("draft", "Nháp"), ("confirm", "Lưu"), ("done", "Đã Duyệt")],
@@ -449,7 +450,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                     line.total_amount_currency,
                 )
 
-            record.write({"state": "done"})
+            record.write({"state": "done", "approved_date": fields.Datetime.now()})
 
     def action_reset(self):
         if self.state == "confirm":
@@ -483,9 +484,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             partner_id=record.sudo().partner_id.id,
             history_description=description,
             warranty_discount_policy_id=record.id,
-            warranty_discount_policy_state=self.get_selection_label(
-                record._name, "parent_state", record.id
-            )[1],
             warranty_discount_policy_total_money=total_money,
             total_money=total_money,
             total_money_discount_display=money_display,
@@ -1582,7 +1580,9 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     )
     parent_name = fields.Char("Name", compute="_compute_parent_name", store=True)
     parent_compute_date = fields.Datetime(readonly=True)
-    parent_state = fields.Selection(related="parent_id.state", readonly=True)
+    parent_state = fields.Selection(
+        related="parent_id.state", store=True, readonly=True
+    )
     partner_id = fields.Many2one("res.partner", readonly=True)
     helpdesk_ticket_product_moves_ids = fields.Many2many(
         "mv.helpdesk.ticket.product.moves",

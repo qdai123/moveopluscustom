@@ -18,9 +18,9 @@
 		<div id="portal_service_category" position="inside">
             <t t-call="portal.portal_docs_entry">
                 <t t-set="icon" t-value="'/mv_sale/static/src/img/history.png'"/>
-                <t t-set="title">Discount History</t>
+                <t t-set="title">Lịch sử Ví</t>
                 <t t-set="url" t-value="'/my/discount_histories'"/>
-                <t t-set="text">Follow, view on your discount histories</t>
+                <t t-set="text">Theo dõi giao dịch từ ví của bạn</t>
 	            <t t-set="placeholder_count" t-value="'history_count'"/>
             </t>
         </div>
@@ -41,10 +41,9 @@
 		        <t t-set="partner" t-value="user_id.sudo().partner_id"/>
 		        <h6>
 					<i class="fa fa-fw fa-money me-1 text-success"/>Tổng tiền Chiết Khấu:
-					<t t-set="total_money_discount" t-value="partner.amount_currency - partner.total_so_quotations_discount"/>
 					<span class="text-success fw-bold">
 						<t class="monetary_field"
-						   t-out="total_money_discount"
+						   t-out="partner.amount_currency"
 						   t-options="{'widget': 'monetary', 'display_currency': partner.property_product_pricelist.currency_id}"/>
 					</span>
 				</h6>
