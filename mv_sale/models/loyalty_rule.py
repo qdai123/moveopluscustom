@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class LoyaltyRule(models.Model):
@@ -10,7 +11,7 @@ class LoyaltyRule(models.Model):
     @api.constrains("maximum_qty")
     def _check_maximum_qty(self):
         for rule in self:
-            if rule.maximum_qty < rule.minimum_qty:
+            if rule.maximum_qty != 0 and rule.maximum_qty < rule.minimum_qty:
                 raise ValidationError(
                     _("The maximum quantity must be greater than minimum quantity.")
                 )

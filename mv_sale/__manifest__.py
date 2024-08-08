@@ -39,6 +39,7 @@
         "views/product_attribute_views.xml",
         "views/res_partner_views.xml",
         "views/loyalty_program_views.xml",
+        "views/loyalty_reward_views.xml",
         "views/loyalty_rule_views.xml",
         "views/sale_order_views.xml",
         # TEMPLATES

@@ -192,164 +192,64 @@
 		<xpath expr="//t[@t-call='web.brand_promotion_message']" position="replace"/>
 	</template>
 
+	<!-- MOVEO+ Inherited: Shopping Cart Lines (website_sale.cart_lines) -->
+	<template id="mv_website_sale.cart_lines_mv_sale" inherit_id="website_sale.cart_lines">
+		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']//a[hasclass('js_delete_product')]" position="replace">
+			<a href='#' class="js_delete_product d-none d-md-inline-block small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
+		</xpath>
+	</template>
+
+<!--	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">-->
+<!--		&lt;!&ndash; TODO: Fix after &ndash;&gt;-->
+<!--		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="replace">-->
+<!--			<tr t-foreach="website_sale_order.website_order_line" t-as="line"-->
+<!--			    t-att-class="line_last and 'border-transparent'">-->
+<!--				<t t-set="o_cart_sum_padding_top" t-value="'pt-3' if line_size &gt; 1 and not line_first else 'pt-0'"/>-->
+<!--				<td t-if="not line.product_id" colspan="2"/>-->
+<!--				<t t-else="">-->
+<!--					<t t-if="line.product_id and line.product_id.detailed_type != 'service'">-->
+<!--						<td t-attf-class="td-img ps-0 #{o_cart_sum_padding_top}">-->
+<!--							<span t-if="line._is_not_sellable_line() and line.product_id.image_128">-->
+<!--								<img t-att-src="image_data_uri(line.product_id.image_128)"-->
+<!--								     class="o_image_64_max img rounded" t-att-alt="line.name_short"/>-->
+<!--							</span>-->
+<!--							<span t-else="" t-field="line.product_id.image_128"-->
+<!--							      t-options="{'widget': 'image', 'qweb_img_responsive': False, 'class': 'o_image_64_max rounded'}"/>-->
+<!--						</td>-->
+<!--						<td t-attf-class="#{o_cart_sum_padding_top} td-product_name td-qty w-100"-->
+<!--						    name="website_sale_cart_summary_product_name">-->
+<!--							<h6>-->
+<!--								<t t-out="int(line.product_uom_qty)"/>-->
+<!--								<t t-if="line._get_shop_warning(clear=False)">-->
+<!--									<i class="fa fa-warning text-warning" role="img"-->
+<!--									   t-att-title="line._get_shop_warning()" aria-label="Warning"/>-->
+<!--								</t>-->
+<!--								x-->
+<!--								<t t-out="line.name_short"/>-->
+<!--							</h6>-->
+<!--						</td>-->
+<!--					</t>-->
+<!--				</t>-->
+<!--				<t t-if="line.product_id and line.product_id.detailed_type != 'service'">-->
+<!--					<td t-attf-class="#{o_cart_sum_padding_top} td-price pe-0 text-end"-->
+<!--					    name="website_sale_cart_summary_line_price">-->
+<!--						<span t-if="website.show_line_subtotals_tax_selection == 'tax_excluded'"-->
+<!--						      t-field="line.price_subtotal" style="white-space: nowrap;"-->
+<!--						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--						<span t-else="" t-field="line.price_total" style="white-space: nowrap;"-->
+<!--						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
+<!--					</td>-->
+<!--				</t>-->
+<!--			</tr>-->
+<!--		</xpath>-->
+<!--	</template>-->
+
+	<!-- MOVEO+ Inherited (website_sale_loyalty.cart_line_product_no_link) -->
 	<template id="mv_website_sale.cart_line_product_no_link_mv_sale" inherit_id="website_sale_loyalty.cart_line_product_no_link">
 		<xpath expr="//t[@t-if='line.is_reward_line']" position="after">
 			<t t-elif="line.hidden_show_qty">
 				<strong t-field="line.name"/>
 			</t>
-		</xpath>
-	</template>
-
-	<template id="mv_website_sale.cart_lines_mv_sale" inherit_id="website_sale.cart_lines">
-		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']" position="replace">
-			<div t-foreach="website_sale_order.website_order_line" t-as="line">
-				<t t-if="line.product_id and line.product_id.detailed_type != 'service'">
-					<div t-attf-class="o_cart_product d-flex align-items-stretch gap-3 #{line.linked_line_id and 'optional_product info'} #{not line_last and 'border-bottom pb-4'} #{line_index &gt; 0 and 'pt-4'}"
-					     t-attf-data-product-id="#{line.product_id and line.product_id.id}">
-						<img class="o_image_64_max img rounded"
-						     t-if="line._is_not_sellable_line() and line.product_id.image_128"
-						     t-att-src="image_data_uri(line.product_id.image_128)"
-						     t-att-alt="line.name_short"/>
-						<div t-else=""
-						     t-field="line.product_id.image_128"
-						     t-options="{'widget': 'image', 'qweb_img_responsive': False, 'class': 'o_image_64_max rounded'}"/>
-						<div class="flex-grow-1">
-							<t t-call="website_sale.cart_line_product_link">
-								<h6 t-field="line.name_short" class="d-inline align-top h6 fw-bold"/>
-							</t>
-							<t t-call="website_sale.cart_line_description_following_lines">
-								<t t-set="div_class" t-valuef="d-none d-md-block"/>
-							</t>
-							<div>
-								<a href='#' class="js_delete_product d-none d-md-inline-block small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
-								<button class="js_delete_product btn btn-light d-inline-block d-md-none" title="remove">
-									<i class="fa fa-trash-o"/>
-								</button>
-							</div>
-						</div>
-						<div class="d-flex flex-column align-items-end">
-							<div t-attf-class="css_quantity input-group mb-2"
-							     name="website_sale_cart_line_quantity">
-								<t t-if="not line._is_not_sellable_line()">
-									<t t-if="show_qty">
-										<a href="#"
-										   class="js_add_cart_json btn btn-link d-inline-block border-end-0"
-										   aria-label="Remove one"
-										   title="Remove one">
-											<i class="position-relative z-index-1 fa fa-minus"/>
-										</a>
-										<input type="text"
-										       class="js_quantity quantity form-control border-start-0 border-end-0"
-										       t-att-data-line-id="line.id"
-										       t-att-data-product-id="line.product_id.id"
-										       t-att-value="int(line.product_uom_qty) == line.product_uom_qty and int(line.product_uom_qty) or line.product_uom_qty"/>
-										<t t-if="line._get_shop_warning(clear=False)">
-											<a href="#" class="btn btn-link">
-												<i class='fa fa-warning text-warning'
-												   t-att-title="line._get_shop_warning()"
-												   role="img"
-												   aria-label="Warning"/>
-											</a>
-										</t>
-										<a t-else=""
-										   href="#"
-										   class="js_add_cart_json d-inline-block float_left btn btn-link border-start-0"
-										   aria-label="Add one"
-										   title="Add one">
-											<i class="fa fa-plus position-relative z-index-1"/>
-										</a>
-									</t>
-									<t t-else="">
-										<input type="hidden"
-										       class="js_quantity form-control quantity"
-										       t-att-data-line-id="line.id"
-										       t-att-data-product-id="line.product_id.id"
-										       t-att-value="int(line.product_uom_qty) == line.product_uom_qty and int(line.product_uom_qty) or line.product_uom_qty"/>
-									</t>
-								</t>
-								<t t-else="">
-									<span class="w-100 text-muted" t-esc="int(line.product_uom_qty)"/>
-									<input type="hidden"
-									       class="js_quantity quantity form-control"
-									       t-att-data-line-id="line.id"
-									       t-att-data-product-id="line.product_id.id"
-									       t-att-value="line.product_uom_qty"/>
-								</t>
-							</div>
-							<div class="mb-0 h6 fw-bold text-end" name="website_sale_cart_line_price">
-								<t t-if="line.discount">
-									<del t-attf-class="#{'text-danger mr8'}"
-									     style="white-space: nowrap;"
-									     t-out="line.price_unit * line.product_uom_qty"
-									     t-options="{'widget': 'monetary', 'display_currency': website.currency_id}"/>
-								</t>
-								<t t-if="website.show_line_subtotals_tax_selection == 'tax_excluded'"
-								   t-set='product_price'
-								   t-value='line.price_subtotal'/>
-								<t t-else=""
-								   t-set='product_price'
-								   t-value='line.price_total'/>
-								<span t-out="product_price" style="white-space: nowrap;"
-								      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-								<small t-if="not line._is_not_sellable_line() and line.product_id.base_unit_price"
-								       class="cart_product_base_unit_price d-block text-muted"
-								       groups="website_sale.group_show_uom_price">
-									<t t-call='website_sale.base_unit_price'>
-										<t t-set='product' t-value='line.product_id'/>
-										<t t-set='combination_info'
-										   t-value="{'base_unit_price': product._get_base_unit_price(product_price/line.product_uom_qty)}"/>
-									</t>
-								</small>
-							</div>
-						</div>
-					</div>
-				</t>
-			</div>
-		</xpath>
-	</template>
-
-	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">
-		<!-- TODO: Fix after -->
-		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="replace">
-			<tr t-foreach="website_sale_order.website_order_line" t-as="line"
-			    t-att-class="line_last and 'border-transparent'">
-				<t t-set="o_cart_sum_padding_top" t-value="'pt-3' if line_size &gt; 1 and not line_first else 'pt-0'"/>
-				<td t-if="not line.product_id" colspan="2"/>
-				<t t-else="">
-					<t t-if="line.product_id and line.product_id.detailed_type != 'service'">
-						<td t-attf-class="td-img ps-0 #{o_cart_sum_padding_top}">
-							<span t-if="line._is_not_sellable_line() and line.product_id.image_128">
-								<img t-att-src="image_data_uri(line.product_id.image_128)"
-								     class="o_image_64_max img rounded" t-att-alt="line.name_short"/>
-							</span>
-							<span t-else="" t-field="line.product_id.image_128"
-							      t-options="{'widget': 'image', 'qweb_img_responsive': False, 'class': 'o_image_64_max rounded'}"/>
-						</td>
-						<td t-attf-class="#{o_cart_sum_padding_top} td-product_name td-qty w-100"
-						    name="website_sale_cart_summary_product_name">
-							<h6>
-								<t t-out="int(line.product_uom_qty)"/>
-								<t t-if="line._get_shop_warning(clear=False)">
-									<i class="fa fa-warning text-warning" role="img"
-									   t-att-title="line._get_shop_warning()" aria-label="Warning"/>
-								</t>
-								x
-								<t t-out="line.name_short"/>
-							</h6>
-						</td>
-					</t>
-				</t>
-				<t t-if="line.product_id and line.product_id.detailed_type != 'service'">
-					<td t-attf-class="#{o_cart_sum_padding_top} td-price pe-0 text-end"
-					    name="website_sale_cart_summary_line_price">
-						<span t-if="website.show_line_subtotals_tax_selection == 'tax_excluded'"
-						      t-field="line.price_subtotal" style="white-space: nowrap;"
-						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-						<span t-else="" t-field="line.price_total" style="white-space: nowrap;"
-						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
-					</td>
-				</t>
-			</tr>
 		</xpath>
 	</template>
 
