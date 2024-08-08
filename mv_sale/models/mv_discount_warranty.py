@@ -373,7 +373,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         if not self.warranty_discount_policy_id:
             raise ValidationError("Chưa chọn Chính sách chiết khấu!")
 
-        # Fetch all ticket with conditions at once
         tickets = self._fetch_tickets()
         if not tickets:
             raise UserError(
@@ -382,10 +381,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 )
             )
 
-        # Get ticket has product move by [tickets]
         ticket_product_moves = self._fetch_ticket_product_moves(tickets)
 
-        # Fetch partners at once
         partners = self._fetch_partners(ticket_product_moves)
         if not partners:
             raise UserError(
@@ -423,7 +420,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         for record in self.filtered(lambda r: len(r.line_ids) > 0):
             for line in record.line_ids:
                 partner = self.env["res.partner"].sudo().browse(line.partner_id.id)
-                partner.action_update_discount_amount()
+                partner.action_update_discount_amount()  # Refresh discount amount
                 helpdesk_tickets = line.helpdesk_ticket_product_moves_ids.mapped(
                     "helpdesk_ticket_id"
                 )
