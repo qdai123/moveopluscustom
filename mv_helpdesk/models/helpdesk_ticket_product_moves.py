@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import api, fields, models, _
-from odoo.exceptions import AccessError, ValidationError
-
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
-    HELPDESK_MANAGER,
     END_USER_CODE,
+    HELPDESK_MANAGER,
 )
+
+from odoo import _, api, fields, models
+from odoo.exceptions import AccessError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -240,11 +240,16 @@ class HelpdeskTicketProductMoves(models.Model):
                 if line.helpdesk_ticket_id:
                     line._compute_helpdesk_ticket_id()  # Reload Ticket Information
                     line._compute_product_activate_twice()  # Reload Product Activation
+
+                    if line.helpdesk_ticket_id.ticket_type_id.code == END_USER_CODE:
+                        line.customer_date_activation = (
+                            line.helpdesk_ticket_id.create_date
+                        )
+                    else:
+                        line.customer_date_activation = False
+
                     line.customer_phone_activation = (
                         line.helpdesk_ticket_id.tel_activation
-                    )
-                    line.customer_date_activation = (
-                        line.helpdesk_ticket_id.ticket_update_date
                     )
                     line.customer_license_plates_activation = (
                         line.helpdesk_ticket_id.license_plates
