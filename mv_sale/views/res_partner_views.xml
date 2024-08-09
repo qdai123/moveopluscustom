@@ -7,7 +7,7 @@
 		<field name="inherit_id" ref="base.view_partner_form"/>
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
-				<page string="Chiết khấu" name="page_partner_discount_info" invisible="not is_agency">
+				<page string="Chiết khấu" name="page_partner_discount_info">
 					<group>
 						<group>
 							<field name="is_agency"/>
@@ -150,10 +150,7 @@
 				</page>
 			</xpath>
 			<xpath expr="//header" position="inside">
-				<button name="action_activation_for_agency"
-				        class="btn btn-primary"
-				        type="object"
-				        invisible="is_agency">
+				<button name="action_activation_for_agency" class="btn btn-primary" type="object" invisible="1">
 					<i class="fa fa-fw fa-check-square-o"/>
 					<span>Kích hoạt Đại lý</span>
 				</button>
