@@ -3,7 +3,6 @@
 import {_t} from "@web/core/l10n/translation";
 import publicWidget from "@web/legacy/js/public/public_widget";
 import {ScannerDialog} from "../components/scanner_dialog/scanner_dialog";
-import {RPCError} from "@web/core/network/rpc_service";
 
 const ERROR_MESSAGES = {
     EMPTY_PHONE_NUMBER: "Vui lòng nhập số điện thoại của bạn.",
