@@ -79,7 +79,7 @@
 		                    </tr>
 			            </t>
 		            </t>
-	                <t t-foreach="histories" t-as="history_line">
+	                <t t-foreach="histories.filtered(lambda r: r.sale_order_id and r.warranty_discount_policy_id)" t-as="history_line">
 		                <t t-set="positive_money" t-value="history_line.is_positive_money"/>
 		                <t t-set="negative_money" t-value="history_line.is_negative_money"/>
 	                    <tr>

@@ -113,6 +113,11 @@ class MvComputeDiscount(models.Model):
         readonly=True,
     )
     line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
+    production_discount_policy_details_history_ids = fields.One2many(
+        comodel_name="mv.partner.total.discount.detail.history",
+        inverse_name="parent_id",
+        string="Lịch sử chi tiết số tiền CKSL",
+    )
     report_date = fields.Datetime(
         compute="_compute_report_date_by_month_year", store=True
     )
