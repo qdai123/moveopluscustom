@@ -137,6 +137,8 @@ class MVWebsiteHelpdesk(http.Controller):
                 request.env["helpdesk.ticket.type"].sudo().browse(int(ticket_type))
             )
             _logger.debug(f"Ticket Type: {ticket_type}")
+        else:
+            ticket_type = request.env.ref('mv_helpdesk.type_guarantee_activation_for_sub_dealer', raise_if_not_found=False)
 
         partner = False
         if partner_email and self.is_valid_email(partner_email):
@@ -389,6 +391,17 @@ class MVWebsiteHelpdesk(http.Controller):
 
 class WebsiteForm(form.WebsiteForm):
 
+    # def generate_ticket_details(self, request, dict_id):
+    #     serial = request.params.get('portal_lot_serial_number')
+    #     product_moves = request.env['mv.helpdesk.ticket.product.moves'].search([
+    #         ('lot_name', '=', serial)
+    #     ])
+    #     ticket = request.env['helpdesk.ticket'].browse(dict_id.get('id'))
+    #     product_moves.write({
+    #         'mv_warranty_ticket_id': ticket.id,
+    #         'mv_warranty_license_plate': request.params.get('license_plates')
+    #     })
+
     # =============== MOVEOPLUS Override ===============
     def _handle_website_form(self, model_name, **kwargs):
         if model_name == "helpdesk.ticket" and request.params.get("team_id"):
@@ -411,8 +424,9 @@ class WebsiteForm(form.WebsiteForm):
                     return super(WebsiteForm, self)._handle_website_form(
                         model_name, **kwargs
                     )
-
-        return super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
+        result = super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
+        # self.generate_ticket_details(request, result)
+        return result
 
     def _handle_helpdesk_ticket_form(self, record):
         # Environment Model with SUPER

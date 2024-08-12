@@ -61,7 +61,6 @@ export class ScannerDialog extends Component {
      */
     async _onBarcodeScanned(code) {
         if (!code) return;
-
         const listCode = this._cleanAndConvertCodesToArray(code);
         const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");

@@ -66,6 +66,11 @@ class HelpdeskTicket(models.Model):
         inverse_name="helpdesk_ticket_id",
         string="Lot/Serial Number",
     )
+    helpdesk_warranty_ticket_ids = fields.One2many(
+        comodel_name="mv.helpdesk.ticket.product.moves",
+        inverse_name="mv_warranty_ticket_id",
+        string="Lot/Serial Number",
+    )
 
     # Type with Sub-Dealer
     is_sub_dealer = fields.Boolean(compute="_compute_ticket_type")
@@ -76,6 +81,16 @@ class HelpdeskTicket(models.Model):
     tel_activation = fields.Char("Phone")
     license_plates = fields.Char("License plates")
     mileage = fields.Integer("Mileage (Km)", default=0)
+    mv_is_warranty_ticket = fields.Boolean(compute="compute_is_warranty_ticket")
+
+    @api.depends('team_id')
+    def compute_is_warranty_ticket(self):
+        for move in self:
+            move.mv_is_warranty_ticket = False
+            ticket_ref = self.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty', 
+                                      raise_if_not_found=False)
+            if move.team_id.id == ticket_ref.id and ticket_ref and move.team_id:
+                move.mv_is_warranty_ticket = True
 
     # ==================================
     # COMPUTE / CONSTRAINS Methods
@@ -423,6 +438,7 @@ class HelpdeskTicket(models.Model):
     def _get_domain(self, ticket_type_code, code, field_name):
         return [
             ("helpdesk_ticket_id", "!=", False),
+            ("mv_warranty_ticket_id", "!=", False),
             ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
             (f"stock_move_line_id.{field_name}", "=", code),
         ]

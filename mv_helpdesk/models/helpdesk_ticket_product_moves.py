@@ -81,6 +81,9 @@ class HelpdeskTicketProductMoves(models.Model):
     )
     lot_name = fields.Char(related="stock_move_line_id.lot_name", store=True)
     qr_code = fields.Char(related="stock_move_line_id.qr_code", store=True)
+    mv_warranty_license_plate = fields.Char('Biển số xe bảo hành')
+    mv_num_of_km = fields.Float('Số km đã đi')
+    mv_warranty_ticket_id = fields.Many2one('helpdesk.ticket', string='Helpdesk warranty ticket')
 
     # ==================================
     # COMPUTE / INVERSE Methods
