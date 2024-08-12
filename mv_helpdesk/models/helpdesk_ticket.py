@@ -47,7 +47,7 @@ class HelpdeskTicket(models.Model):
 
             now_utc = datetime.utcnow()
             now_user = now_utc.astimezone(pytz.timezone(ticket.partner_id.tz or "UTC"))
-            lang = self.env["res.lang"]._lang_get(ticket.partner_id.lang)
+            lang = self.env["res.lang"]._lang_get(ticket.partner_id.lang or self.env.user.lang)
             date_format = lang.date_format
             time_format = lang.time_format
             formatted_date = now_user.strftime(date_format + " " + time_format)

@@ -5,21 +5,28 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 from odoo.tools.misc import formatLang
 
+# GROUP ACCESS
+GROUP_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+
 
 class MvComputeDiscountLine(models.Model):
     _name = "mv.compute.discount.line"
     _description = _("Compute Discount (%) Line for Partner Agency")
     _rec_name = "partner_id"
 
-    # Parent Model Fields:
-    parent_id = fields.Many2one("mv.compute.discount")
+    # === FIELDS ===#
+    parent_id = fields.Many2one("mv.compute.discount", "Chính sách chiết khấu")
+    discount_line_id = fields.Many2one(
+        "mv.discount.line", "Chính sách chiết khấu chi tiết"
+    )
     name = fields.Char(related="parent_id.name", store=True)
     state = fields.Selection(related="parent_id.state", store=True, readonly=True)
-    month_parent = fields.Integer()
-
-    # Base Fields:
+    month_parent = fields.Integer("Tháng")
     currency_id = fields.Many2one(
-        "res.currency", compute="_get_company_currency", store=True
+        "res.currency",
+        "Tiền tệ",
+        compute="_get_company_currency",
+        store=True,
     )
     partner_id = fields.Many2one("res.partner", "Đại lý")
     partner_sales_state = fields.Selection(
@@ -37,10 +44,13 @@ class MvComputeDiscountLine(models.Model):
     quantity_discount = fields.Integer("Số lượng khuyến mãi")
     quantity_from = fields.Integer("Số lượng lốp min")
     quantity_to = fields.Integer("Số lượng lốp max")
-    basic = fields.Float("Basic")
-    sale_ids = fields.One2many("sale.order", "discount_line_id")
-    order_line_ids = fields.One2many("sale.order.line", "discount_line_id")
-    discount_line_id = fields.Many2one("mv.discount.line")
+    basic = fields.Float("Cơ bản (%)")
+    sale_ids = fields.One2many("sale.order", "discount_line_id", "Đơn hàng")
+    order_line_ids = fields.One2many(
+        "sale.order.line", "discount_line_id", "Dòng đơn hàng"
+    )
+    opening_balance = fields.Monetary("Số dư đầu kỳ", digits=(16, 2))
+    closing_balance = fields.Monetary("Số dư cuối kỳ", digits=(16, 2))
 
     # TOTAL Fields:
     amount_total = fields.Float("Doanh thu tháng")
@@ -459,6 +469,4 @@ class MvComputeDiscountLine(models.Model):
             Helps check user security for access to Discount Line approval
         :return: True/False
         """
-
-        access = self.env.user.has_group("mv_sale.group_mv_compute_discount_approver")
-        return access
+        return self.env.user.has_group(GROUP_APPROVER)

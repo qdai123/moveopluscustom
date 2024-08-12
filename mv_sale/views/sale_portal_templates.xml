@@ -34,7 +34,7 @@
             <t t-call="portal.portal_searchbar">
                 <t t-set="title">Your Discount Histories</t>
             </t>
-            <div t-if="not histories" class="alert alert-warning" role="alert">
+            <div t-if="not histories and not histories_total_detail" class="alert alert-warning" role="alert">
                 There are currently no discount histories for your account.
             </div>
 	        <t t-else="">
@@ -48,7 +48,7 @@
 					</span>
 				</h6>
 		        <hr/>
-	            <t t-if="histories" t-call="portal.portal_table">
+	            <t t-if="histories or histories_total_detail" t-call="portal.portal_table">
 	                <thead>
 	                    <tr>
 	                        <th>Ngày ghi nhận</th>
@@ -57,6 +57,28 @@
 	                        <th class="text-end">Số tiền chiết khấu (+/-)</th>
 	                    </tr>
 	                </thead>
+		            <t t-if="histories_total_detail">
+			            <t t-foreach="histories_total_detail" t-as="history_total_detail_line">
+				            <tr>
+		                        <td class="text-start">
+		                            <span t-field="history_total_detail_line.create_date" t-options="{'widget': 'datetime', 'hide_seconds': True}"/>
+		                        </td>
+		                        <td id="user_action" class="ps-5 lh-1">
+		                            <img t-if="history_total_detail_line.create_uid" class="o_avatar o_portal_contact_img rounded" t-attf-src="#{image_data_uri(history_total_detail_line.create_uid.sudo().avatar_128)}" alt="Contact"/>
+		                            <span style="white-space: break-spaces;" t-field="history_total_detail_line.create_uid"/>
+		                        </td>
+		                        <td><span class="fw-bold" style="white-space: break-spaces;" t-field="history_total_detail_line.description"/></td>
+		                        <td class="text-end">
+			                        <t t-if="history_total_detail_line.total_discount_amount &gt; 0">
+				                        <span class="fw-bold text-success" t-field="history_total_detail_line.total_discount_amount_display"/>
+			                        </t>
+			                        <t t-else="">
+				                        <span class="fw-bold text-muted" t-field="history_total_detail_line.total_discount_amount_display"/>
+			                        </t>
+		                        </td>
+		                    </tr>
+			            </t>
+		            </t>
 	                <t t-foreach="histories" t-as="history_line">
 		                <t t-set="positive_money" t-value="history_line.is_positive_money"/>
 		                <t t-set="negative_money" t-value="history_line.is_negative_money"/>

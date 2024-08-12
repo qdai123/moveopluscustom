@@ -35,13 +35,9 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
             "&",
             ("partner_id", "child_of", [partner.commercial_partner_id.id]),
             "|",
-            "|",
             "&",
             ("sale_order_id", "!=", False),
             ("is_negative_money", "=", True),
-            "&",
-            ("production_discount_policy_id", "!=", False),
-            ("is_positive_money", "=", True),
             "&",
             ("warranty_discount_policy_id", "!=", False),
             ("is_positive_money", "=", True),
@@ -57,6 +53,9 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
     ):
         _logger.info(f"kwargs: {kwargs}")
         partner_discount_history = request.env["mv.discount.partner.history"]
+        partner_total_discount_detail_history = request.env[
+            "mv.partner.total.discount.detail.history"
+        ]
 
         if not sortby:
             sortby = "date"
@@ -89,6 +88,14 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
             limit=self._items_per_page,
             offset=pager_values["offset"],
         )
+        records_total_discount_detail_history = (
+            partner_total_discount_detail_history.search(
+                domain=[("partner_id", "child_of", [partner.commercial_partner_id.id])],
+                order=sort_data,
+                limit=self._items_per_page,
+                offset=pager_values["offset"],
+            )
+        )
 
         values.update(
             {
@@ -97,6 +104,11 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
                     records_history.sudo()
                     if records_history
                     else partner_discount_history
+                ),
+                "histories_total_detail": (
+                    records_total_discount_detail_history.sudo()
+                    if records_total_discount_detail_history
+                    else partner_total_discount_detail_history
                 ),
                 "page_name": "discount_history",
                 "pager": pager_values,
