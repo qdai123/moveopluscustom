@@ -52,11 +52,6 @@ class MvDiscountPolicyPartnerHistory(models.Model):
         currency_field="partner_currency_id",
         digits=(16, 2),
     )
-    production_discount_policy_details_history_ids = fields.One2many(
-        comodel_name="mv.partner.total.discount.detail.history",
-        inverse_name="parent_id",
-        string="Lịch sử chi tiết CKSL",
-    )
     # === CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===
     warranty_discount_policy_id = fields.Many2one(
         string="Chính sách Chiết Khấu Kích Hoạt Bảo Hành",
