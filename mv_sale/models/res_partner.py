@@ -115,6 +115,31 @@ class ResPartner(models.Model):
 
         return discount_history_records
 
+    @api.model
+    def get_total_discount_history(self, partner):
+        if not partner:
+            return []
+
+        return self.env["mv.partner.total.discount.detail.history"].search_fetch(
+            domain=[
+                ("partner_id", "in", partner.ids),
+                (
+                    "policy_line_id",
+                    "in",
+                    partner.mapped("compute_discount_line_ids").ids,
+                ),
+            ],
+            field_names=[
+                "parent_id",
+                "policy_line_id",
+                "partner_id",
+                "description",
+                "total_discount_amount_display",
+                "total_discount_amount",
+            ],
+            order="create_date desc",
+        )
+
     # =================================
     # BUSINESS Methods
     # =================================
@@ -410,6 +435,120 @@ class ResPartner(models.Model):
     # ACTION Methods
     # =================================
 
+    def generate_partner_discount_histories(self):
+        """
+        Generate discount history lines for the partner.
+
+        This method retrieves all bonus orders, production policy discounts, and warranty policy discounts
+        for the partner and creates corresponding history lines.
+
+        :return: list: Created history lines.
+        """
+        self.ensure_one()
+        partner = self
+        vals_list = []
+
+        order_discount = partner._get_orders_with_discount(partner, "sale")
+        # Generate history lines for production policy discounts
+        for order in order_discount:
+            vals_list.append(
+                {
+                    f"{order.date_order.month}_{order.date_order.year}": self._prepare_history_line_vals(
+                        order,
+                        "sale",
+                        f"Đơn {order.name} đã được xác nhân, đã khấu trừ tiền chiết khấu của Đại lý.",
+                        order.bonus_order,
+                    )
+                }
+            )
+
+        # Generate history lines for production policy discounts
+        for record_line in partner.compute_discount_line_ids.filtered(
+            lambda r: r.state == "done"
+        ):
+            data_key = f"{record_line.parent_id.report_date.month}_{record_line.parent_id.report_date.year}"
+            vals_list.append(
+                {
+                    data_key: self._prepare_history_line_vals(
+                        record_line,
+                        "done",
+                        f"Chiết khấu sản lượng tháng {record_line.name} đã được duyệt cho Đại lý.",
+                        record_line.total_money,
+                    )
+                }
+            )
+
+        # Generate history lines for warranty policy discounts
+        for record_line in partner.compute_warranty_discount_line_ids.filtered(
+            lambda r: r.parent_state == "done"
+        ):
+            data_key = f"{record_line.parent_id.compute_date.month}_{record_line.parent_id.compute_date.year}"
+            vals_list.append(
+                {
+                    data_key: self._prepare_history_line_vals(
+                        record_line,
+                        "done",
+                        f"Chiết khấu kích hoạt bảo hành tháng {record_line.parent_name} đã được duyệt cho Đại lý.",
+                        record_line.total_amount_currency,
+                    )
+                }
+            )
+
+        vals_list = sorted(vals_list, key=lambda val: val.keys(), reverse=True)
+        return self.env["mv.discount.partner.history"]._create_history_line(vals_list)
+
+    def _prepare_history_line_vals(self, record, state, description, total_money):
+        """
+        Prepare the values for creating a history line.
+
+        :param record: The record data discount.
+        :param state: The state of record data discount.
+        :param description: The description of the discount.
+        :return: dict: The values for creating a history line.
+        """
+        total_money_display = "{:,.2f}".format(total_money)
+        # ||| Sale Order
+        is_negative_money = state == "sale" and total_money > 0
+        total_money_display = (
+            "- " + total_money_display
+            if state == "sale" and total_money > 0
+            else total_money_display
+        )
+        # ||| Production Policy & Warranty Policy
+        is_positive_money = state == "done" and total_money > 0
+        total_money_display = (
+            "+ " + total_money_display
+            if state == "done" and total_money > 0
+            else total_money_display
+        )
+
+        return {
+            "partner_id": record.partner_id.id,
+            "history_description": description,
+            "sale_order_id": record.id if state == "sale" else False,
+            "sale_order_state": record.state if state == "sale" else False,
+            "production_discount_policy_id": (
+                record.id if record._name == "mv.compute.discount.line" else False
+            ),
+            "production_discount_policy_total_money": (
+                total_money if record._name == "mv.compute.discount.line" else 0
+            ),
+            "warranty_discount_policy_id": (
+                record.id
+                if record._name == "mv.compute.warranty.discount.policy.line"
+                else False
+            ),
+            "warranty_discount_policy_total_money": (
+                total_money
+                if record._name == "mv.compute.warranty.discount.policy.line"
+                else 0
+            ),
+            "total_money": total_money,
+            "total_money_discount_display": total_money_display,
+            "is_positive_money": is_positive_money,
+            "is_negative_money": is_negative_money,
+        }
+
     def action_activation_for_agency(self):
         for partner in self:
             partner.write({"is_agency": True})
@@ -442,45 +581,14 @@ class ResPartner(models.Model):
 
     @api.model
     def _cron_recompute_partner_discount(self, limit=None):
-        """
-        Scheduled task to recompute the discount for partner agencies.
-
-        Args:
-            limit (int, optional): The maximum number of partners to process.
-                                   If not provided, defaults to 100.
-
-        Returns:
-            bool: True if the task completed successfully, False otherwise.
-        """
-        _logger.debug("Starting '_cron_recompute_partner_discount'.")
-
-        records_limit = limit if limit else 100
         try:
-            agency_partners = self._get_agency_partners(records_limit)
-            for partner in agency_partners:
+            limited_records = limit if limit else 100
+            for partner in self.env["res.partner"].search(
+                [("is_agency", "=", True)], limit=limited_records
+            ):
                 partner.with_context(
                     cron_service_run=True
                 ).action_update_discount_amount()
-            _logger.info(
-                f"Recomputed discount for {len(agency_partners)} partner agencies."
-            )
-            return True
         except Exception as e:
-            _logger.error(f"Failed to recompute discount for partner agencies: {e}")
+            _logger.error(f"Failed to call [_cron_recompute_partner_discount]: {e}")
             return False
-
-    def _get_agency_partners(self, limit):
-        """
-        Retrieve agency partners up to the specified limit.
-
-        Args:
-            limit (int): The maximum number of partners to retrieve.
-
-        Returns:
-            recordset: The retrieved agency partners.
-        """
-        return (
-            self.env["res.partner"]
-            .sudo()
-            .search([("is_agency", "=", True)], limit=limit)
-        )
