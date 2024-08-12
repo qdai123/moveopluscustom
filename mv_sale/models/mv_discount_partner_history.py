@@ -116,7 +116,7 @@ class MvPartnerTotalDiscountDetailsHistory(models.Model):
             # === CHIẾT KHẤU KHUYẾN KHÍCH ===
             if policy_id.is_promote_discount and policy_id.promote_discount_money > 0:
                 total_discount_lines["promote_in_month"] = {
-                    "description": f"Chiết khấu khuyến khích, tháng {policy_id.name}",
+                    "description": f"Chiết khấu khuyến khích tháng {policy_id.name}",
                     "total_discount_amount_display": (
                         "+ {:,.2f}".format(policy_id.promote_discount_money)
                         if policy_id.promote_discount_money > 0
@@ -137,8 +137,10 @@ class MvPartnerTotalDiscountDetailsHistory(models.Model):
                 }
             # === CHIẾT KHẤU THÁNG (2 THÁNG) ===
             if policy_id.two_month and policy_id.two_money > 0:
+                current_month = month
+                previous_month = current_month - 1 if current_month > 1 else 12
                 total_discount_lines["two_months"] = {
-                    "description": f"Chiết khấu 2 tháng, tháng {policy_id.name}",
+                    "description": f"Chiết khấu 2 tháng, tháng {previous_month}-{current_month}/{year}",
                     "total_discount_amount_display": (
                         "+ {:,.2f}".format(policy_id.two_money)
                         if policy_id.two_money > 0
