@@ -9,8 +9,8 @@
                     <button name="action_reload" string="RELOAD" type="object" class="oe_highlight" groups="base.group_system"/>
                 </header>
                 <field name="name" string="Ref." column_invisible="True"/>
-                <field name="lot_name" string="Serial Number"/>
-                <field name="qr_code" string="QR-Code"/>
+                <field name="lot_name"/>
+                <field name="qr_code"/>
                 <field name="product_id"/>
                 <field name="helpdesk_ticket_id" optional="hidden"/>
                 <field name="helpdesk_ticket_ref" optional="hidden"/>

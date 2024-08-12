@@ -35,7 +35,6 @@ class HelpdeskTicketProductMoves(models.Model):
     product_activate_twice = fields.Boolean(
         string="Activate Twice", compute="_compute_product_activate_twice", store=True
     )
-    # ==================================
     # HELPDESK TICKET Fields
     helpdesk_ticket_id = fields.Many2one(
         comodel_name="helpdesk.ticket", string="Ticket", index=True
@@ -59,7 +58,6 @@ class HelpdeskTicketProductMoves(models.Model):
     customer_mileage_activation = fields.Integer("Mileage (Km)", default=0)
     customer_warranty_date_activation = fields.Date("Warranty Date")
     customer_warranty_mileage_activation = fields.Date("Warranty Mileage")
-
     # STOCK MOVE LINE Fields
     stock_move_line_id = fields.Many2one(
         comodel_name="stock.move.line",
@@ -79,8 +77,12 @@ class HelpdeskTicketProductMoves(models.Model):
         related="stock_move_line_id.product_id",
         store=True,
     )
-    lot_name = fields.Char(related="stock_move_line_id.lot_name", store=True)
-    qr_code = fields.Char(related="stock_move_line_id.qr_code", store=True)
+    lot_name = fields.Char(
+        string="Lot/Serial Number", related="stock_move_line_id.lot_name", store=True
+    )
+    qr_code = fields.Char(
+        string="QR-Code", related="stock_move_line_id.qr_code", store=True
+    )
 
     # ==================================
     # COMPUTE / INVERSE Methods

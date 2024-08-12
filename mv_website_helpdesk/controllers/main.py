@@ -50,42 +50,67 @@ class MVWebsiteHelpdesk(http.Controller):
 
     @http.route("/kich-hoat-bao-hanh", type="http", auth="public", website=True)
     def website_helpdesk_warranty_activation_teams(self, **kwargs):
+        """
+        Render the warranty activation form for sub-dealers and end-users.
+
+        This method searches for the helpdesk team and ticket types used for warranty activation
+        and renders the corresponding form template.
+
+        Returns:
+            werkzeug.wrappers.Response: The rendered HTML response.
+        """
+        _logger.info(
+            f"Method [website_helpdesk_warranty_activation_teams] Params: {kwargs}"
+        )
+
+        # Search for the helpdesk team that uses the website helpdesk warranty activation
         WarrantyActivationTeam = (
             request.env["helpdesk.team"]
             .sudo()
             .search([("use_website_helpdesk_warranty_activation", "=", True)], limit=1)
         )
 
-        HelpdeskTicketType = request.env["helpdesk.ticket.type"]
+        # Define the domain for searching ticket types used for warranty activation
         domain_ticket_type_obj = [
             ("user_for_warranty_activation", "=", True),
             ("code", "in", [SUB_DEALER_CODE, END_USER_CODE]),
         ]
 
-        # Defining ticket type for Warranty Activation for Sub-Dealer and End-User:
-        type_sub_dealer = HelpdeskTicketType.sudo().search(
-            [
-                ("user_for_warranty_activation", "=", True),
-                ("code", "=", SUB_DEALER_CODE),
-            ],
-            limit=1,
-        )
-        type_end_user = HelpdeskTicketType.sudo().search(
-            [
-                ("user_for_warranty_activation", "=", True),
-                ("code", "=", END_USER_CODE),
-            ],
-            limit=1,
+        # Search for the ticket type for sub-dealers
+        type_sub_dealer = (
+            request.env["helpdesk.ticket.type"]
+            .sudo()
+            .search(
+                [
+                    ("user_for_warranty_activation", "=", True),
+                    ("code", "=", SUB_DEALER_CODE),
+                ],
+                limit=1,
+            )
         )
 
+        # Search for the ticket type for end-users
+        type_end_user = (
+            request.env["helpdesk.ticket.type"]
+            .sudo()
+            .search(
+                [
+                    ("user_for_warranty_activation", "=", True),
+                    ("code", "=", END_USER_CODE),
+                ],
+                limit=1,
+            )
+        )
+
+        # Render the warranty activation form template with the necessary context
         return http.request.render(
             HELPDESK_WARRANTY_ACTIVATION_FORM,
             {
                 "anonymous": self._is_anonymous(),
                 "default_helpdesk_team": WarrantyActivationTeam,
-                "ticket_type_objects": HelpdeskTicketType.sudo().search(
-                    domain_ticket_type_obj, order="id"
-                ),
+                "ticket_type_objects": request.env["helpdesk.ticket.type"]
+                .sudo()
+                .search(domain_ticket_type_obj, order="id"),
                 "type_is_sub_dealer_id": type_sub_dealer.id or False,
                 "type_is_end_user_id": type_end_user.id or False,
             },
