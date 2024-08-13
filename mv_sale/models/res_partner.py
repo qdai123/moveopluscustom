@@ -447,8 +447,9 @@ class ResPartner(models.Model):
     # =================================
 
     def generate_all_partner_discount_histories(self):
-        for partner in self.mapped("is_agency"):
-            partner.generate_partner_discount_histories()
+        for partner in self:
+            if partner.is_agency:
+                partner.generate_partner_discount_histories()
 
     def generate_partner_discount_histories(self):
         """
