@@ -474,11 +474,15 @@ class WebsiteForm(form.WebsiteForm):
             pytz.timezone(request.env.user.tz or 'Asia/Ho_Chi_Minh'))
         serials = request.params.get('portal_lot_serial_number')
         list_serial = serials.split(",")
+
         ticket = request.env['helpdesk.ticket'].sudo().browse(dict_id.get('id'))
-        ticket.ticket_type_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty_type',
-                                                raise_if_not_found=False)
-        ticket.team_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty', 
+        ticket_type_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty_type',
                                          raise_if_not_found=False)
+        if int(request.params.get('ticket_type_id')) == ticket_type_id.id and \
+                ticket_type_id:
+            ticket.ticket_type_id = ticket_type_id.id
+            ticket.team_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty', 
+                                              raise_if_not_found=False)
         invalid_serials = ''
         for serial in list_serial:
             product_moves = request.env['mv.helpdesk.ticket.product.moves'].sudo().search([
