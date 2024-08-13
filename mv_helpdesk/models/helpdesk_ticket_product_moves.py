@@ -52,12 +52,12 @@ class HelpdeskTicketProductMoves(models.Model):
         comodel_name="res.partner", compute="_compute_helpdesk_ticket_id", store=True
     )
     # HELPDESK TICKET Customer Activation Information (End-User Case)
-    customer_phone_activation = fields.Char("Activation Phone")
-    customer_date_activation = fields.Date("Activation Date")
+    customer_phone_activation = fields.Char("Số phone kích hoạt bảo hành")
+    customer_date_activation = fields.Date("Ngày kích hoạt bảo hành")
     customer_license_plates_activation = fields.Char("License Plates")
-    customer_mileage_activation = fields.Integer("Mileage (Km)", default=0)
-    customer_warranty_date_activation = fields.Date("Warranty Date")
-    customer_warranty_mileage_activation = fields.Date("Warranty Mileage")
+    customer_mileage_activation = fields.Integer("Số Km", default=0)
+    customer_warranty_date_activation = fields.Date("Ngày bảo hành")
+    customer_warranty_mileage_activation = fields.Date("Biển số bảo hành")
     # STOCK MOVE LINE Fields
     stock_move_line_id = fields.Many2one(
         comodel_name="stock.move.line",
@@ -78,19 +78,22 @@ class HelpdeskTicketProductMoves(models.Model):
         store=True,
     )
     lot_name = fields.Char(
-        string="Lot/Serial Number", related="stock_move_line_id.lot_name", store=True
+        string="Số serial", related="stock_move_line_id.lot_name", store=True
     )
     qr_code = fields.Char(
-        string="QR-Code", related="stock_move_line_id.qr_code", store=True
+        string="Mã QR", related="stock_move_line_id.qr_code", store=True
     )
-    mv_warranty_license_plate = fields.Char('Biển số xe bảo hành')
-    mv_num_of_km = fields.Float('Số km đã đi')
     mv_warranty_ticket_id = fields.Many2one('helpdesk.ticket', string='Helpdesk warranty ticket')
-    reason_no_warranty = fields.Text('Lý do không bảo hành', tracking=True)
+    mv_warranty_license_plate = fields.Char('Biển số xe bảo hành')
+    mv_num_of_km = fields.Float('Số Km bảo hành')
+    reason_no_warranty = fields.Text('Lý do không bảo hành')
+    mv_warranty_phone = fields.Char('Số điện thoại bảo hành')
 
     # ==================================
     # COMPUTE / INVERSE Methods
     # ==================================
+
+
 
     @api.depends("helpdesk_ticket_id")
     def _compute_helpdesk_ticket_id(self):
@@ -271,16 +274,22 @@ class HelpdeskTicketProductMoves(models.Model):
 
         _logger.debug("Completed 'action_reload' for records: %s", self.ids)
 
-    def action_open_stock(self):
+    def action_open_waranty_products(self):
         self.ensure_one()
+        active_ids = self._context.get('active_ids', [])
         action = {
-            "name": _("Ticket & Stock"),
+            "name": _("Cập nhật thông tin bảo hành"),
             "type": "ir.actions.act_window",
-            "res_model": "stock.move",
-            "res_id": self.stock_move_id.id,
-            "context": {"create": False, "edit": False},
+            "res_model": "mv.helpdesk.ticket.product.moves",
+            "res_id": self.id,
             "view_mode": "form",
+            "domain": [("id", "=", active_ids[0])],
             "target": "new",
+            "context": {
+                "create": False,
+                "edit": True,
+                "form_view_ref": "mv_helpdesk.mv_helpdesk_ticket_product_moves_view_form_update",
+            },
         }
         return action
 

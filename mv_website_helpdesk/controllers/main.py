@@ -13,14 +13,13 @@ except ImportError:
 from datetime import datetime
 from markupsafe import Markup
 
-from odoo import http, _
+from odoo import http, _, fields
 from odoo.http import request, Response
 from odoo.addons.phone_validation.tools import phone_validation
 from odoo.addons.website.controllers import form
 from odoo.exceptions import ValidationError
 from odoo.osv import expression
-from odoo.tools.safe_eval import safe_eval, time
-from datetime import date, datetime, timedelta
+from datetime import datetime
 
 
 from werkzeug.utils import redirect
@@ -471,22 +470,33 @@ class MVWebsiteHelpdesk(http.Controller):
 class WebsiteForm(form.WebsiteForm):
 
     def generate_ticket_details(self, request, dict_id):
+        now = fields.Datetime.now().replace(tzinfo=pytz.UTC).astimezone(
+            pytz.timezone(request.env.user.tz or 'Asia/Ho_Chi_Minh'))
         serials = request.params.get('portal_lot_serial_number')
         list_serial = serials.split(",")
+        ticket = request.env['helpdesk.ticket'].sudo().browse(dict_id.get('id'))
+        ticket.ticket_type_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty_type',
+                                                raise_if_not_found=False)
+        ticket.team_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty', 
+                                         raise_if_not_found=False)
+        invalid_serials = ''
         for serial in list_serial:
             product_moves = request.env['mv.helpdesk.ticket.product.moves'].sudo().search([
-                ('lot_name', '=', serial.strip())
+                ('lot_name', '=', serial.strip()),
+                ('customer_date_activation', '!=', False)
             ])
-            ticket = request.env['helpdesk.ticket'].sudo().browse(dict_id.get('id'))
-            ticket.ticket_type_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty_type',
-                                                    raise_if_not_found=False)
             if product_moves:
                 product_moves.sudo().write({
                     'mv_warranty_ticket_id': ticket.id,
                     'mv_warranty_license_plate': request.params.get('license_plates'),
-                    'reason_no_warranty': request.params.get('reason_no_warranty'),
-                    'qr_code': request.params.get('portal_lot_serial_number')
+                    'mv_num_of_km': request.params.get('mileage'),
+                    'customer_warranty_date_activation': now.date(),
                 })
+            if not product_moves:
+                invalid_serials += serial + ", "
+        if invalid_serials:
+            invalid_serials = invalid_serials[0:-1]
+            ticket.invalid_serials = invalid_serials
 
     # =============== MOVEOPLUS Override ===============
     def _handle_website_form(self, model_name, **kwargs):

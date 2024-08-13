@@ -59,9 +59,9 @@ class HelpdeskTicket(models.Model):
     # === INHERIT Fields ===#
     name = fields.Char(compute="_compute_name", store=True, required=False)
     # === ADDITIONAL Fields ===#
-    portal_lot_serial_number = fields.Text("Input Lot/Serial Number")
+    portal_lot_serial_number = fields.Text("Nhập số serial")
     ticket_update_date = fields.Datetime(
-        "Update Date", default=lambda self: fields.Datetime.now(), readonly=True
+        "Ngày cập nhật", default=lambda self: fields.Datetime.now(), readonly=True
     )
     helpdesk_ticket_product_move_ids = fields.One2many(
         comodel_name="mv.helpdesk.ticket.product.moves",
@@ -78,10 +78,11 @@ class HelpdeskTicket(models.Model):
     sub_dealer_name = fields.Char("Sub-Dealer")
     # === END-USER Ticket Type ===#
     is_end_user = fields.Boolean(compute="_compute_ticket_type")
-    tel_activation = fields.Char("Phone")
-    license_plates = fields.Char("License plates")
-    mileage = fields.Integer("Mileage (Km)", default=0)
+    tel_activation = fields.Char("Số điện thoại")
+    license_plates = fields.Char("Biển số xe")
+    mileage = fields.Integer("Số Km", default=0)
     mv_is_warranty_ticket = fields.Boolean(compute="compute_is_warranty_ticket")
+    invalid_serials = fields.Text('Số serial chưa kích hoạt')
 
     @api.depends('team_id')
     def compute_is_warranty_ticket(self):
