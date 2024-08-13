@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <template id="mv_claim_warranty_template" name="mv_claim_warranty_products">
+        <template id="mv_claim_warranty_template" name="Yêu cầu bảo hành">
             <t t-call="website.layout">
                 <div id="wrap" class="container mt-4">
                     <div class="row mb16">
@@ -76,15 +76,14 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <!-- Field: ticket_type_id (Required) -->
-													<div class="mb-0 py-2 s_website_form_field col-12" data-type="many2one" data-name="Field" style="display:none;">
+                                                    <!-- Field: ticket_type_id -->
+													<div class="mb-0 py-2 s_website_form_field col-12" data-type="many2one" data-name="Field">
 														<div class="row s_col_no_resize s_col_no_bgcolor">
 															<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_select_ticket_type_id">
 																<span class="s_website_form_label_content">Loại</span>
-																<span class="s_website_form_mark">*</span>
 															</label>
 															<div class="col-sm">
-																<select id="helpdesk_warranty_select_ticket_type_id" class="form-select s_website_form_input" name="ticket_type_id">
+																<select id="helpdesk_warranty_select_ticket_type_id" class="form-select s_website_form_input" name="ticket_type_id" required="True">
 																	<option t-foreach="ticket_type_objects or []" t-as="type" t-att-value="type.id">
 																		<t t-out="type.name"/>
 																	</option>
@@ -126,6 +125,17 @@
                                                             </label>
                                                             <div class="col-sm">
                                                                 <textarea id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="3" spellcheck="false"/>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Field: reason_no_warranty (not required) -->
+                                                    <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
+                                                        <div class="row s_col_no_resize s_col_no_bgcolor">
+                                                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_reason_no_warranty">
+                                                                <span class="s_website_form_label_content">Lý do không bảo hành</span>
+                                                            </label>
+                                                            <div class="col-sm">
+                                                                <input id="helpdesk_warranty_input_reason_no_warranty" class="form-control s_website_form_input" type="text" name="reason_no_warranty" data-fill-with="reason_no_warranty" t-att-required="true"/>
                                                             </div>
                                                         </div>
                                                     </div>

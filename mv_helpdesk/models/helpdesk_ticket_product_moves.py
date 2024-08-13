@@ -86,6 +86,7 @@ class HelpdeskTicketProductMoves(models.Model):
     mv_warranty_license_plate = fields.Char('Biển số xe bảo hành')
     mv_num_of_km = fields.Float('Số km đã đi')
     mv_warranty_ticket_id = fields.Many2one('helpdesk.ticket', string='Helpdesk warranty ticket')
+    reason_no_warranty = fields.Text('Lý do không bảo hành', tracking=True)
 
     # ==================================
     # COMPUTE / INVERSE Methods
