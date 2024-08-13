@@ -12,21 +12,35 @@ _logger = logging.getLogger(__name__)
 
 class MoveoplusCustomerPortal(portal.CustomerPortal):
 
+    def _get_history_data_count(self, partner):
+        count = 0
+
+        partner_discount_history = request.env["mv.discount.partner.history"]
+        domain = self._prepare_discount_history_domain(partner)
+        count += partner_discount_history.search_count(domain)
+
+        partner_total_discount_detail_history = request.env[
+            "mv.partner.total.discount.detail.history"
+        ]
+        count += partner_total_discount_detail_history.search_count(
+            domain=[("partner_id", "child_of", [partner.commercial_partner_id.id])]
+        )
+
+        return count
+
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.partner_id
 
-        partner_discount_history = request.env["mv.discount.partner.history"]
         if "history_count" in counters:
-            values["history_count"] = (
-                partner_discount_history.search_count(
-                    self._prepare_discount_history_domain(partner), limit=1
-                )
-                if partner_discount_history.check_access_rights(
-                    "read", raise_exception=False
-                )
-                else 0
-            )
+            if (
+                request.env["mv.discount.partner.history"]
+                .sudo()
+                .check_access_rights("read", raise_exception=False)
+            ):
+                values["history_count"] = self._get_history_data_count(partner)
+            else:
+                values["history_count"] = 0
 
         return values
 
@@ -49,13 +63,17 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
 
     def _get_discount_history_searchbar_sortings(self):
         return {
-            "date": {"label": "Ngày ghi nhận", "data": "create_date desc"},
+            "date": {"label": "Ngày ghi nhận", "data": "history_date desc"},
         }
 
     def _prepare_discount_history_portal_values(
         self, page=1, date_begin=None, date_end=None, sortby=None, **kwargs
     ):
         _logger.info(f"kwargs: {kwargs}")
+
+        keys_list = []
+        result_histories = []
+        result_histories_ordered = []
         partner_discount_history = request.env["mv.discount.partner.history"]
         partner_total_discount_detail_history = request.env[
             "mv.partner.total.discount.detail.history"
@@ -75,8 +93,8 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
 
         if date_begin and date_end:
             domain += [
-                ("create_date", ">", date_begin),
-                ("create_date", "<=", date_end),
+                ("history_date", ">", date_begin),
+                ("history_date", "<=", date_end),
             ]
 
         pager_values = portal_pager(
@@ -92,6 +110,24 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
             limit=self._items_per_page,
             offset=pager_values["offset"],
         )
+        for history in records_history:
+            if not history.production_discount_policy_id:
+                keys_list.append(
+                    f"{history.history_date.month}_{history.history_date.year}"
+                )
+                result_histories.append(
+                    {
+                        f"{history.history_date.month}_{history.history_date.year}": {
+                            "history_date": history.history_date,
+                            "history_description": history.history_description,
+                            "total_discount_amount": history.total_money,
+                            "total_money_discount_display": history.total_money_discount_display,
+                            "is_positive_money": history.is_positive_money,
+                            "is_negative_money": history.is_negative_money,
+                        }
+                    }
+                )
+
         records_total_discount_detail_history = (
             partner_total_discount_detail_history.search(
                 domain=[("partner_id", "child_of", [partner.commercial_partner_id.id])],
@@ -100,10 +136,39 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
                 offset=pager_values["offset"],
             )
         )
+        if records_total_discount_detail_history:
+            for history_detail in records_total_discount_detail_history:
+                keys_list.append(
+                    f"{history_detail.history_date.month}_{history_detail.history_date.year}"
+                )
+                result_histories.append(
+                    {
+                        f"{history_detail.history_date.month}_{history_detail.history_date.year}": {
+                            "history_date": history_detail.history_date,
+                            "history_description": history_detail.description,
+                            "total_discount_amount": history_detail.total_discount_amount,
+                            "total_money_discount_display": history_detail.total_discount_amount_display,
+                            "is_positive_money": True,
+                            "is_negative_money": False,
+                        }
+                    }
+                )
+
+        keys_list = sorted(list(set(keys_list)), reverse=True)
+        result_histories = sorted(
+            result_histories, key=lambda r: r.keys(), reverse=True
+        )
+        if keys_list and result_histories:
+            for key in keys_list:
+                for data in result_histories:
+                    if key in data:
+                        data = data[key]
+                        result_histories_ordered.append(data)
 
         values.update(
             {
                 "date": date_begin,
+                "partner_name": partner.short_name,
                 "histories": (
                     records_history.sudo()
                     if records_history
@@ -114,6 +179,7 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
                     if records_total_discount_detail_history
                     else partner_total_discount_detail_history
                 ),
+                "result_histories": result_histories_ordered,
                 "page_name": "discount_history",
                 "pager": pager_values,
                 "default_url": url,

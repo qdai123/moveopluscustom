@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 import logging
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
+
+
+def get_last_date_of_month(first_date):
+    # Calculate the first day of the next month, then subtract one day
+    last_date = first_date + relativedelta(months=1) - relativedelta(days=1)
+    return last_date
 
 
 class MvDiscountPolicyPartnerHistory(models.Model):
@@ -102,6 +110,11 @@ class MvPartnerTotalDiscountDetailsHistory(models.Model):
         help="Chính sách Chiết Khấu Sản Lượng",
     )
     partner_id = fields.Many2one("res.partner", "Đại lý", readonly=True)
+    history_date = fields.Datetime(
+        string="Ngày ghi nhận",
+        default=lambda self: fields.Datetime.now(),
+        readonly=True,
+    )
     description = fields.Text("Diễn giải", readonly=True)
     total_discount_amount_display = fields.Char("Tiền chiết khấu (+/-)", readonly=True)
     total_discount_amount = fields.Float("Tiền chiết khấu", readonly=True)
@@ -190,8 +203,9 @@ class MvPartnerTotalDiscountDetailsHistory(models.Model):
         for key, value in total_discount_lines.items():
             vals = {
                 "parent_id": parent_id.id,
-                "policy_line_id": policy_id.id,
+                "history_date": get_last_date_of_month(parent_id.report_date),
                 "partner_id": policy_id.partner_id.id,
+                "policy_line_id": policy_id.id,
             }
             if key in [
                 "promote_in_month",

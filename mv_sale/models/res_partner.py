@@ -8,6 +8,9 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+# GROUPS ACCESS:
+GROUP_COMPUTE_DISCOUNT_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+
 
 def get_last_date_of_month(first_date):
     # Calculate the first day of the next month, then subtract one day
@@ -444,7 +447,7 @@ class ResPartner(models.Model):
     # =================================
 
     def generate_all_partner_discount_histories(self):
-        for partner in self:
+        for partner in self.mapped("is_agency"):
             partner.generate_partner_discount_histories()
 
     def generate_partner_discount_histories(self):
@@ -457,28 +460,39 @@ class ResPartner(models.Model):
         :return: list: Created history lines.
         """
         self.ensure_one()
-        partner = self
+
+        partner = self.filtered(lambda r: r.is_agency)
+        if not partner:
+            return
+
         keys_list = []
         vals_list = []
 
-        order_discount = partner._get_orders_with_discount(partner, "sale")
-        # Generate history lines for production policy discounts
-        for order in order_discount:
-            keys_list.append(f"{order.date_order.month}_{order.date_order.year}")
-            vals_list.append(
-                {
-                    f"{order.date_order.month}_{order.date_order.year}": self._prepare_history_line_vals(
-                        order,
-                        "sale",
-                        f"Đơn {order.name} đã được xác nhận, đã khấu trừ tiền chiết khấu của Đại lý.",
-                        order.bonus_order,
-                    )
-                }
-            )
+        base_histories_of_partner = self.env["mv.discount.partner.history"].search(
+            [("partner_id", "=", partner.id)]
+        )
 
-        # Generate history lines for production policy discounts
+        # ||| Generate history lines for production policy discounts
+        order_discount = partner._get_orders_with_discount(partner, "sale")
+        for order in order_discount:
+            if order.id not in base_histories_of_partner.mapped("sale_order_id").ids:
+                keys_list.append(f"{order.date_order.month}_{order.date_order.year}")
+                vals_list.append(
+                    {
+                        f"{order.date_order.month}_{order.date_order.year}": self._prepare_history_line_vals(
+                            order,
+                            "sale",
+                            f"Đơn {order.name} đã được xác nhận, đã khấu trừ tiền chiết khấu của Đại lý.",
+                            order.bonus_order,
+                        )
+                    }
+                )
+
+        # ||| Generate history lines for production policy discounts
         for record_line in partner.compute_discount_line_ids.filtered(
             lambda r: r.state == "done"
+            and r.id
+            not in base_histories_of_partner.mapped("production_discount_policy_id").ids
         ):
             data_key = f"{record_line.parent_id.report_date.month}_{record_line.parent_id.report_date.year}"
             keys_list.append(data_key)
@@ -493,9 +507,11 @@ class ResPartner(models.Model):
                 }
             )
 
-        # Generate history lines for warranty policy discounts
+        # ||| Generate history lines for warranty policy discounts
         for record_line in partner.compute_warranty_discount_line_ids.filtered(
             lambda r: r.parent_state == "done"
+            and r.id
+            not in base_histories_of_partner.mapped("warranty_discount_policy_id").ids
         ):
             data_key = f"{record_line.parent_id.compute_date.month}_{record_line.parent_id.compute_date.year}"
             keys_list.append(data_key)
@@ -533,7 +549,7 @@ class ResPartner(models.Model):
         is_negative_money = False
         total_money_display = "{:,.2f}".format(total_money)
         history_date = record.create_date
-        history_user_action_id = record.create_uid
+        history_user_action_id = record.create_uid.id
 
         # ||| Sale Order
         if state == "sale":
@@ -542,7 +558,7 @@ class ResPartner(models.Model):
                 "- " + total_money_display if total_money > 0 else total_money_display
             )
             history_date = record.date_order
-            history_user_action_id = record.user_id
+            history_user_action_id = record.user_id.id or False
 
         # ||| Production Policy & Warranty Policy
         if state == "done":
@@ -550,16 +566,35 @@ class ResPartner(models.Model):
             total_money_display = (
                 "+ " + total_money_display if total_money > 0 else total_money_display
             )
-            history_date = get_last_date_of_month(history_date.replace(day=1))
-            history_user_action_id = record.write_uid
+            history_date = get_last_date_of_month(
+                record.parent_id.report_date
+                if record._name == "mv.compute.discount.line"
+                else record.parent_id.compute_date
+            )
+            users_can_approve_compute_discount = (
+                self.env["res.users"]
+                .sudo()
+                .get_users_from_group(
+                    self.env["ir.model.data"]._xmlid_to_res_id(
+                        GROUP_COMPUTE_DISCOUNT_APPROVER
+                    )
+                )
+            )
+            users_can_approve_compute_discount = [
+                uid for uid in users_can_approve_compute_discount if uid not in [1, 2]
+            ]
+            history_user_action_id = users_can_approve_compute_discount[0] or False
 
         return {
             "partner_id": record.partner_id.id,
             "history_date": history_date,
-            "history_user_action_id": history_user_action_id.id,
+            "history_user_action_id": history_user_action_id,
             "history_description": description,
             "sale_order_id": record.id if state == "sale" else False,
             "sale_order_state": record.state if state == "sale" else False,
+            "sale_order_discount_money_apply": (
+                total_money if record._name == "sale.order" else 0
+            ),
             "production_discount_policy_id": (
                 record.id if record._name == "mv.compute.discount.line" else False
             ),
@@ -624,4 +659,4 @@ class ResPartner(models.Model):
                 ).action_update_discount_amount()
         except Exception as e:
             _logger.error(f"Failed to call [_cron_recompute_partner_discount]: {e}")
-            return False
+            return

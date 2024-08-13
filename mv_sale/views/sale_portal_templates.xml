@@ -3,8 +3,8 @@
 	<!-- MOVEO+ Inherited: My Home Portal Discount Histories Layout (portal.portal_breadcrumbs) -->
 	<template id="portal_my_home_menu_discount_history" name="Portal layout : discount histories menu entries" inherit_id="portal.portal_breadcrumbs" priority="30">
         <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
-            <li t-elif="page_name == 'discount_history'" t-attf-class="breadcrumb-item #{'active ' if not histories else ''}">
-                Lịch sử chiết khấu Đại lý <t t-if="histories" t-out="histories[0].partner_id.short_name"/>
+            <li t-elif="page_name == 'discount_history'" t-attf-class="breadcrumb-item #{'active ' if not histories or not result_histories else ''}">
+                Lịch sử chiết khấu Đại lý <t t-out="partner_name"/>
             </li>
         </xpath>
     </template>
@@ -48,62 +48,29 @@
 					</span>
 				</h6>
 		        <hr/>
-	            <t t-if="histories or histories_total_detail" t-call="portal.portal_table">
+	            <t t-if="result_histories" t-call="portal.portal_table">
 	                <thead>
 	                    <tr>
 	                        <th>Ngày ghi nhận</th>
-		                    <!--
-	                        <th id="user_action_header" class="ps-5">Người thao tác</th>
-	                        -->
 		                    <th>Diễn giải/Hành động</th>
 	                        <th class="text-end">Số tiền chiết khấu (+/-)</th>
 	                    </tr>
 	                </thead>
-		            <t t-if="histories_total_detail">
-			            <t t-foreach="histories_total_detail" t-as="history_total_detail_line">
-				            <tr>
-		                        <td class="text-start">
-		                            <span t-field="history_total_detail_line.create_date" t-options="{'widget': 'datetime', 'hide_seconds': True}"/>
-		                        </td>
-					            <!--
-		                        <td id="user_action" class="ps-5 lh-1">
-		                            <img t-if="history_total_detail_line.create_uid" class="o_avatar o_portal_contact_img rounded" t-attf-src="#{image_data_uri(history_total_detail_line.create_uid.sudo().avatar_128)}" alt="Contact"/>
-		                            <span style="white-space: break-spaces;" t-field="history_total_detail_line.create_uid"/>
-		                        </td>
-		                        -->
-		                        <td><span class="fw-bold" style="white-space: break-spaces;" t-field="history_total_detail_line.description"/></td>
-		                        <td class="text-end">
-			                        <t t-if="history_total_detail_line.total_discount_amount &gt; 0">
-				                        <span class="fw-bold text-success" t-field="history_total_detail_line.total_discount_amount_display"/>
-			                        </t>
-			                        <t t-else="">
-				                        <span class="fw-bold text-muted" t-field="history_total_detail_line.total_discount_amount_display"/>
-			                        </t>
-		                        </td>
-		                    </tr>
-			            </t>
-		            </t>
-	                <t t-foreach="histories.filtered(lambda r: r.sale_order_id and r.warranty_discount_policy_id)" t-as="history_line">
-		                <t t-set="positive_money" t-value="history_line.is_positive_money"/>
-		                <t t-set="negative_money" t-value="history_line.is_negative_money"/>
+	                <t t-foreach="result_histories" t-as="history_line">
+		                <t t-set="positive_money" t-value="history_line['is_positive_money']"/>
+		                <t t-set="negative_money" t-value="history_line['is_negative_money']"/>
 	                    <tr>
 	                        <td class="text-start">
-	                            <span t-field="history_line.create_date" t-options="{'widget': 'datetime', 'hide_seconds': True}"/>
+	                            <span t-out="history_line['history_date']" t-options="{'widget': 'datetime', 'hide_seconds': True}"/>
 	                        </td>
-		                    <!--
-	                        <td id="user_action" class="ps-5 lh-1">
-	                            <img t-if="history_line.create_uid" class="o_avatar o_portal_contact_img rounded" t-attf-src="#{image_data_uri(history_line.create_uid.sudo().avatar_128)}" alt="Contact"/>
-	                            <span style="white-space: break-spaces;" t-field="history_line.create_uid"/>
-	                        </td>
-	                        -->
-	                        <td><span class="fw-bold" style="white-space: break-spaces;" t-field="history_line.history_description"/></td>
+	                        <td><span class="fw-bold" style="white-space: break-spaces;" t-out="history_line['history_description']"/></td>
 	                        <td class="text-end">
-		                        <t t-if="history_line.total_money &gt; 0">
-			                        <span t-if="positive_money" class="fw-bold text-success" t-field="history_line.total_money_discount_display"/>
-			                        <span t-if="negative_money" class="fw-bold text-danger" t-field="history_line.total_money_discount_display"/>
+		                        <t t-if="history_line['total_discount_amount'] &gt; 0">
+			                        <span t-if="positive_money" class="fw-bold text-success" t-out="history_line['total_money_discount_display']"/>
+			                        <span t-if="negative_money" class="fw-bold text-danger" t-out="history_line['total_money_discount_display']"/>
 		                        </t>
 		                        <t t-else="">
-			                        <span class="fw-bold text-muted" t-field="history_line.total_money_discount_display"/>
+			                        <span class="fw-bold text-muted" t-out="history_line['total_money_discount_display']"/>
 		                        </t>
 	                        </td>
 	                    </tr>
