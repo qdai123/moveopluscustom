@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 import logging
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
+
+
+def get_last_date_of_month(first_date):
+    # Calculate the first day of the next month, then subtract one day
+    last_date = first_date + relativedelta(months=1) - relativedelta(days=1)
+    return last_date
 
 
 class MvDiscountPolicyPartnerHistory(models.Model):
@@ -31,6 +39,14 @@ class MvDiscountPolicyPartnerHistory(models.Model):
     )
     total_money_discount_display = fields.Char(string="Số tiền chiết khấu (+/-)")
     history_description = fields.Char(string="Diễn giải/Hành động", readonly=True)
+    history_date = fields.Datetime(
+        string="Ngày ghi nhận",
+        default=lambda self: fields.Datetime.now(),
+        readonly=True,
+    )
+    history_user_action_id = fields.Many2one(
+        comodel_name="res.users", string="Người thực hiện"
+    )
     # === ĐƠN HÀNG ÁP DỤNG CHIẾT KHẤU ===
     sale_order_id = fields.Many2one(
         comodel_name="sale.order", string="Đơn hàng chiết khấu"
@@ -94,6 +110,11 @@ class MvPartnerTotalDiscountDetailsHistory(models.Model):
         help="Chính sách Chiết Khấu Sản Lượng",
     )
     partner_id = fields.Many2one("res.partner", "Đại lý", readonly=True)
+    history_date = fields.Datetime(
+        string="Ngày ghi nhận",
+        default=lambda self: fields.Datetime.now(),
+        readonly=True,
+    )
     description = fields.Text("Diễn giải", readonly=True)
     total_discount_amount_display = fields.Char("Tiền chiết khấu (+/-)", readonly=True)
     total_discount_amount = fields.Float("Tiền chiết khấu", readonly=True)
@@ -182,8 +203,9 @@ class MvPartnerTotalDiscountDetailsHistory(models.Model):
         for key, value in total_discount_lines.items():
             vals = {
                 "parent_id": parent_id.id,
-                "policy_line_id": policy_id.id,
+                "history_date": get_last_date_of_month(parent_id.report_date),
                 "partner_id": policy_id.partner_id.id,
+                "policy_line_id": policy_id.id,
             }
             if key in [
                 "promote_in_month",
