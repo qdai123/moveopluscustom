@@ -142,15 +142,13 @@ class SaleOrderLine(models.Model):
         for order_line in self:
             sol_discount_agency = order_line._get_discount_agency_line()
             if sol_discount_agency:
-                sol_discount_agency.order_id.message_post(
-                    body=Markup(
-                        "Dòng %s đã bị xóa, số tiền: %s"
-                        % (
-                            sol_discount_agency.product_id.name,
-                            sol_discount_agency.price_unit,
+                for line in sol_discount_agency:
+                    line.order_id.message_post(
+                        body=Markup(
+                            "Dòng %s đã bị xóa, số tiền: %s"
+                            % (line.product_id.name, line.price_unit)
                         )
                     )
-                )
 
         return super(SaleOrderLine, self).unlink()
 

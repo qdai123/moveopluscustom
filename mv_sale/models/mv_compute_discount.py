@@ -429,6 +429,10 @@ class MvComputeDiscount(models.Model):
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
+        base_total_detail_histories_of_partner = self.env[
+            "mv.partner.total.discount.detail.history"
+        ].search([("partner_id", "=", partner.id)])
+
         for record in self.filtered(lambda r: len(r.line_ids) > 0):
             partners_updates = {}
             for discount_line in record.line_ids:
@@ -450,8 +454,13 @@ class MvComputeDiscount(models.Model):
                     "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
                 )
 
-            # Create total discount detail history
-            record.create_total_discount_detail_history()
+            # Create total detail discount history
+            if (
+                record.id
+                not in base_total_detail_histories_of_partner.mapped("parent_id").ids
+            ):
+                record.create_total_discount_detail_history()
+
             record.write({"state": "done"})
 
     def action_undo(self):
