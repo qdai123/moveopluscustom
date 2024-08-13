@@ -55,7 +55,7 @@ class HelpdeskTicketProductMoves(models.Model):
     customer_phone_activation = fields.Char("Số điện thoại kích hoạt")
     customer_date_activation = fields.Date("Ngày kích hoạt")
     customer_license_plates_activation = fields.Char("Biển số kích hoạt")
-    customer_mileage_activation = fields.Integer("Số Km", default=0)
+    customer_mileage_activation = fields.Integer("Số km kích hoạt", default=0)
     customer_warranty_date_activation = fields.Date("Ngày bảo hành")
     customer_warranty_mileage_activation = fields.Date("")
     # STOCK MOVE LINE Fields
@@ -78,15 +78,15 @@ class HelpdeskTicketProductMoves(models.Model):
         store=True,
     )
     lot_name = fields.Char(
-        string="Số serial", related="stock_move_line_id.lot_name", store=True
+        string="Số mã vạch", related="stock_move_line_id.lot_name", store=True
     )
     qr_code = fields.Char(
         string="Mã QR", related="stock_move_line_id.qr_code", store=True
     )
     mv_warranty_ticket_id = fields.Many2one('helpdesk.ticket', string='Helpdesk warranty ticket')
     mv_warranty_license_plate = fields.Char('Biển số bảo hành')
-    mv_num_of_km = fields.Float('Số Km bảo hành')
-    reason_no_warranty = fields.Text('Lý do không bảo hành')
+    mv_num_of_km = fields.Float('Số km bảo hành')
+    reason_no_warranty = fields.Text('Ghi chú')
     mv_warranty_phone = fields.Char('Số điện thoại bảo hành')
 
     # ==================================
