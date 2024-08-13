@@ -172,7 +172,7 @@
 		<field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
 		<field name="state">code</field>
 		<field name="code">
-			action = records.create_total_discount_detail_history()
+			action = records.filtered(lambda r: r.state in {'done'}).create_total_discount_detail_history()
 		</field>
 	</record>
 </odoo>

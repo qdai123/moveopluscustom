@@ -203,7 +203,7 @@ class MvPartnerTotalDiscountDetailsHistory(models.Model):
         for key, value in total_discount_lines.items():
             vals = {
                 "parent_id": parent_id.id,
-                "history_date": get_last_date_of_month(parent_id.report_date),
+                "history_date": parent_id.write_date,
                 "partner_id": policy_id.partner_id.id,
                 "policy_line_id": policy_id.id,
             }
