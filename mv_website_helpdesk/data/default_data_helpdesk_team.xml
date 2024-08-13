@@ -53,7 +53,14 @@
             <field name="fold" eval="True"/>
         </record>
 
-        <!-- Default claim helpdesk data -->
+        <!-- Default helpdesk ticket type data -->
+        <record id="mv_helpdesk_claim_warranty_type" model="helpdesk.ticket.type">
+            <field name="name">Yêu cầu bảo hành</field>
+            <field name="code">yeu_cau_bao_hanh</field>
+            <field name="user_for_warranty_activation" eval="False" />
+        </record>
+
+        <!-- Default helpdesk claim warranty team data -->
         <record id="mv_helpdesk_claim_warranty" model="helpdesk.team">
             <field name="name">Claim Warranty</field>
             <field name="alias_name">moveoplus-yeu-cau-bao-hanh</field>

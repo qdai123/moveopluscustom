@@ -34,9 +34,10 @@
                         <tree string="Ticket Registered" create="false" edit="false" delete="false" default_order="helpdesk_ticket_id">
                             <field name="lot_name" string="Serial Number"/>
                             <field name="qr_code" string="QR-Code"/>
-                            <field name="customer_warranty_date_activation"/>
-                            <field name="mv_num_of_km" />
-                            <field name="mv_warranty_ticket_id" />
+                            <field name="customer_warranty_date_activation" optional="show"/>
+                            <field name="mv_num_of_km" optional="show"/>
+                            <field name="mv_warranty_ticket_id" optional="hidden"/>
+                            <field name="reason_no_warranty" optional="show"/>
                             <field name="customer_date_activation" optional="hidden"/>
                             <field name="customer_phone_activation" optional="hidden"/>
                             <field name="customer_license_plates_activation" optional="hidden"/>

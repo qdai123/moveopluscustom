@@ -19,6 +19,9 @@ from odoo.addons.phone_validation.tools import phone_validation
 from odoo.addons.website.controllers import form
 from odoo.exceptions import ValidationError
 from odoo.osv import expression
+from odoo.tools.safe_eval import safe_eval, time
+from datetime import date, datetime, timedelta
+
 
 from werkzeug.utils import redirect
 from werkzeug.exceptions import HTTPException, BadRequest
@@ -35,6 +38,10 @@ HELPDESK_WARRANTY_ACTIVATION_FORM = (
     "mv_website_helpdesk.mv_helpdesk_warranty_activation_template"
 )
 
+HELPDESK_CLAIM_WARRANTY_ACTIVATION_FORM = (
+    "mv_website_helpdesk.mv_claim_warranty_template"
+)
+
 # Ticket Type Codes for Warranty Activation:
 SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
 END_USER_CODE = "kich_hoat_bao_hanh_nguoi_dung_cuoi"
@@ -47,6 +54,50 @@ CODE_ALREADY_REGISTERED = "code_already_registered"
 
 
 class MVWebsiteHelpdesk(http.Controller):
+
+    @http.route("/claim-bao-hanh", type="http", auth="public", website=True)
+    def website_helpdesk_claim_warranty(self, **kwargs):
+        _logger.info(
+            f"Method [website_helpdesk_claim_warranty] Params: {kwargs}"
+        )
+        WarrantyActivationTeam = (
+            request.env["helpdesk.team"]
+            .sudo()
+            .search([("use_website_helpdesk_warranty_activation", "=", True)], limit=1)
+        )
+        type_sub_dealer = (
+            request.env["helpdesk.ticket.type"]
+            .sudo()
+            .search(
+                [
+                    ("user_for_warranty_activation", "=", True),
+                    ("code", "=", SUB_DEALER_CODE),
+                ],
+                limit=1,
+            )
+        )
+        type_end_user = (
+            request.env["helpdesk.ticket.type"]
+            .sudo()
+            .search(
+                [
+                    ("user_for_warranty_activation", "=", True),
+                    ("code", "=", END_USER_CODE),
+                ],
+                limit=1,
+            )
+        )
+        return http.request.render(
+            HELPDESK_CLAIM_WARRANTY_ACTIVATION_FORM,
+            {
+                "anonymous": self._is_anonymous(),
+                "default_helpdesk_team": WarrantyActivationTeam,
+                "ticket_type_objects": request.env.ref(
+                    'mv_website_helpdesk.mv_helpdesk_claim_warranty_type', raise_if_not_found=False),
+                "type_is_sub_dealer_id": type_sub_dealer.id or False,
+                "type_is_end_user_id": type_end_user.id or False,
+            },
+        )
 
     @http.route("/kich-hoat-bao-hanh", type="http", auth="public", website=True)
     def website_helpdesk_warranty_activation_teams(self, **kwargs):
@@ -113,6 +164,8 @@ class MVWebsiteHelpdesk(http.Controller):
                 .search(domain_ticket_type_obj, order="id"),
                 "type_is_sub_dealer_id": type_sub_dealer.id or False,
                 "type_is_end_user_id": type_end_user.id or False,
+                "warranty_ticket_type": request.env.ref(
+                    'mv_website_helpdesk.mv_helpdesk_claim_warranty_type', raise_if_not_found=False),
             },
         )
 
@@ -310,78 +363,79 @@ class MVWebsiteHelpdesk(http.Controller):
         error_messages,
         ticket_type_code,
     ):
-        validate_different_partner_for_sub = (
-            len(conflicting_ticket_sub_dealer) > 0
-            and conflicting_ticket_sub_dealer.partner_id.id != partner.id
-        )
-        validate_different_partner_for_end = (
-            len(conflicting_ticket_end_user) > 0
-            and conflicting_ticket_end_user.partner_id.id != partner.id
-        )
-        validate_same_partner_for_sub = (
-            len(conflicting_ticket_sub_dealer) > 0
-            and conflicting_ticket_sub_dealer.partner_id.id == partner.id
-        )
-        validate_same_partner_for_end = (
-            len(conflicting_ticket_end_user) > 0
-            and conflicting_ticket_end_user.partner_id.id == partner.id
-        )
-        # Validate if the code is already registered on other tickets by different Partners
-        if validate_different_partner_for_sub or validate_different_partner_for_end:
-            if self._is_anonymous():
-                message = f"Mã {code} đã được đăng ký cho đơn vị khác!"
-            else:
-                conflicting_ticket = (
-                    conflicting_ticket_sub_dealer
-                    if validate_different_partner_for_sub
-                    else conflicting_ticket_end_user
-                )
-                message = (
-                    f"Mã {code} đã được đăng ký cho đơn vị khác, "
-                    f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
-                )
-            error_messages.append((CODE_ALREADY_REGISTERED, message))
-        # Validate if the code is already registered on other tickets by same Partners
-        elif validate_same_partner_for_sub or validate_same_partner_for_end:
-            if self._is_anonymous():
-                message = f"Mã {code} đã được đăng ký cho đơn vị khác!"
-            else:
-                conflicting_ticket = (
-                    conflicting_ticket_sub_dealer
-                    if validate_different_partner_for_sub
-                    else conflicting_ticket_end_user
-                )
-                message = (
-                    f"Mã {code} đã được đăng ký cho đơn vị khác, "
-                    f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
-                )
-            error_messages.append((CODE_ALREADY_REGISTERED, message))
-        # Validate if the code is already registered on other tickets with specific ticket type by current Partner
-        else:
-            if (
-                ticket_type_code == SUB_DEALER_CODE
-                and len(conflicting_ticket_end_user) > 0
-            ):
+        if ticket_type_code != 'yeu_cau_bao_hanh':
+            validate_different_partner_for_sub = (
+                len(conflicting_ticket_sub_dealer) > 0
+                and conflicting_ticket_sub_dealer.partner_id.id != partner.id
+            )
+            validate_different_partner_for_end = (
+                len(conflicting_ticket_end_user) > 0
+                and conflicting_ticket_end_user.partner_id.id != partner.id
+            )
+            validate_same_partner_for_sub = (
+                len(conflicting_ticket_sub_dealer) > 0
+                and conflicting_ticket_sub_dealer.partner_id.id == partner.id
+            )
+            validate_same_partner_for_end = (
+                len(conflicting_ticket_end_user) > 0
+                and conflicting_ticket_end_user.partner_id.id == partner.id
+            )
+            # Validate if the code is already registered on other tickets by different Partners
+            if validate_different_partner_for_sub or validate_different_partner_for_end:
                 if self._is_anonymous():
-                    message = f"Mã {code} đã trùng với Ticket khác!"
+                    message = f"Mã {code} đã được đăng ký cho đơn vị khác!"
                 else:
+                    conflicting_ticket = (
+                        conflicting_ticket_sub_dealer
+                        if validate_different_partner_for_sub
+                        else conflicting_ticket_end_user
+                    )
                     message = (
-                        f"Mã {code} đã trùng với Ticket khác, "
-                        f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                        f"Mã {code} đã được đăng ký cho đơn vị khác, "
+                        f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
                     )
                 error_messages.append((CODE_ALREADY_REGISTERED, message))
-            elif (
-                ticket_type_code == END_USER_CODE
-                and len(conflicting_ticket_end_user) > 0
-            ):
+            # Validate if the code is already registered on other tickets by same Partners
+            elif validate_same_partner_for_sub or validate_same_partner_for_end:
                 if self._is_anonymous():
-                    message = f"Mã {code} đã trùng với Ticket khác!"
+                    message = f"Mã {code} đã được đăng ký cho đơn vị khác!"
                 else:
+                    conflicting_ticket = (
+                        conflicting_ticket_sub_dealer
+                        if validate_different_partner_for_sub
+                        else conflicting_ticket_end_user
+                    )
                     message = (
-                        f"Mã {code} đã trùng với Ticket khác, "
-                        f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                        f"Mã {code} đã được đăng ký cho đơn vị khác, "
+                        f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
                     )
                 error_messages.append((CODE_ALREADY_REGISTERED, message))
+            # Validate if the code is already registered on other tickets with specific ticket type by current Partner
+            else:
+                if (
+                    ticket_type_code == SUB_DEALER_CODE
+                    and len(conflicting_ticket_end_user) > 0
+                ):
+                    if self._is_anonymous():
+                        message = f"Mã {code} đã trùng với Ticket khác!"
+                    else:
+                        message = (
+                            f"Mã {code} đã trùng với Ticket khác, "
+                            f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                        )
+                    error_messages.append((CODE_ALREADY_REGISTERED, message))
+                elif (
+                    ticket_type_code == END_USER_CODE
+                    and len(conflicting_ticket_end_user) > 0
+                ):
+                    if self._is_anonymous():
+                        message = f"Mã {code} đã trùng với Ticket khác!"
+                    else:
+                        message = (
+                            f"Mã {code} đã trùng với Ticket khác, "
+                            f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
+                        )
+                    error_messages.append((CODE_ALREADY_REGISTERED, message))
 
     # =================================
     # HELPER / PRIVATE Methods
@@ -416,16 +470,23 @@ class MVWebsiteHelpdesk(http.Controller):
 
 class WebsiteForm(form.WebsiteForm):
 
-    # def generate_ticket_details(self, request, dict_id):
-    #     serial = request.params.get('portal_lot_serial_number')
-    #     product_moves = request.env['mv.helpdesk.ticket.product.moves'].search([
-    #         ('lot_name', '=', serial)
-    #     ])
-    #     ticket = request.env['helpdesk.ticket'].browse(dict_id.get('id'))
-    #     product_moves.write({
-    #         'mv_warranty_ticket_id': ticket.id,
-    #         'mv_warranty_license_plate': request.params.get('license_plates')
-    #     })
+    def generate_ticket_details(self, request, dict_id):
+        serials = request.params.get('portal_lot_serial_number')
+        list_serial = serials.split(",")
+        for serial in list_serial:
+            product_moves = request.env['mv.helpdesk.ticket.product.moves'].sudo().search([
+                ('lot_name', '=', serial.strip())
+            ])
+            ticket = request.env['helpdesk.ticket'].sudo().browse(dict_id.get('id'))
+            ticket.ticket_type_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty_type',
+                                                    raise_if_not_found=False)
+            if product_moves:
+                product_moves.sudo().write({
+                    'mv_warranty_ticket_id': ticket.id,
+                    'mv_warranty_license_plate': request.params.get('license_plates'),
+                    'reason_no_warranty': request.params.get('reason_no_warranty'),
+                    'qr_code': request.params.get('portal_lot_serial_number')
+                })
 
     # =============== MOVEOPLUS Override ===============
     def _handle_website_form(self, model_name, **kwargs):
@@ -449,8 +510,9 @@ class WebsiteForm(form.WebsiteForm):
                     return super(WebsiteForm, self)._handle_website_form(
                         model_name, **kwargs
                     )
-        result = super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
-        # self.generate_ticket_details(request, result)
+        result = super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)        
+        tmp = json.loads(result or {})
+        self.generate_ticket_details(request, tmp)
         return result
 
     def _handle_helpdesk_ticket_form(self, record):
