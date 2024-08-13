@@ -4,25 +4,31 @@
 		<field name="name">mv_sale.mv.discount.partner.history.tree</field>
 		<field name="model">mv.discount.partner.history</field>
 		<field name="arch" type="xml">
-			<tree default_order="create_date desc"
-			      limit="10"
+			<tree default_order="history_date desc"
+			      limit="40"
 			      create="false"
 			      edit="false"
 			      delete="false"
 			      import="false"
 			      export_xlsx="false"
 			      duplicate="false"
-			      sample="true">
-				<field name="create_date" string="Ngày ghi nhận"/>
-				<field name="create_uid" widget="many2one_avatar_user" string="Người thao tác"/>
+			      sample="true"
+			      decoration-muted="total_money == 0">
+				<field name="history_date"/>
+				<field name="history_user_action_id" widget="many2one_avatar_user"/>
 				<field name="history_description" class="fw-bold"/>
-				<field name="total_money" widget="monetary" sum="Total money" optional="hidden"/>
 				<field name="total_money_discount_display"
 				       class="fw-bold"
 				       decoration-info="is_waiting_approval"
 				       decoration-success="is_positive_money"
-                       decoration-danger="is_negative_money"
-                       decoration-muted="total_money == 0"/>
+                       decoration-danger="is_negative_money"/>
+				<field name="total_money" class="fw-bold"
+				       decoration-info="is_waiting_approval"
+				       decoration-success="is_positive_money"
+				       decoration-danger="is_negative_money"
+				       widget="monetary"
+				       sum="Total money"
+				       optional="hidden"/>
 				<field name="partner_id" string="Đại lý" options='{"no_open": True}' optional="hidden"/>
 				<field column_invisible="1" name="is_waiting_approval"/>
 				<field column_invisible="1" name="is_positive_money"/>

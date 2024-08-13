@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 import logging
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
+
+def get_last_date_of_month(first_date):
+    # Calculate the first day of the next month, then subtract one day
+    last_date = first_date + relativedelta(months=1) - relativedelta(days=1)
+    return last_date
 
 
 class ResPartner(models.Model):
@@ -435,6 +443,10 @@ class ResPartner(models.Model):
     # ACTION Methods
     # =================================
 
+    def generate_all_partner_discount_histories(self):
+        for partner in self:
+            partner.generate_partner_discount_histories()
+
     def generate_partner_discount_histories(self):
         """
         Generate discount history lines for the partner.
@@ -446,17 +458,19 @@ class ResPartner(models.Model):
         """
         self.ensure_one()
         partner = self
+        keys_list = []
         vals_list = []
 
         order_discount = partner._get_orders_with_discount(partner, "sale")
         # Generate history lines for production policy discounts
         for order in order_discount:
+            keys_list.append(f"{order.date_order.month}_{order.date_order.year}")
             vals_list.append(
                 {
                     f"{order.date_order.month}_{order.date_order.year}": self._prepare_history_line_vals(
                         order,
                         "sale",
-                        f"Đơn {order.name} đã được xác nhân, đã khấu trừ tiền chiết khấu của Đại lý.",
+                        f"Đơn {order.name} đã được xác nhận, đã khấu trừ tiền chiết khấu của Đại lý.",
                         order.bonus_order,
                     )
                 }
@@ -467,6 +481,7 @@ class ResPartner(models.Model):
             lambda r: r.state == "done"
         ):
             data_key = f"{record_line.parent_id.report_date.month}_{record_line.parent_id.report_date.year}"
+            keys_list.append(data_key)
             vals_list.append(
                 {
                     data_key: self._prepare_history_line_vals(
@@ -483,6 +498,7 @@ class ResPartner(models.Model):
             lambda r: r.parent_state == "done"
         ):
             data_key = f"{record_line.parent_id.compute_date.month}_{record_line.parent_id.compute_date.year}"
+            keys_list.append(data_key)
             vals_list.append(
                 {
                     data_key: self._prepare_history_line_vals(
@@ -494,8 +510,15 @@ class ResPartner(models.Model):
                 }
             )
 
+        history_env = self.env["mv.discount.partner.history"].sudo()
+        keys_list = sorted(list(set(keys_list)), reverse=True)
         vals_list = sorted(vals_list, key=lambda val: val.keys(), reverse=True)
-        return self.env["mv.discount.partner.history"]._create_history_line(vals_list)
+        if keys_list and vals_list:
+            for key in keys_list:
+                for vals in vals_list:
+                    if key in vals:
+                        vals = vals[key]
+                        history_env.create(vals)
 
     def _prepare_history_line_vals(self, record, state, description, total_money):
         """
@@ -506,24 +529,34 @@ class ResPartner(models.Model):
         :param description: The description of the discount.
         :return: dict: The values for creating a history line.
         """
+        is_positive_money = False
+        is_negative_money = False
         total_money_display = "{:,.2f}".format(total_money)
+        history_date = record.create_date
+        history_user_action_id = record.create_uid
+
         # ||| Sale Order
-        is_negative_money = state == "sale" and total_money > 0
-        total_money_display = (
-            "- " + total_money_display
-            if state == "sale" and total_money > 0
-            else total_money_display
-        )
+        if state == "sale":
+            is_negative_money = total_money > 0
+            total_money_display = (
+                "- " + total_money_display if total_money > 0 else total_money_display
+            )
+            history_date = record.date_order
+            history_user_action_id = record.user_id
+
         # ||| Production Policy & Warranty Policy
-        is_positive_money = state == "done" and total_money > 0
-        total_money_display = (
-            "+ " + total_money_display
-            if state == "done" and total_money > 0
-            else total_money_display
-        )
+        if state == "done":
+            is_positive_money = total_money > 0
+            total_money_display = (
+                "+ " + total_money_display if total_money > 0 else total_money_display
+            )
+            history_date = get_last_date_of_month(history_date.replace(day=1))
+            history_user_action_id = record.write_uid
 
         return {
             "partner_id": record.partner_id.id,
+            "history_date": history_date,
+            "history_user_action_id": history_user_action_id.id,
             "history_description": description,
             "sale_order_id": record.id if state == "sale" else False,
             "sale_order_state": record.state if state == "sale" else False,

@@ -31,6 +31,14 @@ class MvDiscountPolicyPartnerHistory(models.Model):
     )
     total_money_discount_display = fields.Char(string="Số tiền chiết khấu (+/-)")
     history_description = fields.Char(string="Diễn giải/Hành động", readonly=True)
+    history_date = fields.Datetime(
+        string="Ngày ghi nhận",
+        default=lambda self: fields.Datetime.now(),
+        readonly=True,
+    )
+    history_user_action_id = fields.Many2one(
+        comodel_name="res.users", string="Người thực hiện"
+    )
     # === ĐƠN HÀNG ÁP DỤNG CHIẾT KHẤU ===
     sale_order_id = fields.Many2one(
         comodel_name="sale.order", string="Đơn hàng chiết khấu"
