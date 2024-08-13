@@ -1,5 +1,36 @@
 <?xml version="1.0"?>
 <odoo>
+    <record id="mv_helpdesk_ticket_product_moves_view_form_update" model="ir.ui.view">
+        <field name="name">mv.helpdesk.ticket.product.moves.view.form.update</field>
+        <field name="model">mv.helpdesk.ticket.product.moves</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group string="Thông tin bảo hành">
+                        <group name="view_update_1">
+                            <field name="mv_warranty_ticket_id" invisible="1" />
+                            <field name="mv_num_of_km" readonly="1"/>
+                            <field name="reason_no_warranty" string="Ghi Chú"/>
+                            <field name="mv_warranty_license_plate" readonly="1"/>
+                            <field name="customer_warranty_date_activation" readonly="1"/>
+                            <field name="mv_warranty_phone" />
+                        </group>
+                    </group>
+                    <group string="Thông tin mở rộng">
+                        <group name="view_info_1" readonly="1">
+                            <field name="lot_name" />
+                            <field name="qr_code" />
+                            <field name="customer_license_plates_activation" />
+                            <field name="customer_mileage_activation" />
+                            <field name="customer_date_activation" />
+                            <field name="customer_phone_activation" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="mv_helpdesk_ticket_product_moves_tree_view" model="ir.ui.view">
         <field name="name">mv.helpdesk.ticket.product.moves.tree</field>
         <field name="model">mv.helpdesk.ticket.product.moves</field>
