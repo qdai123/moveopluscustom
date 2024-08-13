@@ -75,6 +75,10 @@ class SaleOrder(models.Model):
         store=True,
         help="Số tiền Đại lý có thể áp dụng để tính chiết khấu.",
     )
+    is_claim_warranty = fields.Boolean('Áp dụng CS bảo hành', readonly="1")
+    mv_moves_warranty_ids = fields.Many2many(
+        'mv.helpdesk.ticket.product.moves', 'order_warranty_products_relation',
+        'order_id', 'warranty_id', string='Áp dụng cho số serial', readonly="1")
 
     @api.depends("state", "order_line.product_id", "order_line.product_uom_qty")
     @api.depends_context("uid")
