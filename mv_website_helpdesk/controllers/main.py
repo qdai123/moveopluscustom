@@ -469,12 +469,7 @@ class MVWebsiteHelpdesk(http.Controller):
 class WebsiteForm(form.WebsiteForm):
 
     def generate_ticket_details(self, request, dict_id):
-        now = (
-            fields.Datetime.now()
-            .replace(tzinfo=pytz.UTC)
-            .astimezone(pytz.timezone(request.env.user.tz or "Asia/Ho_Chi_Minh"))
-        )
-        serials = request.params.get("portal_lot_serial_number")
+        serials = request.params.get('portal_lot_serial_number')
         list_serial = serials.split(",")
 
         ticket = request.env["helpdesk.ticket"].sudo().browse(dict_id.get("id"))
@@ -504,16 +499,12 @@ class WebsiteForm(form.WebsiteForm):
                 )
             )
             if product_moves:
-                product_moves.sudo().write(
-                    {
-                        "mv_warranty_ticket_id": ticket.id,
-                        "mv_warranty_license_plate": request.params.get(
-                            "license_plates"
-                        ),
-                        "mv_num_of_km": request.params.get("mileage"),
-                        "customer_warranty_date_activation": now.date(),
-                    }
-                )
+                product_moves.sudo().write({
+                    'mv_warranty_ticket_id': ticket.id,
+                    'mv_warranty_license_plate': request.params.get('license_plates'),
+                    'mv_num_of_km': request.params.get('mileage'),
+                    'mv_warranty_phone': request.params.get('mv_warranty_phone'),
+                })
             if not product_moves:
                 invalid_serials += serial + ", "
         if invalid_serials:

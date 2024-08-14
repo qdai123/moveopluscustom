@@ -50,7 +50,7 @@
                             <field name="product_id" column_invisible="True"/>
                             <field name="mv_warranty_ticket_id" column_invisible="True"/>
                             <field name="mv_warranty_ticket_id" column_invisible="True" />
-                            <button class="btn btn-secondary" name="action_open_waranty_products" string="Cập nhật" type="object" icon="fa-arrows"/>
+                            <button class="btn btn-secondary" name="action_open_waranty_products" string="Cập nhật" type="object" icon="fa-pencil"/>
                         </tree>
                     </field>
                 </page>
