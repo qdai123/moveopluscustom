@@ -776,82 +776,13 @@ class SaleOrder(models.Model):
 
             partner = order.partner_id
             partner_wallet = partner.amount_currency
-            quotations_applied_discount = partner._get_orders_with_discount(
-                partner, "not_sale"
-            )
-            total_so_quotations_discount = partner._process_orders_with_discount(
-                partner, quotations_applied_discount, is_sale=False
-            )
-            if len(quotations_applied_discount) > 1:
-                total_so_quotations_discount -= order.bonus_order
-
             if (
                 not self.env.context.get("apply_confirm")
-                and partner_wallet < total_so_quotations_discount
+                and partner_wallet < order.bonus_order
             ):
                 raise UserError(
                     "Đại lý không đủ số dư để áp dụng chiết khấu cho đơn hàng này."
                 )
-
-                # [>] Xử lý chiết khấu khi có sự thay đổi hoặc đang dùng ở một đơn khác của Đại lý
-                # quotations_discount_applied = (
-                #     self.env["sale.order"]
-                #     .search(
-                #         [
-                #             ("id", "!=", order.id),
-                #             ("state", "in", ["draft", "sent"]),
-                #             ("partner_id", "=", order.partner_id.id),
-                #             "|",
-                #             ("partner_id.is_agency", "=", True),
-                #             ("partner_agency", "=", True),
-                #         ]
-                #     )
-                #     .filtered(
-                #         lambda so: so.order_line.filtered(
-                #             lambda so_line: so_line._filter_discount_agency_lines(so)
-                #         )
-                #     )
-                # )
-                # quotations_discount_applied._compute_partner_bonus()
-                # quotations_discount_applied._compute_bonus_order_line()
-                # order_lines_delivery = order.order_line.filtered(
-                #     lambda sol: sol.is_delivery
-                # )
-                # carrier = (
-                #     (
-                #         order.with_company(
-                #             order.company_id
-                #         ).partner_shipping_id.property_delivery_carrier_id
-                #         or order.with_company(
-                #             order.company_id
-                #         ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
-                #     )
-                #     if not order_lines_delivery
-                #     else order.carrier_id
-                # )
-                #
-                # return {
-                #     "name": "Cập nhật chiết khấu",
-                #     "type": "ir.actions.act_window",
-                #     "res_model": "mv.wizard.discount",
-                #     "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
-                #     "views": [
-                #         (
-                #             self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
-                #             "form",
-                #         )
-                #     ],
-                #     "context": {
-                #         "default_sale_order_id": order.id,
-                #         "partner_id": order.partner_id.id,
-                #         "default_partner_id": order.partner_id.id,
-                #         "default_discount_amount_apply": order.bonus_remaining,
-                #         "default_carrier_id": carrier.id,
-                #         "default_total_weight": order._get_estimated_weight(),
-                #         "default_discount_amount_invalid": True,
-                #     },
-                #     "target": "new",
-                # }
             else:
                 order.with_context(action_confirm=True).action_recompute_discount()
 
