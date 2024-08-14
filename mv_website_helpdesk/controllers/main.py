@@ -56,7 +56,9 @@ class MVWebsiteHelpdesk(http.Controller):
 
     @http.route("/claim-bao-hanh", type="http", auth="public", website=True)
     def website_helpdesk_claim_warranty(self, **kwargs):
-        _logger.info(f"Method [website_helpdesk_claim_warranty] Params: {kwargs}")
+        _logger.info(
+            f"Method [website_helpdesk_claim_warranty] Params: {kwargs}"
+        )
         WarrantyActivationTeam = (
             request.env["helpdesk.team"]
             .sudo()
@@ -90,9 +92,7 @@ class MVWebsiteHelpdesk(http.Controller):
                 "anonymous": self._is_anonymous(),
                 "default_helpdesk_team": WarrantyActivationTeam,
                 "ticket_type_objects": request.env.ref(
-                    "mv_website_helpdesk.mv_helpdesk_claim_warranty_type",
-                    raise_if_not_found=False,
-                ),
+                    'mv_website_helpdesk.mv_helpdesk_claim_warranty_type', raise_if_not_found=False),
                 "type_is_sub_dealer_id": type_sub_dealer.id or False,
                 "type_is_end_user_id": type_end_user.id or False,
             },
@@ -361,7 +361,7 @@ class MVWebsiteHelpdesk(http.Controller):
         error_messages,
         ticket_type_code,
     ):
-        if ticket_type_code != "yeu_cau_bao_hanh":
+        if ticket_type_code != 'yeu_cau_bao_hanh':
             validate_different_partner_for_sub = (
                 len(conflicting_ticket_sub_dealer) > 0
                 and conflicting_ticket_sub_dealer.partner_id.id != partner.id
@@ -469,44 +469,32 @@ class MVWebsiteHelpdesk(http.Controller):
 class WebsiteForm(form.WebsiteForm):
 
     def generate_ticket_details(self, request, dict_id):
-        now = (
-            fields.Datetime.now()
-            .replace(tzinfo=pytz.UTC)
-            .astimezone(pytz.timezone(request.env.user.tz or "Asia/Ho_Chi_Minh"))
-        )
-        serials = request.params.get("portal_lot_serial_number")
+        now = fields.Datetime.now().replace(tzinfo=pytz.UTC).astimezone(
+            pytz.timezone(request.env.user.tz or 'Asia/Ho_Chi_Minh'))
+        serials = request.params.get('portal_lot_serial_number')
         list_serial = serials.split(",")
-        ticket = request.env["helpdesk.ticket"].sudo().browse(dict_id.get("id"))
-        ticket.ticket_type_id = request.env.ref(
-            "mv_website_helpdesk.mv_helpdesk_claim_warranty_type",
-            raise_if_not_found=False,
-        )
-        ticket.team_id = request.env.ref(
-            "mv_website_helpdesk.mv_helpdesk_claim_warranty", raise_if_not_found=False
-        )
-        invalid_serials = ""
+
+        ticket = request.env['helpdesk.ticket'].sudo().browse(dict_id.get('id'))
+        ticket_type_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty_type',
+                                         raise_if_not_found=False)
+        if int(request.params.get('ticket_type_id')) == ticket_type_id.id and \
+                ticket_type_id:
+            ticket.ticket_type_id = ticket_type_id.id
+            ticket.team_id = request.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty',
+                                              raise_if_not_found=False)
+        invalid_serials = ''
         for serial in list_serial:
-            product_moves = (
-                request.env["mv.helpdesk.ticket.product.moves"]
-                .sudo()
-                .search(
-                    [
-                        ("lot_name", "=", serial.strip()),
-                        ("customer_date_activation", "!=", False),
-                    ]
-                )
-            )
+            product_moves = request.env['mv.helpdesk.ticket.product.moves'].sudo().search([
+                ('lot_name', '=', serial.strip()),
+                ('customer_date_activation', '!=', False)
+            ])
             if product_moves:
-                product_moves.sudo().write(
-                    {
-                        "mv_warranty_ticket_id": ticket.id,
-                        "mv_warranty_license_plate": request.params.get(
-                            "license_plates"
-                        ),
-                        "mv_num_of_km": request.params.get("mileage"),
-                        "customer_warranty_date_activation": now.date(),
-                    }
-                )
+                product_moves.sudo().write({
+                    'mv_warranty_ticket_id': ticket.id,
+                    'mv_warranty_license_plate': request.params.get('license_plates'),
+                    'mv_num_of_km': request.params.get('mileage'),
+                    'customer_warranty_date_activation': now.date(),
+                })
             if not product_moves:
                 invalid_serials += serial + ", "
         if invalid_serials:

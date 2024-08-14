@@ -1,6 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <template id="mv_helpdesk_claim_warranty_activation_submitted" name="Xác nhận bảo hành">
+			<t t-call="website.layout">
+				<div id="wrap" class="oe_structure oe_empty h-100">
+					<div class="container d-flex flex-column justify-content-center h-100">
+						<div class="oe_structure" id="oe_structure_mv_website_helpdesk_confirm_warranty_activation"/>
+						<div class="row justify-content-center mb16">
+							<!-- <t t-if="request.session.get('form_builder_model_model', '') == 'helpdesk.ticket'">
+								<t t-set="ticket" t-value="request.website._website_form_last_record()"/>
+							</t> -->
+							<!-- <h1 class="text-center">
+								<t t-if="ticket and request.session.uid">
+									<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
+									<span>Mã số phiếu yêu cầu của bạn là
+										<a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
+											#
+											<span t-field="ticket.ticket_ref"/>
+										</a>
+										<t t-if="not request.session.get('uid')">
+											#
+											<span t-field="ticket.id"/>
+										</t>
+										.
+									</span>
+								</t>
+							</h1> -->
+							<h2 class="text-center">
+								Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!
+							</h2>
+							<!-- <div class="text-center">
+								<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
+									Xem phiếu
+								</a>
+								<a class="btn btn-primary" href='/'>
+									Trở về trang chủ
+								</a>
+							</div> -->
+						</div>
+						<div class="oe_structure" id="oe_structure_website_helpdesk_thanks_you_bottom"/>
+					</div>
+				</div>
+			</t>
+		</template>
+
         <template id="mv_claim_warranty_template" name="Yêu cầu bảo hành">
             <t t-call="website.layout">
                 <div id="wrap" class="container mt-4">
@@ -26,7 +69,7 @@
                                 <div id="helpdesk_warranty_activation_section">
                                     <section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
                                         <div class="container">
-                                            <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="" data-model_name="helpdesk.ticket">
+                                            <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
                                                 <div class="s_website_form_rows row s_col_no_bgcolor">
                                                     <!-- [!] Validation Partner Phone Number -->
                                                     <t t-if="anonymous">
@@ -177,6 +220,13 @@
             <field name="view_id" ref="mv_website_helpdesk.mv_claim_warranty_template"/>
             <field name="track">True</field>
         </record>
+
+		<record id="mv_claim_warranty_confirm_website_page" model="website.page">
+			<field name="is_published">True</field>
+			<field name="url">/xac-nhan-yeu-cau</field>
+			<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_claim_warranty_activation_submitted"/>
+			<field name="track">True</field>
+		</record>
 
         <record id="mv_claim_warranty_website_menu" model="website.menu">
             <field name="name">Gửi Bảo hành</field>

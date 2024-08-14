@@ -549,3 +549,20 @@ class HelpdeskTicket(models.Model):
             },
             "target": "new",
         }
+
+    def action_generate_sale_order(self):
+        self.ensure_one()
+        return {
+            "name": _("Tạo đơn bán"),
+            "type": "ir.actions.act_window",
+            "res_model": "sale.order",
+            "view_mode": "form",
+            "view_id": self.env.ref("sale.view_order_form").id,
+            "context": {
+                "default_is_claim_warranty": True,
+                "default_mv_moves_warranty_ids": [(6, 0, self.helpdesk_warranty_ticket_ids.ids)],
+                "default_state": "draft",
+                "default_partner_id": self.partner_id.id,
+            },
+            "target": "current",
+        }

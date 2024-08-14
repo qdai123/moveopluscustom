@@ -6,24 +6,27 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <group string="Thông tin bảo hành">
-                        <group name="view_update_1">
-                            <field name="mv_warranty_ticket_id" invisible="1" />
-                            <field name="mv_num_of_km" readonly="1"/>
-                            <field name="reason_no_warranty" string="Ghi Chú"/>
-                            <field name="mv_warranty_license_plate" readonly="1"/>
-                            <field name="customer_warranty_date_activation" readonly="1"/>
-                            <field name="mv_warranty_phone" />
+                    <group name="lich_su_kich_hoat" string="Lịch sử kích hoạt">
+                        <group name="lich_su1">
+                            <field name="customer_mileage_activation" readonly="1" force_save="1" />
+                            <field name="customer_phone_activation" readonly="1" force_save="1" />
                         </group>
+                        <group name="lich_su2">
+                            <field name="customer_license_plates_activation" readonly="1" force_save="1" />
+                            <field name="customer_date_activation" readonly="1" force_save="1" />
+                        </group>
+                        <field name="reason_no_warranty" placeholder="Lý do không bảo hành"/>
                     </group>
-                    <group string="Thông tin mở rộng">
-                        <group name="view_info_1" readonly="1">
-                            <field name="lot_name" />
-                            <field name="qr_code" />
-                            <field name="customer_license_plates_activation" />
-                            <field name="customer_mileage_activation" />
-                            <field name="customer_date_activation" />
-                            <field name="customer_phone_activation" />
+                    <group name="thong_tin_bao_hanh" string="Thông tin bảo hành">
+                        <group name="bao_hanh1">
+                            <field name="lot_name" readonly="1" force_save="1" />
+                            <field name="qr_code" readonly="1" force_save="1" />
+                        </group>
+                        <group name="bao_hanh2">
+                            <field name="mv_warranty_license_plate" readonly="1" force_save="1" />
+                            <field name="mv_num_of_km" readonly="1" force_save="1" />
+                            <field name="customer_warranty_date_activation" />
+                            <field name="mv_warranty_phone" />
                         </group>
                     </group>
                 </sheet>
@@ -47,12 +50,17 @@
                 <field name="helpdesk_ticket_ref" optional="hidden"/>
                 <field name="helpdesk_ticket_type_id" optional="show"/>
                 <field name="partner_id" string="Customer"/>
+                <field name="customer_warranty_date_activation" string="Ngày bảo hành" optional="show"/>
+                <field name="mv_num_of_km" optional="show"/>
+                <field name="mv_warranty_license_plate" optional="show"/>
+                <field name="mv_warranty_phone" optional="show"/>
+                <field name="reason_no_warranty" optional="show"/>
                 <field name="customer_date_activation" optional="hidden"/>
                 <field name="customer_phone_activation" optional="hidden"/>
                 <field name="customer_license_plates_activation" optional="hidden"/>
                 <field name="customer_mileage_activation" optional="hidden"/>
-                <field name="customer_warranty_date_activation" optional="hidden"/>
-                <field name="customer_warranty_mileage_activation" optional="hidden"/>
+                <field name="customer_warranty_date_activation" column_invisible="True"/>
+                <field name="customer_warranty_mileage_activation" column_invisible="True"/>
                 <field name="stock_move_line_id" column_invisible="True"/>
                 <field name="stock_move_id" column_invisible="True"/>
                 <field name="product_activate_twice" optional="hidden"/>
