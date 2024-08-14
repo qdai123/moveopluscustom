@@ -47,7 +47,9 @@ class HelpdeskTicket(models.Model):
 
             now_utc = datetime.utcnow()
             now_user = now_utc.astimezone(pytz.timezone(ticket.partner_id.tz or "UTC"))
-            lang = self.env["res.lang"]._lang_get(ticket.partner_id.lang or self.env.user.lang)
+            lang = self.env["res.lang"]._lang_get(
+                ticket.partner_id.lang or self.env.user.lang
+            )
             date_format = lang.date_format
             time_format = lang.time_format
             formatted_date = now_user.strftime(date_format + " " + time_format)
@@ -82,14 +84,16 @@ class HelpdeskTicket(models.Model):
     license_plates = fields.Char("Biển số xe")
     mileage = fields.Integer("Số Km", default=0)
     mv_is_warranty_ticket = fields.Boolean(compute="compute_is_warranty_ticket")
-    invalid_serials = fields.Text('Số serial chưa kích hoạt')
+    invalid_serials = fields.Text("Số serial chưa kích hoạt")
 
-    @api.depends('team_id')
+    @api.depends("team_id")
     def compute_is_warranty_ticket(self):
         for move in self:
             move.mv_is_warranty_ticket = False
-            ticket_ref = self.env.ref('mv_website_helpdesk.mv_helpdesk_claim_warranty', 
-                                      raise_if_not_found=False)
+            ticket_ref = self.env.ref(
+                "mv_website_helpdesk.mv_helpdesk_claim_warranty",
+                raise_if_not_found=False,
+            )
             if move.team_id.id == ticket_ref.id and ticket_ref and move.team_id:
                 move.mv_is_warranty_ticket = True
 
@@ -439,10 +443,11 @@ class HelpdeskTicket(models.Model):
     def _get_domain(self, ticket_type_code, code, field_name):
         """Get the domain for searching conflicting tickets."""
         return [
-            ("helpdesk_ticket_id", "!=", False),
-            ("mv_warranty_ticket_id", "!=", False),
             ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
             (f"stock_move_line_id.{field_name}", "=", code),
+            "|",
+            ("helpdesk_ticket_id", "!=", False),
+            ("mv_warranty_ticket_id", "!=", False),
         ]
 
     def _handle_code(
@@ -491,7 +496,7 @@ class HelpdeskTicket(models.Model):
         elif validate_same_partner_for_sub or validate_same_partner_for_end:
             conflicting_ticket = (
                 conflicting_ticket_sub_dealer
-                if validate_different_partner_for_sub
+                if validate_same_partner_for_sub
                 else conflicting_ticket_end_user
             )
             message = (
@@ -556,7 +561,9 @@ class HelpdeskTicket(models.Model):
             "view_id": self.env.ref("sale.view_order_form").id,
             "context": {
                 "default_is_claim_warranty": True,
-                "default_mv_moves_warranty_ids": [(6, 0, self.helpdesk_warranty_ticket_ids.ids)],
+                "default_mv_moves_warranty_ids": [
+                    (6, 0, self.helpdesk_warranty_ticket_ids.ids)
+                ],
                 "default_state": "draft",
                 "default_partner_id": self.partner_id.id,
             },
