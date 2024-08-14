@@ -7,7 +7,7 @@
 		<field name="inherit_id" ref="base.view_partner_form"/>
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
-				<page string="Chiết khấu" name="page_partner_discount_info" invisible="not is_agency">
+				<page string="Chiết khấu" name="page_partner_discount_info">
 					<group>
 						<group>
 							<field name="is_agency"/>
@@ -150,10 +150,7 @@
 				</page>
 			</xpath>
 			<xpath expr="//header" position="inside">
-				<button name="action_activation_for_agency"
-				        class="btn btn-primary"
-				        type="object"
-				        invisible="is_agency">
+				<button name="action_activation_for_agency" class="btn btn-primary" type="object" invisible="1">
 					<i class="fa fa-fw fa-check-square-o"/>
 					<span>Kích hoạt Đại lý</span>
 				</button>
@@ -168,6 +165,30 @@
 					</div>
 				</button>
 			</xpath>
+		</field>
+	</record>
+
+	<record model="ir.actions.server" id="action_generate_all_partner_discount_histories">
+		<field name="name">GENERATE All HISTORY (MISSING)</field>
+		<field name="model_id" ref="base.model_res_partner"/>
+		<field name="binding_model_id" ref="base.model_res_partner"/>
+		<field name="binding_view_types">list</field>
+		<field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+		<field name="state">code</field>
+		<field name="code">
+			action = records.generate_all_partner_discount_histories()
+		</field>
+	</record>
+
+	<record model="ir.actions.server" id="action_generate_partner_discount_histories">
+		<field name="name">GENERATE HISTORY (MISSING)</field>
+		<field name="model_id" ref="base.model_res_partner"/>
+		<field name="binding_model_id" ref="base.model_res_partner"/>
+		<field name="binding_view_types">form</field>
+		<field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+		<field name="state">code</field>
+		<field name="code">
+			action = records.generate_partner_discount_histories()
 		</field>
 	</record>
 </odoo>

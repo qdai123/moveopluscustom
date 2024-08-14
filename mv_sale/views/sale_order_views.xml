@@ -42,6 +42,8 @@
 			</xpath>
 			<xpath expr="//field[@name='payment_term_id']" position="after">
 				<field string="Đổi trả hàng" name="is_order_returns" readonly="not is_sales_manager or state in ['sent', 'sale', 'cancel']"/>
+				<field name="is_claim_warranty" force_save="1" />
+				<field name="mv_moves_warranty_ids" widget="many2many_tags" force_save="1" />
 			</xpath>
 			<xpath expr="//header" position="inside">
 				<button string="Chiết khấu tự động"

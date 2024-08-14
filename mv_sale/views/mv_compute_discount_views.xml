@@ -163,4 +163,16 @@
 			</p>
 		</field>
 	</record>
+
+	<record model="ir.actions.server" id="action_generate_total_discount_history_details">
+		<field name="name">GENERATE HISTORY TOTAL</field>
+		<field name="model_id" ref="model_mv_compute_discount"/>
+		<field name="binding_model_id" ref="model_mv_compute_discount"/>
+		<field name="binding_view_types">form</field>
+		<field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+		<field name="state">code</field>
+		<field name="code">
+			action = records.filtered(lambda r: r.state in {'done'}).create_total_discount_detail_history()
+		</field>
+	</record>
 </odoo>

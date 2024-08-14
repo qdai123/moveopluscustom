@@ -1,10 +1,21 @@
 # -*- coding: utf-8 -*-
 import logging
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
+# GROUPS ACCESS:
+GROUP_COMPUTE_DISCOUNT_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+
+
+def get_last_date_of_month(first_date):
+    # Calculate the first day of the next month, then subtract one day
+    last_date = first_date + relativedelta(months=1) - relativedelta(days=1)
+    return last_date
 
 
 class ResPartner(models.Model):
@@ -115,6 +126,31 @@ class ResPartner(models.Model):
 
         return discount_history_records
 
+    @api.model
+    def get_total_discount_history(self, partner):
+        if not partner:
+            return []
+
+        return self.env["mv.partner.total.discount.detail.history"].search_fetch(
+            domain=[
+                ("partner_id", "in", partner.ids),
+                (
+                    "policy_line_id",
+                    "in",
+                    partner.mapped("compute_discount_line_ids").ids,
+                ),
+            ],
+            field_names=[
+                "parent_id",
+                "policy_line_id",
+                "partner_id",
+                "description",
+                "total_discount_amount_display",
+                "total_discount_amount",
+            ],
+            order="create_date desc",
+        )
+
     # =================================
     # BUSINESS Methods
     # =================================
@@ -130,55 +166,60 @@ class ResPartner(models.Model):
         """
         _logger.debug("Starting 'action_update_discount_amount'.")
 
-        for record in self.filtered("is_agency"):
+        for partner in self:
             # Initialize discount-related fields
-            record.sale_mv_ids = None
-            record.total_so_bonus_order = 0
-            record.total_so_quotations_discount = 0
-            record.amount = record.amount_currency = 0
+            partner.sale_mv_ids = None
+            partner.amount = 0
+            partner.amount_currency = 0
 
             # Process orders with discounts applied and in 'sale' state
-            orders_discount_applied = self._get_orders_with_discount(record, "sale")
+            orders_discount_applied = self._get_orders_with_discount(partner, "sale")
             if orders_discount_applied:
-                self._process_orders_with_discount(record, orders_discount_applied)
+                total_so_bonus_order = self._process_orders_with_discount(
+                    partner, orders_discount_applied, is_sale=True
+                )
+                partner.total_so_bonus_order = total_so_bonus_order
+            else:
+                partner.total_so_bonus_order = 0
 
             # Process orders with discounts applied and not in 'sale' state and not 'cancel'
             quotations_discount_applying = self._get_orders_with_discount(
-                record, "not_sale"
+                partner, "not_sale"
             )
             if quotations_discount_applying:
-                self._process_orders_with_discount(
-                    record, quotations_discount_applying, is_sale=False
+                total_so_quotations_discount = self._process_orders_with_discount(
+                    partner, quotations_discount_applying, is_sale=False
                 )
+                partner.total_so_quotations_discount = total_so_quotations_discount
+            else:
+                partner.total_so_quotations_discount = 0
 
             # Calculate total discount money from different sources
             total_amount_discount_approved, total_amount_discount_waiting_approve = (
-                self._calculate_total_discounts(record)
+                self._calculate_total_discounts(partner)
             )
+            partner.waiting_amount_currency = total_amount_discount_waiting_approve
 
             # Calculate wallet amount
-            wallet = total_amount_discount_approved - record.total_so_bonus_order
-            record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
-            record.waiting_amount_currency = total_amount_discount_waiting_approve
-
-            # Auto update data
-            self.auto_update_data()
+            wallet = total_amount_discount_approved - partner.total_so_bonus_order
+            partner.amount = wallet if wallet > 0 else 0.0
+            partner.amount_currency = wallet if wallet > 0 else 0.0
 
             # Trigger update manual notification if context is set
-            if self.env.context.get("trigger_manual_update", False):
-                _logger.debug(
-                    "Manual update triggered, returning success notification."
-                )
-                return {
-                    "type": "ir.actions.client",
-                    "tag": "display_notification",
-                    "params": {
-                        "title": _("Successfully"),
-                        "message": "Cập nhật tiền chiết khấu thành công",
-                        "type": "success",
-                        "sticky": False,
-                    },
-                }
+            # if self.env.context.get("trigger_manual_update", False):
+            #     _logger.debug(
+            #         "Manual update triggered, returning success notification."
+            #     )
+            #     return {
+            #         "type": "ir.actions.client",
+            #         "tag": "display_notification",
+            #         "params": {
+            #             "title": _("Successfully"),
+            #             "message": "Cập nhật tiền chiết khấu thành công",
+            #             "type": "success",
+            #             "sticky": False,
+            #         },
+            #     }
 
         _logger.debug("Completed 'action_update_discount_amount'.")
 
@@ -243,43 +284,47 @@ class ResPartner(models.Model):
         """
         _logger.debug("Starting '_compute_sale_order' computation.")
 
-        for record in self:
-            record.sale_mv_ids = None
-            record.total_so_bonus_order = 0
-            record.total_so_quotations_discount = 0
-            record.amount = record.amount_currency = 0
+        for partner in self:
+            partner.sale_mv_ids = None
+            partner.amount = 0
+            partner.amount_currency = 0
 
             # Process orders with discounts applied and in 'sale' state
-            orders_discount_applied = self._get_orders_with_discount(record, "sale")
+            orders_discount_applied = self._get_orders_with_discount(partner, "sale")
             if orders_discount_applied:
-                self._process_orders_with_discount(record, orders_discount_applied)
+                total_so_bonus_order = self._process_orders_with_discount(
+                    partner, orders_discount_applied, is_sale=True
+                )
+                partner.total_so_bonus_order = total_so_bonus_order
+            else:
+                partner.total_so_bonus_order = 0
 
             # Process orders with discounts applied and not in 'sale' state and not 'cancel'
             quotations_discount_applying = self._get_orders_with_discount(
-                record, "not_sale"
+                partner, "not_sale"
             )
             if quotations_discount_applying:
-                self._process_orders_with_discount(
-                    record, quotations_discount_applying, is_sale=False
+                total_so_quotations_discount = self._process_orders_with_discount(
+                    partner, quotations_discount_applying, is_sale=False
                 )
+                partner.total_so_quotations_discount = total_so_quotations_discount
+            else:
+                partner.total_so_quotations_discount = 0
 
             # Calculate total discount money from different sources
             total_amount_discount_approved, total_amount_discount_waiting_approve = (
-                self._calculate_total_discounts(record)
+                self._calculate_total_discounts(partner)
             )
+            partner.waiting_amount_currency = total_amount_discount_waiting_approve
 
             # Calculate wallet amount
-            wallet = (
-                total_amount_discount_approved
-                - total_amount_discount_waiting_approve
-                - record.total_so_bonus_order
-            )
-            record.amount = record.amount_currency = wallet if wallet > 0 else 0.0
-            record.waiting_amount_currency = total_amount_discount_waiting_approve
+            wallet = total_amount_discount_approved - partner.total_so_bonus_order
+            partner.amount = wallet if wallet > 0 else 0.0
+            partner.amount_currency = wallet if wallet > 0 else 0.0
 
         _logger.debug("Completed '_compute_sale_order' computation.")
 
-    def _get_orders_with_discount(self, record, state):
+    def _get_orders_with_discount(self, partner, state):
         """
         Get orders with discounts applied based on the state.
 
@@ -287,21 +332,19 @@ class ResPartner(models.Model):
         :param state: The state of the orders to filter ('sale' or 'not_sale').
         :return: Filtered orders with discounts applied.
         """
+        Order = self.env["sale.order"]
+        agency_domain = [("partner_id", "=", partner.id)]
         if state == "sale":
-            return record.sale_order_ids.filtered(
-                lambda order: order.state == "sale"
-                and (
-                    order.discount_agency_set
-                    or order.order_line._filter_discount_agency_lines(order)
-                )
+            agency_domain += [("state", "=", "sale")]
+            return Order.search(agency_domain).filtered(
+                lambda order: order.order_line._filter_discount_agency_lines(order)
+                or order.bonus_order > 0
             )
-        else:
-            return record.sale_order_ids.filtered(
-                lambda order: order.state not in ["sale", "cancel"]
-                and (
-                    order.discount_agency_set
-                    or order.order_line._filter_discount_agency_lines(order)
-                )
+        elif state == "not_sale":
+            agency_domain += [("state", "in", ["draft", "sent"])]
+            return Order.search(agency_domain).filtered(
+                lambda order: order.order_line._filter_discount_agency_lines(order)
+                or order.bonus_order > 0
             )
 
     def _process_orders_with_discount(self, record, orders, is_sale=True):
@@ -314,11 +357,11 @@ class ResPartner(models.Model):
         """
         orders._compute_partner_bonus()
         orders._compute_bonus_order_line()
+        total = sum(orders.mapped("bonus_order"))
         if is_sale:
             record.sale_mv_ids = [(6, 0, orders.ids)]
-            record.total_so_bonus_order = sum(orders.mapped("bonus_order"))
-        else:
-            record.total_so_quotations_discount = sum(orders.mapped("bonus_order"))
+
+        return total
 
     def _calculate_total_discounts(self, record):
         """
@@ -410,6 +453,178 @@ class ResPartner(models.Model):
     # ACTION Methods
     # =================================
 
+    def generate_all_partner_discount_histories(self):
+        for partner in self:
+            if partner.is_agency:
+                partner.generate_partner_discount_histories()
+
+    def generate_partner_discount_histories(self):
+        """
+        Generate discount history lines for the partner.
+
+        This method retrieves all bonus orders, production policy discounts, and warranty policy discounts
+        for the partner and creates corresponding history lines.
+
+        :return: list: Created history lines.
+        """
+        self.ensure_one()
+
+        partner = self.filtered(lambda r: r.is_agency)
+        if not partner:
+            return
+
+        keys_list = []
+        vals_list = []
+
+        base_histories_of_partner = self.env["mv.discount.partner.history"].search(
+            [("partner_id", "=", partner.id)]
+        )
+
+        # ||| Generate history lines for production policy discounts
+        order_discount = partner._get_orders_with_discount(partner, "sale")
+        for order in order_discount:
+            if order.id not in base_histories_of_partner.mapped("sale_order_id").ids:
+                keys_list.append(f"{order.date_order.month}_{order.date_order.year}")
+                vals_list.append(
+                    {
+                        f"{order.date_order.month}_{order.date_order.year}": self._prepare_history_line_vals(
+                            order,
+                            "sale",
+                            f"Đơn {order.name} đã được xác nhận, đã khấu trừ tiền chiết khấu của Đại lý.",
+                            order.bonus_order,
+                        )
+                    }
+                )
+
+        # ||| Generate history lines for production policy discounts
+        for record_line in partner.compute_discount_line_ids.filtered(
+            lambda r: r.state == "done"
+            and r.id
+            not in base_histories_of_partner.mapped("production_discount_policy_id").ids
+        ):
+            data_key = f"{record_line.parent_id.report_date.month}_{record_line.parent_id.report_date.year}"
+            keys_list.append(data_key)
+            vals_list.append(
+                {
+                    data_key: self._prepare_history_line_vals(
+                        record_line,
+                        "done",
+                        f"Chiết khấu sản lượng tháng {record_line.name} đã được duyệt cho Đại lý.",
+                        record_line.total_money,
+                    )
+                }
+            )
+
+        # ||| Generate history lines for warranty policy discounts
+        for record_line in partner.compute_warranty_discount_line_ids.filtered(
+            lambda r: r.parent_state == "done"
+            and r.id
+            not in base_histories_of_partner.mapped("warranty_discount_policy_id").ids
+        ):
+            data_key = f"{record_line.parent_id.compute_date.month}_{record_line.parent_id.compute_date.year}"
+            keys_list.append(data_key)
+            vals_list.append(
+                {
+                    data_key: self._prepare_history_line_vals(
+                        record_line,
+                        "done",
+                        f"Chiết khấu kích hoạt bảo hành tháng {record_line.parent_name} đã được duyệt cho Đại lý.",
+                        record_line.total_amount_currency,
+                    )
+                }
+            )
+
+        history_env = self.env["mv.discount.partner.history"].sudo()
+        keys_list = sorted(list(set(keys_list)), reverse=True)
+        vals_list = sorted(vals_list, key=lambda val: val.keys(), reverse=True)
+        if keys_list and vals_list:
+            for key in keys_list:
+                for vals in vals_list:
+                    if key in vals:
+                        vals = vals[key]
+                        history_env.create(vals)
+
+    def _prepare_history_line_vals(self, record, state, description, total_money):
+        """
+        Prepare the values for creating a history line.
+
+        :param record: The record data discount.
+        :param state: The state of record data discount.
+        :param description: The description of the discount.
+        :return: dict: The values for creating a history line.
+        """
+        is_positive_money = False
+        is_negative_money = False
+        total_money_display = "{:,.2f}".format(total_money)
+        history_date = record.create_date
+        history_user_action_id = record.create_uid.id
+
+        # ||| Sale Order
+        if state == "sale":
+            is_negative_money = total_money > 0
+            total_money_display = (
+                "- " + total_money_display if total_money > 0 else total_money_display
+            )
+            history_date = record.date_order
+            history_user_action_id = record.user_id.id or False
+
+        # ||| Production Policy & Warranty Policy
+        if state == "done":
+            is_positive_money = total_money > 0
+            total_money_display = (
+                "+ " + total_money_display if total_money > 0 else total_money_display
+            )
+            history_date = get_last_date_of_month(
+                record.parent_id.report_date
+                if record._name == "mv.compute.discount.line"
+                else record.parent_id.compute_date
+            )
+            users_can_approve_compute_discount = (
+                self.env["res.users"]
+                .sudo()
+                .get_users_from_group(
+                    self.env["ir.model.data"]._xmlid_to_res_id(
+                        GROUP_COMPUTE_DISCOUNT_APPROVER
+                    )
+                )
+            )
+            users_can_approve_compute_discount = [
+                uid for uid in users_can_approve_compute_discount if uid not in [1, 2]
+            ]
+            history_user_action_id = users_can_approve_compute_discount[0] or False
+
+        return {
+            "partner_id": record.partner_id.id,
+            "history_date": history_date,
+            "history_user_action_id": history_user_action_id,
+            "history_description": description,
+            "sale_order_id": record.id if state == "sale" else False,
+            "sale_order_state": record.state if state == "sale" else False,
+            "sale_order_discount_money_apply": (
+                total_money if record._name == "sale.order" else 0
+            ),
+            "production_discount_policy_id": (
+                record.id if record._name == "mv.compute.discount.line" else False
+            ),
+            "production_discount_policy_total_money": (
+                total_money if record._name == "mv.compute.discount.line" else 0
+            ),
+            "warranty_discount_policy_id": (
+                record.id
+                if record._name == "mv.compute.warranty.discount.policy.line"
+                else False
+            ),
+            "warranty_discount_policy_total_money": (
+                total_money
+                if record._name == "mv.compute.warranty.discount.policy.line"
+                else 0
+            ),
+            "total_money": total_money,
+            "total_money_discount_display": total_money_display,
+            "is_positive_money": is_positive_money,
+            "is_negative_money": is_negative_money,
+        }
+
     def action_activation_for_agency(self):
         for partner in self:
             partner.write({"is_agency": True})
@@ -442,45 +657,8 @@ class ResPartner(models.Model):
 
     @api.model
     def _cron_recompute_partner_discount(self, limit=None):
-        """
-        Scheduled task to recompute the discount for partner agencies.
-
-        Args:
-            limit (int, optional): The maximum number of partners to process.
-                                   If not provided, defaults to 100.
-
-        Returns:
-            bool: True if the task completed successfully, False otherwise.
-        """
-        _logger.debug("Starting '_cron_recompute_partner_discount'.")
-
-        records_limit = limit if limit else 100
-        try:
-            agency_partners = self._get_agency_partners(records_limit)
-            for partner in agency_partners:
-                partner.with_context(
-                    cron_service_run=True
-                ).action_update_discount_amount()
-            _logger.info(
-                f"Recomputed discount for {len(agency_partners)} partner agencies."
-            )
-            return True
-        except Exception as e:
-            _logger.error(f"Failed to recompute discount for partner agencies: {e}")
-            return False
-
-    def _get_agency_partners(self, limit):
-        """
-        Retrieve agency partners up to the specified limit.
-
-        Args:
-            limit (int): The maximum number of partners to retrieve.
-
-        Returns:
-            recordset: The retrieved agency partners.
-        """
-        return (
-            self.env["res.partner"]
-            .sudo()
-            .search([("is_agency", "=", True)], limit=limit)
-        )
+        limited_records = limit if limit else 100
+        for partner in self.env["res.partner"].search(
+            [("is_agency", "=", True)], limit=limited_records
+        ):
+            partner.with_context(cron_service_run=True).action_update_discount_amount()

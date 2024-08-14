@@ -3,7 +3,6 @@
 import {_t} from "@web/core/l10n/translation";
 import publicWidget from "@web/legacy/js/public/public_widget";
 import {ScannerDialog} from "../components/scanner_dialog/scanner_dialog";
-import {RPCError} from "@web/core/network/rpc_service";
 
 const ERROR_MESSAGES = {
     EMPTY_PHONE_NUMBER: "Vui lòng nhập số điện thoại của bạn.",
@@ -208,6 +207,19 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             }
         }
         
+        let tel_activation = null
+        if ($telNumberActivation.val() == null) {
+            const domain = ['|', ['email', '=', $partnerEmail.val()], ['name', '=', $partnerName.val()]];
+            const res = await this.orm.searchRead("res.partner", domain, ['name', 'email', 'phone', 'mobile'], {
+                limit: 1,
+            });
+            if (res[0].phone) {
+                tel_activation = res[0].phone
+            } else if (res[0].mobile) {
+                tel_activation = res[0].mobile
+            }
+        }
+        
         // Check scanned codes
         if ($portalLotSerialNumber.val()) {
             const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
@@ -216,7 +228,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 ticket_type: $ticketType.val(),
                 partner_name: $partnerName.val(),
                 partner_email: $partnerEmail.val(),
-                tel_activation: $telNumberActivation.val(),
+                tel_activation: tel_activation,
                 by_pass_check: false,
             });
             

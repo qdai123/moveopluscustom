@@ -52,5 +52,31 @@
             <field name="sequence">4</field>
             <field name="fold" eval="True"/>
         </record>
+
+        <!-- Default helpdesk ticket type data -->
+        <record id="mv_helpdesk_claim_warranty_type" model="helpdesk.ticket.type">
+            <field name="name">Yêu cầu bảo hành</field>
+            <field name="code">yeu_cau_bao_hanh</field>
+            <field name="user_for_warranty_activation" eval="False" />
+        </record>
+
+        <!-- Default helpdesk claim warranty team data -->
+        <record id="mv_helpdesk_claim_warranty" model="helpdesk.team">
+            <field name="name">Claim Warranty</field>
+            <field name="alias_name">moveoplus-yeu-cau-bao-hanh</field>
+            <field name="stage_ids" eval="[(6, 0, [ref('helpdesk.stage_new'), ref('helpdesk.stage_in_progress'), ref('helpdesk.stage_solved'), ref('helpdesk.stage_cancelled')])]"/>
+            <field name="member_ids" eval="[Command.link(ref('base.user_admin'))]"/>
+            <field name="privacy_visibility">portal</field>
+            <field name="description">Yêu cầu bảo hành cho Đối Tác / Khách Hàng</field>
+            <field name="use_website_helpdesk_form" eval="False" />
+            <field name="use_website_helpdesk_livechat" eval="False" />
+            <field name="use_website_helpdesk_forum" eval="False" />
+            <field name="use_website_helpdesk_slides" eval="False" />
+            <field name="use_website_helpdesk_knowledge" eval="False" />
+            <field name="use_website_helpdesk_warranty_activation" eval="True" />
+            <field name="website_id" ref="website.default_website" />
+            <field name="website_menu_id" ref="mv_website_helpdesk.mv_claim_warranty_website_menu" />
+            <field name="is_published" eval="False" />
+        </record>
     </data>
 </odoo>

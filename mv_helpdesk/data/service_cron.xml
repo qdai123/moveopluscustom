@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-
-    </data>
+    <!-- TODO:
+            - Write cron service can remove duplicated all records that have tickets registered
+            - Develop by Phat Dang <phat.dangminh@moveoplus.com>
+    -->
 </odoo>

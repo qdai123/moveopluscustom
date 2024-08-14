@@ -75,6 +75,15 @@ class SaleOrder(models.Model):
         store=True,
         help="Số tiền Đại lý có thể áp dụng để tính chiết khấu.",
     )
+    is_claim_warranty = fields.Boolean("Áp dụng CS bảo hành", readonly="1")
+    mv_moves_warranty_ids = fields.Many2many(
+        "mv.helpdesk.ticket.product.moves",
+        "order_warranty_products_relation",
+        "order_id",
+        "warranty_id",
+        string="Áp dụng cho số serial",
+        readonly="1",
+    )
 
     @api.depends("state", "order_line.product_id", "order_line.product_uom_qty")
     @api.depends_context("uid")
@@ -341,8 +350,8 @@ class SaleOrder(models.Model):
 
     def write(self, vals):
         if "product_uom_qty" in vals and vals["product_uom_qty"]:
-            # [>] Update the Sale Order's Bonus Order
-            for order in self:
+            orders_to_update = self.filtered(lambda so: so.product_uom_qty > 0)
+            for order in orders_to_update:
                 order._update_programs_and_rewards()
                 order._auto_apply_rewards()
 
@@ -351,6 +360,46 @@ class SaleOrder(models.Model):
     # ==================================
     # BUSINESS Methods
     # ==================================
+
+    # TODO: Needs to re-code to optimize these methods: action_compute_discount(), action_recompute_discount()
+
+    def action_compute_discount(self):
+        if self._is_order_returns():
+            return
+
+        if self.locked:
+            raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
+
+        if not self.order_line:
+            raise UserError("Không thể tính chiết khấu cho đơn hàng không có sản phẩm.")
+
+        self._compute_partner_bonus()
+        self._compute_bonus_order_line()
+
+        quantity_change = self._calculate_quantity_change()
+        discount_lines, delivery_lines = self._filter_order_lines()
+        self._handle_quantity_change(quantity_change, discount_lines, delivery_lines)
+
+        return self._handle_discount_applying()
+
+    def action_recompute_discount(self):
+        if self._is_order_returns():
+            return
+
+        if self.locked:
+            raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
+
+        if not self.order_line:
+            raise UserError("Không thể tính chiết khấu cho đơn hàng không có sản phẩm.")
+
+        self._compute_partner_bonus()
+        self._compute_bonus_order_line()
+
+        quantity_change = self._calculate_quantity_change()
+        discount_lines, delivery_lines = self._filter_order_lines()
+        self._handle_quantity_change(quantity_change, discount_lines, delivery_lines)
+
+        return self._handle_discount_applying()
 
     def compute_discount_for_partner(self, bonus):
         default_code = "CKT"
@@ -427,45 +476,6 @@ class SaleOrder(models.Model):
             _logger.error("Failed to compute discount for partner: %s", e)
             return False
 
-    def action_compute_discount(self):
-        if self._is_order_returns() or not self.order_line:
-            return
-
-        if self.locked:
-            raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
-
-        self._compute_partner_bonus()
-        self._compute_bonus_order_line()
-
-        quantity_change = self._calculate_quantity_change()
-        discount_lines, delivery_lines = self._filter_order_lines()
-        self._handle_quantity_change(quantity_change, discount_lines, delivery_lines)
-
-        return self._handle_discount_applying()
-
-    def _filter_order_lines(self):
-        order = self
-        order_lines_discount = order.order_line._filter_discount_agency_lines(order)
-        order_lines_delivery = order.order_line.filtered("is_delivery")
-        return order_lines_discount, order_lines_delivery
-
-    def action_recompute_discount(self):
-        if self._is_order_returns() or not self.order_line:
-            return
-
-        if self.locked:
-            raise UserError("Không thể nhập chiết khấu sản lượng cho đơn hàng đã khóa.")
-
-        self._compute_partner_bonus()
-        self._compute_bonus_order_line()
-
-        quantity_change = self._calculate_quantity_change()
-        discount_lines, delivery_lines = self._filter_order_lines()
-
-        self._handle_quantity_change(quantity_change, discount_lines, delivery_lines)
-
-        return self._handle_discount_applying()
-
     def create_discount_bank_guarantee(self):
         order = self
         default_code = "CKBL"
@@ -523,6 +533,12 @@ class SaleOrder(models.Model):
                 }
             )
             _logger.info("Created discount line for bank guarantee.")
+
+    def _filter_order_lines(self):
+        order = self
+        order_lines_discount = order.order_line._filter_discount_agency_lines(order)
+        order_lines_delivery = order.order_line.filtered("is_delivery")
+        return order_lines_discount, order_lines_delivery
 
     def _calculate_quantity_change(self):
         return sum(
@@ -706,8 +722,8 @@ class SaleOrder(models.Model):
 
             self._process_agency_orders(orders_agency)
 
-            # Create history line for discount
             for order in orders_agency:
+                # Create history line for discount
                 total_money_to_store_history = order.bonus_order
                 is_negative_money = total_money_to_store_history > 0
                 description = (
@@ -732,6 +748,15 @@ class SaleOrder(models.Model):
                     is_positive_money=False,
                     is_negative_money=is_negative_money,
                 )
+
+                # Divide the bonus order to the partner's wallet
+                order.partner_id.write(
+                    {
+                        "amount_currency": order.partner_id.amount_currency
+                        - order.bonus_order
+                    }
+                )
+
             return super(SaleOrder, orders_agency).action_confirm()
 
         # Confirm orders not requiring special processing
@@ -748,82 +773,85 @@ class SaleOrder(models.Model):
         for order in orders_agency:
             order._check_delivery_lines()
             order._check_not_free_qty_in_stock()
-            order.partner_id.action_update_discount_amount()
 
-            # [>] Applying Discount
-            quotation_bonus_order = (
-                self.env["sale.order.line"]
-                .search(
-                    [
-                        ("order_id", "=", order.id),
-                        ("product_id.default_code", "=", "CKT"),
-                    ],
-                    limit=1,
-                )
-                .price_unit
+            partner = order.partner_id
+            partner_wallet = partner.amount_currency
+            quotations_applied_discount = partner._get_orders_with_discount(
+                partner, "not_sale"
             )
-            if not self.env.context.get(
-                "apply_confirm"
-            ) and order.partner_id.amount_currency < abs(quotation_bonus_order):
-                # [>] Xử lý chiết khấu khi có sự thay đổi hoặc đang dùng ở một đơn khác của Đại lý
-                quotations_discount_applied = (
-                    self.env["sale.order"]
-                    .search(
-                        [
-                            ("id", "!=", order.id),
-                            ("state", "in", ["draft", "sent"]),
-                            ("partner_id", "=", order.partner_id.id),
-                            "|",
-                            ("partner_id.is_agency", "=", True),
-                            ("partner_agency", "=", True),
-                        ]
-                    )
-                    .filtered(
-                        lambda so: so.order_line.filtered(
-                            lambda so_line: so_line._filter_discount_agency_lines(so)
-                        )
-                    )
-                )
-                quotations_discount_applied._compute_partner_bonus()
-                quotations_discount_applied._compute_bonus_order_line()
-                order_lines_delivery = order.order_line.filtered(
-                    lambda sol: sol.is_delivery
-                )
-                carrier = (
-                    (
-                        order.with_company(
-                            order.company_id
-                        ).partner_shipping_id.property_delivery_carrier_id
-                        or order.with_company(
-                            order.company_id
-                        ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
-                    )
-                    if not order_lines_delivery
-                    else order.carrier_id
+            total_so_quotations_discount = partner._process_orders_with_discount(
+                partner, quotations_applied_discount, is_sale=False
+            )
+            if len(quotations_applied_discount) > 1:
+                total_so_quotations_discount -= order.bonus_order
+
+            if (
+                not self.env.context.get("apply_confirm")
+                and partner_wallet < total_so_quotations_discount
+            ):
+                raise UserError(
+                    "Đại lý không đủ số dư để áp dụng chiết khấu cho đơn hàng này."
                 )
 
-                return {
-                    "name": "Cập nhật chiết khấu",
-                    "type": "ir.actions.act_window",
-                    "res_model": "mv.wizard.discount",
-                    "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
-                    "views": [
-                        (
-                            self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
-                            "form",
-                        )
-                    ],
-                    "context": {
-                        "default_sale_order_id": order.id,
-                        "partner_id": order.partner_id.id,
-                        "default_partner_id": order.partner_id.id,
-                        "default_discount_amount_apply": order.bonus_remaining,
-                        "default_carrier_id": carrier.id,
-                        "default_total_weight": order._get_estimated_weight(),
-                        "default_discount_amount_invalid": True,
-                    },
-                    "target": "new",
-                }
+                # [>] Xử lý chiết khấu khi có sự thay đổi hoặc đang dùng ở một đơn khác của Đại lý
+                # quotations_discount_applied = (
+                #     self.env["sale.order"]
+                #     .search(
+                #         [
+                #             ("id", "!=", order.id),
+                #             ("state", "in", ["draft", "sent"]),
+                #             ("partner_id", "=", order.partner_id.id),
+                #             "|",
+                #             ("partner_id.is_agency", "=", True),
+                #             ("partner_agency", "=", True),
+                #         ]
+                #     )
+                #     .filtered(
+                #         lambda so: so.order_line.filtered(
+                #             lambda so_line: so_line._filter_discount_agency_lines(so)
+                #         )
+                #     )
+                # )
+                # quotations_discount_applied._compute_partner_bonus()
+                # quotations_discount_applied._compute_bonus_order_line()
+                # order_lines_delivery = order.order_line.filtered(
+                #     lambda sol: sol.is_delivery
+                # )
+                # carrier = (
+                #     (
+                #         order.with_company(
+                #             order.company_id
+                #         ).partner_shipping_id.property_delivery_carrier_id
+                #         or order.with_company(
+                #             order.company_id
+                #         ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+                #     )
+                #     if not order_lines_delivery
+                #     else order.carrier_id
+                # )
+                #
+                # return {
+                #     "name": "Cập nhật chiết khấu",
+                #     "type": "ir.actions.act_window",
+                #     "res_model": "mv.wizard.discount",
+                #     "view_id": self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
+                #     "views": [
+                #         (
+                #             self.env.ref("mv_sale.mv_wiard_discount_view_form").id,
+                #             "form",
+                #         )
+                #     ],
+                #     "context": {
+                #         "default_sale_order_id": order.id,
+                #         "partner_id": order.partner_id.id,
+                #         "default_partner_id": order.partner_id.id,
+                #         "default_discount_amount_apply": order.bonus_remaining,
+                #         "default_carrier_id": carrier.id,
+                #         "default_total_weight": order._get_estimated_weight(),
+                #         "default_discount_amount_invalid": True,
+                #     },
+                #     "target": "new",
+                # }
             else:
                 order.with_context(action_confirm=True).action_recompute_discount()
 

@@ -113,6 +113,11 @@ class MvComputeDiscount(models.Model):
         readonly=True,
     )
     line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
+    production_discount_policy_details_history_ids = fields.One2many(
+        comodel_name="mv.partner.total.discount.detail.history",
+        inverse_name="parent_id",
+        string="Lịch sử chi tiết số tiền CKSL",
+    )
     report_date = fields.Datetime(
         compute="_compute_report_date_by_month_year", store=True
     )
@@ -424,6 +429,10 @@ class MvComputeDiscount(models.Model):
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
+        base_total_detail_histories_of_partner = self.env[
+            "mv.partner.total.discount.detail.history"
+        ].search([("partner_id", "=", partner.id)])
+
         for record in self.filtered(lambda r: len(r.line_ids) > 0):
             partners_updates = {}
             for discount_line in record.line_ids:
@@ -439,11 +448,18 @@ class MvComputeDiscount(models.Model):
 
             # Create history line for discount
             for line in record.line_ids.filtered(lambda rec: rec.parent_id):
-                self.create_history_line(
+                record.create_history_line(
                     line,
                     "done",
                     "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
                 )
+
+            # Create total detail discount history
+            if (
+                record.id
+                not in base_total_detail_histories_of_partner.mapped("parent_id").ids
+            ):
+                record.create_total_discount_detail_history()
 
             record.write({"state": "done"})
 
@@ -484,6 +500,12 @@ class MvComputeDiscount(models.Model):
             is_positive_money=is_positive_money,
             is_negative_money=is_negative_money,
         )
+
+    def create_total_discount_detail_history(self):
+        for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+            self.env[
+                "mv.partner.total.discount.detail.history"
+            ]._create_total_discount_detail_history_line(parent_id=self, policy_id=line)
 
     def _prepare_values_for_confirmation(self, partner_id, report_date):
         """Gets the data and returns it the right format for render."""

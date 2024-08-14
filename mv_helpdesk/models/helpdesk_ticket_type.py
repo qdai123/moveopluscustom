@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import api, fields, models, _
-from odoo.exceptions import UserError, ValidationError
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
+    END_USER_CODE,
     HELPDESK_MANAGER,
     SUB_DEALER_CODE,
-    END_USER_CODE,
 )
+
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -91,4 +92,4 @@ class HelpdeskTicketType(models.Model):
                     f"Another type with the same name '{record.name}' already exists."
                 )
                 pass
-                # TODO: This functional needs to be re-check and fix
+                # TODO: This functional needs to be re-check and fix - Phat Dang <phat.dangminh@moveoplus.com>

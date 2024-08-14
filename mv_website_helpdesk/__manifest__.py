@@ -24,6 +24,7 @@
         "views/helpdesk_team_views.xml",
         "views/helpdesk_ticket_views.xml",
         "views/helpdesk_templates.xml",
+        'views/claim_warranty_portal_views.xml',
         # DEFAULT DATA
         "data/default_data_helpdesk_team.xml",
     ],

@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
 import logging
-import pytz
 import re
 from datetime import datetime
 
-from odoo import api, fields, models, _
+import pytz
+
+from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
+# Date format used in the module
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-# Access Groups:
+# Access Groups
 HELPDESK_USER = "helpdesk.group_helpdesk_user"
 HELPDESK_MANAGER = "helpdesk.group_helpdesk_manager"
 
-# Ticket Type Codes for Warranty Activation:
+# Ticket Type Codes for Warranty Activation
 SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
 END_USER_CODE = "kich_hoat_bao_hanh_nguoi_dung_cuoi"
 
+# Error Codes
 IS_EMPTY = "is_empty"
 CODE_NOT_FOUND = "code_not_found"
 CODE_ALREADY_REGISTERED = "code_already_registered"
@@ -29,64 +32,78 @@ class HelpdeskTicket(models.Model):
 
     @api.depends_context("uid")
     def _is_helpdesk_manager(self):
-        for record in self:
-            record.is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
-
-    # ACCESS / RULE Fields:
-    is_helpdesk_manager = fields.Boolean(
-        "Helpdesk Manager", compute="_is_helpdesk_manager"
-    )
+        """Compute if the current user is a helpdesk manager."""
+        for ticket in self:
+            ticket.is_helpdesk_manager = self.env.user.has_group(HELPDESK_MANAGER)
 
     @api.depends("partner_id", "ticket_type_id")
     def _compute_name(self):
-        for rec in self:
-            partner_name = rec.partner_id.name.upper() if rec.partner_id else "-"
-            ticket_type_name = rec.ticket_type_id.name if rec.ticket_type_id else "-"
+        """Compute the name of the ticket based on partner and ticket type."""
+        for ticket in self:
+            partner_name = ticket.partner_id.name.upper() if ticket.partner_id else "-"
+            ticket_type_name = (
+                ticket.ticket_type_id.name if ticket.ticket_type_id else "-"
+            )
 
             now_utc = datetime.utcnow()
-            now_user = now_utc.astimezone(pytz.timezone(rec.partner_id.tz or "UTC"))
-            lang = self.env["res.lang"]._lang_get(rec.partner_id.lang)
+            now_user = now_utc.astimezone(pytz.timezone(ticket.partner_id.tz or "UTC"))
+            lang = self.env["res.lang"]._lang_get(
+                ticket.partner_id.lang or self.env.user.lang
+            )
             date_format = lang.date_format
             time_format = lang.time_format
             formatted_date = now_user.strftime(date_format + " " + time_format)
 
-            rec.name = f"{partner_name}/{ticket_type_name}({formatted_date})"
+            ticket.name = f"{partner_name}/{ticket_type_name}({formatted_date})"
 
-    # INHERIT Fields:
+    # === ACCESS / RULE Fields ===#
+    is_helpdesk_manager = fields.Boolean("Manager", compute="_is_helpdesk_manager")
+    # === INHERIT Fields ===#
     name = fields.Char(compute="_compute_name", store=True, required=False)
-
-    # ==================================================
-
-    portal_lot_serial_number = fields.Text("Input Lot/Serial Number")
+    # === ADDITIONAL Fields ===#
+    portal_lot_serial_number = fields.Text("Nhập số serial")
     ticket_update_date = fields.Datetime(
-        "Update Date", default=lambda self: fields.Datetime.now(), readonly=True
+        "Ngày cập nhật", default=lambda self: fields.Datetime.now(), readonly=True
     )
     helpdesk_ticket_product_move_ids = fields.One2many(
         comodel_name="mv.helpdesk.ticket.product.moves",
         inverse_name="helpdesk_ticket_id",
         string="Lot/Serial Number",
     )
-
-    # Type with Sub-Dealer
+    helpdesk_warranty_ticket_ids = fields.One2many(
+        comodel_name="mv.helpdesk.ticket.product.moves",
+        inverse_name="mv_warranty_ticket_id",
+        string="Lot/Serial Number",
+    )
+    # === SUB-DEALER Ticket Type ===#
     is_sub_dealer = fields.Boolean(compute="_compute_ticket_type")
     sub_dealer_name = fields.Char("Sub-Dealer")
-
-    # Type with End-User
+    # === END-USER Ticket Type ===#
     is_end_user = fields.Boolean(compute="_compute_ticket_type")
-    tel_activation = fields.Char("Phone")
-    license_plates = fields.Char("License plates")
-    mileage = fields.Integer("Mileage (Km)", default=0)
+    tel_activation = fields.Char("Số điện thoại")
+    license_plates = fields.Char("Biển số xe")
+    mileage = fields.Integer("Số Km", default=0)
+    mv_is_warranty_ticket = fields.Boolean(compute="compute_is_warranty_ticket")
+    invalid_serials = fields.Text("Số serial chưa kích hoạt")
+
+    @api.depends("team_id")
+    def compute_is_warranty_ticket(self):
+        for move in self:
+            move.mv_is_warranty_ticket = False
+            ticket_ref = self.env.ref(
+                "mv_website_helpdesk.mv_helpdesk_claim_warranty",
+                raise_if_not_found=False,
+            )
+            if move.team_id.id == ticket_ref.id and ticket_ref and move.team_id:
+                move.mv_is_warranty_ticket = True
 
     # ==================================
-    # COMPUTE / CONSTRAINS Methods
+    # ORM Methods
     # ==================================
 
     @api.depends("ticket_type_id")
     def _compute_ticket_type(self):
-        """
-        Compute the ticket type based on the ticket_type_id's code.
-        Sets the 'is_sub_dealer' and 'is_end_user' fields.
-        """
+        """Compute the ticket type based on the ticket_type_id's code."""
         for ticket in self:
             if ticket.ticket_type_id:
                 ticket.is_sub_dealer = ticket.ticket_type_id.code == SUB_DEALER_CODE
@@ -96,43 +113,41 @@ class HelpdeskTicket(models.Model):
                 ticket.is_end_user = False
 
     def _check_not_empty_portal_lot_serial_number(self):
-        for record in self:
-            if not record.portal_lot_serial_number:
+        """Check if the portal lot serial number is not empty."""
+        for ticket in self:
+            if not ticket.portal_lot_serial_number:
                 raise UserError(
                     "Vui lòng nhập vào Số lô/Mã vạch hoặc mã QR-Code để kiểm tra!"
                 )
 
     def _check_codes_already_exist(self):
-        for record in self:
-            # Format portal lot serial numbers if needed
+        """Check if the codes already exist in the system."""
+        for ticket in self:
             codes = (
-                record.portal_lot_serial_number
-                if isinstance(record.portal_lot_serial_number, list)
+                ticket.portal_lot_serial_number
+                if isinstance(ticket.portal_lot_serial_number, list)
                 else self._format_portal_lot_serial_number(
-                    record.portal_lot_serial_number
+                    ticket.portal_lot_serial_number
                 )
             )
-
             # Get all lot names and QR codes from helpdesk_ticket_product_move_ids
-            lot_names = set(record.helpdesk_ticket_product_move_ids.mapped("lot_name"))
-            qr_codes = set(record.helpdesk_ticket_product_move_ids.mapped("qr_code"))
-
+            lot_names = set(ticket.helpdesk_ticket_product_move_ids.mapped("lot_name"))
+            qr_codes = set(ticket.helpdesk_ticket_product_move_ids.mapped("qr_code"))
             # Check if any code already exists
             existing_codes = lot_names.union(qr_codes)
             conflicting_codes = [code for code in codes if code in existing_codes]
-
             if conflicting_codes:
                 raise ValidationError(
-                    f"The following codes are already registered for this ticket: {', '.join(conflicting_codes)}. Please select different codes."
+                    f"The following codes are already registered "
+                    f"for this ticket: {', '.join(conflicting_codes)}. Please select different codes."
                 )
 
     # ==================================
-    # ORM / CRUD Methods
+    # CRUD Methods
     # ==================================
 
     @api.model_create_multi
     def create(self, vals_list):
-        # TODO: Fix this case after
         for vals in vals_list:
             if "partner_email" in vals and "partner_name" in vals:
                 partner = (
@@ -152,7 +167,8 @@ class HelpdeskTicket(models.Model):
                     and not partner.parent_id.is_agency
                 ):
                     raise ValidationError(
-                        "Bạn không phải là Đại lý của Moveo Plus.Vui lòng liên hệ bộ phận hỗ trợ của Moveo PLus để đăng ký thông tin."
+                        "Bạn không phải là Đại lý của Moveo Plus. "
+                        "Vui lòng liên hệ bộ phận hỗ trợ để đăng ký thông tin."
                     )
                 vals["partner_id"] = partner.id
         tickets = super(HelpdeskTicket, self).create(vals_list)
@@ -199,8 +215,8 @@ class HelpdeskTicket(models.Model):
     def convert_to_list_codes(codes):
         """
         Convert the input codes into a list of codes.
-        If the input is a string, extract numbers using regex.
-        If the input is already a list, use it directly.
+        - If the input is a string, extract numbers using regex.
+        - If the input is already a list, use it directly.
         """
         if isinstance(codes, str):
             return re.findall(r"\b\d+\b", codes)
@@ -211,9 +227,10 @@ class HelpdeskTicket(models.Model):
     def _validate_qr_code(self, codes):
         """
         Validate the input codes against existing QR codes.
-        If the input is a string, split it into a list of codes.
-        If the input is already a list, use it directly.
-        Return the list of validated QR codes.
+        - If the input is a string, split it into a list of codes.
+        - If the input is already a list, use it directly.
+
+        Return: Lst of validated QR-Codes
         """
         if isinstance(codes, str):
             valid_codes = [code.strip() for code in codes.split(",") if code]
@@ -229,9 +246,10 @@ class HelpdeskTicket(models.Model):
     def _validate_lot_serial_number(self, codes):
         """
         Validate the input codes against existing lot serial numbers.
-        If the input is a string, split it into a list of codes.
-        If the input is already a list, use it directly.
-        Return the list of validated lot serial numbers.
+        - If the input is a string, split it into a list of codes.
+        - If the input is already a list, use it directly.
+
+        Return: List of validated Lot/Serial Numbers
         """
         if isinstance(codes, str):
             valid_codes = [code.strip() for code in codes.split(",") if code]
@@ -248,6 +266,7 @@ class HelpdeskTicket(models.Model):
         )
 
     def _process_ticket(self, ticket, vals_list):
+        """Process the ticket after creation."""
         for vals in vals_list:
             if vals.get("name") == "new":
                 ticket._compute_name()
@@ -262,16 +281,13 @@ class HelpdeskTicket(models.Model):
         ticket.clean_data()
 
     def _process_ticket_barcode(self, ticket, ticket_type, barcode):
+        """Process the ticket barcode."""
         res_ids = self._scanning(ticket, ticket_type, barcode)
         for move_line in self.env["stock.move.line"].browse(res_ids):
             self._registering_ticket_product_move(ticket, ticket_type, move_line)
 
     def _scanning(self, ticket, ticket_type, codes):
-        """
-        Validate the input codes. If the codes are not provided, raise a ValidationError.
-        If the codes are provided, format them and validate them. If there are any error messages,
-        raise a ValidationError with these messages. If there are no error messages, return IDs of Stock Move Line.
-        """
+        """Validate and scan the input codes."""
         if not codes:
             raise ValidationError("Vui lòng nhập hoặc quét mã để quá trình tiếp tục.")
 
@@ -297,6 +313,7 @@ class HelpdeskTicket(models.Model):
         return res
 
     def _registering_ticket_product_move(self, ticket, ticket_type, stock_move_line):
+        """Register the ticket product move."""
         ticket_product_moves_env = self.env["mv.helpdesk.ticket.product.moves"].sudo()
         existing_product_none_registered = ticket_product_moves_env.search(
             [
@@ -330,9 +347,11 @@ class HelpdeskTicket(models.Model):
 
     def _prepare_validated_data(self, ticket, ticket_type, codes):
         """
-        Validate the input codes. If the codes are not provided, raise a ValueError.
-        If the codes are provided, format them and validate them. If there are any error messages,
-        raise a ValidationError with these messages. If there are no error messages, return IDs of Stock Move Line.
+        Validate the input codes.
+        - If the codes are not provided, raise a ValueError.
+        - If the codes are provided, format them and validate them.
+        - If there are any error messages, raise a ValidationError with these messages.
+        - If there are no error messages, return IDs of Stock Move Line.
         """
         results = set()
         error_messages = []
@@ -389,6 +408,7 @@ class HelpdeskTicket(models.Model):
         return results, error_messages
 
     def _validate_codes(self, codes, ticket_type, partner, error_messages, field_name):
+        """Validate the input codes."""
         TicketProductMoves = self.env["mv.helpdesk.ticket.product.moves"].sudo()
 
         for code in codes:
@@ -421,10 +441,13 @@ class HelpdeskTicket(models.Model):
                     )
 
     def _get_domain(self, ticket_type_code, code, field_name):
+        """Get the domain for searching conflicting tickets."""
         return [
-            ("helpdesk_ticket_id", "!=", False),
             ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
             (f"stock_move_line_id.{field_name}", "=", code),
+            "|",
+            ("helpdesk_ticket_id", "!=", False),
+            ("mv_warranty_ticket_id", "!=", False),
         ]
 
     def _handle_code(
@@ -436,20 +459,25 @@ class HelpdeskTicket(models.Model):
         error_messages,
         ticket_type_code,
     ):
+        """Handle the validation of conflicting codes."""
         validate_different_partner_for_sub = (
             len(conflicting_ticket_sub_dealer) > 0
+            and conflicting_ticket_sub_dealer.partner_id
             and conflicting_ticket_sub_dealer.partner_id.id != partner.id
         )
         validate_different_partner_for_end = (
             len(conflicting_ticket_end_user) > 0
+            and conflicting_ticket_end_user.partner_id
             and conflicting_ticket_end_user.partner_id.id != partner.id
         )
         validate_same_partner_for_sub = (
             len(conflicting_ticket_sub_dealer) > 0
+            and conflicting_ticket_sub_dealer.partner_id
             and conflicting_ticket_sub_dealer.partner_id.id == partner.id
         )
         validate_same_partner_for_end = (
             len(conflicting_ticket_end_user) > 0
+            and conflicting_ticket_end_user.partner_id
             and conflicting_ticket_end_user.partner_id.id == partner.id
         )
         # Validate if the code is already registered on other tickets by different Partners
@@ -468,7 +496,7 @@ class HelpdeskTicket(models.Model):
         elif validate_same_partner_for_sub or validate_same_partner_for_end:
             conflicting_ticket = (
                 conflicting_ticket_sub_dealer
-                if validate_different_partner_for_sub
+                if validate_same_partner_for_sub
                 else conflicting_ticket_end_user
             )
             message = (
@@ -498,6 +526,7 @@ class HelpdeskTicket(models.Model):
                 error_messages.append((CODE_ALREADY_REGISTERED, message))
 
     def clean_data(self):
+        """Clean the data by resetting the portal lot serial number."""
         self.write({"portal_lot_serial_number": ""})
 
     # ==================================
@@ -505,7 +534,7 @@ class HelpdeskTicket(models.Model):
     # ==================================
 
     def action_wizard_import_lot_serial_number(self):
-        # TODO: This method needs to be upgraded to support scanning with images
+        """Open the wizard to import lot/serial number or QR-Code."""
         self.ensure_one()
         return {
             "name": _("Import Lot/Serial Number or QR-Code"),
@@ -520,4 +549,23 @@ class HelpdeskTicket(models.Model):
                 "default_helpdesk_ticket_type_id": self.ticket_type_id.id,
             },
             "target": "new",
+        }
+
+    def action_generate_sale_order(self):
+        self.ensure_one()
+        return {
+            "name": _("Tạo đơn bán"),
+            "type": "ir.actions.act_window",
+            "res_model": "sale.order",
+            "view_mode": "form",
+            "view_id": self.env.ref("sale.view_order_form").id,
+            "context": {
+                "default_is_claim_warranty": True,
+                "default_mv_moves_warranty_ids": [
+                    (6, 0, self.helpdesk_warranty_ticket_ids.ids)
+                ],
+                "default_state": "draft",
+                "default_partner_id": self.partner_id.id,
+            },
+            "target": "current",
         }
