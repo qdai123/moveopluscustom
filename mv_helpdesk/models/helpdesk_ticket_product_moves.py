@@ -56,7 +56,6 @@ class HelpdeskTicketProductMoves(models.Model):
     customer_date_activation = fields.Date("Ngày kích hoạt")
     customer_license_plates_activation = fields.Char("Biển số kích hoạt")
     customer_mileage_activation = fields.Integer("Số km kích hoạt", default=0)
-    customer_warranty_date_activation = fields.Date("Ngày bảo hành")
     customer_warranty_mileage_activation = fields.Date("")
     # STOCK MOVE LINE Fields
     stock_move_line_id = fields.Many2one(
@@ -83,17 +82,40 @@ class HelpdeskTicketProductMoves(models.Model):
     qr_code = fields.Char(
         string="Mã QR", related="stock_move_line_id.qr_code", store=True
     )
-    mv_warranty_ticket_id = fields.Many2one('helpdesk.ticket', string='Helpdesk warranty ticket')
-    mv_warranty_license_plate = fields.Char('Biển số bảo hành')
-    mv_num_of_km = fields.Float('Số km bảo hành')
-    reason_no_warranty = fields.Text('Ghi chú')
-    mv_warranty_phone = fields.Char('Số điện thoại bảo hành')
+
+    # Fields dùng cho claim-bao-hanh
+    customer_warranty_date_activation = fields.Date(
+        "Ngày yêu cầu được bảo hành", tracking=True)
+    mv_warranty_ticket_id = fields.Many2one(
+        'helpdesk.ticket', string='Helpdesk warranty ticket', tracking=True)
+    mv_warranty_license_plate = fields.Char('Biển số bảo hành', tracking=True)
+    mv_num_of_km = fields.Float('Số km bảo hành', tracking=True)
+    mv_warranty_phone = fields.Char('Số điện thoại bảo hành', tracking=True)
+
+    mv_cv_number = fields.Char('Số CV', tracking=True)
+    mv_reviced_date = fields.Datetime('Ngày tiếp nhận', tracking=True)
+    mv_result_date = fields.Datetime('Ngày trả kết quả', tracking=True)
+    mv_remaining_tread_depth = fields.Float('Độ sâu gai còn lại (%)', tracking=True)
+    mv_tire_installation_date = fields.Datetime('Ngày lắp lốp', tracking=True)
+    mv_vehicle_pump_pressure = fields.Char('Áp suất bơm hơi', tracking=True)
+    mv_number_of_tires = fields.Float('Số lốp bố', tracking=True)
+    mv_mold_number = fields.Char('Số khuôn', tracking=True)
+
+    is_warranty_product_accept = fields.Boolean(
+        'Sản phẩm được đồng ý bảo hành?', tracking=True)
+    mv_customer_warranty_date = fields.Date("Ngày bảo hành", tracking=True)
+    mv_note = fields.Text('Ghi chú', tracking=True)
+    reason_no_warranty = fields.Text('Lý do không bảo hành', tracking=True)
+
 
     # ==================================
     # COMPUTE / INVERSE Methods
     # ==================================
 
-
+    @api.onchange('customer_warranty_date_activation')
+    def onchange_mv_customer_warranty_date(self):
+        for move in self:
+            move.mv_customer_warranty_date = move.customer_warranty_date_activation
 
     @api.depends("helpdesk_ticket_id")
     def _compute_helpdesk_ticket_id(self):

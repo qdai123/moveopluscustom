@@ -134,27 +134,50 @@
 															</div>
 														</div>
 													</div>                                                
-                                                    <!-- Field: license_plates (Required) -->
+                                                    <!-- Field: license_plates -->
                                                     <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
                                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                                             <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_license_plates">
                                                                 <span class="s_website_form_label_content">Biển số xe</span>
-                                                                <span class="s_website_form_mark">*</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <input id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" t-att-required="true"/>
+                                                                <input id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" />
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <!-- Field: mileage (Required) -->
+                                                    <!-- Field: mileage -->
                                                     <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
                                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                                             <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_mileage">
                                                                 <span class="s_website_form_label_content">Số Km hiện tại</span>
-                                                                <span class="s_website_form_mark">*</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <input id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="number" name="mileage" data-fill-with="mileage" t-att-required="true"/>
+                                                                <input id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="number" name="mileage" data-fill-with="mileage" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Field: mv_warranty_phone -->
+                                                    <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
+                                                        <div class="row s_col_no_resize s_col_no_bgcolor">
+                                                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_mv_warranty_phone">
+                                                                <span class="s_website_form_label_content">Số điện thoại</span>
+                                                            </label>
+                                                            <div class="col-sm">
+                                                                <input id="helpdesk_warranty_input_mv_warranty_phone" class="form-control s_website_form_input" type="text" name="mv_warranty_phone" data-fill-with="mv_warranty_phone" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Attachment Images -->
+                                                    <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
+                                                        <div class="row s_col_no_resize s_col_no_bgcolor">
+                                                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_images">
+                                                                <span class="s_website_form_label_content">Đính kèm hình ảnh</span>
+                                                            </label>
+                                                            <div class="col-sm">
+                                                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>                                                                
+                                                                <div class="col-lg-7 col-md-8">
+                                                                    <input type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -209,6 +232,10 @@
                                 </section>
                             </div>
                         </div>
+                        <!-- <form action="/form/submit" method="post" enctype="multipart/form-data">
+                            
+                            <button type="submit" class="btn btn-primary">Create </button>
+                        </form> -->
                     </div>
                 </div>
             </t>

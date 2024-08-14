@@ -6,28 +6,52 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <group name="lich_su_kich_hoat" string="Lịch sử kích hoạt">
-                        <group name="lich_su1">
+                    <group name="info_all">
+                        <group name="info_all_1">
+                            <field name="mv_cv_number" />
+                            <field name="mv_reviced_date" />
+                        </group>
+                        <group name="info_all_2">
+                            <field name="mv_result_date" />
+                        </group>
+                    </group>
+                    <group name="info_serial" string="THÔNG TIN SẢN PHẨM YÊU CẦU BẢO HÀNH">
+                        <field name="lot_name" readonly="1" force_save="1" />
+                        <field name="qr_code" readonly="1" force_save="1" />
+                    </group>
+                    <group name="info_require_warranty">
+                        <group name="info_require_warranty_1">
+                            <field name="mv_remaining_tread_depth" />
+                            <field name="mv_tire_installation_date" />
+                            <field name="mv_number_of_tires" />
+                            <field name="mv_vehicle_pump_pressure" />
+                            <field name="customer_warranty_date_activation" />
+                        </group>
+                        <group name="info_require_warranty_2">
+                            <field name="mv_mold_number" />
+                            <field name="mv_warranty_license_plate" string="Số xe" readonly="1" force_save="1" />
+                            <field name="mv_num_of_km" string="Số km" readonly="1" force_save="1" />
+                        </group>
+                    </group>
+                    <group name="thong_tin_kich_hoat" string="THÔNG TIN KÍCH HOẠT">
+                        <group name="thong_tin_kich_hoat_1">
                             <field name="customer_mileage_activation" readonly="1" force_save="1" />
                             <field name="customer_phone_activation" readonly="1" force_save="1" />
                         </group>
-                        <group name="lich_su2">
+                        <group name="thong_tin_kich_hoat_2">
                             <field name="customer_license_plates_activation" readonly="1" force_save="1" />
                             <field name="customer_date_activation" readonly="1" force_save="1" />
                         </group>
-                        <field name="reason_no_warranty" placeholder="Lý do không bảo hành"/>
                     </group>
-                    <group name="thong_tin_bao_hanh" string="Thông tin bảo hành">
-                        <group name="bao_hanh1">
-                            <field name="lot_name" readonly="1" force_save="1" />
-                            <field name="qr_code" readonly="1" force_save="1" />
+                    <group name="thong_tin_bao_hanh" string="THÔNG TIN BẢO HÀNH">
+                        <group name="is_warranty_product_accept">
+                            <field name="is_warranty_product_accept" />
+                            <field name="mv_customer_warranty_date" invisible="not is_warranty_product_accept" />
                         </group>
-                        <group name="bao_hanh2">
-                            <field name="mv_warranty_license_plate" readonly="1" force_save="1" />
-                            <field name="mv_num_of_km" readonly="1" force_save="1" />
-                            <field name="customer_warranty_date_activation" />
-                            <field name="mv_warranty_phone" />
-                        </group>
+                        <label for="mv_note" string="Ghi chú" invisible="not is_warranty_product_accept" />
+                        <field name="mv_note" invisible="not is_warranty_product_accept" />
+                        <label for="reason_no_warranty" string="Lý do không bảo hành" invisible="is_warranty_product_accept" />
+                        <field name="reason_no_warranty" invisible="is_warranty_product_accept" />
                     </group>
                 </sheet>
             </form>
@@ -59,7 +83,6 @@
                 <field name="customer_phone_activation" optional="hidden"/>
                 <field name="customer_license_plates_activation" optional="hidden"/>
                 <field name="customer_mileage_activation" optional="hidden"/>
-                <field name="customer_warranty_date_activation" column_invisible="True"/>
                 <field name="customer_warranty_mileage_activation" column_invisible="True"/>
                 <field name="stock_move_line_id" column_invisible="True"/>
                 <field name="stock_move_id" column_invisible="True"/>
@@ -103,7 +126,7 @@
         <field name="context">{'search_default_filter_ticket_registered': True}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">
-                No data yet!
+                Chưa có dữ liệu
             </p>
         </field>
     </record>

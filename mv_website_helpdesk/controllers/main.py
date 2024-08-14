@@ -470,8 +470,6 @@ class MVWebsiteHelpdesk(http.Controller):
 class WebsiteForm(form.WebsiteForm):
 
     def generate_ticket_details(self, request, dict_id):
-        now = fields.Datetime.now().replace(tzinfo=pytz.UTC).astimezone(
-            pytz.timezone(request.env.user.tz or 'Asia/Ho_Chi_Minh'))
         serials = request.params.get('portal_lot_serial_number')
         list_serial = serials.split(",")
 
@@ -494,7 +492,7 @@ class WebsiteForm(form.WebsiteForm):
                     'mv_warranty_ticket_id': ticket.id,
                     'mv_warranty_license_plate': request.params.get('license_plates'),
                     'mv_num_of_km': request.params.get('mileage'),
-                    'customer_warranty_date_activation': now.date(),
+                    'mv_warranty_phone': request.params.get('mv_warranty_phone'),
                 })
             if not product_moves:
                 invalid_serials += serial + ", "
@@ -524,7 +522,7 @@ class WebsiteForm(form.WebsiteForm):
                     return super(WebsiteForm, self)._handle_website_form(
                         model_name, **kwargs
                     )
-        result = super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)        
+        result = super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
         tmp = json.loads(result or {})
         self.generate_ticket_details(request, tmp)
         return result
