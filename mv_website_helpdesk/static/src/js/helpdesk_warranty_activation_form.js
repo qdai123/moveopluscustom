@@ -206,16 +206,16 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 return;
             }
         }
-
+        
         let tel_activation = null
-        if ($telNumberActivation.val() == null){
-            const domain = ['|',['email', '=', $partnerEmail.val()],['name', '=', $partnerName.val()]];
+        if ($telNumberActivation.val() == null) {
+            const domain = ['|', ['email', '=', $partnerEmail.val()], ['name', '=', $partnerName.val()]];
             const res = await this.orm.searchRead("res.partner", domain, ['name', 'email', 'phone', 'mobile'], {
                 limit: 1,
             });
-            if(res[0].phone){
+            if (res[0].phone) {
                 tel_activation = res[0].phone
-            } else if (res[0].mobile){
+            } else if (res[0].mobile) {
                 tel_activation = res[0].mobile
             }
         }

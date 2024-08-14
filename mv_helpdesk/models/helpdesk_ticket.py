@@ -443,10 +443,11 @@ class HelpdeskTicket(models.Model):
     def _get_domain(self, ticket_type_code, code, field_name):
         """Get the domain for searching conflicting tickets."""
         return [
-            ("helpdesk_ticket_id", "!=", False),
-            ("mv_warranty_ticket_id", "!=", False),
             ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
             (f"stock_move_line_id.{field_name}", "=", code),
+            "|",
+            ("helpdesk_ticket_id", "!=", False),
+            ("mv_warranty_ticket_id", "!=", False),
         ]
 
     def _handle_code(
@@ -495,7 +496,7 @@ class HelpdeskTicket(models.Model):
         elif validate_same_partner_for_sub or validate_same_partner_for_end:
             conflicting_ticket = (
                 conflicting_ticket_sub_dealer
-                if validate_different_partner_for_sub
+                if validate_same_partner_for_sub
                 else conflicting_ticket_end_user
             )
             message = (
@@ -560,7 +561,9 @@ class HelpdeskTicket(models.Model):
             "view_id": self.env.ref("sale.view_order_form").id,
             "context": {
                 "default_is_claim_warranty": True,
-                "default_mv_moves_warranty_ids": [(6, 0, self.helpdesk_warranty_ticket_ids.ids)],
+                "default_mv_moves_warranty_ids": [
+                    (6, 0, self.helpdesk_warranty_ticket_ids.ids)
+                ],
                 "default_state": "draft",
                 "default_partner_id": self.partner_id.id,
             },

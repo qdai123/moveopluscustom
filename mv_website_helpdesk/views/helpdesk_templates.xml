@@ -96,7 +96,7 @@
 														</div>
 													</div>
 												</div>
-												<!-- [!] Validation Partner Phone Number -->
+												<!-- [!] Validation Partner Phone Number on Public -->
 												<t t-if="anonymous">
 													<div class="mb-0 py-2 s_website_form_field col-12">
 														<div class="o_search input-group col-sm has-validation" style="height: 80%;">
@@ -228,7 +228,11 @@
 												<!-- ACTION: Submit Button -->
 												<div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
 													<div style="width: 200px;" class="s_website_form_label"/>
-													<a href="#" role="button" id="submit-btn" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text" style="background-color: #461885; border-color: #461885;">
+													<a href="#"
+													   role="button"
+													   id="submit-btn"
+													   class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text"
+													   style="background-color: #461885; border-color: #461885;">
 														Gửi kích hoạt bảo hành
 													</a>
 												</div>
@@ -244,19 +248,27 @@
 					</div>
 					<div class="col-md-4" id="right-column">
 						<div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_sidebar_right">
-							<section class="s_text_image pt32 pb32 o_colored_level" data-snippet="s_text_image" data-name="Text - Image" style="background-image: none;">
+							<section class="s_text_image pt32 pb32 o_colored_level"
+							         data-snippet="s_text_image"
+							         data-name="Text - Image"
+							         style="background-image: none;">
 								<div class="container">
 									<div class="row o_grid_mode" data-row-count="6">
 										<div class="o_colored_level o_grid_item g-col-lg-5 g-height-6 col-lg-5 o_grid_item_image" style="grid-row-start: 1; grid-column-start: 7; grid-row-end: 7; grid-column-end: 12; z-index: 2; width: 100%;">
-											<img src="/mv_website_helpdesk/static/src/img/lot-serial-number-where-to-scanning.webp" alt="Serial Number where to scanning" class="img img-fluid mx-auto o_we_custom_image" data-mimetype="image/webp" data-original-id="5830" data-original-src="/mv_website_helpdesk/static/src/img/lot-serial-number-where-to-scanning.jpg" data-mimetype-before-conversion="image/jpeg" data-resize-width="690" loading="lazy"/>
+											<img src="/mv_website_helpdesk/static/src/img/lot-serial-number-where-to-scanning.webp"
+											     alt="Serial Number where to scanning"
+											     class="img img-fluid mx-auto o_we_custom_image"
+											     data-mimetype="image/webp"
+											     data-original-id="5830"
+											     data-original-src="/mv_website_helpdesk/static/src/img/lot-serial-number-where-to-scanning.jpg"
+											     data-mimetype-before-conversion="image/jpeg"
+											     data-resize-width="690"
+											     loading="lazy"/>
 										</div>
-										<div class="o_colored_level o_grid_item g-height-4 g-col-lg-6 col-lg-6" style="z-index: 1; grid-row-start: 2; grid-column-start: 1; grid-row-end: 6; grid-column-end: 7; width: 100%;">
-											<h3 class="o_default_snippet_text">
-												Hình ảnh Kích Hoạt Bảo Hành
-											</h3>
-											<p class="o_default_snippet_text">
-												Đính kèm hình ảnh số seri của Sản Phẩm
-											</p>
+										<div class="o_colored_level o_grid_item g-height-4 g-col-lg-6 col-lg-6"
+										     style="z-index: 1; grid-row-start: 2; grid-column-start: 1; grid-row-end: 6; grid-column-end: 7; width: 100%;">
+											<h3 class="o_default_snippet_text">Hình ảnh Kích Hoạt Bảo Hành</h3>
+											<p class="o_default_snippet_text">Đính kèm hình ảnh số seri của Sản Phẩm</p>
 										</div>
 									</div>
 								</div>
