@@ -84,8 +84,7 @@ class HelpdeskTicketProductMoves(models.Model):
     )
 
     # Fields dùng cho claim-bao-hanh
-    customer_warranty_date_activation = fields.Date(
-        "Ngày yêu cầu được bảo hành", tracking=True)
+    customer_warranty_date_activation = fields.Date("Ngày yêu cầu bảo hành", tracking=True)
     mv_warranty_ticket_id = fields.Many2one(
         'helpdesk.ticket', string='Helpdesk warranty ticket', tracking=True)
     mv_warranty_license_plate = fields.Char('Biển số bảo hành', tracking=True)
@@ -105,7 +104,23 @@ class HelpdeskTicketProductMoves(models.Model):
         'Sản phẩm được đồng ý bảo hành?', tracking=True)
     mv_customer_warranty_date = fields.Date("Ngày bảo hành", tracking=True)
     mv_note = fields.Text('Ghi chú', tracking=True)
+    mv_note_sub_branch = fields.Text('Ghi nhận từ đại lý', tracking=True)
     reason_no_warranty = fields.Text('Lý do không bảo hành', tracking=True)
+    is_claim_warranty_approved = fields.Boolean('Đã duyệt', tracking=True)
+
+    def action_claim_warranty_approved(self):
+        for move in self:
+            move.is_claim_warranty_approved = True
+            action = {
+                "name": _("Cập nhật thông tin bảo hành"),
+                "type": "ir.actions.act_window",
+                "res_model": "mv.helpdesk.ticket.product.moves",
+                "views": [[self.env.ref('mv_helpdesk.mv_helpdesk_ticket_product_moves_view_form_update').id, "form"]],
+                "res_id": self.id,
+                "view_mode": "form",
+                "target": "new",
+            }
+            return action
 
 
     # ==================================

@@ -470,40 +470,34 @@ class WebsiteForm(form.WebsiteForm):
 
     def generate_ticket_details(self, request, dict_id):
         serials = request.params.get('portal_lot_serial_number')
-        list_serial = serials.split(",")
-
+        list_serial = serials.split(",") if serials else []
         ticket = request.env["helpdesk.ticket"].sudo().browse(dict_id.get("id"))
-        ticket_type_id = request.env.ref(
-            "mv_website_helpdesk.mv_helpdesk_claim_warranty_type",
-            raise_if_not_found=False,
-        )
-        if (
-            int(request.params.get("ticket_type_id")) == ticket_type_id.id
-            and ticket_type_id
-        ):
+        ticket_type_id = request.env.ref("mv_website_helpdesk.mv_helpdesk_claim_warranty_type",
+                                         raise_if_not_found=False)
+        now = fields.Datetime.now().replace(tzinfo=pytz.UTC).astimezone(
+            pytz.timezone(request.env.user.tz or 'Asia/Ho_Chi_Minh'))
+        if int(request.params.get("ticket_type_id")) == ticket_type_id.id and \
+                ticket_type_id:
             ticket.ticket_type_id = ticket_type_id.id
-            ticket.team_id = request.env.ref(
-                "mv_website_helpdesk.mv_helpdesk_claim_warranty",
-                raise_if_not_found=False,
-            )
+            ticket.team_id = request.env.ref("mv_website_helpdesk.mv_helpdesk_claim_warranty",
+                                             raise_if_not_found=False)
         invalid_serials = ""
         for serial in list_serial:
-            product_moves = (
-                request.env["mv.helpdesk.ticket.product.moves"]
-                .sudo()
-                .search(
-                    [
-                        ("lot_name", "=", serial.strip()),
-                        ("customer_date_activation", "!=", False),
-                    ]
-                )
-            )
+            product_moves = request.env["mv.helpdesk.ticket.product.moves"].sudo().search([
+                ("lot_name", "=", serial.strip()),
+                ("customer_date_activation", "!=", False)
+            ])
             if product_moves:
                 product_moves.sudo().write({
                     'mv_warranty_ticket_id': ticket.id,
                     'mv_warranty_license_plate': request.params.get('license_plates'),
                     'mv_num_of_km': request.params.get('mileage'),
                     'mv_warranty_phone': request.params.get('mv_warranty_phone'),
+                    'mv_remaining_tread_depth': request.params.get('mv_remaining_tread_depth'),
+                    'mv_note_sub_branch': request.params.get('mv_note_sub_branch'),
+                    'mv_reviced_date': now.date(),
+                    'customer_warranty_date_activation': now.date(),
+                    'mv_cv_number': request.env['ir.sequence'].sudo().next_by_code('mv.ticket.product.moves')
                 })
             if not product_moves:
                 invalid_serials += serial + ", "
