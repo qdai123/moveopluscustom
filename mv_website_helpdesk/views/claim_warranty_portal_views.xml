@@ -71,6 +71,14 @@
                                         <div class="container">
                                             <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
                                                 <div class="s_website_form_rows row s_col_no_bgcolor">
+                                                    <!-- label Thông tin đại lý -->
+                                                    <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
+                                                        <div class="row s_col_no_resize s_col_no_bgcolor">
+                                                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px">
+                                                                <span style="font-weight:bold;" class="s_website_form_label_content">Thông tin đại lý:</span>
+                                                            </label>                                                        
+                                                        </div>
+                                                    </div>
                                                     <!-- [!] Validation Partner Phone Number -->
                                                     <t t-if="anonymous">
                                                         <div class="mb-0 py-2 s_website_form_field col-12">
@@ -105,6 +113,14 @@
                                                             <div class="col-sm">
                                                                 <input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="true"/>
                                                             </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Label Thông tin khách hàng -->
+                                                    <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
+                                                        <div class="row s_col_no_resize s_col_no_bgcolor">
+                                                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px">
+                                                                <span style="font-weight:bold;" class="s_website_form_label_content">Thông tin khách hàng:</span>
+                                                            </label>                                                        
                                                         </div>
                                                     </div>
                                                     <!-- Field: name (Required, Invisible) -->
@@ -167,30 +183,57 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <!-- Attachment Images -->
+                                                    <!-- Field: mv_remaining_tread_depth (Required) -->
+                                                    <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
+                                                        <div class="row s_col_no_resize s_col_no_bgcolor">
+                                                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_mv_remaining_tread_depth">
+                                                                <span class="s_website_form_label_content">Độ sâu gai (%)</span>
+                                                                <span class="s_website_form_mark">*</span>
+                                                            </label>
+                                                            <div class="col-sm">
+                                                                <input required="True" id="helpdesk_warranty_input_mv_remaining_tread_depth" class="form-control s_website_form_input" type="text" name="mv_remaining_tread_depth" data-fill-with="mv_remaining_tread_depth" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Attachment Images (Required) -->
                                                     <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
                                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                                             <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_images">
                                                                 <span class="s_website_form_label_content">Đính kèm hình ảnh</span>
+                                                                <span class="s_website_form_mark">*</span>
                                                             </label>
                                                             <div class="col-sm">
                                                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>                                                                
                                                                 <div class="col-lg-7 col-md-8">
-                                                                    <input type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
+                                                                    <input required="True" type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
+                                                                    <br/><span class="s_website_form_label_content">Ghi chú: hình ảnh phải mô tả rõ chi tiết lỗi</span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <!-- Field: portal_lot_serial_number (Required) -->
+                                                    <!-- Field: mv_note_sub_branch (Required) -->
+                                                    <div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-type="char" data-name="Field">
+                                                        <div class="row s_col_no_resize s_col_no_bgcolor">
+                                                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_mv_note_sub_branch">
+                                                                <span class="s_website_form_label_content">Nhận định hư hỏng từ đại lý</span>
+                                                                <span class="s_website_form_mark">*</span>
+                                                                
+                                                            </label>
+                                                            <div class="col-sm">
+                                                                <textarea rows="3" spellcheck="false" required="True" id="helpdesk_warranty_input_mv_note_sub_branch" class="form-control s_website_form_input" type="text" name="mv_note_sub_branch" data-fill-with="mv_note_sub_branch" />
+                                                                <br/><span class="s_website_form_label_content">Ghi chú: nhận định kết quả theo thực tế</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Field: portal_lot_serial_number -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required" data-type="text" data-name="Field">
                                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                                             <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_portal_lot_serial_number">
                                                                 <span class="s_website_form_label_content">Số Serial</span>
-                                                                <span class="s_website_form_mark">*</span>
                                                                 <button type="button" id="scanning-btn" class="btn btn-primary">Quét số serial</button>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <textarea id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="3" spellcheck="false"/>
+                                                                <textarea id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="1" spellcheck="false"/>
                                                             </div>
                                                         </div>
                                                     </div>

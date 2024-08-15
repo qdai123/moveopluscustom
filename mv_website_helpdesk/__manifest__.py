@@ -20,6 +20,7 @@
         "security/ir.model.access.csv",
         # DATA
         "data/website_helpdesk_data.xml",
+        "data/ir_sequence_data.xml",
         # VIEWS
         "views/helpdesk_team_views.xml",
         "views/helpdesk_ticket_views.xml",

@@ -169,7 +169,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
         
         // Validate form fields
-        const validationErrors = this._validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber);
+        const validationErrors = await this._validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber);
         if (validationErrors.length > 0) {
             this.notification.add(_t("Vui lòng nhập vào đủ thông tin yêu cầu!"), {
                 type: "danger",
@@ -255,7 +255,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
      * @param {jQuery} $portalLotSerialNumber
      * @returns {Array} validationErrors
      */
-    _validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber) {
+    async _validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber) {
         const validationErrors = [];
         
         if (!$partnerName.val().trim()) {
@@ -268,11 +268,15 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             validationErrors.push("Partner email is required");
         }
         
-        if (!$portalLotSerialNumber.val().trim()) {
+        const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
+        const domain_ticket_type = [['id', '=', parseInt($ticketType.val())]]
+        const ticket_type = await this.orm.searchRead("helpdesk.ticket.type", domain_ticket_type, ['code'], {
+            limit: 1,
+        });
+        if (!$portalLotSerialNumber.val().trim() && ticket_type[0].code != "yeu_cau_bao_hanh") {
             $portalLotSerialNumber.attr("required", true).addClass("border-danger");
             validationErrors.push("Portal lot serial number is required");
         }
-        
         return validationErrors;
     },
     
