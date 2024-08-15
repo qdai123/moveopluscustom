@@ -14,7 +14,7 @@ MOVEOPLUS_TITLES = {
 
 MOVEOPLUS_MESSAGES = {
     "discount_amount_apply_exceeded": "Tiền chiết khấu áp dụng không được lớn hơn số tiền chiết khấu tối đa.",
-    "discount_amount_invalid": "Tiền chiết khấu áp dụng đang lớn số tiền chiết khấu hiện có, vui lòng nhập lại!",
+    "discount_amount_invalid": "Tiền chiết khấu áp dụng đang lớn hơn số tiền chiết khấu hiện có, vui lòng nhập lại!",
 }
 
 
@@ -27,15 +27,14 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             "product.template"
         ]._get_weight_uom_name_from_ir_config_parameter()
 
+    is_update = fields.Boolean(compute="_compute_sale_order_id")
     # === Sale Order Fields ===#
-    sale_order_id = fields.Many2one("sale.order", required=True)
+    sale_order_id = fields.Many2one("sale.order", required=True, ondelete="cascade")
     company_id = fields.Many2one("res.company", related="sale_order_id.company_id")
     currency_id = fields.Many2one("res.currency", related="sale_order_id.currency_id")
     partner_id = fields.Many2one(
         "res.partner", related="sale_order_id.partner_id", required=True
     )
-    is_update = fields.Boolean(compute="_compute_sale_order_id")
-
     # === Delivery Carrier Fields ===#
     delivery_set = fields.Boolean(compute="_compute_sale_order_id")
     carrier_id = fields.Many2one("delivery.carrier", required=True)
@@ -55,7 +54,6 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         readonly=False,
     )
     weight_uom_name = fields.Char(readonly=True, default=_get_default_weight_uom)
-
     # === Discount Policy Fields ===#
     discount_agency_set = fields.Boolean(compute="_compute_sale_order_id")
     discount_amount_invalid = fields.Boolean(readonly=True)
@@ -99,21 +97,27 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                 "discount_amount_invalid"
             ]
 
-    @api.depends("sale_order_id", "sale_order_id.order_line")
+    @api.depends("partner_id", "sale_order_id", "sale_order_id.order_line")
     def _compute_sale_order_id(self):
         for wizard in self:
             order = wizard.sale_order_id
+            partner = wizard.partner_id
+
             wizard.is_update = order.recompute_discount_agency
             wizard.delivery_set = any(line.is_delivery for line in order.order_line)
             wizard.discount_agency_set = order.order_line._filter_discount_agency_lines(
                 order
             )
-            total_remaining = wizard.partner_id.amount_currency - order.bonus_order
-            wizard.discount_amount_remaining = (
-                total_remaining if total_remaining > 0 else 0.0
-            )
+
+            # Re-compute discount amount remaining of Partner
+            partner.action_update_discount_amount()
+            partner_amount_remaining = partner.amount_currency
+            wizard.discount_amount_remaining = max(partner_amount_remaining, 0.0)
             wizard.discount_amount_applied = (
-                order.bonus_order if not wizard.discount_amount_invalid else 0.0
+                order.bonus_order
+                if not wizard.discount_amount_invalid
+                and partner_amount_remaining > order.bonus_order
+                else 0.0
             )
 
     @api.depends("carrier_id")
@@ -135,14 +139,6 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                 else carriers
             )
 
-    @api.onchange("carrier_id", "total_weight")
-    def _onchange_carrier_id(self):
-        self.delivery_message = False
-        if self.delivery_type in ("fixed", "base_on_rule"):
-            vals = self._get_shipment_rate()
-            if vals.get("error_message"):
-                return {"error": vals["error_message"]}
-
     @api.onchange("sale_order_id")
     def _onchange_order_id(self):
         # fixed and base_on_rule delivery price will compute on each carrier change so no need to recompute here
@@ -159,6 +155,14 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                     "type": "notification",
                 }
                 return {"warning": warning}
+
+    @api.onchange("carrier_id", "total_weight")
+    def _onchange_carrier_id(self):
+        self.delivery_message = False
+        if self.delivery_type in ("fixed", "base_on_rule"):
+            vals = self._get_shipment_rate()
+            if vals.get("error_message"):
+                return {"error": vals["error_message"]}
 
     # ==================================
     # BUSINESS Methods
