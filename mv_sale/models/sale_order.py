@@ -558,63 +558,41 @@ class SaleOrder(models.Model):
             self.write({"quantity_change": quantity_change})
 
     def _handle_discount_applying(self):
-        context = dict(self.env.context or {})
-        compute_discount_agency = not context.get(
-            "action_confirm", False
-        ) and context.get("compute_discount_agency")
-        recompute_discount_agency = not context.get(
-            "action_confirm", False
-        ) and context.get("recompute_discount_agency")
-
         view_id = self.env.ref("mv_sale.mv_wiard_discount_view_form").id
-        order_lines_delivery = self.order_line.filtered(lambda sol: sol.is_delivery)
+        context = dict(self.env.context or {})
+
+        order = self
+        order_with_company = order.with_company(order.company_id)
+        context["default_sale_order_id"] = order.id
+        context["default_total_weight"] = order._get_estimated_weight()
+        context["default_discount_amount_apply"] = order.partner_id.amount_currency
+
+        if context.get("recompute_discount_agency"):
+            wizard_name = "Cập nhật chiết khấu"
+        else:
+            wizard_name = "Chiết khấu"
+
         carrier = (
             (
-                self.with_company(
-                    self.company_id
-                ).partner_shipping_id.property_delivery_carrier_id
-                or self.with_company(
-                    self.company_id
-                ).partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
+                order_with_company.partner_shipping_id.property_delivery_carrier_id
+                or order_with_company.partner_shipping_id.commercial_partner_id.property_delivery_carrier_id
             )
-            if not order_lines_delivery
-            else self.carrier_id
+            if not order.order_line.filtered(lambda sol: sol.is_delivery)
+            else order.carrier_id
         )
+        if carrier:
+            context["default_carrier_id"] = carrier.id
 
-        if compute_discount_agency:
-            return {
-                "name": "Chiết khấu",
-                "type": "ir.actions.act_window",
-                "res_model": "mv.wizard.discount",
-                "view_id": view_id,
-                "views": [(view_id, "form")],
-                "context": {
-                    "default_sale_order_id": self.id,
-                    "partner_id": self.partner_id.id,
-                    "default_partner_id": self.partner_id.id,
-                    "default_discount_amount_apply": self.bonus_remaining,
-                    "default_carrier_id": carrier.id,
-                    "default_total_weight": self._get_estimated_weight(),
-                },
-                "target": "new",
-            }
-        elif recompute_discount_agency:
-            return {
-                "name": "Cập nhật chiết khấu",
-                "type": "ir.actions.act_window",
-                "res_model": "mv.wizard.discount",
-                "view_id": view_id,
-                "views": [(view_id, "form")],
-                "context": {
-                    "default_sale_order_id": self.id,
-                    "partner_id": self.partner_id.id,
-                    "default_partner_id": self.partner_id.id,
-                    "default_discount_amount_apply": self.bonus_remaining,
-                    "default_carrier_id": carrier.id,
-                    "default_total_weight": self._get_estimated_weight(),
-                },
-                "target": "new",
-            }
+        action_wizard_compute_discount = {
+            "name": wizard_name,
+            "type": "ir.actions.act_window",
+            "res_model": "mv.wizard.discount",
+            "view_id": view_id,
+            "views": [(view_id, "form")],
+            "context": context,
+            "target": "new",
+        }
+        return action_wizard_compute_discount
 
     def _reset_discount_agency(self, order_state=None):
         total_money_to_store_history = self.bonus_order
@@ -1227,9 +1205,6 @@ class SaleOrder(models.Model):
 
     def so_trigger_update(self):
         """=== This method is called when a record is updated or deleted ==="""
-        try:
-            self._compute_partner_bonus()  # Update partner bonus
-            self._compute_bonus_order_line()  # Update bonus order line
-        except Exception as e:
-            _logger.error("Failed to trigger update recordset: %s", e)
-            return False
+        self._compute_partner_bonus()  # Update partner bonus
+        self._compute_bonus_order_line()  # Update bonus order line
+        return True
