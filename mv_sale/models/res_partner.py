@@ -205,22 +205,6 @@ class ResPartner(models.Model):
             partner.amount = wallet if wallet > 0 else 0.0
             partner.amount_currency = wallet if wallet > 0 else 0.0
 
-            # Trigger update manual notification if context is set
-            # if self.env.context.get("trigger_manual_update", False):
-            #     _logger.debug(
-            #         "Manual update triggered, returning success notification."
-            #     )
-            #     return {
-            #         "type": "ir.actions.client",
-            #         "tag": "display_notification",
-            #         "params": {
-            #             "title": _("Successfully"),
-            #             "message": "Cập nhật tiền chiết khấu thành công",
-            #             "type": "success",
-            #             "sticky": False,
-            #         },
-            #     }
-
         _logger.debug("Completed 'action_update_discount_amount'.")
 
     # =================================
@@ -453,6 +437,36 @@ class ResPartner(models.Model):
     # ACTION Methods
     # =================================
 
+    def action_activation_for_agency(self):
+        for partner in self:
+            partner.write({"is_agency": True})
+
+    def action_update_discount_amount_for_wallet(self):
+        self.ensure_one()
+        # TODO: Action Update Discount Amount for Wallet - Phat Dang <phat.dangminh@moveoplus.com>
+        return True
+
+    def action_view_partner_discount_history(self):
+        self.ensure_one()
+        return {
+            "name": f"Lịch sử chiết khấu Đại lý: {self.name}",
+            "type": "ir.actions.act_window",
+            "res_model": "mv.discount.partner.history",
+            "view_mode": "tree",
+            "views": [
+                [
+                    self.env.ref("mv_sale.mv_discount_partner_history_view_tree").id,
+                    "tree",
+                ]
+            ],
+            "domain": [("partner_id", "=", self.id)],
+            "context": {"default_partner_id": self.id},
+        }
+
+    # ==================================
+    # HISTORY HANDLER Methods
+    # ==================================
+
     def generate_all_partner_discount_histories(self):
         for partner in self:
             if partner.is_agency:
@@ -623,32 +637,6 @@ class ResPartner(models.Model):
             "total_money_discount_display": total_money_display,
             "is_positive_money": is_positive_money,
             "is_negative_money": is_negative_money,
-        }
-
-    def action_activation_for_agency(self):
-        for partner in self:
-            partner.write({"is_agency": True})
-
-    def action_update_discount_amount_for_wallet(self):
-        self.ensure_one()
-        # TODO: Action Update Discount Amount for Wallet - Phat Dang <phat.dangminh@moveoplus.com>
-        return True
-
-    def action_view_partner_discount_history(self):
-        self.ensure_one()
-        return {
-            "name": f"Lịch sử chiết khấu Đại lý: {self.name}",
-            "type": "ir.actions.act_window",
-            "res_model": "mv.discount.partner.history",
-            "view_mode": "tree",
-            "views": [
-                [
-                    self.env.ref("mv_sale.mv_discount_partner_history_view_tree").id,
-                    "tree",
-                ]
-            ],
-            "domain": [("partner_id", "=", self.id)],
-            "context": {"default_partner_id": self.id},
         }
 
     # ==================================

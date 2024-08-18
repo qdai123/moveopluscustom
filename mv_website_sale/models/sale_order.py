@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.mv_sale.models.sale_order import QUANTITY_THRESHOLD
 
-from odoo import models
+from odoo import api, models
 
 
 class SaleOrder(models.Model):
@@ -12,12 +12,14 @@ class SaleOrder(models.Model):
     def _compute_cart_info(self):
         self.so_trigger_update()
         super(SaleOrder, self)._compute_cart_info()
+
         for order in self:
             service_lines = order.website_order_line.filtered(
                 lambda line: line.product_template_id.detailed_type == "service"
             )
             if service_lines:
-                order.cart_quantity -= int(sum(service_lines.mapped("product_uom_qty")))
+                total_service_qty = sum(service_lines.mapped("product_uom_qty"))
+                order.cart_quantity -= int(total_service_qty)
 
     # === MOVEOPLUS METHODS === #
 
