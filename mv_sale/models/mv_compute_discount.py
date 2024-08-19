@@ -479,7 +479,7 @@ class MvComputeDiscount(models.Model):
                         % line.name,
                     )
 
-            record.write({"state": "draft", "line_ids": False})
+            record.write({"state": "draft", "approved_date": False, "line_ids": False})
 
     def create_history_line(self, record, state, description):
         total_money = record.total_money
@@ -496,8 +496,8 @@ class MvComputeDiscount(models.Model):
         return self.env["mv.discount.partner.history"]._create_history_line(
             partner_id=record.sudo().partner_id.id,
             history_description=description,
-            history_date=record.approved_date or record.write_date,
-            history_user_action_id=record.write_uid.id,
+            history_date=record.parent_id.approved_date or record.parent_id.write_date,
+            history_user_action_id=record.parent_id.write_uid.id,
             production_discount_policy_id=record.id,
             production_discount_policy_total_money=total_money,
             total_money=total_money,
