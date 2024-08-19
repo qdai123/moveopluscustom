@@ -16,7 +16,9 @@
         # SECURITY
         "security/ir.model.access.csv",
         # VIEWS
-        "views/res_partner_views.xml",
+        # "views/res_partner_views.xml",
+        "views/mv_partner_views.xml",
+        "views/partner_area_menu.xml",
     ],
     "license": "LGPL-3",
     "application": True,

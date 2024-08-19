@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="view_partner_area_tree" model="ir.ui.view">
+        <field name="name">mv.partner.area.tree</field>
+        <field name="model">mv.partner.area</field>
+        <field name="arch" type="xml">
+            <tree editable="top">
+                <field name="parent_id"/>
+                <field name="name"/>
+                <field name="code_area"/>
 
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_partner_area" model="ir.actions.act_window">
+        <field name="name">Partner Area</field>
+        <field name="res_model">mv.partner.area</field>
+        <field name="view_mode">tree</field>
+        <field name="context">{'default_view_type': 'list'}</field>
+
+    </record>
 </odoo>
