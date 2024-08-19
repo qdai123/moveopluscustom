@@ -365,6 +365,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         if self.state != "draft":
             _logger.info(f"Resetting policy {self.id} to draft state.")
             self.state = "draft"
+            self.approved_date = False
             try:
                 self.line_ids.unlink()  # Remove all lines
             except Exception as e:
@@ -499,8 +500,8 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         return self.env["mv.discount.partner.history"]._create_history_line(
             partner_id=record.sudo().partner_id.id,
             history_description=description,
-            history_date=record.approved_date or record.write_date,
-            history_user_action_id=record.write_uid.id,
+            history_date=record.parent_id.approved_date or record.write_date,
+            history_user_action_id=record.parent_id.write_uid.id,
             warranty_discount_policy_id=record.id,
             warranty_discount_policy_total_money=total_money,
             total_money=total_money,
