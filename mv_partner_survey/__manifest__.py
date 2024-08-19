@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Partner Profile",
+    "name": "MV Partner Survey",
     "version": "1.0.0",
-    "category": "Moveoplus/MV Partner Profile",
-    "description": """This module adds a new feature of the partner add-on to manage the partner profile.""",
+    "category": "Moveoplus/MV Partner Survey",
+    "description": """This module adds a new feature of the partner add-on to manage the partner survey.""",
     "author": "MOVEOPLUS System Development Team",
     "depends": [
         # Odoo
