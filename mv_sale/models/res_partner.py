@@ -470,7 +470,7 @@ class ResPartner(models.Model):
     @api.model
     def generate_all_partner_discount_histories(self):
         for partner in self:
-            if partner.is_agency:
+            if partner and partner.is_agency:
                 partner.generate_partner_discount_histories()
 
     def generate_partner_discount_histories(self):
@@ -484,21 +484,30 @@ class ResPartner(models.Model):
         """
         self.ensure_one()
 
-        partner = self.filtered(lambda r: r.is_agency)
-        if not partner:
+        if not self.is_agency:
             return
 
+        partner = self
         keys_list = []
         vals_list = []
 
-        base_histories_of_partner = self.env["mv.discount.partner.history"].search(
-            [("partner_id", "=", partner.id)]
+        base_histories = self.env["mv.discount.partner.history"].search(
+            [("partner_id", "=", self.id)]
+        )
+        base_order_discount_histories = base_histories.mapped("sale_order_id")
+        base_production_discount_histories = base_histories.mapped(
+            "production_discount_policy_id"
+        )
+        base_warranty_discount_histories = base_histories.mapped(
+            "warranty_discount_policy_id"
         )
 
-        # ||| Generate history lines for production policy discounts
-        order_discount = partner._get_orders_with_discount(partner, "sale")
+        # ||| Generate history lines for Sale Order Discounts
+        order_discount = self._get_orders_with_discount(
+            partner.filtered("is_agency"), "sale"
+        )
         for order in order_discount:
-            if order.id not in base_histories_of_partner.mapped("sale_order_id").ids:
+            if order.id not in base_order_discount_histories.ids:
                 keys_list.append(f"{order.date_order.month}_{order.date_order.year}")
                 vals_list.append(
                     {
@@ -514,8 +523,7 @@ class ResPartner(models.Model):
         # ||| Generate history lines for production policy discounts
         for record_line in partner.compute_discount_line_ids.filtered(
             lambda r: r.state == "done"
-            and r.id
-            not in base_histories_of_partner.mapped("production_discount_policy_id").ids
+            and r.id not in base_production_discount_histories.ids
         ):
             data_key = f"{record_line.parent_id.report_date.month}_{record_line.parent_id.report_date.year}"
             keys_list.append(data_key)
@@ -533,8 +541,7 @@ class ResPartner(models.Model):
         # ||| Generate history lines for warranty policy discounts
         for record_line in partner.compute_warranty_discount_line_ids.filtered(
             lambda r: r.parent_state == "done"
-            and r.id
-            not in base_histories_of_partner.mapped("warranty_discount_policy_id").ids
+            and r.id not in base_warranty_discount_histories.ids
         ):
             data_key = f"{record_line.parent_id.compute_date.month}_{record_line.parent_id.compute_date.year}"
             keys_list.append(data_key)
@@ -571,8 +578,8 @@ class ResPartner(models.Model):
         is_positive_money = False
         is_negative_money = False
         total_money_display = "{:,.2f}".format(total_money)
-        history_date = record.create_date
-        history_user_action_id = record.create_uid.id
+        history_date = record.write_date
+        history_user_action_id = record.write_uid.id
 
         # ||| Sale Order
         if state == "sale":
@@ -580,8 +587,8 @@ class ResPartner(models.Model):
             total_money_display = (
                 "- " + total_money_display if total_money > 0 else total_money_display
             )
-            history_date = record.date_order
-            history_user_action_id = record.user_id.id or False
+            history_date = record.date_order or record.write_date
+            history_user_action_id = record.user_id.id or record.write_uid.id
 
         # ||| Production Policy & Warranty Policy
         if state == "done":
@@ -589,11 +596,7 @@ class ResPartner(models.Model):
             total_money_display = (
                 "+ " + total_money_display if total_money > 0 else total_money_display
             )
-            history_date = get_last_date_of_month(
-                record.parent_id.report_date
-                if record._name == "mv.compute.discount.line"
-                else record.parent_id.compute_date
-            )
+            history_date = record.parent_id.approved_date or record.parent_id.write_date
             users_can_approve_compute_discount = (
                 self.env["res.users"]
                 .sudo()
@@ -614,7 +617,7 @@ class ResPartner(models.Model):
             "history_user_action_id": history_user_action_id,
             "history_description": description,
             "sale_order_id": record.id if state == "sale" else False,
-            "sale_order_state": record.state if state == "sale" else False,
+            "sale_order_state": record.state if state == "sale" else None,
             "sale_order_discount_money_apply": (
                 total_money if record._name == "sale.order" else 0
             ),
@@ -636,6 +639,7 @@ class ResPartner(models.Model):
             ),
             "total_money": total_money,
             "total_money_discount_display": total_money_display,
+            "is_waiting_approval": False,
             "is_positive_money": is_positive_money,
             "is_negative_money": is_negative_money,
         }
