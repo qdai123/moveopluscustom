@@ -85,6 +85,15 @@ class HelpdeskTicket(models.Model):
     mileage = fields.Integer("Số Km", default=0)
     mv_is_warranty_ticket = fields.Boolean(compute="compute_is_warranty_ticket")
     invalid_serials = fields.Text("Số serial chưa kích hoạt")
+    claim_warranty_ids = fields.Many2many(
+        'mv.helpdesk.ticket.product.moves', "claim_ticket_product_moves_relation",
+        "claim_ticket_id", "move_id", string='Sản phẩm yêu cầu bảo hành', domain="[('stock_move_line_id', '!=', False)]")
+
+    @api.onchange('claim_warranty_ids')
+    def onchange_claim_warranty_ids(self):
+        for rec in self:
+            if rec.claim_warranty_ids:
+                rec.helpdesk_warranty_ticket_ids = [(6, 0, rec.claim_warranty_ids.ids)]
 
     @api.depends("team_id")
     def compute_is_warranty_ticket(self):

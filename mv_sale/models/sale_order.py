@@ -601,14 +601,16 @@ class SaleOrder(models.Model):
         )
         is_positive_money = total_money_to_store_history > 0 and order_state == "cancel"
         if order_state == "cancel":
-            description = f"Hủy đơn {self.name}, tiền chiết khấu đã được hoàn về ví."
+            description = (
+                f"Đơn {self.name} đã bị hủy, tiền chiết khấu đã được hoàn về ví."
+            )
             money_to_update_history = (
                 "+ {:,.2f}".format(total_money_to_store_history)
                 if total_money_to_store_history > 0
                 else "{:,.2f}".format(total_money_to_store_history)
             )
-        elif order_state == "draft":
-            description = f"Đơn {self.name} được điều chỉnh về báo giá, tiền chiết khấu đã được hoàn về ví."
+        elif order_state == "sent":
+            description = f"Đơn {self.name} được điều chỉnh về báo giá, tiền chiết khấu đã được chỉnh."
             money_to_update_history = (
                 "+ {:,.2f}".format(total_money_to_store_history)
                 if total_money_to_store_history > 0
@@ -619,10 +621,16 @@ class SaleOrder(models.Model):
             money_to_update_history = "(?) {:,.2f}".format(total_money_to_store_history)
 
         # Create history line for discount
-        if self.partner_id and self.partner_agency:
+        if (
+            order_state in ["sent", "cancel"]
+            and self.partner_id
+            and self.partner_agency
+        ):
             self.env["mv.discount.partner.history"]._create_history_line(
                 partner_id=self.partner_id.id,
                 history_description=description,
+                history_date=self.write_date,
+                history_user_action_id=self.write_uid.id,
                 sale_order_id=self.id,
                 sale_order_state=self.get_selection_label(self._name, "state", self.id)[
                     1
@@ -636,7 +644,7 @@ class SaleOrder(models.Model):
             )
 
         # [>] Reset Bonus, Discount Fields
-        if order_state == "draft":
+        if order_state == "sent":
             self._compute_partner_bonus()
             self._compute_bonus_order_line()
             self.quantity_change = self._calculate_quantity_change()
@@ -663,16 +671,16 @@ class SaleOrder(models.Model):
             discount_lines.sudo().unlink()
 
     def action_draft(self):
-        for order in self:
+        for order in self.filtered(lambda sol: sol.state == "sent"):
             order._reset_discount_agency(order_state="draft")
 
         return super(SaleOrder, self).action_draft()
 
-    def action_cancel(self):
+    def _action_cancel(self):
         for order in self:
             order._reset_discount_agency(order_state="cancel")
 
-        return super(SaleOrder, self).action_cancel()
+        return super(SaleOrder, self)._action_cancel()
 
     def action_confirm(self):
         # Filter orders into categories for processing
@@ -715,6 +723,8 @@ class SaleOrder(models.Model):
                 self.env["mv.discount.partner.history"]._create_history_line(
                     partner_id=order.partner_id.id,
                     history_description=description,
+                    history_date=self.date_order or self.write_date,
+                    history_user_action_id=self.write_uid.id or self.user_id.id,
                     sale_order_id=order.id,
                     sale_order_state=self.get_selection_label(
                         order._name, "state", order.id
