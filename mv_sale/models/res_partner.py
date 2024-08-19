@@ -467,6 +467,7 @@ class ResPartner(models.Model):
     # HISTORY HANDLER Methods
     # ==================================
 
+    @api.model
     def generate_all_partner_discount_histories(self):
         for partner in self:
             if partner.is_agency:

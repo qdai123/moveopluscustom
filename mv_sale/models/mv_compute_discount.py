@@ -31,27 +31,11 @@ QUARTER_OF_YEAR = ["3", "6", "9", "12"]
 
 
 def get_years():
-    year_list = []
-    for year in range(2000, 2100):
-        year_list.append((str(year), str(year)))
-    return year_list
+    return [(str(i), str(i)) for i in range(2000, datetime.now().year + 1)]
 
 
 def get_months():
-    return [
-        ("1", "1"),
-        ("2", "2"),
-        ("3", "3"),
-        ("4", "4"),
-        ("5", "5"),
-        ("6", "6"),
-        ("7", "7"),
-        ("8", "8"),
-        ("9", "9"),
-        ("10", "10"),
-        ("11", "11"),
-        ("12", "12"),
-    ]
+    return [(str(i), str(i)) for i in range(1, 13)]
 
 
 class MvComputeDiscount(models.Model):
@@ -78,24 +62,20 @@ class MvComputeDiscount(models.Model):
             .level_promote_apply
         )
 
-    def _get_promote_discount_level(self):
-        for record in self:
-            record.level_promote_apply_for = self._default_level()
-
-    @api.depends("month", "year")
-    def _compute_name(self):
-        for record in self:
-            record.name = "{}/{}".format(str(record.month), str(record.year))
-
-    def _do_readonly(self):
-        for rec in self:
-            if rec.state in ["done"]:
-                rec.do_readonly = True
-            else:
-                rec.do_readonly = False
-
     # RULE Fields:
     do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
+
+    def _do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+
+        :return: False
+        """
+        for rec in self:
+            rec.do_readonly = rec.state == "done"
 
     # BASE Fields:
     name = fields.Char(compute="_compute_name", default="New", store=True)
@@ -118,9 +98,8 @@ class MvComputeDiscount(models.Model):
         inverse_name="parent_id",
         string="Lịch sử chi tiết số tiền CKSL",
     )
-    report_date = fields.Datetime(
-        compute="_compute_report_date_by_month_year", store=True
-    )
+    report_date = fields.Datetime(compute="_compute_report_date", store=True)
+    approved_date = fields.Datetime(readonly=True)
     level_promote_apply_for = fields.Integer(
         "Bậc áp dụng (Khuyến khích)", compute="_get_promote_discount_level"
     )
@@ -133,19 +112,44 @@ class MvComputeDiscount(models.Model):
         )
     ]
 
+    def _get_promote_discount_level(self):
+        for record in self:
+            record.level_promote_apply_for = self._default_level()
+
     @api.depends("year", "month")
-    def _compute_report_date_by_month_year(self):
+    def _compute_name(self):
+        """
+        Compute the name based on the month and year.
+
+        This method sets the `name` field to "month/year" if both `month` and `year` are set.
+        If either is not set, it uses the current month and year.
+
+        :return: None
+        """
+        for rec in self:
+            if rec.month and rec.year:
+                rec.name = "{}/{}".format(str(rec.month), str(rec.year))
+            else:
+                dt = datetime.now().replace(day=1)
+                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+
+    @api.depends("year", "month")
+    def _compute_report_date(self):
+        """
+        Compute the `report_date` based on the month and year.
+
+        This method sets the `report_date` field to the first day of the given month and year
+        if both `month` and `year` are set. If either is not set, it uses the first day of the current month and year.
+
+        :return: None
+        """
         for rec in self:
             if rec.month and rec.year:
                 rec.report_date = datetime.now().replace(
                     day=1, month=int(rec.month), year=int(rec.year)
                 )
             else:
-                rec.report_date = rec.create_date.replace(
-                    day=1,
-                    month=int(rec.create_date.month),
-                    year=int(rec.create_date.year),
-                )
+                rec.report_date = datetime.now().replace(day=1)
 
     # =================================
     # BUSINESS Methods
@@ -461,7 +465,7 @@ class MvComputeDiscount(models.Model):
             ):
                 record.create_total_discount_detail_history()
 
-            record.write({"state": "done"})
+            record.write({"state": "done", "approved_date": fields.Datetime.now()})
 
     def action_undo(self):
         # Create history line for discount

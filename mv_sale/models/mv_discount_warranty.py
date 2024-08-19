@@ -296,7 +296,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         This method iterates over each record and sets the `do_readonly` field to `True`
         if the state is "done", otherwise sets it to `False`.
 
-        :return: None
+        :return: False
         """
         for rec in self:
             rec.do_readonly = rec.state == "done"
@@ -363,15 +363,28 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     def action_reset_to_draft(self):
         self.ensure_one()
         if self.state != "draft":
+            _logger.info(f"Resetting policy {self.id} to draft state.")
             self.state = "draft"
-            self.line_ids.unlink()  # Remove all lines
+            try:
+                self.line_ids.unlink()  # Remove all lines
+            except Exception as e:
+                _logger.error(f"Error unlinking lines for policy {self.id}: {e}")
+                raise UserError(
+                    _("An error occurred while resetting the policy to draft.")
+                )
             return True
+        return False
 
     def action_calculate_discount_line(self):
         self.ensure_one()
 
         if not self.warranty_discount_policy_id:
             raise ValidationError("Chưa chọn Chính sách chiết khấu!")
+
+        _logger.info(
+            f"Calculating discount lines for policy {self.warranty_discount_policy_id.id} "
+            f"for month {self.month}/{self.year}."
+        )
 
         tickets = self._fetch_tickets()
         if not tickets:
@@ -412,6 +425,12 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                     % line.parent_name,
                     line.total_amount_currency,
                 )
+
+        _logger.info(
+            f"Successfully calculated discount lines for policy {self.warranty_discount_policy_id.id} "
+            f"for month {self.month}/{self.year}."
+        )
+        return True
 
     def action_done(self):
         if not self._access_approve():
