@@ -65,6 +65,9 @@
 								<field name="year" required="1" readonly="do_readonly"/>
 							</div>
 						</group>
+						<group>
+							<field name="approved_date" string="Duyệt ngày"/>
+						</group>
 					</group>
 					<notebook>
 						<page string="Chi tiết">
@@ -147,8 +150,13 @@
 		<field name="arch" type="xml">
 			<tree default_order="report_date desc" duplicate="false">
 				<field name="name" string="Tháng/Năm"/>
+				<field name="state"
+				       decoration-success="state == 'done'"
+				       decoration-info="state == 'confirm'"
+				       decoration-muted="state == 'draft'"
+				       widget="badge"/>
+				<field name="approved_date" string="Duyệt ngày" optional="hidden"/>
 				<field column_invisible="1" name="report_date"/>
-				<field name="state" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'" widget="badge"/>
 			</tree>
 		</field>
 	</record>

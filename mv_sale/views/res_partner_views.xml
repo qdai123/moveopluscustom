@@ -47,7 +47,12 @@
 							<field name="warranty_discount_policy_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}"/>
 						</group>
 					</group>
-					<field name="line_ids" nolabel="1" readonly="1" context="{'from_view_ref': 'mv_sale.mv_discount_partner_form_view'}" options="{'no_open': True, 'no_create_edit': True}" invisible="not is_agency">
+					<field name="line_ids"
+					       nolabel="1"
+					       readonly="1"
+					       context="{'from_view_ref': 'mv_sale.mv_discount_partner_form_view'}"
+					       options="{'no_open': True, 'no_create_edit': True}"
+					       invisible="not is_agency">
 						<tree decoration-warning="needs_update">
 							<field name="needs_update" column_invisible="True"/>
 							<field name="parent_id" column_invisible="True"/>
@@ -57,7 +62,12 @@
 							<field name="min_debt"/>
 							<field name="max_debt"/>
 							<field name="number_debt"/>
-							<button string="Cập nhật thông tin" name="action_update_partner_discount" type="object" class="btn btn-secondary btn-sm" groups="sales_team.group_sale_salesman" confirm="Bạn muốn cập nhật thông tin cho đơn vị này?"/>
+							<button string="Cập nhật thông tin"
+							        name="action_update_partner_discount"
+							        type="object"
+							        class="btn btn-secondary btn-sm"
+							        groups="sales_team.group_sale_salesman"
+							        confirm="Bạn muốn cập nhật thông tin cho đơn vị này?"/>
 						</tree>
 					</field>
 				</page>
@@ -66,7 +76,13 @@
 					<field name="compute_discount_line_ids" nolabel="1" readonly="True" options="{'no_open': True}">
 							<tree default_order="id desc">
 								<field name="currency_id" column_invisible="True"/>
-								<field name="state" string="Trạng thái" widget="badge" decoration-success="state == 'done'" decoration-info="state == 'confirm'" decoration-muted="state == 'draft'" optional="show"/>
+								<field name="state"
+								       string="Trạng thái"
+								       widget="badge"
+								       decoration-success="state == 'done'"
+								       decoration-info="state == 'confirm'"
+								       decoration-muted="state == 'draft'"
+								       optional="show"/>
 								<field name="name" string="Tháng/Năm"/>
 								<field name="quantity" string="Số lượng lốp đã bán"/>
 								<field name="quantity_from" optional="hidden"/>
