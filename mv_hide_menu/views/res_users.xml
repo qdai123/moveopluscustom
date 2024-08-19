@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="mv_hide_menu_form_view_inherit" model="ir.ui.view">
+            <field name="name">mv.hide.menu.form.view.inherit</field>
+            <field name="model">res.users</field>
+            <field name="inherit_id" ref="base.view_users_form"/>
+            <field name="priority" eval="8"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Ân menu">
+                        <group name="hide_menu_group">
+                            <field name="hide_menu_access_ids" widget="many2many_tags" options="{'no_create':1,'no_create_edit':1}"/>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
