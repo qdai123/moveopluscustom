@@ -341,6 +341,8 @@ class MvComputeDiscountLine(models.Model):
         return self.env["mv.discount.partner.history"]._create_history_line(
             partner_id=record.partner_id.id,
             history_description=description,
+            history_date=record.parent_id.approved_date or record.write_date,
+            history_user_action_id=record.write_uid.id,
             production_discount_policy_id=record.id,
             production_discount_policy_total_money=total_money,
             total_money=total_money,

@@ -194,55 +194,23 @@
 
 	<!-- MOVEO+ Inherited: Shopping Cart Lines (website_sale.cart_lines) -->
 	<template id="mv_website_sale.cart_lines_mv_sale" inherit_id="website_sale.cart_lines">
-		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']//a[hasclass('js_delete_product')]" position="replace">
-			<a href='#' class="js_delete_product d-none d-md-inline-block small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
+		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']" position="attributes">
+			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line._is_not_sellable_line())</attribute>
+		</xpath>
+		<xpath expr="//a[hasclass('js_delete_product')]" position="replace">
+			<a href='#'
+			   class="js_delete_product d-none d-md-inline-block small"
+			   aria-label="Remove from cart"
+			   title="Remove from cart">Xóa</a>
 		</xpath>
 	</template>
 
-<!--	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">-->
-<!--		&lt;!&ndash; TODO: Fix after &ndash;&gt;-->
-<!--		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="replace">-->
-<!--			<tr t-foreach="website_sale_order.website_order_line" t-as="line"-->
-<!--			    t-att-class="line_last and 'border-transparent'">-->
-<!--				<t t-set="o_cart_sum_padding_top" t-value="'pt-3' if line_size &gt; 1 and not line_first else 'pt-0'"/>-->
-<!--				<td t-if="not line.product_id" colspan="2"/>-->
-<!--				<t t-else="">-->
-<!--					<t t-if="line.product_id and line.product_id.detailed_type != 'service'">-->
-<!--						<td t-attf-class="td-img ps-0 #{o_cart_sum_padding_top}">-->
-<!--							<span t-if="line._is_not_sellable_line() and line.product_id.image_128">-->
-<!--								<img t-att-src="image_data_uri(line.product_id.image_128)"-->
-<!--								     class="o_image_64_max img rounded" t-att-alt="line.name_short"/>-->
-<!--							</span>-->
-<!--							<span t-else="" t-field="line.product_id.image_128"-->
-<!--							      t-options="{'widget': 'image', 'qweb_img_responsive': False, 'class': 'o_image_64_max rounded'}"/>-->
-<!--						</td>-->
-<!--						<td t-attf-class="#{o_cart_sum_padding_top} td-product_name td-qty w-100"-->
-<!--						    name="website_sale_cart_summary_product_name">-->
-<!--							<h6>-->
-<!--								<t t-out="int(line.product_uom_qty)"/>-->
-<!--								<t t-if="line._get_shop_warning(clear=False)">-->
-<!--									<i class="fa fa-warning text-warning" role="img"-->
-<!--									   t-att-title="line._get_shop_warning()" aria-label="Warning"/>-->
-<!--								</t>-->
-<!--								x-->
-<!--								<t t-out="line.name_short"/>-->
-<!--							</h6>-->
-<!--						</td>-->
-<!--					</t>-->
-<!--				</t>-->
-<!--				<t t-if="line.product_id and line.product_id.detailed_type != 'service'">-->
-<!--					<td t-attf-class="#{o_cart_sum_padding_top} td-price pe-0 text-end"-->
-<!--					    name="website_sale_cart_summary_line_price">-->
-<!--						<span t-if="website.show_line_subtotals_tax_selection == 'tax_excluded'"-->
-<!--						      t-field="line.price_subtotal" style="white-space: nowrap;"-->
-<!--						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
-<!--						<span t-else="" t-field="line.price_total" style="white-space: nowrap;"-->
-<!--						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>-->
-<!--					</td>-->
-<!--				</t>-->
-<!--			</tr>-->
-<!--		</xpath>-->
-<!--	</template>-->
+	<!-- MOVEO+ Inherited: Shopping Checkout Layout (website_sale.checkout_layout) -->
+	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">
+		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="attributes">
+			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line._is_not_sellable_line())</attribute>
+		</xpath>
+	</template>
 
 	<!-- MOVEO+ Inherited (website_sale_loyalty.cart_line_product_no_link) -->
 	<template id="mv_website_sale.cart_line_product_no_link_mv_sale" inherit_id="website_sale_loyalty.cart_line_product_no_link">
