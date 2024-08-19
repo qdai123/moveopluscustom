@@ -69,6 +69,7 @@
                 <attribute name="options">{'no_create_edit': True, 'no_create': True, 'no_open': True}</attribute>
             </xpath>
             <xpath expr="//field[@name='ticket_type_id']" position="after">
+                <field name="claim_warranty_ids" widget="many2many_tags" />
                 <field name="invalid_serials" invisible="not invalid_serials" />
                 <field name="mv_is_warranty_ticket" invisible="1" />
                 <field invisible="True" name="is_sub_dealer"/>
