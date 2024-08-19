@@ -435,7 +435,7 @@ class MvComputeDiscount(models.Model):
 
         base_total_detail_histories_of_partner = self.env[
             "mv.partner.total.discount.detail.history"
-        ].search([("partner_id", "=", partner.id)])
+        ].search([("partner_id", "in", self.line_ids.mapped("partner_id").ids)])
 
         for record in self.filtered(lambda r: len(r.line_ids) > 0):
             partners_updates = {}
