@@ -2,3 +2,4 @@
 from . import mv_partner_survey
 from . import res_partner
 from . import res_users
+from . import mv_partner_area
