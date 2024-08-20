@@ -14,11 +14,12 @@
     ],
     "data": [
         # DATA
-        "data/mv_partner_survey_data.xml",
+        "data/partner_survey_data.xml",
         # SECURITY
         "security/ir.model.access.csv",
         # VIEWS
         # "views/res_partner_views.xml",
+        "views/mv_shop_views.xml",
         "views/mv_brand_views.xml",
         "views/mv_partner_area_views.xml",
         "views/partner_area_menu.xml",
