@@ -13,6 +13,8 @@
         "mv_base",
     ],
     "data": [
+        # DATA
+        "data/mv_partner_survey_data.xml",
         # SECURITY
         "security/ir.model.access.csv",
         # VIEWS
