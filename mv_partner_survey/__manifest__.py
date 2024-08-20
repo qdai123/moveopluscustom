@@ -17,6 +17,7 @@
         "security/ir.model.access.csv",
         # VIEWS
         # "views/res_partner_views.xml",
+        "views/mv_brand_views.xml",
         "views/mv_partner_area_views.xml",
         "views/partner_area_menu.xml",
     ],
