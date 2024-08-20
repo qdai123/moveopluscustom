@@ -14,7 +14,7 @@
     </record>
 
     <record id="action_partner_area" model="ir.actions.act_window">
-        <field name="name">Partner Area</field>
+        <field name="name">Area</field>
         <field name="res_model">mv.partner.area</field>
         <field name="view_mode">tree</field>
         <field name="context">{'default_view_type': 'list'}</field>
