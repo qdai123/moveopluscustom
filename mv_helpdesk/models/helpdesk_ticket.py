@@ -604,6 +604,7 @@ class HelpdeskTicket(models.Model):
                 "default_state": "draft",
                 "default_partner_id": self.partner_id.id,
                 "default_company_id": self.env.user.company_id.id,
+                "create_order_from_claim_ticket": True,
             },
             "target": "current",
         }
