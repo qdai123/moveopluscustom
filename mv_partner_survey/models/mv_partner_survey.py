@@ -82,8 +82,8 @@ class MVPartnerSurvey(models.Model):
     )
     name = fields.Char(
         string="Mã phiếu",
-        default="SURVEY",
-        readonly=True,
+        compute="_compute_name_ref",
+        store=True,
         index=True,
         tracking=True,
     )
@@ -174,17 +174,22 @@ class MVPartnerSurvey(models.Model):
             if survey.owner and not str(survey.owner).isalpha():
                 raise UserError("Chủ sở hữu phải là tên người!")
 
-    @api.depends("partner_id", "name")
-    def _compute_name_complete(self):
+    @api.depends("partner_id")
+    def _compute_name_ref(self):
         for survey in self:
             if survey.partner_id:
+                name_ref = self.env["ir.sequence"].next_by_code(
+                    "mv.partner.survey.auto.ref"
+                )
                 survey_name = (
-                    f"{survey.partner_id.company_registry}/" + survey.partner_id.name
+                    f"{survey.partner_id.company_registry}/" + name_ref
                     if survey.partner_id.company_registry
-                    else survey.partner_id.name
+                    else name_ref
                 )
             else:
-                survey_name = ""
+                survey_name = "SURVEY"
+
+            survey.name = survey_name
 
     @api.depends("per_retail_customer", "per_retail_taxi", "per_retail_fleet")
     def _compute_total_retail(self):
@@ -201,16 +206,6 @@ class MVPartnerSurvey(models.Model):
             survey.total_wholesale = (
                 survey.per_wholesale_subdealer + survey.per_wholesale_garage
             )
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            if not vals.get("name") or vals["name"] == "SURVEY":
-                vals["name"] = (
-                    self.env["ir.sequence"].next_by_code("mv.partner.survey.auto.ref")
-                    or "SURVEY"
-                )
-        return super().create(vals_list)
 
     def action_complete(self):
         for survey in self:

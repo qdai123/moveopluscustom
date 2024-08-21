@@ -9,6 +9,8 @@
         # Odoo
         "base",
         "portal",
+        # Biztech
+        "biz_vn_address",
         # Moveoplus
         "mv_base",
     ],
