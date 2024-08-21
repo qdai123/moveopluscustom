@@ -592,6 +592,7 @@ class HelpdeskTicket(models.Model):
         })
         for product in product_tmps:
             order_line = self.env['sale.order.line'].create({
+                'display_type': 'line_section',
                 'order_id': order.id,
                 'product_template_id': product.id,
                 'product_uom_qty': 1.0,
