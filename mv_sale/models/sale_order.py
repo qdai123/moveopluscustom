@@ -89,7 +89,7 @@ class SaleOrder(models.Model):
     def _onchange_company_id_warning(self):
         if self.env.context.get('create_order_from_claim_ticket'):
             self.show_update_pricelist = True
-            return True
+            return {}
         else:
             return super(SaleOrder, self)._onchange_company_id_warning()
 
