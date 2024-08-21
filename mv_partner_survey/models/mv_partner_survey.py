@@ -4,23 +4,11 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
-class MVPartnerSurvey(models.Model):
+class MvPartnerSurvey(models.Model):
     _name = "mv.partner.survey"
     _description = _("Partner Survey")
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["mail.thread", "portal.mixin"]
     _order = "create_date desc"
-
-    """
-    TODO List:
-    - Add fields
-    - Add constraints
-    - Add methods
-    - Add views
-    - Add security
-    - Add data, demo data
-    - Add tests
-    - Add translations
-    """
 
     # === RULES Fields ===#
     def _do_readonly(self):
@@ -72,10 +60,22 @@ class MVPartnerSurvey(models.Model):
         domain=lambda self: [("partner_survey_id", "=", self.id)],
         required=True,
     )
+    service_detail_ids = fields.One2many(
+        "mv.service.detail",
+        "partner_survey_id",
+        "Dịch vụ",
+        domain=lambda self: [("partner_survey_id", "=", self.id)],
+        required=True,
+    )
+    mv_product_ids = fields.Many2many(
+        "mv.product.product",
+        "mv_product_partner_survey_rel",
+        "mv_product_id",
+        "partner_survey_id",
+        string="Sản phẩm",
+    )
     # TODO: Add more relational fields
     # brand_proportion_ids = fields.One2many("mv.brand.proportion")
-    # service_detail_ids = fields.One2many("mv.service.detail")
-    # mv_product_ids = fields.Many2many("mv.product.product")
 
     # === BASE Fields ===#
     active = fields.Boolean(default=True, tracking=True)
@@ -163,7 +163,13 @@ class MVPartnerSurvey(models.Model):
         "Số lượng nhân viên hành chính", default=0, tracking=True
     )
 
-    _sql_constraints = []
+    _sql_constraints = [
+        (
+            "name_unique",
+            "UNIQUE(name)",
+            "Mỗi một Phiếu khảo sát Đối tác phải là DUY NHẤT!",
+        )
+    ]
 
     @api.constrains("owner")
     def _check_owner_is_human(self):
