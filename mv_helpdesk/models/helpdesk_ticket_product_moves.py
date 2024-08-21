@@ -14,6 +14,7 @@ _logger = logging.getLogger(__name__)
 
 class HelpdeskTicketProductMoves(models.Model):
     _name = "mv.helpdesk.ticket.product.moves"
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = _("Helpdesk Ticket & Product Moves (Stock Move Line)")
     _order = "partner_id, helpdesk_ticket_id"
 
@@ -33,54 +34,54 @@ class HelpdeskTicketProductMoves(models.Model):
 
     name = fields.Char(compute="_compute_name", store=True)
     product_activate_twice = fields.Boolean(
-        string="Activate Twice", compute="_compute_product_activate_twice", store=True
+        string="Activate Twice", compute="_compute_product_activate_twice", store=True, tracking=True
     )
     # HELPDESK TICKET Fields
     helpdesk_ticket_id = fields.Many2one(
-        comodel_name="helpdesk.ticket", string="Ticket", index=True
+        comodel_name="helpdesk.ticket", string="Ticket", index=True, tracking=True
     )
     helpdesk_ticket_ref = fields.Char(
-        "Ticket Ref.", related="helpdesk_ticket_id.ticket_ref", store=True
+        "Ticket Ref.", related="helpdesk_ticket_id.ticket_ref", store=True, tracking=True
     )
     helpdesk_ticket_type_id = fields.Many2one(
         comodel_name="helpdesk.ticket.type",
         compute="_compute_helpdesk_ticket_id",
         store=True,
-        string="Ticket Type",
+        string="Ticket Type", tracking=True
     )
     partner_id = fields.Many2one(
-        comodel_name="res.partner", compute="_compute_helpdesk_ticket_id", store=True
+        comodel_name="res.partner", compute="_compute_helpdesk_ticket_id", store=True, tracking=True
     )
     # HELPDESK TICKET Customer Activation Information (End-User Case)
-    customer_phone_activation = fields.Char("Số điện thoại kích hoạt")
-    customer_date_activation = fields.Date("Ngày kích hoạt")
-    customer_license_plates_activation = fields.Char("Biển số kích hoạt")
-    customer_mileage_activation = fields.Integer("Số km kích hoạt", default=0)
-    customer_warranty_mileage_activation = fields.Date("")
+    customer_phone_activation = fields.Char("Số điện thoại kích hoạt", tracking=True)
+    customer_date_activation = fields.Date("Ngày kích hoạt", tracking=True)
+    customer_license_plates_activation = fields.Char("Biển số kích hoạt", tracking=True)
+    customer_mileage_activation = fields.Integer("Số km kích hoạt", default=0, tracking=True)
+    customer_warranty_mileage_activation = fields.Date(tracking=True)
     # STOCK MOVE LINE Fields
     stock_move_line_id = fields.Many2one(
         comodel_name="stock.move.line",
         index=True,
         string="Lot/Serial Number",
-        context={"helpdesk_ticket_lot_name": True},
+        context={"helpdesk_ticket_lot_name": True}, tracking=True
     )
     # STOCK MOVE LINE Related Fields
     # Description: These fields helps to search and trace data of Stock Move Line
     stock_move_id = fields.Many2one(
         comodel_name="stock.move",
         related="stock_move_line_id.move_id",
-        store=True,
+        store=True, tracking=True
     )
     product_id = fields.Many2one(
         comodel_name="product.product",
         related="stock_move_line_id.product_id",
-        store=True,
+        store=True, tracking=True
     )
     lot_name = fields.Char(
-        string="Số mã vạch", related="stock_move_line_id.lot_name", store=True
+        string="Số mã vạch", related="stock_move_line_id.lot_name", store=True, tracking=True
     )
     qr_code = fields.Char(
-        string="Mã QR", related="stock_move_line_id.qr_code", store=True
+        string="Mã QR", related="stock_move_line_id.qr_code", store=True, tracking=True
     )
 
     # Fields dùng cho claim-bao-hanh
@@ -334,7 +335,7 @@ class HelpdeskTicketProductMoves(models.Model):
             "res_id": self.id,
             "view_mode": "form",
             "domain": [("id", "=", active_ids[0])],
-            "target": "new",
+            "target": "current",
             "context": {
                 "create": False,
                 "edit": True,
