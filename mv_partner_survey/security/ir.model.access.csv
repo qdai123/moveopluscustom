@@ -6,3 +6,5 @@ access_mv_brand_system,mv.brand.system,model_mv_brand,base.group_system,1,1,1,1
 access_mv_brand_manager,mv.brand.manager,model_mv_brand,sales_team.group_sale_manager,1,1,1,0
 access_mv_brand_user,mv.brand.user,model_mv_brand,sales_team.group_sale_salesman,1,0,0,0
 access_mv_shop_admin,mv.shop admin,model_mv_shop,base.group_user,1,1,1,1
+
+access_mv_partner_survey_user,access.mv.partner.survey.user,model_mv_partner_survey,base.group_user,1,1,1,1

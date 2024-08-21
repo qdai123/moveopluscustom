@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<menuitem id="mv_partner_survey.mv_partner_survey_menu_surveys"
+	          name="Khảo sát"
+	          parent="contacts.menu_contacts"
+	          sequence="1"/>
+	<menuitem id="mv_partner_survey_sub_menu_my_surveys"
+	          name="Phiếu khảo sát của tôi"
+	          action="mv_partner_survey_action_my_surveys"
+	          parent="mv_partner_survey_menu_surveys"
+	          groups="sales_team.group_sale_salesman"
+	          sequence="1"/>
+	<menuitem id="mv_partner_survey_sub_menu_all_surveys"
+	          name="Tất cả phiếu khảo sát"
+	          action="mv_partner_survey_action_all_surveys"
+	          parent="mv_partner_survey_menu_surveys"
+	          groups="sales_team.group_sale_manager"
+	          sequence="2"/>
+</odoo>
