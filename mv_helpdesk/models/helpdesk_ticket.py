@@ -582,30 +582,33 @@ class HelpdeskTicket(models.Model):
         self.ensure_one()
         products = self.helpdesk_warranty_ticket_ids.mapped('product_id')
         product_tmps = products.mapped('product_tmpl_id')
+        order = self.env['sale.order'].create({
+            'is_claim_warranty': True,
+            'mv_moves_warranty_ids': [(6, 0, self.helpdesk_warranty_ticket_ids.ids)],
+            'state': 'draft',
+            'partner_id': self.partner_id.id,
+            'company_id': self.env.user.company_id.id,
+            'create_order_from_claim_ticket': True,
+        })
+        for product in product_tmps:
+            order_line = self.env['sale.order.line'].create({
+                'order_id': order.id,
+                'product_template_id': product.id,
+                'product_uom_qty': 1.0,
+                'product_uom': product.uom_id.id,
+                'price_unit': product.list_price,
+                'price_total_before_discount': product.list_price,
+                'tax_id': [(6, 0, product.taxes_id.ids)],
+                'company_id': self.env.user.company_id.id,
+                'name': product.name + product.description_sale if product.name and product.description_sale else "",
+            })
         return {
             "name": _("Tạo đơn bán"),
             "type": "ir.actions.act_window",
             "res_model": "sale.order",
             "view_mode": "form",
             "view_id": self.env.ref("sale.view_order_form").id,
-            "context": {
-                "default_is_claim_warranty": True,
-                "default_mv_moves_warranty_ids": [
-                    (6, 0, self.helpdesk_warranty_ticket_ids.ids)],
-                "default_order_line": [(0, 0, {
-                        'product_template_id': product.id,
-                        'product_uom_qty': 1.0,
-                        'product_uom': product.uom_id.id,
-                        'price_unit': product.list_price,
-                        'price_total_before_discount': product.list_price,
-                        'tax_id': [(6, 0, product.taxes_id.ids)],
-                        'company_id': self.env.user.company_id.id,
-                        'name': product.name + product.description_sale if product.name and product.description_sale else "",
-                    }) for product in product_tmps],
-                "default_state": "draft",
-                "default_partner_id": self.partner_id.id,
-                "default_company_id": self.env.user.company_id.id,
-                "create_order_from_claim_ticket": True,
-            },
+            "context": {},
+            "domain": [('id', '=', order.id)],
             "target": "current",
         }
