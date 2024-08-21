@@ -6,7 +6,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_claim_warranty_approved" confirm="Hãy kiểm tra thông tin trước khi bấm duyệt bạn nhé." class="oe_highlight" invisible="is_claim_warranty_approved" type="object" string="Đồng ý duyệt"/>
+                    <button name="action_claim_warranty_approved" confirm="Hãy kiểm tra thông tin trước khi bấm duyệt bạn nhé." class="oe_highlight" invisible="is_claim_warranty_approved" type="object" string="Hoàn tất"/>
                 </header>
                 <sheet>
                     <field name="is_claim_warranty_approved" invisible="1" />

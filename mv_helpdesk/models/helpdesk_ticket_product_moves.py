@@ -112,6 +112,18 @@ class HelpdeskTicketProductMoves(models.Model):
     def action_claim_warranty_approved(self):
         for move in self:
             move.is_claim_warranty_approved = True
+            approved_claim = move.mv_warranty_ticket_id.claim_warranty_ids.filtered(
+                lambda claim: claim.is_claim_warranty_approved
+            )
+            all_claim = move.mv_warranty_ticket_id.claim_warranty_ids
+            if len(all_claim) == len(approved_claim):
+                move.mv_warranty_ticket_id.write({
+                    'can_be_create_order': True
+                })
+            else:
+                move.mv_warranty_ticket_id.write({
+                    'can_be_create_order': False
+                })
             action = {
                 "name": _("Cập nhật thông tin bảo hành"),
                 "type": "ir.actions.act_window",
@@ -119,7 +131,7 @@ class HelpdeskTicketProductMoves(models.Model):
                 "views": [[self.env.ref('mv_helpdesk.mv_helpdesk_ticket_product_moves_view_form_update').id, "form"]],
                 "res_id": self.id,
                 "view_mode": "form",
-                "target": "new",
+                "target": "current",
             }
             return action
 
