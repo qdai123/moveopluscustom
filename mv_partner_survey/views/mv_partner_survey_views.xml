@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- FORM VIEW -->
+	<record model="ir.ui.view" id="mv_partner_survey_form_view">
+		<field name="name">mv.partner.survey.form</field>
+		<field name="model">mv.partner.survey</field>
+		<field name="arch" type="xml">
+			<form string="Partner Survey" duplicate="false">
+				<header>
+					<field name="active" invisible="1"/>
+					<field name="do_readonly" invisible="1"/>
+					<field name="company_id" invisible="1"/>
+					<field name="currency_id" invisible="1"/>
+					<field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+				</header>
+				<sheet>
+					<div name="button_box" class="oe_button_box"></div>
+					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<div class="oe_title mw-75 ps-0 pe-2">
+						<h1 class="d-flex flex-row align-items-center">
+							<field name="name" placeholder="Survey's Name" required="1" style="font-size: min(4vw, 2.6rem);"/>
+						</h1>
+					</div>
+					<group name="base_survey_info">
+						<group name="left_side_info">
+							<field name="partner_id" widget="res_partner_many2one" class="o_field_highlight" options="{'no_create_edit': True}" readonly="do_readonly"/>
+							<field name="owner" readonly="do_readonly"/>
+							<field name="second_generation" readonly="do_readonly"/>
+							<field name="number_of_years_bussiness" readonly="do_readonly"/>
+							<field name="partner_area_id" options="{'no_open': True}" readonly="do_readonly"/>
+						</group>
+						<group name="right_side_info">
+							<field name="create_date" readonly="1"/>
+							<field name="proportion" widget="percentage"/>
+							<field name="is_moveoplus_agency" widget="toggle_button"/>
+							<field name="classical"/>
+							<field name="financial_ability"/>
+						</group>
+					</group>
+					<group string="## Thông tin cửa hàng" name="group_shop_info">
+						<!-- shop_ids -->
+					</group>
+					<group string="## Các hãng lốp tham gia &amp; Tỷ trọng bán hàng" name="group_brand_and_proportion">
+						<!-- brand_proportion_ids -->
+					</group>
+					<group string="## Tỷ lệ Bán buôn &amp; Bán lẻ" name="group_wholesale_and_retail">
+						<group>
+							<group>
+								<field name="total_retail" widget="percentage" readonly="do_readonly"/>
+							</group>
+							<group string="Chi tiết bán lẻ">
+								<field name="per_retail_customer" widget="percentage" readonly="do_readonly"/>
+								<field name="per_retail_taxi" widget="percentage" readonly="do_readonly"/>
+								<field name="per_retail_fleet" widget="percentage" readonly="do_readonly"/>
+							</group>
+						</group>
+						<group>
+							<group>
+								<field name="total_wholesale" widget="percentage" readonly="do_readonly"/>
+							</group>
+							<group string="Chi tiết bán buôn">
+								<field name="per_wholesale_subdealer" widget="percentage" readonly="do_readonly"/>
+								<field name="per_wholesale_garage" widget="percentage" readonly="do_readonly"/>
+							</group>
+						</group>
+					</group>
+					<group string="## Thông tin Dịch vụ" name="group_service_info">
+						<field name="is_use_service" string="Cửa hàng có làm dịch vụ không?" widget="toggle_button" readonly="do_readonly"/>
+						<group string="Thông tin xưởng dịch vụ">
+							<field name="proportion_service" widget="percentage" readonly="do_readonly"/>
+							<field name="service_bay" readonly="do_readonly"/>
+						</group>
+						<group>
+							<field name="num_technicians" readonly="do_readonly"/>
+							<field name="num_administrative_staff" readonly="do_readonly"/>
+						</group>
+						<!-- service_detail_ids -->
+					</group>
+					<group string="## Phân tích mặt hàng sản phẩm" name="group_products_analyst">
+						<!-- mv_product_ids, type == 'size_lop' -->
+						<!-- mv_product_ids, type == 'lubricant' -->
+					</group>
+					<group string="## Lịch sử bán hàng" name="group_sales_history_by_year" invisible="1">
+					</group>
+				</sheet>
+				<div class="oe_chatter">
+					<field name="message_follower_ids" groups="base.group_user"/>
+					<field name="activity_ids"/>
+					<field name="message_ids"/>
+				</div>
+			</form>
+		</field>
+	</record>
+
+	<!-- TREE VIEW -->
+	<record model="ir.ui.view" id="mv_partner_survey_tree_view">
+		<field name="name">mv.partner.survey.tree</field>
+		<field name="model">mv.partner.survey</field>
+		<field name="arch" type="xml">
+			<tree string="Partner Survey">
+				<field name="name"/>
+				<field name="partner_id" widget="many2one_avatar"/>
+				<field name="partner_area_id"/>
+				<field name="state"
+				       widget="badge"
+				       decoration-info="state == 'draft'"
+				       decoration-success="state == 'done'"
+                       decoration-muted="state == 'cancel'"/>
+				<field name="create_date" widget="date"/>
+				<field name="create_uid" widget="many2one_avatar_user"/>
+			</tree>
+		</field>
+	</record>
+
+	<!-- SEARCH VIEW -->
+	<record model="ir.ui.view" id="mv_partner_survey_filter">
+		<field name="name">mv.partner.survey.filter</field>
+		<field name="model">mv.partner.survey</field>
+		<field name="arch" type="xml">
+			<search string="Partner Survey">
+				<field name="name" string="Model"/>
+				<field name="brand_id"/>
+				<filter string="Contains Vehicle" name="contains_vehicle" domain="[('vehicle_count', '!=', 0)]"/>
+				<group expand="1" string="Group By">
+					<filter name="groupby_brand" context="{'group_by' : 'brand_id'}" string="Manufacturers"/>
+					<filter name="groupby_category" context="{'group_by' : 'category_id'}" string="Category"/>
+					<filter name="groupby_vehicle_type" context="{'group_by' : 'vehicle_type'}" string="Vehicle Type"/>
+				</group>
+			</search>
+		</field>
+	</record>
+
+	<!-- ACTION -->
+</odoo>

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 
+from odoo.exceptions import UserError, ValidationError
+
 
 class MVPartnerSurvey(models.Model):
     _name = "mv.partner.survey"
     _description = _("MV Partner Survey")
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["mail.thread", "mail.activity.mixin", "portal.mixin"]
     _order = "create_date desc"
 
     """
@@ -19,6 +21,21 @@ class MVPartnerSurvey(models.Model):
     - Add tests
     - Add translations
     """
+
+    # === RULES Fields ===#
+    def _do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+
+        :return: False
+        """
+        for survey in self:
+            survey.do_readonly = survey.state == "done"
+
+    do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
 
     # === RELATIONAL Fields ===#
     partner_id = fields.Many2one(
@@ -41,8 +58,14 @@ class MVPartnerSurvey(models.Model):
         related="company_id.currency_id",
         readonly=False,
     )
-    # TODO: Add more relational fields when Mr.Hieu provide these models
-    # partner_area_id = fields.Many2one("mv.partner.area")
+    partner_area_id = fields.Many2one(
+        "mv.partner.area",
+        "Khu vực",
+        required=True,
+        tracking=True,
+        index=True,
+    )
+    # TODO: Add more relational fields
     # shop_ids = fields.One2many("mv.shop")
     # brand_proportion_ids = fields.One2many("mv.brand.proportion")
     # service_detail_ids = fields.One2many("mv.service.detail")
@@ -58,14 +81,15 @@ class MVPartnerSurvey(models.Model):
         tracking=True,
     )
     name = fields.Char(
+        string="Mã phiếu",
         default="SURVEY",
         readonly=True,
         index=True,
         tracking=True,
     )
-    name_complete = fields.Char(
-        compute="_compute_name_complete",
-        store=True,
+    owner = fields.Char(
+        "Chủ sở hữu",
+        required=True,
         tracking=True,
     )
     second_generation = fields.Char(
@@ -87,7 +111,7 @@ class MVPartnerSurvey(models.Model):
         tracking=True,
     )
     is_moveoplus_agency = fields.Boolean(
-        "Đại lý Moveoplus",
+        "Đại lý của Moveoplus",
         default=True,
         tracking=True,
     )
@@ -134,23 +158,33 @@ class MVPartnerSurvey(models.Model):
     )
     service_bay = fields.Integer("Số lượng cầu nâng", default=0, tracking=True)
     num_technicians = fields.Integer("Số lượng kỹ thuật viên", default=0, tracking=True)
-    num_sales = fields.Integer("Số lượng nhân viên bán hàng", default=0, tracking=True)
+    # num_sales = fields.Integer("Số lượng nhân viên bán hàng", default=0, tracking=True)
     num_administrative_staff = fields.Integer(
         "Số lượng nhân viên hành chính", default=0, tracking=True
     )
+
+    _sql_constraints = []
+
+    @api.constrains("owner")
+    def _check_owner_is_human(self):
+        for survey in self:
+            if survey.owner and len(survey.owner) < 3:
+                raise UserError("Chủ sở hữu phải có ít nhất 3 ký tự!")
+
+            if survey.owner and not str(survey.owner).isalpha():
+                raise UserError("Chủ sở hữu phải là tên người!")
 
     @api.depends("partner_id", "name")
     def _compute_name_complete(self):
         for survey in self:
             if survey.partner_id:
-                partner_name = (
-                    survey.partner_id.short_name
-                    if survey.partner_id.is_agency
+                survey_name = (
+                    f"{survey.partner_id.company_registry}/" + survey.partner_id.name
+                    if survey.partner_id.company_registry
                     else survey.partner_id.name
                 )
             else:
-                partner_name = ""
-            survey.name_complete = f"{survey.name}.Phiếu khảo sát {partner_name}"
+                survey_name = ""
 
     @api.depends("per_retail_customer", "per_retail_taxi", "per_retail_fleet")
     def _compute_total_retail(self):
@@ -177,3 +211,13 @@ class MVPartnerSurvey(models.Model):
                     or "SURVEY"
                 )
         return super().create(vals_list)
+
+    def action_complete(self):
+        for survey in self:
+            survey.state = "done"
+
+    def action_cancel(self):
+        for survey in self:
+            survey.state = "cancel"
+
+    # === TOOLS ===#
