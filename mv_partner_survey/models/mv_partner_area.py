@@ -1,15 +1,19 @@
-from odoo import models, fields, api
+# -*- coding: utf-8 -*-
+from odoo import _, fields, models
 
 
-class PartnerArea(models.Model):
-    _name = 'mv.partner.area'
-    _description = 'Cấu hình khu vực Đại lý'
+class MvPartnerArea(models.Model):
+    _name = "mv.partner.area"
+    _description = _("Area")
 
-    parent_id = fields.Many2one('mv.partner.area', string='Vùng (Parent)', index=True)
-    name = fields.Char(string='Tên vùng', required=True)
-    code_area = fields.Char(string='Mã vùng')
-
+    parent_id = fields.Many2one("mv.partner.area", "Vùng cha", index=True)
+    name = fields.Char("Tên vùng", required=True)
+    code_area = fields.Char("Mã vùng")
 
     _sql_constraints = [
-        ('name_unique', 'unique(name)', 'Tên vùng phải là duy nhất.')
+        (
+            "name_code_unique",
+            "unique(name, code)",
+            "Tên vùng và mã vùng phải là DUY NHẤT!",
+        )
     ]

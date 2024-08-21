@@ -1,18 +1,19 @@
-from odoo import models, fields, api
+# -*- coding: utf-8 -*-
+from odoo import _, api, fields, models
 
 
-class MVShop(models.Model):
+class MvShop(models.Model):
     _name = "mv.shop"
-    _description = "Thông tin cửa hàng cho Đại lý"
+    _description = _("Shop")
 
     partner_survey_id = fields.Many2one(
         comodel_name="mv.partner.survey",
-        string="Profile",
+        string="Phiếu khảo sát",
         required=True,
         index=True,
         ondelete="restrict",
     )
-    name = fields.Char(string="Tên cửa hàng", required=True)
+    name = fields.Char(string="Cửa hàng", required=True)
     street = fields.Char(string="Đường", required=True)
     country_id = fields.Many2one(
         comodel_name="res.country",
