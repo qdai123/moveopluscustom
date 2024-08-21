@@ -588,7 +588,6 @@ class HelpdeskTicket(models.Model):
             'state': 'draft',
             'partner_id': self.partner_id.id,
             'company_id': self.env.user.company_id.id,
-            'create_order_from_claim_ticket': True,
         })
         for product in product_tmps:
             order_line = self.env['sale.order.line'].create({
@@ -608,7 +607,9 @@ class HelpdeskTicket(models.Model):
             "res_model": "sale.order",
             "view_mode": "form",
             "view_id": self.env.ref("sale.view_order_form").id,
-            "context": {},
+            "context": {
+                'create_order_from_claim_ticket': True
+            },
             "domain": [('id', '=', order.id)],
             "target": "current",
         }
