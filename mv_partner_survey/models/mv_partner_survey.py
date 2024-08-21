@@ -6,8 +6,8 @@ from odoo.exceptions import UserError, ValidationError
 
 class MVPartnerSurvey(models.Model):
     _name = "mv.partner.survey"
-    _description = _("MV Partner Survey")
-    _inherit = ["mail.thread", "mail.activity.mixin", "portal.mixin"]
+    _description = _("Partner Survey")
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "create_date desc"
 
     """
@@ -65,42 +65,40 @@ class MVPartnerSurvey(models.Model):
         tracking=True,
         index=True,
     )
+    shop_ids = fields.One2many(
+        "mv.shop",
+        "partner_survey_id",
+        "Cửa hàng",
+        domain=lambda self: [("partner_survey_id", "=", self.id)],
+        required=True,
+    )
     # TODO: Add more relational fields
-    # shop_ids = fields.One2many("mv.shop")
     # brand_proportion_ids = fields.One2many("mv.brand.proportion")
     # service_detail_ids = fields.One2many("mv.service.detail")
     # mv_product_ids = fields.Many2many("mv.product.product")
 
     # === BASE Fields ===#
     active = fields.Boolean(default=True, tracking=True)
-    create_date = fields.Datetime("Ngày khảo sát")
+    create_date = fields.Datetime(
+        "Ngày khảo sát", default=lambda self: fields.Datetime.now()
+    )
+    create_uid = fields.Many2one(
+        "res.users", "Người khảo sát", default=lambda self: self.env.user
+    )
+    survey_date = fields.Date("Ngày khảo sát", default=fields.Date.today, tracking=True)
     state = fields.Selection(
         [("draft", "Khảo sát"), ("done", "Hoàn thành"), ("cancel", "Hủy")],
         default="draft",
         string="Trạng thái",
         tracking=True,
     )
-    name = fields.Char(
-        string="Mã phiếu",
-        compute="_compute_name_ref",
-        store=True,
-        index=True,
-        tracking=True,
-    )
-    owner = fields.Char(
-        "Chủ sở hữu",
-        required=True,
-        tracking=True,
-    )
-    second_generation = fields.Char(
-        "Thế hệ thứ 2",
-        required=True,
-        tracking=True,
-    )
+    name = fields.Char("Phiếu", default="SURVEY", tracking=True)
+    owner = fields.Char("Chủ sở hữu", required=True, tracking=True)
+    second_generation = fields.Char("Thế hệ thứ 2", required=True, tracking=True)
     number_of_years_bussiness = fields.Float(
         "Số năm kinh doanh",
         default=0,
-        digits=(12, 2),
+        digits=(10, 1),
         required=True,
         tracking=True,
     )
@@ -111,7 +109,7 @@ class MVPartnerSurvey(models.Model):
         tracking=True,
     )
     is_moveoplus_agency = fields.Boolean(
-        "Đại lý của Moveoplus",
+        "Đại lý của Moveo Plus",
         default=True,
         tracking=True,
     )
@@ -132,29 +130,31 @@ class MVPartnerSurvey(models.Model):
         tracking=True,
     )
     # BÁN LẺ
-    per_retail_customer = fields.Float("Khách hàng lẻ (%)", default=0, tracking=True)
-    per_retail_taxi = fields.Float("Taxi (%)", default=0, tracking=True)
-    per_retail_fleet = fields.Float("Công ty/Đội xe (%)", default=0, tracking=True)
+    per_retail_customer = fields.Float("Khách hàng lẻ", default=0, tracking=True)
+    per_retail_taxi = fields.Float("Taxi", default=0, tracking=True)
+    per_retail_fleet = fields.Float("Công ty/Đội xe", default=0, tracking=True)
     total_retail = fields.Float(
-        "Tổng số bán lẻ (%)",
+        "Tổng số bán lẻ",
         compute="_compute_total_retail",
         store=True,
+        readonly=True,
         tracking=True,
     )
     # BÁN BUÔN
     total_wholesale = fields.Float(
-        "Tổng số bán buôn (%)",
+        "Tổng số bán buôn",
         compute="_compute_total_wholesale",
         store=True,
+        readonly=True,
         tracking=True,
     )
     # per_wholesale_dealer = fields.Float("Đại lý cấp 1 (%)", default=0, tracking=True)
-    per_wholesale_subdealer = fields.Float("Đại lý cấp 2 (%)", default=0, tracking=True)
-    per_wholesale_garage = fields.Float("Garage (%)", default=0, tracking=True)
+    per_wholesale_subdealer = fields.Float("Đại lý cấp 2", default=0, tracking=True)
+    per_wholesale_garage = fields.Float("Garage", default=0, tracking=True)
     # DỊCH VỤ
     is_use_service = fields.Boolean("Sử dụng dịch vụ", default=False, tracking=True)
     proportion_service = fields.Float(
-        "Tỷ trọng kinh doanh lốp so với dịch vụ khác (%)", default=0, tracking=True
+        "Tỷ trọng kinh doanh lốp so với dịch vụ khác", default=0, tracking=True
     )
     service_bay = fields.Integer("Số lượng cầu nâng", default=0, tracking=True)
     num_technicians = fields.Integer("Số lượng kỹ thuật viên", default=0, tracking=True)
@@ -171,25 +171,10 @@ class MVPartnerSurvey(models.Model):
             if survey.owner and len(survey.owner) < 3:
                 raise UserError("Chủ sở hữu phải có ít nhất 3 ký tự!")
 
-            if survey.owner and not str(survey.owner).isalpha():
-                raise UserError("Chủ sở hữu phải là tên người!")
-
-    @api.depends("partner_id")
-    def _compute_name_ref(self):
-        for survey in self:
-            if survey.partner_id:
-                name_ref = self.env["ir.sequence"].next_by_code(
-                    "mv.partner.survey.auto.ref"
-                )
-                survey_name = (
-                    f"{survey.partner_id.company_registry}/" + name_ref
-                    if survey.partner_id.company_registry
-                    else name_ref
-                )
-            else:
-                survey_name = "SURVEY"
-
-            survey.name = survey_name
+    @api.onchange("partner_id")
+    def _onchange_partner_id(self):
+        if self.partner_id:
+            self.name = "{}-SURVEY".format(self.partner_id.company_registry)
 
     @api.depends("per_retail_customer", "per_retail_taxi", "per_retail_fleet")
     def _compute_total_retail(self):
@@ -206,6 +191,17 @@ class MVPartnerSurvey(models.Model):
             survey.total_wholesale = (
                 survey.per_wholesale_subdealer + survey.per_wholesale_garage
             )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("partner_id"):
+                name_ref = self.env["ir.sequence"].next_by_code(
+                    "mv.partner.survey.auto.ref"
+                )
+                partner = self.env["res.partner"].browse(vals["partner_id"])
+                vals["name"] = "{}-{}".format(partner.company_registry, name_ref)
+        return super().create(vals_list)
 
     def action_complete(self):
         for survey in self:

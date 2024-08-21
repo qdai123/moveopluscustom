@@ -8,6 +8,7 @@
     "depends": [
         # Odoo
         "base",
+        "contacts",
         "portal",
         # Biztech
         "biz_vn_address",
@@ -21,11 +22,13 @@
         "security/ir.model.access.csv",
         "security/partner_survey_security.xml",
         # VIEWS
-        # "views/res_partner_views.xml",
-        "views/mv_shop_views.xml",
         "views/mv_brand_views.xml",
         "views/mv_partner_area_views.xml",
+        "views/mv_partner_survey_views.xml",
+        "views/mv_shop_views.xml",
+        # MENU
         "views/partner_area_menu.xml",
+        "views/menus.xml",
     ],
     "license": "LGPL-3",
     "application": True,

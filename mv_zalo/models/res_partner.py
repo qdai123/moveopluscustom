@@ -11,7 +11,11 @@ class Partner(models.Model):
 
     # === FIELDS ===#
     short_name = fields.Char(
-        "Nickname", compute="_compute_short_name", store=True, readonly=False
+        "Nickname",
+        compute="_compute_short_name",
+        store=True,
+        readonly=False,
+        recursive=True,
     )
 
     @api.depends("name", "parent_id.short_name")
