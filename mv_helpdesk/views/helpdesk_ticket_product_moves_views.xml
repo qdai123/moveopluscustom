@@ -6,13 +6,13 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_claim_warranty_approved" confirm="Hãy kiểm tra thông tin trước khi bấm duyệt bạn nhé." class="oe_highlight" invisible="is_claim_warranty_approved" type="object" string="Đồng ý duyệt"/>
+                    <button name="action_claim_warranty_approved" confirm="Hãy kiểm tra thông tin trước khi bấm duyệt bạn nhé." class="oe_highlight" invisible="is_claim_warranty_approved" type="object" string="Hoàn tất"/>
                 </header>
                 <sheet>
                     <field name="is_claim_warranty_approved" invisible="1" />
                     <group name="info_all">
                         <group name="info_all_1">
-                            <field name="mv_cv_number" readonly="1" force_save="1" />
+                            <field name="mv_cv_number" readonly="0" force_save="1" />
                             <field name="mv_reviced_date" readonly="is_claim_warranty_approved" />
                         </group>
                         <group name="info_all_2">
@@ -20,32 +20,32 @@
                         </group>
                     </group>
                     <group name="info_serial" string="THÔNG TIN SẢN PHẨM YÊU CẦU BẢO HÀNH">
-                        <field name="lot_name" readonly="1" force_save="1" />
-                        <field name="qr_code" readonly="1" force_save="1" />
+                        <field name="lot_name" readonly="0" force_save="1" />
+                        <field name="qr_code" readonly="0" force_save="1" />
                     </group>
                     <group name="info_require_warranty">
                         <group name="info_require_warranty_1">
                             <field name="mv_remaining_tread_depth" readonly="is_claim_warranty_approved" />
-                            <field name="mv_tire_installation_date" readonly="is_claim_warranty_approved" />
-                            <field name="mv_number_of_tires" readonly="is_claim_warranty_approved" />
-                            <field name="mv_vehicle_pump_pressure" readonly="is_claim_warranty_approved" />
+                            <field name="mv_tire_installation_date" readonly="is_claim_warranty_approved" invisible="1" />
+                            <field name="mv_number_of_tires" invisible="1" readonly="is_claim_warranty_approved" />
+                            <field name="mv_vehicle_pump_pressure" invisible="1" readonly="is_claim_warranty_approved" />
                             <field name="customer_warranty_date_activation" readonly="is_claim_warranty_approved" />
                         </group>
                         <group name="info_require_warranty_2">
-                            <field name="mv_mold_number" readonly="is_claim_warranty_approved" />
-                            <field name="mv_warranty_license_plate" string="Số xe" readonly="1" force_save="1" />
-                            <field name="mv_num_of_km" string="Số km" readonly="1" force_save="1" />
-                            <field name="mv_note_sub_branch" readonly="1" force_save="1" />
+                            <field name="mv_mold_number" invisible="1" readonly="is_claim_warranty_approved" />
+                            <field name="mv_warranty_license_plate" string="Số xe" readonly="0" force_save="1" />
+                            <field name="mv_num_of_km" string="Số km" readonly="0" force_save="1" />
+                            <field name="mv_note_sub_branch" readonly="0" force_save="1" />
                         </group>
                     </group>
                     <group name="thong_tin_kich_hoat" string="THÔNG TIN KÍCH HOẠT">
                         <group name="thong_tin_kich_hoat_1">
-                            <field name="customer_mileage_activation" readonly="1" force_save="1" />
-                            <field name="customer_phone_activation" readonly="1" force_save="1" />
+                            <field name="customer_mileage_activation" readonly="0" force_save="1" />
+                            <field name="customer_phone_activation" readonly="0" force_save="1" />
                         </group>
                         <group name="thong_tin_kich_hoat_2">
-                            <field name="customer_license_plates_activation" readonly="1" force_save="1" />
-                            <field name="customer_date_activation" readonly="1" force_save="1" />
+                            <field name="customer_license_plates_activation" readonly="0" force_save="1" />
+                            <field name="customer_date_activation" readonly="0" force_save="1" />
                         </group>
                     </group>
                     <group name="thong_tin_bao_hanh" string="THÔNG TIN BẢO HÀNH">
@@ -59,6 +59,11 @@
                         <field name="reason_no_warranty" readonly="is_claim_warranty_approved" invisible="is_warranty_product_accept" />
                     </group>
                 </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>
