@@ -580,7 +580,8 @@ class HelpdeskTicket(models.Model):
 
     def action_generate_sale_order(self):
         self.ensure_one()
-        product_tmps = self.helpdesk_warranty_ticket_ids.mapped('product_id.product_tmpl_id')
+        products = self.helpdesk_warranty_ticket_ids.mapped('product_id')
+        product_tmps = products.mapped('product_tmpl_id')
         return {
             "name": _("Tạo đơn bán"),
             "type": "ir.actions.act_window",
