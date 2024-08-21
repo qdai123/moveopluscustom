@@ -85,6 +85,14 @@ class SaleOrder(models.Model):
         readonly="1",
     )
 
+    @api.onchange('company_id')
+    def _onchange_company_id_warning(self):
+        if self.env.context.get('create_order_from_claim_ticket'):
+            self.show_update_pricelist = True
+            return {}
+        else:
+            return super(SaleOrder, self)._onchange_company_id_warning()
+
     @api.depends("state", "order_line.product_id", "order_line.product_uom_qty")
     @api.depends_context("uid")
     def _compute_permissions(self):
