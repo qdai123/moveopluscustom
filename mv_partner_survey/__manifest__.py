@@ -19,6 +19,7 @@
         "data/partner_survey_data.xml",
         # SECURITY
         "security/ir.model.access.csv",
+        "security/partner_survey_security.xml",
         # VIEWS
         # "views/res_partner_views.xml",
         "views/mv_shop_views.xml",

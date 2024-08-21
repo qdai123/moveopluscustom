@@ -5,4 +5,7 @@ access_mv_partner_area_salesman,access.mv.partner.area.salesman,model_mv_partner
 access_mv_brand_system,mv.brand.system,model_mv_brand,base.group_system,1,1,1,1
 access_mv_brand_manager,mv.brand.manager,model_mv_brand,sales_team.group_sale_manager,1,1,1,0
 access_mv_brand_user,mv.brand.user,model_mv_brand,sales_team.group_sale_salesman,1,0,0,0
-access_mv_shop_admin,mv.shop admin,model_mv_shop,base.group_user,1,1,1,1
+access_mv_shop_admin,access.mv.shop.system,model_mv_shop,base.group_system,1,1,1,1
+access_mv_shop_manager,access.mv.shop.manager.sales.manager,model_mv_shop,sales_team.group_sale_manager,1,1,1,1
+access_mv_shop_salesman,access.mv.shop.salesman.readonly,model_mv_shop,sales_team.group_sale_salesman,1,1,1,1
+access_mv_partner_survey,access.mv.partner.survey,model_mv_partner_survey,sales_team.group_sale_salesman,1,1,1,1
