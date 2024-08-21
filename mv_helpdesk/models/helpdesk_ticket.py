@@ -87,7 +87,25 @@ class HelpdeskTicket(models.Model):
     invalid_serials = fields.Text("Số serial chưa kích hoạt")
     claim_warranty_ids = fields.Many2many(
         'mv.helpdesk.ticket.product.moves', "claim_ticket_product_moves_relation",
-        "claim_ticket_id", "move_id", string='Sản phẩm yêu cầu bảo hành', domain="[('stock_move_line_id', '!=', False)]")
+        "claim_ticket_id", "move_id", string='Sản phẩm yêu cầu bảo hành',
+        domain="[('stock_move_line_id', '!=', False)]")
+    can_be_create_order = fields.Boolean('Hiện button tạo đơn', readonly=True)
+
+    @api.onchange('claim_warranty_ids')
+    def onchange_can_be_create_order(self):
+        for ticket in self:
+            approved_claim = ticket.claim_warranty_ids.filtered(
+                lambda claim: claim.is_claim_warranty_approved
+            )
+            all_claim = ticket.claim_warranty_ids
+            if len(all_claim) == len(approved_claim):
+                ticket.write({
+                    'can_be_create_order': True
+                })
+            else:
+                ticket.write({
+                    'can_be_create_order': False
+                })
 
     @api.onchange('claim_warranty_ids')
     def onchange_claim_warranty_ids(self):
@@ -562,6 +580,7 @@ class HelpdeskTicket(models.Model):
 
     def action_generate_sale_order(self):
         self.ensure_one()
+        product_tmps = self.helpdesk_warranty_ticket_ids.mapped('product_id.product_tmpl_id')
         return {
             "name": _("Tạo đơn bán"),
             "type": "ir.actions.act_window",
@@ -571,10 +590,20 @@ class HelpdeskTicket(models.Model):
             "context": {
                 "default_is_claim_warranty": True,
                 "default_mv_moves_warranty_ids": [
-                    (6, 0, self.helpdesk_warranty_ticket_ids.ids)
-                ],
+                    (6, 0, self.helpdesk_warranty_ticket_ids.ids)],
+                "default_order_line": [(0, 0, {
+                        'product_template_id': product.id,
+                        'product_uom_qty': 1.0,
+                        'product_uom': product.uom_id.id,
+                        'price_unit': product.list_price,
+                        'price_total_before_discount': product.list_price,
+                        'tax_id': [(6, 0, product.taxes_id.ids)],
+                        'company_id': self.env.user.company_id.id,
+                        'name': product.name + product.description_sale if product.name and product.description_sale else "",
+                    }) for product in product_tmps],
                 "default_state": "draft",
                 "default_partner_id": self.partner_id.id,
+                "default_company_id": self.env.user.company_id.id,
             },
             "target": "current",
         }

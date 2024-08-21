@@ -28,8 +28,9 @@
                     </field>
                 </page>
                 <page string="Details" name="ticket_product_moves_tab2" invisible="not mv_is_warranty_ticket">
+                    <field name="can_be_create_order" force_save="1" invisible="1" />
                     <button name="action_wizard_import_lot_serial_number" string="Import Data" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary" invisible="not id"/>
-                    <button name="action_generate_sale_order" string="Tạo đơn bán" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary"/>
+                    <button name="action_generate_sale_order" invisible="not can_be_create_order" string="Tạo đơn bán" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary"/>
                     <field invisible="True" name="portal_lot_serial_number"/>
                     <field mode="tree" name="helpdesk_warranty_ticket_ids" context="{'default_mv_warranty_ticket_id': id}" domain="[('stock_move_line_id', '!=', False)]">
                         <tree open_form_view="False" editable="1" string="Ticket Registered" create="false" edit="false" delete="false" default_order="helpdesk_ticket_id">
