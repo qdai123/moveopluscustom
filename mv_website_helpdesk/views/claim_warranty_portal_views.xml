@@ -69,7 +69,7 @@
                                 <div id="helpdesk_warranty_activation_section">
                                     <section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
                                         <div class="container">
-                                            <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
+                                            <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="" data-success-page="" data-model_name="helpdesk.ticket">
                                                 <div class="s_website_form_rows row s_col_no_bgcolor">
                                                     <!-- label Thông tin đại lý -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">

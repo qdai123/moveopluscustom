@@ -218,6 +218,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                     type: "warning",
                 });
                 window.location.replace("/claim-bao-hanh");
+                return;
             }
         }
 
@@ -260,6 +261,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 }
             }
         }
+        window.location.replace("/xac-nhan-yeu-cau");
     },
     
     /**
