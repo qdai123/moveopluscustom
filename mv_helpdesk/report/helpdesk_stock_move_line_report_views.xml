@@ -93,6 +93,9 @@
 				<field name="ticket_id" column_invisible="True"/>
 				<field class="fw-bold" name="ticket_ref" string="Mã phiếu" optional="show"/>
 				<field name="ticket_type_id" string="Loại phiếu" options="{'no_open': True}" optional="hidden"/>
+				<field name="ticket_create_day" string="Ngày" optional="show"/>
+				<field name="ticket_create_month" string="Tháng" optional="show"/>
+				<field name="ticket_create_year" string="Năm" optional="show"/>
 				<field name="ticket_create_date" string="Ngày tạo"/>
 				<field name="ticket_write_date" string="Ngày cập nhật" optional="show"/>
 				<field name="ticket_stage_id" string="Trạng thái" widget="badge" optional="show"/>
