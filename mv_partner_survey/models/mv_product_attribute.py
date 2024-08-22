@@ -11,7 +11,7 @@ class MvSProductAttribute(models.Model):
     name = fields.Char("Attribute", required=True)
     mv_product_ids = fields.Many2many("mv.product.product", string="Related Products")
     number_related_mv_products = fields.Integer(
-        compute="_compute_number_related_mv_products"
+        compute="_compute_number_related_mv_products", readonly=True
     )
 
     @api.depends("mv_product_ids")
@@ -36,7 +36,7 @@ class MvSProductAttribute(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": _("Related Products"),
-            "res_model": "product.product",
+            "res_model": "mv.product.product",
             "view_mode": "tree,form",
             "domain": [("mv_product_attribute_id", "=", self.id)],
         }

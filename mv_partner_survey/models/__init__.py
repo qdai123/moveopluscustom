@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from . import mv_brand_proportion
 from . import mv_brand
+from . import mv_brand_proportion
 from . import mv_partner_area
 from . import mv_partner_survey
 from . import mv_product_attribute

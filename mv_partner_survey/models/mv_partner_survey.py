@@ -4,6 +4,10 @@ import uuid
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
+GROUP_SALES_MANAGER = "sales_team.group_sale_manager"
+GROUP_SALES_ALL = "sales_team.group_sale_salesman_all_leads"
+GROUP_SALESPERSON = "sales_team.group_sale_salesman"
+
 
 class MvPartnerSurvey(models.Model):
     _name = "mv.partner.survey"
@@ -27,7 +31,21 @@ class MvPartnerSurvey(models.Model):
         for survey in self:
             survey.do_readonly = survey.state == "done"
 
+    @api.depends_context("uid")
+    def _compute_permissions(self):
+        """
+        Compute the permissions of the current user.
+
+        This method computes the permissions of the current user and sets the `is_sales_manager`
+        field to `True` if the user belongs to the "Sales Manager" group, otherwise sets it to `False`.
+
+        :return: False
+        """
+        is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
+        self.is_sales_manager = is_sales_manager
+
     do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
 
     # === RELATIONAL Fields ===#
     partner_id = fields.Many2one(
@@ -52,8 +70,8 @@ class MvPartnerSurvey(models.Model):
     currency_id = fields.Many2one(
         "res.currency",
         "Tiền tệ",
-        related="company_id.currency_id",
         readonly=False,
+        default=lambda self: self.env.company.currency_id,
     )
     partner_area_id = fields.Many2one(
         "mv.partner.area",
@@ -66,6 +84,13 @@ class MvPartnerSurvey(models.Model):
         "mv.shop",
         "partner_survey_id",
         "Cửa hàng",
+        domain=lambda self: [("partner_survey_id", "=", self.id)],
+        required=True,
+    )
+    brand_proportion_ids = fields.One2many(
+        "mv.brand.proportion",
+        "partner_survey_id",
+        "Tỷ trọng thương hiệu",
         domain=lambda self: [("partner_survey_id", "=", self.id)],
         required=True,
     )
@@ -82,10 +107,8 @@ class MvPartnerSurvey(models.Model):
         "mv_product_id",
         "partner_survey_id",
         domain="[('product_type', 'in',  ['size_lop', 'lubricant'])]",
-        string="Sản phẩm",
+        string="TOP Sản phẩm",
     )
-    # TODO: Add more relational fields
-    # brand_proportion_ids = fields.One2many("mv.brand.proportion")
 
     # === BASE Fields ===#
     access_token = fields.Char(
@@ -234,12 +257,40 @@ class MvPartnerSurvey(models.Model):
                 vals["name"] = "{}-{}".format(partner.company_registry, name_ref)
         return super().create(vals_list)
 
+    def unlink(self):
+        for survey in self:
+            if survey.state == "done":
+                raise UserError("Không thể xóa Phiếu khảo sát đã hoàn thành!")
+
+        related_records = [
+            self.with_context(force_delete=True).shop_ids,
+            self.with_context(force_delete=True).brand_proportion_ids,
+            self.with_context(force_delete=True).service_detail_ids,
+            self.with_context(force_delete=True).mv_product_ids,
+        ]
+
+        res = super().unlink()
+
+        for records in related_records:
+            records.unlink()
+
+        return res
+
     def action_complete(self):
         for survey in self:
-            survey.state = "done"
+            if survey.state == "draft":
+                survey.state = "done"
 
     def action_cancel(self):
-        for survey in self:
-            survey.state = "cancel"
+        force_cancel = self.env.context.get(
+            "force_cancel_by_manager", False
+        ) and self.env.user.has_group(GROUP_SALES_MANAGER)
+        if not force_cancel:
+            for survey in self:
+                if survey.state == "done":
+                    raise UserError("Không thể hủy Phiếu khảo sát đã hoàn thành!")
+                survey.state = "cancel"
+        else:
+            self.write({"state": "cancel"})
 
     # === TOOLS ===#

@@ -10,17 +10,56 @@
 		<field name="sequence">3</field>
 	</record>
 
-	<menuitem id="mv_partner_survey.mv_partner_survey_menu_surveys" name="Khảo sát" parent="contacts.menu_contacts" sequence="2"/>
+	<!-- MO+ Menu: Partner Surveys -->
+	<menuitem id="mv_partner_survey.mv_partner_survey_menu_surveys"
+	          name="Khảo sát"
+	          parent="contacts.menu_contacts"
+	          sequence="2"
+	/>
 	<menuitem id="mv_partner_survey_sub_menu_my_surveys"
 	          name="Phiếu khảo sát của tôi"
 	          action="mv_partner_survey_action_my_surveys"
 	          parent="mv_partner_survey_menu_surveys"
 	          groups="sales_team.group_sale_salesman"
-	          sequence="1"/>
+	          sequence="1"
+	/>
 	<menuitem id="mv_partner_survey_sub_menu_all_surveys"
 	          name="Tất cả phiếu khảo sát"
 	          action="mv_partner_survey_action_all_surveys"
 	          parent="mv_partner_survey_menu_surveys"
-	          groups="sales_team.group_sale_manager"
-	          sequence="2"/>
+	          groups="sales_team.group_sale_salesman_all_leads,sales_team.group_sale_manager"
+	          sequence="2"
+	/>
+
+	<!-- MO+ Menu: Partner Surveys Configuration -->
+	<menuitem id="menu_config_agency_survey"
+	          name="Khảo sát"
+	          parent="contacts.res_partner_menu_config"
+	          groups="sales_team.group_sale_manager,base.group_system"
+	          sequence="20"
+	/>
+	<menuitem id="menu_config_mv_product_attribute"
+	          name="Thuộc tính Sản phẩm"
+	          action="action_view_mv_product_attribute"
+	          parent="menu_config_agency_survey"
+	          sequence="1"
+	/>
+	<menuitem id="menu_config_mv_product_product"
+	          name="Sản phẩm"
+	          action="action_view_mv_product_product"
+	          parent="menu_config_agency_survey"
+	          sequence="2"
+	/>
+	<menuitem id="menu_config_partner_area"
+	          name="Cấu hình Vùng"
+	          action="action_partner_area"
+	          parent="menu_config_agency_survey"
+	          sequence="3"
+	/>
+	<menuitem id="menu_config_mv_brand"
+	          name="Cấu hình Hãng/Thương hiệu"
+	          action="action_mv_brand"
+	          parent="menu_config_agency_survey"
+	          sequence="4"
+	/>
 </odoo>

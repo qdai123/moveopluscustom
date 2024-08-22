@@ -15,7 +15,7 @@
 				<field name="create_date" column_invisible="1"/>
 				<field name="survey_date"/>
 				<field name="create_uid" widget="many2one_avatar_user"/>
-				<field name="company_id" groups="base.group_multi_company" optional="hidden"/>
+				<field name="company_id" optional="hidden"/>
 				<field name="currency_id" column_invisible="1"/>
 				<field name="state"
 				       widget="badge"
@@ -37,9 +37,13 @@
 				<header>
 					<field name="active" invisible="1"/>
 					<field name="do_readonly" invisible="1"/>
+					<field name="is_sales_manager" invisible="1"/>
 					<field name="company_id" invisible="1"/>
 					<field name="currency_id" invisible="1"/>
 					<field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+					<button name="action_complete" type="object" string="Xác nhận" class="btn btn-primary" invisible="state in ['done', 'cancel']"/>
+					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" invisible="state in ['done', 'cancel']"/>
+					<button name="action_cancel" type="object" string="Hủy" class="btn btn-warning" context="{'force_cancel_by_manager': True}" invisible="state != 'done' and not is_sales_manager"/>
 				</header>
 				<sheet>
 					<div name="button_box" class="oe_button_box"></div>
@@ -61,7 +65,7 @@
 							<field name="is_partner_agency" invisible="1"/>
 							<field name="owner" readonly="do_readonly"/>
 							<field name="second_generation" readonly="do_readonly"/>
-							<field name="number_of_years_bussiness" readonly="do_readonly"/>
+							<field name="number_of_years_bussiness" widget="float" readonly="do_readonly"/>
 							<field name="partner_area_id" string="Vùng đại lý" options="{'no_create': True, 'no_create_edit': True}" readonly="do_readonly"/>
 						</group>
 						<group name="right_side_info">
@@ -97,9 +101,16 @@
 							<field name="partner_survey_id" column_invisible="1"/>
 						</tree>
 					</field>
-					<group string="## Các hãng lốp tham gia &amp; Tỷ trọng bán hàng" name="group_brand_and_proportion">
-						<!-- brand_proportion_ids -->
-					</group>
+					<label for="brand_proportion_ids" string="## Các hãng lốp tham gia &amp; Tỷ trọng bán hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="brand_proportion_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
+						<tree editable="bottom">
+							<field name="brand_id" options="{'no_open': True}"/>
+							<field name="year_participation"/>
+							<field name="proportion" widget="percentage"/>
+							<field name="quantity_per_month"/>
+							<field name="partner_survey_id" column_invisible="1"/>
+						</tree>
+					</field>
 					<group string="## Tỷ lệ Bán buôn &amp; Bán lẻ" name="group_wholesale_and_retail">
 						<group>
 							<label for="total_retail"/>
@@ -175,6 +186,14 @@
 					</group>
 					<label for="mv_product_ids" string="## Phân tích mặt hàng sản phẩm" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
 					<field name="mv_product_ids" no_label="1" domain="[('product_type', '=', 'size_lop')]" readonly="do_readonly">
+						<tree editable="bottom">
+							<field name="mv_product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng lốp" options="{'no_create': True}"/>
+							<field name="quantity_per_month" string="Số lượng/tháng"/>
+							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}"/>
+						</tree>
+					</field>
+					<field name="mv_product_ids" no_label="1" domain="[('product_type', '=', 'lubricant')]" readonly="do_readonly">
 						<tree editable="bottom">
 							<field name="mv_product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
 							<field name="brand_id" string="Hãng lốp" options="{'no_create': True}"/>
