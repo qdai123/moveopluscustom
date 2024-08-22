@@ -34,3 +34,7 @@ access_mv_service_detail_salesman,mv.service.detail Salesman,model_mv_service_de
 access_mv_shop_sale_manager,mv.shop Sale Manager,model_mv_shop,sales_team.group_sale_manager,1,1,1,1
 access_mv_shop_sale_all_leads,mv.shop Sale All Leads,model_mv_shop,sales_team.group_sale_salesman_all_leads,1,0,0,0
 access_mv_shop_salesman,mv.shop Salesman,model_mv_shop,sales_team.group_sale_salesman,1,1,1,0
+
+access_mv_brand_proportion_system,mv.brand.proportion.system,model_mv_brand_proportion,base.group_system,1,1,1,1
+access_mv_brand_proportion_manager,mv.brand.proportion.manager,model_mv_brand_proportion,sales_team.group_sale_manager,1,1,1,1
+access_mv_brand_proportion_salesman,mv.brand.proportion.salesman,model_mv_brand_proportion,sales_team.group_sale_salesman,1,1,1,1

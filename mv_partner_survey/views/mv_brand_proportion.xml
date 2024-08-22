@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View -->
+    <record id="view_mv_brand_proportion_tree" model="ir.ui.view">
+        <field name="name">mv.brand.proportion.tree</field>
+        <field name="model">mv.brand.proportion</field>
+        <field name="arch" type="xml">
+            <tree editable="top">
+                <field name="partner_survey_id"/>
+                <field name="brand_id"/>
+                <field name="year_participation"/>
+                <field name="proportion"/>
+                <field name="quantity_per_month"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_mv_brand_proportion" model="ir.actions.act_window">
+        <field name="name">Brand Proportion</field>
+        <field name="res_model">mv.brand.proportion</field>
+        <field name="view_mode">tree</field>
+    </record>
+
+
+</odoo>
