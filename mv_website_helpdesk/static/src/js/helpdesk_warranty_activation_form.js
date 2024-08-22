@@ -216,7 +216,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 this.notification.add(_t("Hãy đảm bảo hình ảnh rõ nét để được bảo hành!"), {
                     type: "warning",
                 });
-                return window.location.replace("/claim-bao-hanh");
+                window.location.replace("/claim-bao-hanh");
             }
         }
 
