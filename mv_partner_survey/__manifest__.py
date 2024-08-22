@@ -22,6 +22,7 @@
         "security/ir.model.access.csv",
         "security/partner_survey_security.xml",
         # VIEWS
+        "views/mv_brand_proportion.xml",
         "views/mv_brand_views.xml",
         "views/mv_partner_area_views.xml",
         "views/mv_partner_survey_views.xml",

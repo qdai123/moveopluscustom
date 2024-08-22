@@ -10,3 +10,7 @@ access_mv_shop_manager,access.mv.shop.manager.sales.manager,model_mv_shop,sales_
 access_mv_shop_salesman,access.mv.shop.salesman.readonly,model_mv_shop,sales_team.group_sale_salesman,1,1,1,1
 
 access_mv_partner_survey_user,access.mv.partner.survey.user,model_mv_partner_survey,base.group_user,1,1,1,1
+
+access_mv_brand_proportion_system,mv.brand.proportion.system,model_mv_brand_proportion,base.group_system,1,1,1,1
+access_mv_brand_proportion_manager,mv.brand.proportion.manager,model_mv_brand_proportion,sales_team.group_sale_manager,1,1,1,1
+access_mv_brand_proportion_salesman,mv.brand.proportion.salesman,model_mv_brand_proportion,sales_team.group_sale_salesman,1,1,1,1
