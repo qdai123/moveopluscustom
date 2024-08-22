@@ -212,13 +212,9 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             domain: [["id", "=", +$ticketType.val() || false]],
         });
         if (claimTicket && claimTicket[0] && claimTicket[0].code == "yeu_cau_bao_hanh") {
-            const fileInputEl = ev.currentTarget;
-            const fieldEl = fileInputEl.closest(".s_website_form_field");
-            const fileBlockEl = fieldEl.querySelector(".o_file_block");
-            console.log("//////////////////////////////////")
-            console.log(fileBlockEl)
-            if (typeof fileBlockEl === 'undefined') {
-                this.notification.add(_t("Hãy đảm bảo hình ảnh rõ nét để được bảo hành!"), {
+            const fileBlockEl = document.querySelector(".o_file_block");
+            if (!fileBlockEl) {
+                this.notification.add(_t("Hãy đảm bảo đầy đủ hình ảnh và rõ nét để được bảo hành!"), {
                     type: "warning",
                 });
                 window.location.replace("/claim-bao-hanh");
