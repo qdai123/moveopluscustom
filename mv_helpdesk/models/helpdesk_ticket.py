@@ -87,7 +87,25 @@ class HelpdeskTicket(models.Model):
     invalid_serials = fields.Text("Số serial chưa kích hoạt")
     claim_warranty_ids = fields.Many2many(
         'mv.helpdesk.ticket.product.moves', "claim_ticket_product_moves_relation",
-        "claim_ticket_id", "move_id", string='Sản phẩm yêu cầu bảo hành', domain="[('stock_move_line_id', '!=', False)]")
+        "claim_ticket_id", "move_id", string='Sản phẩm yêu cầu bảo hành',
+        domain="[('stock_move_line_id', '!=', False)]")
+    can_be_create_order = fields.Boolean('Hiện button tạo đơn', readonly=True)
+
+    @api.onchange('claim_warranty_ids')
+    def onchange_can_be_create_order(self):
+        for ticket in self:
+            approved_claim = ticket.claim_warranty_ids.filtered(
+                lambda claim: claim.is_claim_warranty_approved
+            )
+            all_claim = ticket.claim_warranty_ids
+            if len(all_claim) == len(approved_claim):
+                ticket.write({
+                    'can_be_create_order': True
+                })
+            else:
+                ticket.write({
+                    'can_be_create_order': False
+                })
 
     @api.onchange('claim_warranty_ids')
     def onchange_claim_warranty_ids(self):
@@ -562,19 +580,40 @@ class HelpdeskTicket(models.Model):
 
     def action_generate_sale_order(self):
         self.ensure_one()
-        return {
-            "name": _("Tạo đơn bán"),
-            "type": "ir.actions.act_window",
-            "res_model": "sale.order",
-            "view_mode": "form",
-            "view_id": self.env.ref("sale.view_order_form").id,
-            "context": {
-                "default_is_claim_warranty": True,
-                "default_mv_moves_warranty_ids": [
-                    (6, 0, self.helpdesk_warranty_ticket_ids.ids)
-                ],
-                "default_state": "draft",
-                "default_partner_id": self.partner_id.id,
-            },
-            "target": "current",
-        }
+        products = self.helpdesk_warranty_ticket_ids.mapped('product_id')
+        product_tmps = products.mapped('product_tmpl_id')
+        order = self.env['sale.order'].create({
+            'is_claim_warranty': True,
+            'mv_moves_warranty_ids': [(6, 0, self.helpdesk_warranty_ticket_ids.ids)],
+            'state': 'draft',
+            'partner_id': self.partner_id.id,
+            'partner_invoice_id': self.partner_id.id,
+            'partner_shipping_id': self.partner_id.id,
+            'team_id': self.env.ref('sales_team.team_sales_department', raise_if_not_found=False).id,
+        })
+        if order:
+            for product in product_tmps:
+                order_line = self.env['sale.order.line'].create({
+                    'display_type': False,
+                    'order_id': order.id,
+                    'product_template_id': product.id,
+                    'product_id': self.env['product.product'].search([('product_tmpl_id', '=', product.id)], limit=1).id,
+                    'product_uom_qty': 1.0,
+                    'product_uom': product.uom_id.id,
+                    'price_unit': product.list_price,
+                    'tax_id': [(6, 0, product.taxes_id.ids)],
+                    'name': product.name + product.description_sale if product.name and product.description_sale else "",
+                })
+            return {
+                "name": _("Tạo đơn bán"),
+                "type": "ir.actions.act_window",
+                "res_model": "sale.order",
+                "view_mode": "form",
+                "view_id": self.env.ref("sale.view_order_form").id,
+                "context": {
+                    'create_order_from_claim_ticket': True
+                },
+                "res_id": order.id,
+                "domain": [('id', '=', order.id)],
+                "target": "new",
+            }

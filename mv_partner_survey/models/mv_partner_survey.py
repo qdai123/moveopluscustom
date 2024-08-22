@@ -1,26 +1,18 @@
 # -*- coding: utf-8 -*-
+import uuid
+
 from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
-from odoo.exceptions import UserError, ValidationError
 
-
-class MVPartnerSurvey(models.Model):
+class MvPartnerSurvey(models.Model):
     _name = "mv.partner.survey"
     _description = _("Partner Survey")
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["mail.thread", "portal.mixin"]
     _order = "create_date desc"
 
-    """
-    TODO List:
-    - Add fields
-    - Add constraints
-    - Add methods
-    - Add views
-    - Add security
-    - Add data, demo data
-    - Add tests
-    - Add translations
-    """
+    def _get_default_access_token(self):
+        return str(uuid.uuid4())
 
     # === RULES Fields ===#
     def _do_readonly(self):
@@ -44,6 +36,11 @@ class MVPartnerSurvey(models.Model):
         required=True,
         tracking=True,
         index=True,
+    )
+    is_partner_agency = fields.Boolean(
+        compute="_compute_is_partner_agency",
+        store=True,
+        readonly=True,
     )
     company_id = fields.Many2one(
         "res.company",
@@ -72,12 +69,30 @@ class MVPartnerSurvey(models.Model):
         domain=lambda self: [("partner_survey_id", "=", self.id)],
         required=True,
     )
+    service_detail_ids = fields.One2many(
+        "mv.service.detail",
+        "partner_survey_id",
+        "Dịch vụ",
+        domain=lambda self: [("partner_survey_id", "=", self.id)],
+        required=True,
+    )
+    mv_product_ids = fields.Many2many(
+        "mv.product.product",
+        "mv_product_partner_survey_rel",
+        "mv_product_id",
+        "partner_survey_id",
+        domain="[('product_type', 'in',  ['size_lop', 'lubricant'])]",
+        string="Sản phẩm",
+    )
     # TODO: Add more relational fields
     # brand_proportion_ids = fields.One2many("mv.brand.proportion")
-    # service_detail_ids = fields.One2many("mv.service.detail")
-    # mv_product_ids = fields.Many2many("mv.product.product")
 
     # === BASE Fields ===#
+    access_token = fields.Char(
+        "Access Token",
+        default=lambda self: self._get_default_access_token(),
+        copy=False,
+    )
     active = fields.Boolean(default=True, tracking=True)
     create_date = fields.Datetime(
         "Ngày khảo sát", default=lambda self: fields.Datetime.now()
@@ -92,7 +107,7 @@ class MVPartnerSurvey(models.Model):
         string="Trạng thái",
         tracking=True,
     )
-    name = fields.Char("Phiếu", default="SURVEY", tracking=True)
+    name = fields.Char("Phiếu khảo sát", default="SURVEY", tracking=True)
     owner = fields.Char("Chủ sở hữu", required=True, tracking=True)
     second_generation = fields.Char("Thế hệ thứ 2", required=True, tracking=True)
     number_of_years_bussiness = fields.Float(
@@ -163,7 +178,18 @@ class MVPartnerSurvey(models.Model):
         "Số lượng nhân viên hành chính", default=0, tracking=True
     )
 
-    _sql_constraints = []
+    _sql_constraints = [
+        (
+            "name_unique",
+            "UNIQUE(name)",
+            "Mỗi một Phiếu khảo sát Đối tác phải là DUY NHẤT!",
+        ),
+        (
+            "access_token_unique",
+            "unique(access_token)",
+            "Access token should be unique",
+        ),
+    ]
 
     @api.constrains("owner")
     def _check_owner_is_human(self):
@@ -175,6 +201,11 @@ class MVPartnerSurvey(models.Model):
     def _onchange_partner_id(self):
         if self.partner_id:
             self.name = "{}-SURVEY".format(self.partner_id.company_registry)
+
+    @api.depends("partner_id")
+    def _compute_is_partner_agency(self):
+        for survey in self:
+            survey.is_partner_agency = survey.partner_id.is_agency
 
     @api.depends("per_retail_customer", "per_retail_taxi", "per_retail_fleet")
     def _compute_total_retail(self):
