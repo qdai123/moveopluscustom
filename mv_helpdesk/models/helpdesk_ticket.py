@@ -587,31 +587,33 @@ class HelpdeskTicket(models.Model):
             'mv_moves_warranty_ids': [(6, 0, self.helpdesk_warranty_ticket_ids.ids)],
             'state': 'draft',
             'partner_id': self.partner_id.id,
-            'company_id': self.env.user.company_id.id,
+            'partner_invoice_id': self.partner_id.id,
+            'partner_shipping_id': self.partner_id.id,
             'team_id': self.env.ref('sales_team.team_sales_department', raise_if_not_found=False).id,
         })
-        for product in product_tmps:
-            order_line = self.env['sale.order.line'].create({
-                'display_type': 'line_section',
-                'order_id': order.id,
-                'product_template_id': product.id,
-                'product_uom_qty': 1.0,
-                'product_uom': product.uom_id.id,
-                'price_unit': product.list_price,
-                'price_total_before_discount': product.list_price,
-                'tax_id': [(6, 0, product.taxes_id.ids)],
-                'company_id': self.env.user.company_id.id,
-                'name': product.name + product.description_sale if product.name and product.description_sale else "",
-            })
-        return {
-            "name": _("Tạo đơn bán"),
-            "type": "ir.actions.act_window",
-            "res_model": "sale.order",
-            "view_mode": "form",
-            "view_id": self.env.ref("sale.view_order_form").id,
-            "context": {
-                'create_order_from_claim_ticket': True
-            },
-            "domain": [('id', '=', order.id)],
-            "target": "current",
-        }
+        if order:
+            for product in product_tmps:
+                order_line = self.env['sale.order.line'].create({
+                    'display_type': False,
+                    'order_id': order.id,
+                    'product_template_id': product.id,
+                    'product_id': self.env['product.product'].search([('product_tmpl_id', '=', product.id)], limit=1).id,
+                    'product_uom_qty': 1.0,
+                    'product_uom': product.uom_id.id,
+                    'price_unit': product.list_price,
+                    'tax_id': [(6, 0, product.taxes_id.ids)],
+                    'name': product.name + product.description_sale if product.name and product.description_sale else "",
+                })
+            return {
+                "name": _("Tạo đơn bán"),
+                "type": "ir.actions.act_window",
+                "res_model": "sale.order",
+                "view_mode": "form",
+                "view_id": self.env.ref("sale.view_order_form").id,
+                "context": {
+                    'create_order_from_claim_ticket': True
+                },
+                "res_id": order.id,
+                "domain": [('id', '=', order.id)],
+                "target": "new",
+            }
