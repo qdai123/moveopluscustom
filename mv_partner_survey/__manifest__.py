@@ -2,19 +2,16 @@
 {
     "name": "MV Partner Survey",
     "version": "1.0.0",
-    "category": "Moveoplus/MV Partner Survey",
-    "description": """This module adds a new feature of the partner add-on to manage the partner survey.""",
+    "category": "Moveoplus/Partner Survey",
+    "description": """
+Create base detail of partner surveys
+=====================================
+(Update later)
+    """,
+    "summary": "Carry out detailed surveys by partner agencies of Moveo Plus Company",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS System Development Team",
-    "depends": [
-        # Odoo
-        "base",
-        "contacts",
-        "portal",
-        # Biztech
-        "biz_vn_address",
-        # Moveoplus
-        "mv_base",
-    ],
+    "depends": ["base", "contacts", "portal", "biz_vn_address", "mv_base"],
     "data": [
         # DATA
         "data/partner_survey_data.xml",

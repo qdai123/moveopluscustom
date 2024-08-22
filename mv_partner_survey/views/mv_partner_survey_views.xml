@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<!-- KANBAN VIEW -->
+
 	<!-- TREE VIEW -->
 	<record model="ir.ui.view" id="mv_partner_survey_tree_view">
 		<field name="name">mv_partner_survey.tree</field>
 		<field name="model">mv.partner.survey</field>
 		<field name="arch" type="xml">
-			<tree duplicate="false">
+			<tree duplicate="false" import="false" export_xlsx="false" sample="true">
 				<field name="active" column_invisible="1"/>
 				<field name="name"/>
 				<field name="partner_id" widget="many2one_avatar"/>
@@ -56,6 +58,7 @@
 							       context="{'res_partner_search_mode': 'customer', 'show_address': 1, 'show_vat': True}"
 							       options="{'no_create': True, 'no_create_edit': True}"
 							       readonly="do_readonly"/>
+							<field name="is_partner_agency" invisible="1"/>
 							<field name="owner" readonly="do_readonly"/>
 							<field name="second_generation" readonly="do_readonly"/>
 							<field name="number_of_years_bussiness" readonly="do_readonly"/>
@@ -68,7 +71,7 @@
 							<div class="col-2">
 								<field name="proportion" no_label="1" widget="percentage"/>
 							</div>
-							<field name="is_moveoplus_agency"/>
+							<field name="is_moveoplus_agency" readonly="partner_id and is_partner_agency"/>
 							<label for="classical"/>
 							<div class="col-4">
 								<field name="classical" no_label="1"/>
@@ -101,13 +104,13 @@
 						<group>
 							<label for="total_retail"/>
 							<div class="col-2">
-								<field name="total_retail" no_label="1" widget="percentage"/>
+								<field name="total_retail" class="fw-bold" decoration-success="total_retail &gt; 1" no_label="1" widget="percentage"/>
 							</div>
 						</group>
 						<group>
 							<label for="total_wholesale"/>
 							<div class="col-2">
-								<field name="total_wholesale" no_label="1" widget="percentage"/>
+								<field name="total_wholesale" class="fw-bold" decoration-success="total_wholesale &gt; 1" no_label="1" widget="percentage"/>
 							</div>
 						</group>
 						<group string="Chi tiết bán lẻ (%)">
@@ -160,7 +163,7 @@
 								<field name="num_administrative_staff" no_label="1" readonly="do_readonly"/>
 							</div>
 						</group>
-						<field name="service_detail_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
+						<field name="service_detail_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly" invisible="not is_use_service">
 							<tree editable="bottom">
 								<field name="name" string="Thông tin sản phẩm dịch vụ"/>
 								<field name="service_price" widget="monetary"/>
@@ -176,7 +179,7 @@
 							<field name="mv_product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
 							<field name="brand_id" string="Hãng lốp" options="{'no_create': True}"/>
 							<field name="quantity_per_month" string="Số lượng/tháng"/>
-							<field name="uom_id" groups="uom.group_uom" options="{'no_create': True}"/>
+							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}"/>
 						</tree>
 					</field>
 					<group string="## Lịch sử bán hàng" name="group_sales_history_by_year" invisible="1">

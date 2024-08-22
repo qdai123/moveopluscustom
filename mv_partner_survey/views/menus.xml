@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<menuitem id="mv_partner_survey.mv_partner_survey_menu_surveys"
-	          name="Khảo sát"
-	          parent="contacts.menu_contacts"
-	          sequence="1"/>
+	<!-- MO+ Override Menu: Contacts [ID: menu_contacts] (Contacts) -->
+	<record model="ir.ui.menu" id="contacts.menu_contacts">
+		<field name="sequence">1</field>
+	</record>
+
+	<!-- MO+ Override Menu: Configuration [ID: res_partner_menu_config] (Contacts) -->
+	<record model="ir.ui.menu" id="contacts.res_partner_menu_config">
+		<field name="sequence">3</field>
+	</record>
+
+	<menuitem id="mv_partner_survey.mv_partner_survey_menu_surveys" name="Khảo sát" parent="contacts.menu_contacts" sequence="2"/>
 	<menuitem id="mv_partner_survey_sub_menu_my_surveys"
 	          name="Phiếu khảo sát của tôi"
 	          action="mv_partner_survey_action_my_surveys"
