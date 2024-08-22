@@ -184,6 +184,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
         const $licensePlatesActivation = $("#helpdesk_warranty_input_license_plates");
         const $mileageActivation = $("#helpdesk_warranty_input_mileage");
+        const inputFile = $('#addRequestLine');
         
         const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
         let ticketTypeObj;
@@ -206,7 +207,20 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 return;
             }
         }
-        
+
+        let claimTicket = await this.orm.call("helpdesk.ticket.type", "search_read", [], {
+            fields: ["id", "code"],
+            domain: [["id", "=", +$ticketType.val() || false]],
+        });
+        if (claimTicket && claimTicket[0] && claimTicket[0].code == "yeu_cau_bao_hanh") {
+            if (typeof inputFile.files === 'undefined') {
+                this.notification.add(_t("Vui lòng tải hình ảnh lên!"), {
+                    type: "warning",
+                });
+                window.location.replace("/claim-bao-hanh");
+            }
+        }
+
         let tel_activation = null
         if ($telNumberActivation.val() == null) {
             const domain = ['|', ['email', '=', $partnerEmail.val()], ['name', '=', $partnerName.val()]];

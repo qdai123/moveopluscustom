@@ -205,7 +205,7 @@
                                                             <div class="col-sm">
                                                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>                                                                
                                                                 <div class="col-lg-7 col-md-8">
-                                                                    <input required="True" type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
+                                                                    <input id="addRequestLine" type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
                                                                     <br/><span class="s_website_form_label_content">Ghi chú: hình ảnh phải mô tả rõ chi tiết lỗi</span>
                                                                 </div>
                                                             </div>
