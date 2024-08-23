@@ -9,12 +9,14 @@
         # Odoo
         "account",
         # Moveoplus
+        "biz_viettel_sinvoice_v2",
         "mv_base",
     ],
     "data": [
         # SECURITY
         "security/ir.model.access.csv",
         # VIEWS
+        "views/mv_account_move_views.xml",
         "views/report_invoice.xml",
         # WIZARDS
         "wizard/account_payment_register_views.xml",
