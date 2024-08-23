@@ -7,10 +7,10 @@
 					<div class="container d-flex flex-column justify-content-center h-100">
 						<div class="oe_structure" id="oe_structure_mv_website_helpdesk_confirm_warranty_activation"/>
 						<div class="row justify-content-center mb16">
-							<!-- <t t-if="request.session.get('form_builder_model_model', '') == 'helpdesk.ticket'">
+							<t t-if="request.session.get('form_builder_model_model', '') == 'helpdesk.ticket'">
 								<t t-set="ticket" t-value="request.website._website_form_last_record()"/>
-							</t> -->
-							<!-- <h1 class="text-center">
+							</t>
+							<h1 class="text-center">
 								<t t-if="ticket and request.session.uid">
 									<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
 									<span>Mã số phiếu yêu cầu của bạn là
@@ -25,18 +25,18 @@
 										.
 									</span>
 								</t>
-							</h1> -->
+							</h1>
 							<h2 class="text-center">
 								Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!
 							</h2>
-							<!-- <div class="text-center">
+							<div class="text-center">
 								<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
 									Xem phiếu
 								</a>
 								<a class="btn btn-primary" href='/'>
 									Trở về trang chủ
 								</a>
-							</div> -->
+							</div>
 						</div>
 						<div class="oe_structure" id="oe_structure_website_helpdesk_thanks_you_bottom"/>
 					</div>
