@@ -231,13 +231,18 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 this.notification.add(_t("Hãy đảm bảo đầy đủ hình ảnh và rõ nét để được bảo hành!"), {
                     type: "warning",
                 });
+                let now = new Date();
+                let time = now.getTime();
+                let expireTime = time + 1000*9;
+                now.setTime(expireTime);
+
                 let str_tmp = '+mvp_' + $("#helpdesk_warranty_input_license_plates").val() + 
                     '+mvp_' + $("#helpdesk_warranty_input_mileage").val() + 
                     '+mvp_' + $("#helpdesk_warranty_input_mv_warranty_phone").val() + 
                     '+mvp_' + $("#helpdesk_warranty_input_mv_remaining_tread_depth").val() + 
                     '+mvp_' +  $("#helpdesk_warranty_input_mv_note_sub_branch").val() +
                     '+mvp_' +  $("#helpdesk_warranty_input_portal_lot_serial_number").val();
-                document.cookie = str_tmp;
+                document.cookie = str_tmp + ';expires='+now.toUTCString();
                 window.location.replace("/claim-bao-hanh");
                 return;
             }
