@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'MV Hide Menu',
-    'version': '17.0.1.0',
-    'category': 'Moveoplus/MV Hide Menu',
-    'images': ["static/description/icon.png"],
-    'description': "",
-    'author': '',
-    'depends': [
-        'base',
-    ],
-    'data': [
-        # SECURITY
-        # MENU
-        # VIEWS
-        'views/res_users.xml',
-    ],
-    'license': 'LGPL-3',
-    'application': True,
+    "name": "Hide Menu",
+    "version": "1.0.0.17",
+    "countries": ["vi"],
+    "category": "Moveoplus/Hide Menu",
+    "description": "Hide Menu",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
+    "author": "MOVEOPLUS system development team",
+    "depends": ["base"],
+    "data": ["views/res_users.xml"],
+    "license": "LGPL-3",
+    "application": False,
 }

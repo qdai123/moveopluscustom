@@ -1,21 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_mv_brand_tree" model="ir.ui.view">
-        <field name="name">mv.brand.tree</field>
-        <field name="model">mv.brand</field>
-        <field name="arch" type="xml">
-            <tree editable="top">
-                <field name="name"/>
-                <field name="type"/>
-            </tree>
-        </field>
-    </record>
+	<record id="mv_product_product_form_view" model="ir.ui.view">
+		<field name="name">mv.product.product.form</field>
+		<field name="model">mv.product.product</field>
+		<field name="arch" type="xml">
+			<form>
+				<group col="2">
+					<group>
+						<field name="name" string="Tên sản phẩm"/>
+						<field name="mv_product_attribute_id" string="Thuộc tính"/>
+						<field name="uom_id"/>
+					</group>
+					<group>
+						<field name="brand_id" string="Thương hiệu"/>
+						<field name="product_type" string="Loại sản phẩm" readonly="1"/>
+					</group>
+				</group>
+			</form>
+		</field>
+	</record>
 
-    <record id="action_view_mv_product_product" model="ir.actions.act_window">
-        <field name="name">Sản phẩm</field>
-        <field name="res_model">mv.brand</field>
-        <field name="view_mode">tree</field>
-        <field name="context">{'default_view_type': 'list'}</field>
+	<record id="mv_product_product_tree_view" model="ir.ui.view">
+		<field name="name">mv.product.product.tree</field>
+		<field name="model">mv.product.product</field>
+		<field name="arch" type="xml">
+			<tree editable="bottom">
+				<field name="name" string="Tên sản phẩm" readonly="1" optional="hidden"/>
+				<field name="mv_product_attribute_id" string="Thuộc tính"
+				       options="{'no_create': True, 'no_create_edit': True}"/>
+				<field name="brand_id" string="Thương hiệu" options="{'no_create': True, 'no_create_edit': True}"/>
+				<field name="quantity_per_month" string="Số lượng/tháng"/>
+				<field name="uom_id" groups="uom.group_uom" options="{'no_open': True, 'no_create': True}"
+				       optional="hidden"/>
+				<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
+			</tree>
+		</field>
+	</record>
 
-    </record>
+	<record id="action_view_mv_product_product" model="ir.actions.act_window">
+		<field name="name">Sản phẩm</field>
+		<field name="res_model">mv.product.product</field>
+		<field name="view_mode">form,tree</field>
+		<field name="context">{}</field>
+		<field name="view_id" ref="mv_product_product_tree_view"/>
+	</record>
 </odoo>

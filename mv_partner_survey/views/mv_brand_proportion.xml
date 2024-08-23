@@ -21,6 +21,4 @@
         <field name="res_model">mv.brand.proportion</field>
         <field name="view_mode">tree</field>
     </record>
-
-
 </odoo>

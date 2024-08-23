@@ -38,15 +38,15 @@
 	          groups="sales_team.group_sale_manager,base.group_system"
 	          sequence="20"
 	/>
-	<menuitem id="menu_config_mv_product_attribute"
-	          name="Thuộc tính Sản phẩm"
-	          action="action_view_mv_product_attribute"
-	          parent="menu_config_agency_survey"
-	          sequence="1"
-	/>
 	<menuitem id="menu_config_mv_product_product"
 	          name="Sản phẩm"
 	          action="action_view_mv_product_product"
+	          parent="menu_config_agency_survey"
+	          sequence="1"
+	/>
+	<menuitem id="menu_config_mv_product_attribute"
+	          name="Thuộc tính Sản phẩm"
+	          action="action_view_mv_product_attribute"
 	          parent="menu_config_agency_survey"
 	          sequence="2"
 	/>

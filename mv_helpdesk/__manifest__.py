@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Helpdesk",
-    "version": "17.0.1.0",
-    "category": "Moveoplus/MV Helpdesk",
+    "name": "Helpdesk",
+    "version": "1.0.0.17",
+    "countries": ["vi"],
+    "category": "Moveoplus/Helpdesk",
     "description": "Base on Helpdesk module to customize new features",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
-    "depends": [
-        # Odoo (Enterprise)
-        "helpdesk",
-        "helpdesk_stock",
-        # BIZ
-        "biz_stock_qrcode",
-    ],
+    "depends": ["helpdesk", "helpdesk_stock", "biz_stock_qrcode"],
     "data": [
         # SECURITY
         "security/helpdesk_security.xml",

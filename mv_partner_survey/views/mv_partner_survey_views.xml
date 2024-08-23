@@ -42,8 +42,8 @@
 					<field name="currency_id" invisible="1"/>
 					<field name="state" widget="statusbar" statusbar_visible="draft,done"/>
 					<button name="action_complete" type="object" string="Xác nhận" class="btn btn-primary" invisible="state in ['done', 'cancel']"/>
-					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" invisible="state in ['done', 'cancel']"/>
-					<button name="action_cancel" type="object" string="Hủy" class="btn btn-warning" context="{'force_cancel_by_manager': True}" invisible="state != 'done' and not is_sales_manager"/>
+					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" invisible="state in ['done', 'cancel'] or is_sales_manager"/>
+					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" context="{'force_cancel_by_manager': True}" invisible="state != 'done' and not is_sales_manager"/>
 				</header>
 				<sheet>
 					<div name="button_box" class="oe_button_box"></div>
@@ -179,26 +179,28 @@
 								<field name="name" string="Thông tin sản phẩm dịch vụ"/>
 								<field name="service_price" widget="monetary"/>
 								<field name="notes"/>
-								<field name="vnd_currency_id" options="{'no_create': True}"/>
+								<field name="vnd_currency_id" options="{'no_create': True}" column_invisible="1"/>
 								<field name="partner_survey_id" options="{'no_create': True}" column_invisible="1"/>
 							</tree>
 						</field>
 					</group>
 					<label for="mv_product_ids" string="## Phân tích mặt hàng sản phẩm" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
-					<field name="mv_product_ids" no_label="1" domain="[('product_type', '=', 'size_lop')]" readonly="do_readonly">
+					<field name="mv_product_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom">
 							<field name="mv_product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
-							<field name="brand_id" string="Hãng lốp" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng lốp" domain="[('type', '=', 'size_lop')]" options="{'no_create': True}"/>
 							<field name="quantity_per_month" string="Số lượng/tháng"/>
-							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}"/>
+							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
+							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
-					<field name="mv_product_ids" no_label="1" domain="[('product_type', '=', 'lubricant')]" readonly="do_readonly">
+					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom">
-							<field name="mv_product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
-							<field name="brand_id" string="Hãng lốp" options="{'no_create': True}"/>
+							<field name="mv_product_attribute_id" string="Dầu nhớt" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng dầu nhớt " domain="[('type', '=', 'lubricant')]" options="{'no_create': True}"/>
 							<field name="quantity_per_month" string="Số lượng/tháng"/>
-							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}"/>
+							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
+							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
 					<group string="## Lịch sử bán hàng" name="group_sales_history_by_year" invisible="1">

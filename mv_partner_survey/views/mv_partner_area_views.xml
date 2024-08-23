@@ -8,7 +8,6 @@
                 <field name="parent_id"/>
                 <field name="name"/>
                 <field name="code_area"/>
-
             </tree>
         </field>
     </record>
@@ -18,6 +17,5 @@
         <field name="res_model">mv.partner.area</field>
         <field name="view_mode">tree</field>
         <field name="context">{'default_view_type': 'list'}</field>
-
     </record>
 </odoo>

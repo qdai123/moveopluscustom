@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="mv_product_attribute_tree_view" model="ir.ui.view">
-        <field name="name">mv.brand.tree</field>
+        <field name="name">mv.product.attribute.tree</field>
         <field name="model">mv.product.attribute</field>
         <field name="arch" type="xml">
             <tree editable="bottom">

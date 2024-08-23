@@ -9,7 +9,14 @@ class MvSProductAttribute(models.Model):
 
     sequence = fields.Integer("Sequence", index=True)
     name = fields.Char("Attribute", required=True)
-    mv_product_ids = fields.Many2many("mv.product.product", string="Related Products")
+    mv_product_ids = fields.Many2many(
+        "mv.product.product",
+        "mv_attribute_mv_product_rel",
+        "mv_attribute_id",
+        "mv_product_id",
+        "Related Products",
+        readonly=True,
+    )
     number_related_mv_products = fields.Integer(
         compute="_compute_number_related_mv_products", readonly=True
     )

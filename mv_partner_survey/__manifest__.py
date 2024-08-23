@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Partner Survey",
-    "version": "1.0.0",
-    "category": "Moveoplus/Partner Survey",
+    "name": "Dealer Management",
+    "version": "1.0.0.17",
+    "countries": ["vi"],
+    "category": "Moveoplus/Dealer Management",
     "description": """
-Create base detail of partner surveys
-=====================================
-(Update later)
+A DMS is a comprehensive tool that helps dealerships improve efficiency, 
+increase revenue, and enhance customer satisfaction by providing a unified view of all dealership operations.
     """,
     "summary": "Carry out detailed surveys by partner agencies of Moveo Plus Company",
     "website": "https://moveoplus.com/cau-chuyen-moveo/",

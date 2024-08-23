@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Sale",
-    "version": "17.0.1.0",
-    "category": "Moveoplus/MV Sale",
+    "name": "Sales",
+    "version": "1.0.0.17",
+    "countries": ["vi"],
+    "category": "Moveoplus/Sales",
     "description": "Base on Sale modules and Related modules to customize new features",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
     "depends": [
         # Odoo

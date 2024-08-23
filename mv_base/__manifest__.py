@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Base",
-    "version": "17.0.1.0",
-    "category": "Moveoplus/MV Base",
+    "name": "Base",
+    "version": "1.0.0.17",
+    "countries": ["vi"],
+    "category": "Moveoplus/Base",
     "description": """
-    The kernel of MOVEO PLUS, needed for all installation.
-    ===================================================
+The kernel of Moveo Plus, needed for all installation.
+===================================================
     """,
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
     "depends": ["base", "base_setup", "mail"],
     "data": [

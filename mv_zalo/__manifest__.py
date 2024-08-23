@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Zalo",
-    "version": "17.0.1.0",
-    "category": "Moveoplus/MV Zalo",
+    "name": "Zalo OA",
+    "version": "1.0.0.17",
+    "countries": ["vi"],
+    "category": "Moveoplus/Zalo OA",
     "description": "Base on Zalo modules to customize new features",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
     "depends": [
         # Odoo

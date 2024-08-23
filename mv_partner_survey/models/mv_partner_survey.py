@@ -106,8 +106,16 @@ class MvPartnerSurvey(models.Model):
         "mv_product_partner_survey_rel",
         "mv_product_id",
         "partner_survey_id",
-        domain="[('product_type', 'in',  ['size_lop', 'lubricant'])]",
-        string="TOP Sản phẩm",
+        domain="[('product_type', 'in',  ['size_lop'])]",
+        string="TOP Sản phẩm (Size Lốp)",
+    )
+    mv_product_lubricant_ids = fields.Many2many(
+        "mv.product.product",
+        "mv_product_lubricant_partner_survey_rel",
+        "mv_product_id",
+        "partner_survey_id",
+        domain="[('product_type', 'in',  ['lubricant'])]",
+        string="TOP Sản phẩm (Dầu nhớt)",
     )
 
     # === BASE Fields ===#

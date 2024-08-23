@@ -1,5 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_mv_brand_system_user,mv.brand System User,model_mv_brand,base.group_system,1,1,1,1
+access_mv_brand_proportion_system_user,mv.brand.proportion System User,model_mv_brand_proportion,base.group_system,1,1,1,1
 access_mv_partner_area_system_user,mv.partner.area System User,model_mv_partner_area,base.group_system,1,1,1,1
 access_mv_partner_survey_system_user,mv.partner.survey System User,model_mv_partner_survey,base.group_system,1,1,1,1
 access_mv_product_attribute_system_user,mv.product.attribute System User,model_mv_product_attribute,base.group_system,1,1,1,1
@@ -10,6 +11,10 @@ access_mv_shop_system_user,mv.shop System User,model_mv_shop,base.group_system,1
 access_mv_brand_sale_manager,mv.brand Sale Manager,model_mv_brand,sales_team.group_sale_manager,1,1,1,1
 access_mv_brand_sale_all_leads,mv.brand Sale All Leads,model_mv_brand,sales_team.group_sale_salesman_all_leads,1,0,0,0
 access_mv_brand_salesman,mv.brand Salesman,model_mv_brand,sales_team.group_sale_salesman,1,1,1,0
+
+access_mv_brand_proportion_manager,mv.brand.proportion Sale Manager,model_mv_brand_proportion,sales_team.group_sale_manager,1,1,1,1
+access_mv_brand_proportion_sale_all_leads,mv.brand.proportion Sale All Leads,model_mv_brand,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_brand_proportion_salesman,mv.brand.proportion Salesman,model_mv_brand_proportion,sales_team.group_sale_salesman,1,1,1,0
 
 access_mv_partner_area_sale_manager,mv.partner.area Sale Manager,model_mv_partner_area,sales_team.group_sale_manager,1,1,1,1
 access_mv_partner_area_sale_all_leads,mv.partner.area Sale All Leads,model_mv_partner_area,sales_team.group_sale_salesman_all_leads,1,0,0,0
@@ -34,7 +39,3 @@ access_mv_service_detail_salesman,mv.service.detail Salesman,model_mv_service_de
 access_mv_shop_sale_manager,mv.shop Sale Manager,model_mv_shop,sales_team.group_sale_manager,1,1,1,1
 access_mv_shop_sale_all_leads,mv.shop Sale All Leads,model_mv_shop,sales_team.group_sale_salesman_all_leads,1,0,0,0
 access_mv_shop_salesman,mv.shop Salesman,model_mv_shop,sales_team.group_sale_salesman,1,1,1,0
-
-access_mv_brand_proportion_system,mv.brand.proportion.system,model_mv_brand_proportion,base.group_system,1,1,1,1
-access_mv_brand_proportion_manager,mv.brand.proportion.manager,model_mv_brand_proportion,sales_team.group_sale_manager,1,1,1,1
-access_mv_brand_proportion_salesman,mv.brand.proportion.salesman,model_mv_brand_proportion,sales_team.group_sale_salesman,1,1,1,1
