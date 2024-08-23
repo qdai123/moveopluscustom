@@ -30,12 +30,26 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         this.rpc = this.bindService("rpc");
         this.dialogService = this.bindService("dialog");
         this.notification = this.bindService("notification");
+        if (document.cookie){
+            for (let val of document.cookie.split(';')){
+                if (val.trim().includes("+mvp_")){
+                    let tmp_string = val.split('+mvp_');
+                    $("#helpdesk_warranty_input_license_plates").html(tmp_string[1].trim());
+                    $("#helpdesk_warranty_input_mileage").html(tmp_string[2].trim());
+                    $("#helpdesk_warranty_input_mv_warranty_phone").html(tmp_string[3].trim());
+                    $("#helpdesk_warranty_input_mv_remaining_tread_depth").html(tmp_string[4].trim());
+                    $("#helpdesk_warranty_input_mv_note_sub_branch").html(tmp_string[5].trim());
+                    $("#helpdesk_warranty_input_portal_lot_serial_number").html(tmp_string[6].trim());
+                }
+            }
+        }
+        document.cookie.replace(/(?<=^|;).+?(?=\=|;|$)/g, name => location.hostname.split('.').reverse().reduce(domain => (domain=domain.replace(/^\.?[^.]+/, ''),document.cookie=`${name}=;max-age=0;path=/;domain=${domain}`,domain), location.hostname));
     },
-    
+
     async willStart() {
         return Promise.all([this._super()]);
     },
-    
+
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
@@ -217,6 +231,13 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 this.notification.add(_t("Hãy đảm bảo đầy đủ hình ảnh và rõ nét để được bảo hành!"), {
                     type: "warning",
                 });
+                let str_tmp = '+mvp_' + $("#helpdesk_warranty_input_license_plates").val() + 
+                    '+mvp_' + $("#helpdesk_warranty_input_mileage").val() + 
+                    '+mvp_' + $("#helpdesk_warranty_input_mv_warranty_phone").val() + 
+                    '+mvp_' + $("#helpdesk_warranty_input_mv_remaining_tread_depth").val() + 
+                    '+mvp_' +  $("#helpdesk_warranty_input_mv_note_sub_branch").val() +
+                    '+mvp_' +  $("#helpdesk_warranty_input_portal_lot_serial_number").val();
+                document.cookie = str_tmp;
                 window.location.replace("/claim-bao-hanh");
                 return;
             }
@@ -261,9 +282,10 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 }
             }
         }
+        $('#helpdesk_warranty_activation_form')[0].reset();
         window.location.replace("/xac-nhan-yeu-cau");
     },
-    
+
     /**
      * Validate form fields
      * @param {jQuery} $partnerName
