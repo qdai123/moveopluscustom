@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<template>
+    <t
+        t-name="Ks_dashboard_ninja.Domain" t-inherit="web.MultiRecordSelector" t-inherit-mode="extension">
+        <xpath expr="//RecordAutocomplete" position="attributes">
+                <attribute name="ks_res_ids">props.resIds</attribute>
+        </xpath>
+    </t>
+</template>
