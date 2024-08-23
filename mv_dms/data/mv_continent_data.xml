@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data noupdate="0">
+		<!-- ==== CÁC CHÂU LỤC TRÊN THẾ GIỚI HIỆN TẠI ==== -->
+		<record id="world_area_asia" model="mv.world.area">
+			<field name="area_name">Asia</field>
+			<field name="area_code">AS</field>
+			<field name="area_type">continent</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="world_area_europe" model="mv.world.area">
+			<field name="area_name">Europe</field>
+			<field name="area_code">EU</field>
+			<field name="area_type">continent</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="world_area_africa" model="mv.world.area">
+			<field name="area_name">Africa</field>
+			<field name="area_code">AF</field>
+			<field name="area_type">continent</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="world_area_north_america" model="mv.world.area">
+			<field name="area_name">North America</field>
+			<field name="area_code">NA</field>
+			<field name="area_type">continent</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="world_area_south_america" model="mv.world.area">
+			<field name="area_name">South America</field>
+			<field name="area_code">SA</field>
+			<field name="area_type">continent</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="world_area_oceania" model="mv.world.area">
+			<field name="area_name">Oceania</field>
+			<field name="area_code">OC</field>
+			<field name="area_type">continent</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="world_area_antarctica" model="mv.world.area">
+			<field name="area_name">Antarctica</field>
+			<field name="area_code">AN</field>
+			<field name="area_type">continent</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="world_area_world" model="mv.world.area">
+			<field name="area_name">World</field>
+			<field name="area_code">WD</field>
+			<field name="area_type">other</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+	</data>
+</odoo>

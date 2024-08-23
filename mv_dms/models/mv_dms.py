@@ -9,9 +9,9 @@ GROUP_SALES_ALL = "sales_team.group_sale_salesman_all_leads"
 GROUP_SALESPERSON = "sales_team.group_sale_salesman"
 
 
-class MvPartnerSurvey(models.Model):
-    _name = "mv.partner.survey"
-    _description = _("Partner Survey")
+class MvDealerManagementSystem(models.Model):
+    _name = "mv.dealer.management.system"
+    _description = _("Dealer Management System")
     _inherit = ["mail.thread", "portal.mixin"]
     _order = "create_date desc"
 

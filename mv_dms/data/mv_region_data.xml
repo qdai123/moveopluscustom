@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data noupdate="0">
+		<!-- ==== CÁC KHU VỰC THEO CHÂU LỤC TRÊN THẾ GIỚI HIỆN TẠI ==== -->
+		<record id="world_area_region_east_asia" model="mv.world.area">
+			<field name="area_name">East Asia</field>
+			<field name="area_code">EA</field>
+			<field name="area_type">region</field>
+			<field name="parent_id" ref="world_area_asia"/>
+		</record>
+		<record id="world_area_region_southeast_asia" model="mv.world.area">
+			<field name="area_name">Southeast Asia</field>
+			<field name="area_code">SEA</field>
+			<field name="area_type">region</field>
+			<field name="parent_id" ref="world_area_asia"/>
+		</record>
+		<record id="world_area_region_south_asia" model="mv.world.area">
+			<field name="area_name">South Asia</field>
+			<field name="area_code">SA</field>
+			<field name="area_type">region</field>
+			<field name="parent_id" ref="world_area_asia"/>
+		</record>
+		<record id="world_area_region_west_asia" model="mv.world.area">
+			<field name="area_name">West Asia</field>
+			<field name="area_code">WA</field>
+			<field name="area_type">region</field>
+			<field name="parent_id" ref="world_area_asia"/>
+		</record>
+		<record id="world_area_region_central_asia" model="mv.world.area">
+			<field name="area_name">Central Asia</field>
+			<field name="area_code">CA</field>
+			<field name="area_type">region</field>
+			<field name="parent_id" ref="world_area_asia"/>
+		</record>
+		<record id="world_area_region_northeast_asia" model="mv.world.area">
+			<field name="area_name">Northeast Asia</field>
+			<field name="area_code">NA</field>
+			<field name="area_type">region</field>
+			<field name="parent_id" ref="world_area_asia"/>
+		</record>
+
+		<!-- ==== CÁC KHU VỰC QUỐC GIA VIỆT NAM HIỆN TẠI ==== -->
+		<record id="world_area_region_central_asia" model="mv.world.area">
+			<field name="area_name">Central Asia</field>
+			<field name="area_code">CA</field>
+			<field name="area_type">region</field>
+			<field name="parent_id" ref="world_area_asia"/>
+		</record>
+	</data>
+</odoo>

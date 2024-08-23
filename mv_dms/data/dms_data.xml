@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 	<data noupdate="1">
-		<record id="mv_sequence_partner_survey_ref" model="ir.sequence">
-            <field name="name">Partner Survey Auto Ref.</field>
-            <field name="code">mv.partner.survey.auto.ref</field>
+		<record id="mv_sequence_survey_ref" model="ir.sequence">
+            <field name="name">Survey Auto Ref.</field>
+            <field name="code">survey.auto.ref</field>
             <field name="prefix">SURVEY/%(year)s/</field>
             <field name="padding">4</field>
             <field name="number_next">1</field>
