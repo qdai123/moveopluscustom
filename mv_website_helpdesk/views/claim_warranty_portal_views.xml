@@ -157,7 +157,7 @@
                                                                 <span class="s_website_form_label_content">Biển số xe</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <textarea rows="1" spellcheck="false" required="True" id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" />
+                                                                <textarea rows="1" spellcheck="false" required="False" id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -168,7 +168,7 @@
                                                                 <span class="s_website_form_label_content">Số Km hiện tại</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <textarea rows="1" spellcheck="false" required="True" id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="text" name="mileage" data-fill-with="mileage" />
+                                                                <textarea rows="1" spellcheck="false" required="False" id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="text" name="mileage" data-fill-with="mileage" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -179,7 +179,7 @@
                                                                 <span class="s_website_form_label_content">Số điện thoại</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <textarea rows="1" spellcheck="false" required="True" id="helpdesk_warranty_input_mv_warranty_phone" class="form-control s_website_form_input" type="text" name="mv_warranty_phone" data-fill-with="mv_warranty_phone" />
+                                                                <textarea rows="1" spellcheck="false" required="False" id="helpdesk_warranty_input_mv_warranty_phone" class="form-control s_website_form_input" type="text" name="mv_warranty_phone" data-fill-with="mv_warranty_phone" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -205,7 +205,7 @@
                                                             <div class="col-sm">
                                                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>                                                                
                                                                 <div class="col-lg-7 col-md-8">
-                                                                    <input id="addRequestLine" type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
+                                                                    <input type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
                                                                     <br/><span class="s_website_form_label_content">Ghi chú: hình ảnh phải mô tả rõ chi tiết lỗi</span>
                                                                 </div>
                                                             </div>
