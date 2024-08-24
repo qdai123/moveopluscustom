@@ -1,65 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- MO+ Override Menu: Contacts [ID: menu_contacts] (Contacts) -->
-	<record model="ir.ui.menu" id="contacts.menu_contacts">
-		<field name="sequence">1</field>
-	</record>
-
-	<!-- MO+ Override Menu: Configuration [ID: res_partner_menu_config] (Contacts) -->
-	<record model="ir.ui.menu" id="contacts.res_partner_menu_config">
-		<field name="sequence">3</field>
-	</record>
+	<!-- MO+ App Menu: DMS - Dealer Management System -->
+	<menuitem id="mv_dms_menu_app_dms" name="DMS" web_icon="mv_dms,static/src/img/dms.png" sequence="40"/>
 
 	<!-- MO+ Menu: Partner Surveys -->
-	<menuitem id="mv_partner_survey.mv_partner_survey_menu_surveys"
-	          name="Khảo sát"
-	          parent="contacts.menu_contacts"
-	          sequence="2"
-	/>
-	<menuitem id="mv_partner_survey_sub_menu_my_surveys"
-	          name="Phiếu khảo sát của tôi"
-	          action="mv_partner_survey_action_my_surveys"
-	          parent="mv_partner_survey_menu_surveys"
-	          groups="sales_team.group_sale_salesman"
-	          sequence="1"
-	/>
-	<menuitem id="mv_partner_survey_sub_menu_all_surveys"
-	          name="Tất cả phiếu khảo sát"
-	          action="mv_partner_survey_action_all_surveys"
-	          parent="mv_partner_survey_menu_surveys"
-	          groups="sales_team.group_sale_salesman_all_leads,sales_team.group_sale_manager"
-	          sequence="2"
-	/>
+	<menuitem id="mv_dms_menu_partner_surveys" name="Khảo sát Đại lý" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_salesman" sequence="1"/>
+	<menuitem id="mv_dms_submenu_my_surveys" name="Phiếu khảo sát của tôi" action="mv_dms_action_view_my_surveys" parent="mv_dms_menu_partner_surveys" sequence="1"/>
+	<menuitem id="mv_dms_submenu_all_surveys" name="Tất cả phiếu khảo sát" action="mv_dms_action_view_all_surveys" parent="mv_dms_menu_partner_surveys" groups="sales_team.group_sale_salesman_all_leads" sequence="2"/>
 
-	<!-- MO+ Menu: Partner Surveys Configuration -->
-	<menuitem id="menu_config_agency_survey"
-	          name="Khảo sát"
-	          parent="contacts.res_partner_menu_config"
-	          groups="sales_team.group_sale_manager,base.group_system"
-	          sequence="20"
-	/>
-	<menuitem id="menu_config_mv_product_product"
-	          name="Sản phẩm"
-	          action="action_view_mv_product_product"
-	          parent="menu_config_agency_survey"
-	          sequence="1"
-	/>
-	<menuitem id="menu_config_mv_product_attribute"
-	          name="Thuộc tính Sản phẩm"
-	          action="action_view_mv_product_attribute"
-	          parent="menu_config_agency_survey"
-	          sequence="2"
-	/>
-	<menuitem id="menu_config_partner_area"
-	          name="Cấu hình Vùng"
-	          action="action_partner_area"
-	          parent="menu_config_agency_survey"
-	          sequence="3"
-	/>
-	<menuitem id="menu_config_mv_brand"
-	          name="Cấu hình Hãng/Thương hiệu"
-	          action="action_mv_brand"
-	          parent="menu_config_agency_survey"
-	          sequence="4"
-	/>
+	<!-- MO+ Menu: Products -->
+	<menuitem id="mv_dms_menu_products" name="Sản phẩm" action="mv_dms_action_view_all_products" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_salesman" sequence="2"/>
+
+	<!-- MO+ Menu: Reporting -->
+	<menuitem id="mv_dms_menu_reporting" name="Báo cáo" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_salesman" sequence="3"/>
+
+	<!-- MO+ Menu: Configuration -->
+	<menuitem id="mv_dms_menu_configuration" name="Cấu hình chung" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_manager" sequence="10"/>
+	<menuitem id="mv_dms_submenu_configuration_region" name="Vùng địa lý" action="action_view_mv_region" parent="mv_dms_menu_configuration" groups="base.group_system" sequence="1"/>
+	<menuitem id="mv_dms_submenu_configuration_brand" name="Hãng/Thương hiệu" action="action_view_mv_brand" parent="mv_dms_menu_configuration" sequence="2"/>
+	<menuitem id="mv_dms_submenu_configuration_products" name="Sản phẩm" parent="mv_dms_menu_configuration" sequence="3"/>
+	<menuitem id="mv_dms_submenu_configuration_submenu_product_attributes" name="Thuộc tính" action="mv_dms_action_view_product_attributes" parent="mv_dms_submenu_configuration_products" sequence="1"/>
 </odoo>

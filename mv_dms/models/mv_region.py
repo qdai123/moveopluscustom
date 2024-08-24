@@ -5,7 +5,7 @@ from odoo import _, fields, models
 class MvRegion(models.Model):
     _name = "mv.region"
     _description = _("Region")
-    _rec_name = "area_name"
+    _rec_name = "name"
 
     active = fields.Boolean(default=True)
     name = fields.Char("Name", required=True)
@@ -23,25 +23,25 @@ class MvRegion(models.Model):
     describe = fields.Text("Describe")
     country_ids = fields.Many2many(
         "res.country",
-        "mv_world_area_res_country_rel",
-        "area_id",
+        "mv_region_res_country_rel",
+        "region_id",
         "country_id",
         string="Countries",
     )  # TODO: This field should be computed to get countries from regions
     parent_id = fields.Many2one(
-        "mv.world.area",
+        "mv.region",
         "Continent",
-        domain="[('area_type', 'in', ['continent', 'region'])]",
+        domain="[('type', 'in', ['continent', 'region'])]",
         ondelete="cascade",
         index=True,
     )
 
     _sql_constraints = [
-        ("area_name_uniq", "unique (area_name)", "Area name must be unique"),
-        ("area_code_uniq", "unique (area_code)", "Area code must be unique"),
+        ("name_uniq", "unique (name)", "Name must be unique"),
+        ("code_type_uniq", "unique (code, type)", "Code with type must be unique"),
         (
             "parent_id_check",
             "check(parent_id != id)",
-            "Parent area must not be the same as the area itself",
+            "Parent area must not be the same as the region itself",
         ),
     ]

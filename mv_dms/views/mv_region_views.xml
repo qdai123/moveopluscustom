@@ -26,11 +26,11 @@
         <field name="model">mv.region</field>
         <field name="arch" type="xml">
             <tree editable="bottom" sample="1">
-                <field name="name" class="fw-bold" string="Tên"/>
-                <field name="code" string="Mã" optional="show"/>
+                <field name="name" class="fw-bold" string="Tên vùng"/>
+                <field name="code" string="Mã vùng" optional="show"/>
                 <field name="type" string="Loại"/>
                 <field name="describe" string="Mô tả" optional="show"/>
-                <field name="parent_id" string="Thuộc châu lục" optional="show"/>
+                <field name="parent_id" string="Thuộc vùng" optional="show"/>
                 <field name="country_ids" widget="many2many_tags" string="Quốc gia" optional="hidden"/>
             </tree>
         </field>
@@ -43,7 +43,7 @@
             <search>
                 <field name="name" string="Tên khu vực" filter_domain="['|', ('name', 'ilike', self), ('code', 'ilike', self)]"/>
                 <field groups="base.group_no_one" name="country_ids" string="Quốc gia" filter_domain="[('country_ids', 'ilike', self)]"/>
-                <filter string="Địa lý Việt Nam" name="filter_region_of_vietnam" domain="['|', ('parent_id', '=', ref('mv_region__southeast_asia')), ('code', 'ilike', 'vn_')]"/>
+                <filter string="Lãnh thổ Việt Nam" name="filter_region_of_vietnam" domain="['|', ('parent_id.code', '=', 'SEA'), ('code', 'ilike', 'vn_')]"/>
                 <separator/>
                 <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
                 <group expand="0" string="Group By">
@@ -59,8 +59,8 @@
         <field name="view_mode">tree,form</field>
         <field name="domain">[('type', '!=', 'other')]</field>
         <field name="context">{'search_default_filter_region_of_vietnam': 1}</field>
-        <field name="view_id" ref="mv_dms_world_area_tree_view"/>
-        <field name="search_view_id" ref="mv_dms_world_area_search_view"/>
+        <field name="view_id" ref="mv_dms_mv_region_tree_view"/>
+        <field name="search_view_id" ref="mv_dms_mv_region_search_view"/>
         <field name="help" type="html">
             <p class="oe_view_nocontent_create">
                 Click to create new World Area

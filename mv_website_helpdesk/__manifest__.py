@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Website Helpdesk",
-    "version": "1.0.0.17",
+    "version": "17.0.1.0",
     "countries": ["vi"],
     "category": "Moveoplus/Website Helpdesk",
     "description": "Base on Website Helpdesk module to customize new features",

@@ -5,7 +5,7 @@
         <field name="name">mv.brand.proportion.tree</field>
         <field name="model">mv.brand.proportion</field>
         <field name="arch" type="xml">
-            <tree editable="top">
+            <tree editable="bottom">
                 <field name="partner_survey_id"/>
                 <field name="brand_id"/>
                 <field name="year_participation"/>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Base",
-    "version": "1.0.0.17",
+    "version": "17.0.1.0",
     "countries": ["vi"],
     "category": "Moveoplus/Base",
     "description": """
@@ -20,6 +20,6 @@ The kernel of Moveo Plus, needed for all installation.
         "views/res_partner_views.xml",
     ],
     "license": "LGPL-3",
-    "application": True,
+    "application": False,
     "auto_install": True,
 }

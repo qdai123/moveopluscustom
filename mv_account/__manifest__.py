@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Invoicing",
-    "version": "1.0.0.17",
+    "version": "17.0.1.0",
     "countries": ["vi"],
     "category": "Moveoplus/Invoicing",
     "description": "Base on Invoicing modules and Related modules to customize new features",

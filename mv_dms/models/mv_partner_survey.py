@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import uuid
 
+from dateutil.relativedelta import relativedelta
+
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 GROUP_SALES_MANAGER = "sales_team.group_sale_manager"
 GROUP_SALES_ALL = "sales_team.group_sale_salesman_all_leads"
@@ -76,7 +78,7 @@ class MvPartnerSurvey(models.Model):
     region_id = fields.Many2one(
         "mv.region",
         "Khu vực",
-        domain="[('type', 'in', ['region', 'subregion'])]",
+        domain="['|', ('parent_id.code', '=', 'SEA'), ('code', 'ilike', 'vn_')]",
         required=True,
         tracking=True,
         index=True,
@@ -142,7 +144,7 @@ class MvPartnerSurvey(models.Model):
     name = fields.Char("Phiếu khảo sát", default="SURVEY", tracking=True)
     owner = fields.Char("Chủ sở hữu", required=True, tracking=True)
     second_generation = fields.Char("Thế hệ thứ 2", required=True, tracking=True)
-    number_of_years_bussiness = fields.Float(
+    number_of_years_business = fields.Float(
         "Số năm kinh doanh",
         default=0,
         digits=(10, 1),
@@ -229,6 +231,27 @@ class MvPartnerSurvey(models.Model):
             if survey.owner and len(survey.owner) < 3:
                 raise UserError("Chủ sở hữu phải có ít nhất 3 ký tự!")
 
+    @api.constrains("survey_date")
+    def _check_survey_date_is_not_in_future(self):
+        for survey in self:
+            if survey.survey_date > fields.Date.today():
+                raise UserError("Ngày khảo sát không thể ở tương lai!")
+
+    @api.constrains("partner_id", "survey_date")
+    def _check_one_survey_one_partner_in_month(self):
+        for survey in self:
+            domain = [
+                ("partner_id", "=", survey.partner_id.id),
+                ("survey_date", ">", survey.survey_date.replace(day=1)),
+                (
+                    "survey_date",
+                    "<",
+                    survey.survey_date.replace(day=1) + relativedelta(months=1),
+                ),
+            ]
+            if self.search_count(domain) > 1:
+                raise UserError("Mỗi đối tác chỉ được khảo sát 1 lần trong tháng!")
+
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
         if self.partner_id:
@@ -259,9 +282,7 @@ class MvPartnerSurvey(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get("partner_id"):
-                name_ref = self.env["ir.sequence"].next_by_code(
-                    "mv.partner.survey.auto.ref"
-                )
+                name_ref = self.env["ir.sequence"].next_by_code("survey.auto.ref")
                 partner = self.env["res.partner"].browse(vals["partner_id"])
                 vals["name"] = "{}-{}".format(partner.company_registry, name_ref)
         return super().create(vals_list)
@@ -269,7 +290,7 @@ class MvPartnerSurvey(models.Model):
     def unlink(self):
         for survey in self:
             if survey.state == "done":
-                raise UserError("Không thể xóa Phiếu khảo sát đã hoàn thành!")
+                raise ValidationError("Không thể xóa Phiếu khảo sát đã hoàn thành!")
 
         related_records = [
             self.with_context(force_delete=True).shop_ids,

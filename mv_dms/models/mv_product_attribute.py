@@ -3,9 +3,10 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 
-class MvSProductAttribute(models.Model):
+class MvProductAttribute(models.Model):
     _name = "mv.product.attribute"
     _description = _("Product Attribute")
+    _order = "sequence, id"
 
     sequence = fields.Integer("Sequence", index=True)
     name = fields.Char("Attribute", required=True)
@@ -45,5 +46,5 @@ class MvSProductAttribute(models.Model):
             "name": _("Related Products"),
             "res_model": "mv.product.product",
             "view_mode": "tree,form",
-            "domain": [("mv_product_attribute_id", "=", self.id)],
+            "domain": [("product_attribute_id", "=", self.id)],
         }

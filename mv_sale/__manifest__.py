@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Sales",
-    "version": "1.0.0.17",
+    "version": "17.0.1.0",
     "countries": ["vi"],
     "category": "Moveoplus/Sales",
     "description": "Base on Sale modules and Related modules to customize new features",

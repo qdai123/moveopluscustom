@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Web",
-    "version": "1.0.0.17",
+    "version": "17.0.1.0",
     "countries": ["vi"],
     "category": "Moveoplus/Web",
     "description": "Base on Web Core module to customize new features",
@@ -15,5 +15,6 @@
         ],
     },
     "license": "LGPL-3",
-    "application": True,
+    "application": False,
+    "auto_install": True,
 }

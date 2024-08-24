@@ -1,23 +1,30 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "Dealer Management (DMS)",
-    "version": "1.0.0.17",
+    "name": "Dealer Management System (DMS)",
+    "version": "17.0.1.0",
     "countries": ["vi"],
-    "category": "Moveoplus/Dealer Management",
+    "category": "Moveoplus/Dealer Management System",
     "description": """
 A DMS is a comprehensive tool that helps dealerships improve efficiency, 
 increase revenue, and enhance customer satisfaction by providing a unified view of all dealership operations.
     """,
-    "summary": "Solutions to help connect products "
-    "and services with a distribution network system including general agents, agents, and direct sales.",
+    "summary": "Help dealerships improve efficiency, increase revenue, and enhance customer satisfaction.",
     "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS System Development Team",
-    "depends": ["base", "contacts", "portal", "biz_vn_address", "mv_base", "mv_sale"],
+    "depends": [
+        "base",
+        "contacts",
+        "portal",
+        "uom",
+        "biz_vn_address",
+        "mv_base",
+        "mv_sale",
+    ],
     "data": [
         # DATA
         "data/mv_continent_data.xml",
         "data/mv_region_data.xml",
-        "data/mv_dsm_data.xml",
+        "data/mv_dms_data.xml",
         # SECURITY
         "security/security.xml",
         "security/ir.model.access.csv",
@@ -28,7 +35,8 @@ increase revenue, and enhance customer satisfaction by providing a unified view 
         "views/mv_product_attribute_views.xml",
         "views/mv_product_product_views.xml",
         "views/mv_shop_views.xml",
-        "views/mv_dms_views.xml",
+        "views/mv_partner_survey_views.xml",
+        # WIZARD
         # MENU
         "views/menus.xml",
     ],

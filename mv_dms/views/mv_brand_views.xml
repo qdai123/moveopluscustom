@@ -4,14 +4,14 @@
         <field name="name">mv.brand.tree</field>
         <field name="model">mv.brand</field>
         <field name="arch" type="xml">
-            <tree editable="top">
+            <tree editable="bottom">
                 <field name="name"/>
                 <field name="type"/>
             </tree>
         </field>
     </record>
 
-    <record id="action_mv_brand" model="ir.actions.act_window">
+    <record id="action_view_mv_brand" model="ir.actions.act_window">
         <field name="name">Brand</field>
         <field name="res_model">mv.brand</field>
         <field name="view_mode">tree</field>
