@@ -9,9 +9,9 @@ GROUP_SALES_ALL = "sales_team.group_sale_salesman_all_leads"
 GROUP_SALESPERSON = "sales_team.group_sale_salesman"
 
 
-class MvDealerManagementSystem(models.Model):
-    _name = "mv.dealer.management.system"
-    _description = _("Dealer Management System")
+class MvPartnerSurvey(models.Model):
+    _name = "mv.partner.survey"
+    _description = _("Partner Survey")
     _inherit = ["mail.thread", "portal.mixin"]
     _order = "create_date desc"
 
@@ -73,9 +73,10 @@ class MvDealerManagementSystem(models.Model):
         readonly=False,
         default=lambda self: self.env.company.currency_id,
     )
-    partner_area_id = fields.Many2one(
-        "mv.partner.area",
+    region_id = fields.Many2one(
+        "mv.region",
         "Khu vực",
+        domain="[('type', 'in', ['region', 'subregion'])]",
         required=True,
         tracking=True,
         index=True,

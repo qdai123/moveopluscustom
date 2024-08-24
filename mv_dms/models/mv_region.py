@@ -4,13 +4,13 @@ from odoo import _, fields, models
 
 class MvRegion(models.Model):
     _name = "mv.region"
-    _description = _("Region - Subregion")
+    _description = _("Region")
     _rec_name = "area_name"
 
     active = fields.Boolean(default=True)
-    area_name = fields.Char("Name", required=True)
-    area_code = fields.Char("Code")
-    area_type = fields.Selection(
+    name = fields.Char("Name", required=True)
+    code = fields.Char("Code")
+    type = fields.Selection(
         [
             ("continent", "Châu lục"),
             ("region", "Vùng"),
@@ -20,13 +20,14 @@ class MvRegion(models.Model):
         default="region",
         string="Type",
     )
+    describe = fields.Text("Describe")
     country_ids = fields.Many2many(
         "res.country",
         "mv_world_area_res_country_rel",
         "area_id",
         "country_id",
         string="Countries",
-    )
+    )  # TODO: This field should be computed to get countries from regions
     parent_id = fields.Many2one(
         "mv.world.area",
         "Continent",

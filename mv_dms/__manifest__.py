@@ -15,16 +15,16 @@ increase revenue, and enhance customer satisfaction by providing a unified view 
     "depends": ["base", "contacts", "portal", "biz_vn_address", "mv_base", "mv_sale"],
     "data": [
         # DATA
-        "data/dsm_data.xml",
         "data/mv_continent_data.xml",
         "data/mv_region_data.xml",
+        "data/mv_dsm_data.xml",
         # SECURITY
         "security/security.xml",
         "security/ir.model.access.csv",
         # VIEWS
-        "views/mv_area_views.xml",
         "views/mv_brand_views.xml",
         "views/mv_brand_proportion.xml",
+        "views/mv_region_views.xml",
         "views/mv_product_attribute_views.xml",
         "views/mv_product_product_views.xml",
         "views/mv_shop_views.xml",
