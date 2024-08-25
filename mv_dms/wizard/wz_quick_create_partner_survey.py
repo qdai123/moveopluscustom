@@ -12,4 +12,4 @@ class MvWizardQuickCreatePartnerSurvey(models.TransientModel):
     _name = "mv.wizard.quick.create.partner.survey"
     _description = _("Wizard: Quick Create Partner Survey")
 
-    partner_id = fields.Many2one("res.partner", string="Partner", required=True)
+    partner_id = fields.Many2one("res.partner", "Đại lý", required=True)

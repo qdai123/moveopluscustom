@@ -10,8 +10,19 @@ GROUP_SALES_MANAGER = "sales_team.group_sale_manager"
 GROUP_SALES_ALL = "sales_team.group_sale_salesman_all_leads"
 GROUP_SALESPERSON = "sales_team.group_sale_salesman"
 
+BASE_SURVEY_STATEs = [
+    ("draft", "Nháp"),
+    ("progressing", "Đang khảo sát"),
+    ("done", "Hoàn thành"),
+    ("cancel", "Hủy"),
+]
+
+SHOPs_LIMITED = 5
+
 
 class MvPartnerSurvey(models.Model):
+    """Partner Survey for Moveo Plus"""
+
     _name = "mv.partner.survey"
     _description = _("Partner Survey")
     _inherit = ["mail.thread", "portal.mixin"]
@@ -90,6 +101,10 @@ class MvPartnerSurvey(models.Model):
         domain=lambda self: [("partner_survey_id", "=", self.id)],
         required=True,
     )
+    shop_count = fields.Integer(
+        "Số cửa hàng cho phép",
+        compute="_compute_shop_limited",
+    )
     brand_proportion_ids = fields.One2many(
         "mv.brand.proportion",
         "partner_survey_id",
@@ -120,6 +135,14 @@ class MvPartnerSurvey(models.Model):
         domain="[('product_type', 'in',  ['lubricant'])]",
         string="TOP Sản phẩm (Dầu nhớt)",
     )
+    mv_product_battery_ids = fields.Many2many(
+        "mv.product.product",
+        "mv_product_battery_partner_survey_rel",
+        "mv_product_id",
+        "partner_survey_id",
+        domain="[('product_type', 'in',  ['battery'])]",
+        string="TOP Sản phẩm (Ắc quy)",
+    )
 
     # === BASE Fields ===#
     access_token = fields.Char(
@@ -129,21 +152,41 @@ class MvPartnerSurvey(models.Model):
     )
     active = fields.Boolean(default=True, tracking=True)
     create_date = fields.Datetime(
-        "Ngày khảo sát", default=lambda self: fields.Datetime.now()
+        "Ngày khảo sát",
+        default=lambda self: fields.Datetime.now(),
+        readonly=True,
     )
     create_uid = fields.Many2one(
-        "res.users", "Người khảo sát", default=lambda self: self.env.user
+        "res.users",
+        "Người khảo sát",
+        default=lambda self: self.env.user,
+        readonly=True,
     )
     survey_date = fields.Date("Ngày khảo sát", default=fields.Date.today, tracking=True)
+    survey_completed_date = fields.Date("Ngày hoàn thành", readonly=True)
     state = fields.Selection(
-        [("draft", "Khảo sát"), ("done", "Hoàn thành"), ("cancel", "Hủy")],
+        BASE_SURVEY_STATEs,
         default="draft",
         string="Trạng thái",
+        readonly=True,
+        index=True,
         tracking=True,
     )
-    name = fields.Char("Phiếu khảo sát", default="SURVEY", tracking=True)
+    locked = fields.Boolean(
+        default=False,
+        copy=False,
+        help="Không thể sửa đổi các Khảo Sát hoặc các thông tin đã khóa.",
+    )
+    name = fields.Char("Phiếu khảo sát", default="SURVEY", copy=False, tracking=True)
     owner = fields.Char("Chủ sở hữu", required=True, tracking=True)
+    owner_phone = fields.Char("Số điện thoại", required=True, tracking=True)
+    owner_email = fields.Char("Email", tracking=True)
+    owner_dob = fields.Date("Ngày sinh", required=True, tracking=True)
     second_generation = fields.Char("Thế hệ thứ 2", required=True, tracking=True)
+    second_generation_phone = fields.Char("Số điện thoại", required=True, tracking=True)
+    second_generation_email = fields.Char("Email", tracking=True)
+    second_generation_dob = fields.Date("Ngày sinh", required=True, tracking=True)
+    relationship_with_owner = fields.Char("Mối quan hệ", tracking=True)
     number_of_years_business = fields.Float(
         "Số năm kinh doanh",
         default=0,
@@ -153,12 +196,12 @@ class MvPartnerSurvey(models.Model):
     )
     proportion = fields.Float(
         "Tỷ trọng Continental",
-        default=0,
+        default=1,
         required=True,
         tracking=True,
     )
     is_moveoplus_agency = fields.Boolean(
-        "Đại lý của Moveo Plus",
+        "Đại lý Moveo Plus",
         default=True,
         tracking=True,
     )
@@ -216,7 +259,7 @@ class MvPartnerSurvey(models.Model):
         (
             "name_unique",
             "UNIQUE(name)",
-            "Mỗi một Phiếu khảo sát Đối tác phải là DUY NHẤT!",
+            "Mỗi một Phiếu khảo sát Đại lý phải là DUY NHẤT!",
         ),
         (
             "access_token_unique",
@@ -229,7 +272,27 @@ class MvPartnerSurvey(models.Model):
     def _check_owner_is_human(self):
         for survey in self:
             if survey.owner and len(survey.owner) < 3:
-                raise UserError("Chủ sở hữu phải có ít nhất 3 ký tự!")
+                raise UserError("Tên của CHỦ SỞ HỮU phải có ít nhất 3 ký tự!")
+
+    @api.constrains("second_generation")
+    def _check_second_generation_is_human(self):
+        for survey in self:
+            if survey.second_generation and len(survey.second_generation) < 3:
+                raise UserError(
+                    "Tên của NGƯỜI KẾ THỪA THẾ HỆ 2 phải có ít nhất 3 ký tự!"
+                )
+
+    @api.constrains("relationship_with_owner", "second_generation", "owner")
+    def _check_relationship(self):
+        for survey in self:
+            if (
+                survey.owner
+                and survey.second_generation
+                and not survey.relationship_with_owner
+            ):
+                raise UserError(
+                    "Mối quan hệ người kế thừa thứ 2 và chủ sở hữu chưa rõ ràng!"
+                )
 
     @api.constrains("survey_date")
     def _check_survey_date_is_not_in_future(self):
@@ -250,7 +313,16 @@ class MvPartnerSurvey(models.Model):
                 ),
             ]
             if self.search_count(domain) > 1:
-                raise UserError("Mỗi đối tác chỉ được khảo sát 1 lần trong tháng!")
+                raise UserError("Mỗi đại lý chỉ được khảo sát 1 lần trong tháng!")
+
+    @api.constrains("shop_ids")
+    def _check_shops_limited(self):
+        for survey in self:
+            if len(survey.shop_ids) > SHOPs_LIMITED:
+                raise UserError(
+                    "Không được phép vượt quá %s cửa hàng trên một phiếu khảo sát!"
+                    % SHOPs_LIMITED
+                )
 
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
@@ -261,6 +333,11 @@ class MvPartnerSurvey(models.Model):
     def _compute_is_partner_agency(self):
         for survey in self:
             survey.is_partner_agency = survey.partner_id.is_agency
+
+    @api.depends("shop_ids")
+    def _compute_shop_limited(self):
+        for survey in self:
+            survey.shop_count = len(survey.shop_ids)
 
     @api.depends("per_retail_customer", "per_retail_taxi", "per_retail_fleet")
     def _compute_total_retail(self):
@@ -289,8 +366,13 @@ class MvPartnerSurvey(models.Model):
 
     def unlink(self):
         for survey in self:
-            if survey.state == "done":
-                raise ValidationError("Không thể xóa Phiếu khảo sát đã hoàn thành!")
+            if survey.state in ["done", "progressing"]:
+                raise ValidationError(
+                    "Không thể xóa Phiếu khảo sát đã hoàn thành hoặc đang khảo sát. "
+                    "Vui lòng HỦY phiếu nếu "
+                    + "Đang khảo sát"
+                    + " rồi hãy thực hiện xóa phiếu!"
+                )
 
         related_records = [
             self.with_context(force_delete=True).shop_ids,
@@ -306,10 +388,34 @@ class MvPartnerSurvey(models.Model):
 
         return res
 
+    # === ACTION METHODS ===#
+
+    def action_draft(self):
+        surveys = self.filtered(lambda s: s.state in ["cancel", "progressing"])
+        return surveys.write({"state": "draft"})
+
+    def action_run(self):
+        """
+        Mark surveys as 'progressing' if they are in the 'draft' state.
+
+        This method ensures that the survey can be marked as running by calling
+        the `_can_be_running` method for each survey in the 'draft' state.
+
+        :raises UserError: If any survey is not in the 'draft' state.
+        :return: The number of records updated.
+        :rtype: int
+        """
+        if any(survey.state != "draft" for survey in self):
+            raise UserError("Phiếu phải ở trạng thái Nháp mới được khảo sát!")
+
+        surveys = self.filtered(lambda s: s.state == "draft")
+        for survey in surveys:
+            survey._can_be_running()
+        return surveys.write({"state": "progressing"})
+
     def action_complete(self):
-        for survey in self:
-            if survey.state == "draft":
-                survey.state = "done"
+        surveys = self.filtered(lambda s: s.state in ["progressing"])
+        return surveys.write({"state": "done"})
 
     def action_cancel(self):
         force_cancel = self.env.context.get(
@@ -323,4 +429,60 @@ class MvPartnerSurvey(models.Model):
         else:
             self.write({"state": "cancel"})
 
-    # === TOOLS ===#
+    # === HELPER METHODS ===#
+
+    def _can_be_running(self):
+        """
+        Check if the survey can be marked as running.
+
+        This method ensures that there is no other survey in the 'progressing' state
+        for the same partner within the same month.
+
+        :raises ValidationError: If another survey is found in the 'progressing' state.
+        :return: True if the survey can be marked as running.
+        :rtype: bool
+        """
+        self.ensure_one()
+        today = fields.Date.today()
+        first_date_of_month = today.replace(day=1)
+        last_date_of_month = first_date_of_month + relativedelta(months=1, days=-1)
+
+        survey_progressing_in_month = self.env["mv.partner.survey"].search(
+            [
+                ("id", "!=", self.id),
+                ("active", "=", True),
+                ("state", "=", "progressing"),
+                ("partner_id", "=", self.partner_id.id),
+                "|",
+                ("survey_date", ">=", first_date_of_month),
+                ("survey_date", "<=", last_date_of_month),
+            ],
+            limit=1,
+        )
+
+        if survey_progressing_in_month:
+            raise ValidationError(
+                "Đại lý %s đã có phiếu đang khảo sát trong tháng này, mã phiếu là: %s"
+                % (self.partner_id.short_name, survey_progressing_in_month.name)
+            )
+
+        return True
+
+    def _prepare_completed_values(self):
+        """
+        Prepare the values to mark the survey as completed.
+
+        This method sets the state to 'done' and updates the survey\_completed\_date
+        to the current date.
+
+        :return: A dictionary with the updated values.
+        :rtype: dict
+        """
+        completed_values = {
+            "state": "done",
+            "survey_completed_date": fields.Date.today(),
+        }
+        _logger.info("Prepared completed values: %s", completed_values)
+        return completed_values
+
+    # === TOOLS METHODS ===#

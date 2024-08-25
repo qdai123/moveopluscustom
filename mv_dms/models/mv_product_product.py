@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 from odoo import _, api, fields, models, tools
 
-PRODUCT_TYPEs = [("size_lop", "Size Lốp"), ("lubricant", "Dầu nhớt")]
+PRODUCT_TYPEs = [
+    ("size_lop", "Size Lốp"),
+    ("lubricant", "Dầu nhớt"),
+    ("battery", "Ắc quy"),
+]
 
 
 class MvProductProduct(models.Model):
@@ -61,8 +65,6 @@ class MvProductProduct(models.Model):
                         else "Loại: Dầu nhớt"
                     ),
                 )
-            else:
-                product.name = "NEW"
 
     @api.depends_context("partner_survey_ref")
     def _compute_partner_survey_ref(self):

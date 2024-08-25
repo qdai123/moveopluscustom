@@ -5,8 +5,9 @@
         <field name="model">mv.brand</field>
         <field name="arch" type="xml">
             <tree editable="bottom">
-                <field name="name"/>
+                <field name="name" class="fw-bold"/>
                 <field name="type"/>
+                <field name="uom_id" string="Đơn vị" options="{'no_create_edit': True}" groups="uom.group_uom"/>
             </tree>
         </field>
     </record>

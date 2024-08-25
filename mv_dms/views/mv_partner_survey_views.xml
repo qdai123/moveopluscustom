@@ -8,20 +8,20 @@
 		<field name="model">mv.partner.survey</field>
 		<field name="arch" type="xml">
 			<tree duplicate="false" import="false" export_xlsx="false" sample="true">
-				<field name="active" column_invisible="1"/>
 				<field name="name"/>
 				<field name="partner_id" widget="many2one_avatar"/>
 				<field name="region_id"/>
 				<field name="create_date" column_invisible="1"/>
 				<field name="survey_date"/>
 				<field name="create_uid" widget="many2one_avatar_user"/>
-				<field name="company_id" optional="hidden"/>
+				<field name="company_id" groups="base.group_multi_company" optional="hidden"/>
 				<field name="currency_id" column_invisible="1"/>
 				<field name="state"
 				       widget="badge"
 				       decoration-muted="state == 'cancel'"
 				       decoration-info="state  == 'draft'"
 				       decoration-success="state == 'done'"/>
+				<field name="active" column_invisible="1"/>
 				<field name="is_use_service" column_invisible="1"/>
 				<field name="is_moveoplus_agency" column_invisible="1"/>
 			</tree>
@@ -40,7 +40,7 @@
 					<field name="is_sales_manager" invisible="1"/>
 					<field name="company_id" invisible="1"/>
 					<field name="currency_id" invisible="1"/>
-					<field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+					<field name="state" widget="statusbar" statusbar_visible="draft,progressing,done"/>
 					<button name="action_complete" type="object" string="Xác nhận" class="btn btn-primary" invisible="state in ['done', 'cancel']"/>
 					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" invisible="state in ['done', 'cancel'] or is_sales_manager"/>
 					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" context="{'force_cancel_by_manager': True}" invisible="state != 'done' and not is_sales_manager"/>
@@ -56,6 +56,7 @@
 					<br/>
 					<group name="base_survey_info">
 						<group name="left_side_info">
+							<field name="create_uid" options="{'no_open': True}"/>
 							<field name="partner_id"
 							       widget="res_partner_many2one"
 							       class="o_field_highlight"
@@ -63,9 +64,7 @@
 							       options="{'no_create': True, 'no_create_edit': True}"
 							       readonly="do_readonly"/>
 							<field name="is_partner_agency" invisible="1"/>
-							<field name="owner" readonly="do_readonly"/>
-							<field name="second_generation" readonly="do_readonly"/>
-							<field name="number_of_years_business" widget="float" readonly="do_readonly"/>
+							<field name="is_moveoplus_agency" readonly="partner_id and is_partner_agency"/>
 							<field name="region_id" string="Thuộc khu vực" options="{'no_create': True, 'no_create_edit': True}" readonly="do_readonly"/>
 						</group>
 						<group name="right_side_info">
@@ -75,7 +74,6 @@
 							<div class="col-2">
 								<field name="proportion" no_label="1" widget="percentage"/>
 							</div>
-							<field name="is_moveoplus_agency" readonly="partner_id and is_partner_agency"/>
 							<label for="classical"/>
 							<div class="col-4">
 								<field name="classical" no_label="1"/>
@@ -85,32 +83,49 @@
 								<field name="financial_ability" no_label="1"/>
 							</div>
 						</group>
+						<group string="## Thông tin chủ sở hữu" name="owner_detail_info">
+							<field name="owner" readonly="do_readonly"/>
+							<field name="owner_dob" readonly="do_readonly"/>
+							<field name="owner_phone" widget="phone" readonly="do_readonly"/>
+							<field name="owner_email" widget="email" readonly="do_readonly"/>
+							<field name="number_of_years_business" widget="float" readonly="do_readonly"/>
+						</group>
+						<group string="## Thông tin người kế thừa" name="second_generation_detail_info">
+							<field name="second_generation" readonly="do_readonly"/>
+							<field name="second_generation_dob" readonly="do_readonly"/>
+							<field name="second_generation_phone" widget="phone" readonly="do_readonly"/>
+							<field name="second_generation_email" widget="email" readonly="do_readonly"/>
+							<field name="relationship_with_owner" readonly="do_readonly"/>
+						</group>
 					</group>
+					<!-- ## Thông tin cửa hàng -->
 					<label for="shop_ids" string="## Thông tin cửa hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="shop_count" invisible="1"/>
 					<field name="shop_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
 						<tree editable="bottom">
-							<field name="name" string="Cửa hàng"/>
+							<field name="name" string="Tên cửa hàng"/>
 							<field name="street"/>
-							<field name="country_id" options="{'no_open': True}"/>
-							<field name="state_id" options="{'no_open': True}" required="country_id" readonly="not country_id"/>
+							<field name="country_id" options="{'no_open': True}" optional="show"/>
+							<field name="state_id" options="{'no_open': True}" required="country_id" readonly="not country_id" optional="show"/>
 							<field name="district_id" options="{'no_open': True}" required="country_id and state_id" readonly="not country_id or not state_id" optional="show"/>
 							<field name="wards_id" options="{'no_open': True}" required="country_id and state_id and district_id" readonly="not country_id or not state_id or not district_id" optional="show"/>
 							<field name="address" optional="hidden"/>
 							<field name="square_meter" string="Diện tích"/>
-							<field name="brand_id" string="Hãng" options="{'no_open': True}"/>
-							<field name="partner_survey_id" column_invisible="1"/>
+							<field name="brand_id" string="Thương hiệu" class="fw-bold" options="{'no_open': True}"/>
 						</tree>
 					</field>
-					<label for="brand_proportion_ids" string="## Các hãng lốp tham gia &amp; Tỷ trọng bán hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<!-- ## Các hãng lốp tham gia & Tỷ trọng mua hàng -->
+					<label for="brand_proportion_ids" string="## Các hãng lốp tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
 					<field name="brand_proportion_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
 						<tree editable="bottom">
-							<field name="brand_id" options="{'no_open': True}"/>
+							<field name="brand_id" domain="[('type', '=', 'size_lop')]" options="{'no_open': True}"/>
 							<field name="year_participation"/>
 							<field name="proportion" widget="percentage"/>
 							<field name="quantity_per_month"/>
 							<field name="partner_survey_id" column_invisible="1"/>
 						</tree>
 					</field>
+					<!-- ## Tỷ lệ Bán buôn & Bán lẻ -->
 					<group string="## Tỷ lệ Bán buôn &amp; Bán lẻ" name="group_wholesale_and_retail">
 						<group>
 							<label for="total_retail"/>
@@ -149,6 +164,7 @@
 							</div>
 						</group>
 					</group>
+					<!-- ## Thông tin Dịch vụ -->
 					<group string="## Thông tin Dịch vụ" name="group_service_info">
 						<group>
 							<field name="is_use_service" string="Cửa hàng có làm dịch vụ không?" readonly="do_readonly"/>
@@ -164,7 +180,7 @@
 								<field name="service_bay" no_label="1" readonly="do_readonly"/>
 							</div>
 						</group>
-						<group string="Thông tin nhân sự dịch vụ" invisible="not is_use_service">
+						<group string="Thông tin nhân sự" invisible="not is_use_service">
 							<label for="num_technicians"/>
 							<div class="col-2">
 								<field name="num_technicians" no_label="1" readonly="do_readonly"/>
@@ -176,15 +192,17 @@
 						</group>
 						<field name="service_detail_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly" invisible="not is_use_service">
 							<tree editable="bottom">
-								<field name="name" string="Thông tin sản phẩm dịch vụ"/>
+								<field name="name" string="Sản phẩm dịch vụ"/>
 								<field name="service_price" widget="monetary"/>
 								<field name="notes"/>
-								<field name="vnd_currency_id" options="{'no_create': True}" column_invisible="1"/>
-								<field name="partner_survey_id" options="{'no_create': True}" column_invisible="1"/>
+								<field name="vnd_currency_id" column_invisible="1"/>
+								<field name="partner_survey_id" column_invisible="1"/>
 							</tree>
 						</field>
 					</group>
+					<!-- ## Phân tích mặt hàng sản phẩm -->
 					<label for="mv_product_ids" string="## Phân tích mặt hàng sản phẩm" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<!-- TOP 10 Sản Phẩm (Size Lốp)  -->
 					<field name="mv_product_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom">
 							<field name="product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
@@ -194,6 +212,7 @@
 							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
+					<!-- TOP 10 Sản Phẩm (Dầu nhớt)  -->
 					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom">
 							<field name="product_attribute_id" string="Dầu nhớt" options="{'no_create': True}"/>
@@ -203,6 +222,17 @@
 							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
+					<!-- TOP 10 Sản Phẩm (Ắc quy)  -->
+					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
+						<tree editable="bottom">
+							<field name="product_attribute_id" string="Dầu nhớt" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng dầu nhớt " domain="[('type', '=', 'lubricant')]" options="{'no_create': True}"/>
+							<field name="quantity_per_month" string="Số lượng/tháng"/>
+							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
+							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
+						</tree>
+					</field>
+					<!-- ## Lịch sử bán hàng -->
 					<group string="## Lịch sử bán hàng" name="group_sales_history_by_year" invisible="1">
 					</group>
 				</sheet>
@@ -241,9 +271,9 @@
 				<filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
 				<group expand="0" string="Group By">
 					<filter name="groupby_company" domain="[]" context="{'group_by':'company_id'}" string="Công ty"/>
+					<filter name="groupby_partner_id" domain="[]" context="{'group_by':'partner_id'}" string="Đại lý"/>
 					<separator/>
 					<filter name="groupby_region_id" domain="[]" context="{'group_by':'region_id'}" string="Vùng miền"/>
-					<filter name="groupby_partner_id" domain="[]" context="{'group_by':'partner_id'}" string="Đại lý"/>
 					<separator/>
 					<filter name="groupby_state" domain="[]" context="{'group_by':'state'}" string="Trạng thái"/>
 				</group>
