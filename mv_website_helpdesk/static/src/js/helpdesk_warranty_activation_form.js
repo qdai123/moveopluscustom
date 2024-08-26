@@ -165,6 +165,10 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             console.error("Failed to fetch partner info: ", e);
         }
     },
+
+    async returnClaimWarranty() {
+        window.location.replace("/claim-bao-hanh");
+    },
     
     /**
      * @private
@@ -243,8 +247,8 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                     '+mvp_' +  $("#helpdesk_warranty_input_mv_note_sub_branch").val() +
                     '+mvp_' +  $("#helpdesk_warranty_input_portal_lot_serial_number").val();
                 document.cookie = str_tmp + ';expires='+now.toUTCString();
-                window.location.replace("/claim-bao-hanh");
-                return;
+
+                return setInterval(this.returnClaimWarranty, 6000);
             }
         }
 
@@ -260,7 +264,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 tel_activation = res[0].mobile
             }
         }
-        
+
         // Check scanned codes
         if ($portalLotSerialNumber.val()) {
             const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
@@ -272,7 +276,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 tel_activation: tel_activation,
                 by_pass_check: false,
             });
-            
+
             // TODO: Handle error response
             // const error = new RPCError();
             // console.debug("Error: ", error);
