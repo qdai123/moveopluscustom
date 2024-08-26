@@ -30,12 +30,26 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         this.rpc = this.bindService("rpc");
         this.dialogService = this.bindService("dialog");
         this.notification = this.bindService("notification");
+        if (document.cookie){
+            for (let val of document.cookie.split(';')){
+                if (val.trim().includes("+mvp_")){
+                    let tmp_string = val.split('+mvp_');
+                    $("#helpdesk_warranty_input_license_plates").html(tmp_string[1].trim());
+                    $("#helpdesk_warranty_input_mileage").html(tmp_string[2].trim());
+                    $("#helpdesk_warranty_input_mv_warranty_phone").html(tmp_string[3].trim());
+                    $("#helpdesk_warranty_input_mv_remaining_tread_depth").html(tmp_string[4].trim());
+                    $("#helpdesk_warranty_input_mv_note_sub_branch").html(tmp_string[5].trim());
+                    $("#helpdesk_warranty_input_portal_lot_serial_number").html(tmp_string[6].trim());
+                }
+            }
+        }
+        document.cookie.replace(/(?<=^|;).+?(?=\=|;|$)/g, name => location.hostname.split('.').reverse().reduce(domain => (domain=domain.replace(/^\.?[^.]+/, ''),document.cookie=`${name}=;max-age=0;path=/;domain=${domain}`,domain), location.hostname));
     },
-    
+
     async willStart() {
         return Promise.all([this._super()]);
     },
-    
+
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
@@ -151,6 +165,10 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             console.error("Failed to fetch partner info: ", e);
         }
     },
+
+    async returnClaimWarranty() {
+        window.location.replace("/claim-bao-hanh");
+    },
     
     /**
      * @private
@@ -206,7 +224,34 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 return;
             }
         }
-        
+
+        let claimTicket = await this.orm.call("helpdesk.ticket.type", "search_read", [], {
+            fields: ["id", "code"],
+            domain: [["id", "=", +$ticketType.val() || false]],
+        });
+        if (claimTicket && claimTicket[0] && claimTicket[0].code == "yeu_cau_bao_hanh") {
+            const fileBlockEl = document.querySelector(".o_file_block");
+            if (!fileBlockEl) {
+                this.notification.add(_t("Hãy đảm bảo đầy đủ hình ảnh và rõ nét để được bảo hành!"), {
+                    type: "warning",
+                });
+                let now = new Date();
+                let time = now.getTime();
+                let expireTime = time + 1000*9;
+                now.setTime(expireTime);
+
+                let str_tmp = '+mvp_' + $("#helpdesk_warranty_input_license_plates").val() + 
+                    '+mvp_' + $("#helpdesk_warranty_input_mileage").val() + 
+                    '+mvp_' + $("#helpdesk_warranty_input_mv_warranty_phone").val() + 
+                    '+mvp_' + $("#helpdesk_warranty_input_mv_remaining_tread_depth").val() + 
+                    '+mvp_' +  $("#helpdesk_warranty_input_mv_note_sub_branch").val() +
+                    '+mvp_' +  $("#helpdesk_warranty_input_portal_lot_serial_number").val();
+                document.cookie = str_tmp + ';expires='+now.toUTCString();
+
+                return setInterval(this.returnClaimWarranty, 6000);
+            }
+        }
+
         let tel_activation = null
         if ($telNumberActivation.val() == null) {
             const domain = ['|', ['email', '=', $partnerEmail.val()], ['name', '=', $partnerName.val()]];
@@ -219,7 +264,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 tel_activation = res[0].mobile
             }
         }
-        
+
         // Check scanned codes
         if ($portalLotSerialNumber.val()) {
             const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
@@ -231,7 +276,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 tel_activation: tel_activation,
                 by_pass_check: false,
             });
-            
+
             // TODO: Handle error response
             // const error = new RPCError();
             // console.debug("Error: ", error);
@@ -246,8 +291,10 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 }
             }
         }
+        $('#helpdesk_warranty_activation_form')[0].reset();
+        window.location.replace("/xac-nhan-yeu-cau");
     },
-    
+
     /**
      * Validate form fields
      * @param {jQuery} $partnerName

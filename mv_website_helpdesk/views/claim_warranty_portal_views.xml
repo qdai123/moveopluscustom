@@ -7,10 +7,10 @@
 					<div class="container d-flex flex-column justify-content-center h-100">
 						<div class="oe_structure" id="oe_structure_mv_website_helpdesk_confirm_warranty_activation"/>
 						<div class="row justify-content-center mb16">
-							<!-- <t t-if="request.session.get('form_builder_model_model', '') == 'helpdesk.ticket'">
+							<t t-if="request.session.get('form_builder_model_model', '') == 'helpdesk.ticket'">
 								<t t-set="ticket" t-value="request.website._website_form_last_record()"/>
-							</t> -->
-							<!-- <h1 class="text-center">
+							</t>
+							<h1 class="text-center">
 								<t t-if="ticket and request.session.uid">
 									<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
 									<span>Mã số phiếu yêu cầu của bạn là
@@ -25,18 +25,18 @@
 										.
 									</span>
 								</t>
-							</h1> -->
+							</h1>
 							<h2 class="text-center">
 								Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!
 							</h2>
-							<!-- <div class="text-center">
+							<div class="text-center">
 								<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
 									Xem phiếu
 								</a>
 								<a class="btn btn-primary" href='/'>
 									Trở về trang chủ
 								</a>
-							</div> -->
+							</div>
 						</div>
 						<div class="oe_structure" id="oe_structure_website_helpdesk_thanks_you_bottom"/>
 					</div>
@@ -69,7 +69,7 @@
                                 <div id="helpdesk_warranty_activation_section">
                                     <section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
                                         <div class="container">
-                                            <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
+                                            <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="" data-success-page="" data-model_name="helpdesk.ticket">
                                                 <div class="s_website_form_rows row s_col_no_bgcolor">
                                                     <!-- label Thông tin đại lý -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
@@ -157,7 +157,7 @@
                                                                 <span class="s_website_form_label_content">Biển số xe</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <input id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" />
+                                                                <textarea rows="1" spellcheck="false" id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -168,7 +168,7 @@
                                                                 <span class="s_website_form_label_content">Số Km hiện tại</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <input id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="number" name="mileage" data-fill-with="mileage" />
+                                                                <textarea rows="1" spellcheck="false" id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="text" name="mileage" data-fill-with="mileage" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -179,7 +179,7 @@
                                                                 <span class="s_website_form_label_content">Số điện thoại</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <input id="helpdesk_warranty_input_mv_warranty_phone" class="form-control s_website_form_input" type="text" name="mv_warranty_phone" data-fill-with="mv_warranty_phone" />
+                                                                <textarea rows="1" spellcheck="false" id="helpdesk_warranty_input_mv_warranty_phone" class="form-control s_website_form_input" type="text" name="mv_warranty_phone" data-fill-with="mv_warranty_phone" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -191,7 +191,7 @@
                                                                 <span class="s_website_form_mark">*</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <input required="True" id="helpdesk_warranty_input_mv_remaining_tread_depth" class="form-control s_website_form_input" type="text" name="mv_remaining_tread_depth" data-fill-with="mv_remaining_tread_depth" />
+                                                                <textarea rows="1" spellcheck="false" required="True" id="helpdesk_warranty_input_mv_remaining_tread_depth" class="form-control s_website_form_input" type="text" name="mv_remaining_tread_depth" data-fill-with="mv_remaining_tread_depth" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -205,7 +205,7 @@
                                                             <div class="col-sm">
                                                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>                                                                
                                                                 <div class="col-lg-7 col-md-8">
-                                                                    <input required="True" type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
+                                                                    <input type="file" name="att" class="file" multiple="true" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
                                                                     <br/><span class="s_website_form_label_content">Ghi chú: hình ảnh phải mô tả rõ chi tiết lỗi</span>
                                                                 </div>
                                                             </div>

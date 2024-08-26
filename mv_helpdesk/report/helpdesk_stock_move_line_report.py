@@ -45,6 +45,9 @@ class HelpdeskStockMoveLineReport(models.Model):
 
     # ==== Helpdesk Ticket fields (For Warranty Activation ONLY) ====
     ticket_create_date = fields.Datetime("Created On", readonly=True)
+    ticket_create_day = fields.Char("Day", readonly=True)
+    ticket_create_month = fields.Char("Month", readonly=True)
+    ticket_create_year = fields.Char("Year", readonly=True)
     ticket_write_date = fields.Datetime("Last Updated On", readonly=True)
     ticket_id = fields.Many2one("helpdesk.ticket", readonly=True)
     ticket_ref = fields.Char(readonly=True)
@@ -66,17 +69,20 @@ class HelpdeskStockMoveLineReport(models.Model):
         ticket_stage_new = self._get_new_stage()
         ticket_stage_done = self._get_done_stage()
         return f"""
-                SELECT  t.id                    AS ticket_id,
-                        t.ticket_ref            AS ticket_ref,
-                        t.ticket_type_id        AS ticket_type_id,
-                        t.stage_id              AS ticket_stage_id,
-                        p.parent_id             AS parent_partner_id,
+                SELECT t.id                                    AS ticket_id,
+                        t.ticket_ref                            AS ticket_ref,
+                        t.ticket_type_id                        AS ticket_type_id,
+                        t.stage_id                              AS ticket_stage_id,
+                        p.parent_id                             AS parent_partner_id,
                         t.partner_id,
-                        p.company_registry      AS partner_company_registry,
+                        p.company_registry                      AS partner_company_registry,
                         t.partner_email,
                         t.partner_phone,
-                        t.create_date           AS ticket_create_date,
-                        t.ticket_update_date    AS ticket_write_date
+                        t.create_date                           AS ticket_create_date,
+                        EXTRACT(DAY FROM t.create_date)::TEXT   AS ticket_create_day,
+                        EXTRACT(MONTH FROM t.create_date)::TEXT AS ticket_create_month,
+                        EXTRACT(YEAR FROM t.create_date)::TEXT  AS ticket_create_year,
+                        t.ticket_update_date                    AS ticket_write_date
                 FROM helpdesk_ticket AS t
                     JOIN res_partner AS p ON (p.id = t.partner_id)
                 WHERE t.team_id = {warranty_team_id}  AND t.stage_id IN ({ticket_stage_new}, {ticket_stage_done})
@@ -149,11 +155,11 @@ class HelpdeskStockMoveLineReport(models.Model):
         return """
             SELECT ROW_NUMBER() OVER ()               AS id,
                           t.*,
-                          p.product_barcode                         AS product_barcode,
+                          p.product_barcode                        AS product_barcode,
                           p.product_template_id                    AS product_template_id,
-                          p.product_country_of_origin           AS product_country_of_origin,
+                          p.product_country_of_origin              AS product_country_of_origin,
                           pzl.product_att_size_lop                 AS product_att_size_lop,
-                          pmg.product_att_ma_gai                 AS product_att_ma_gai
+                          pmg.product_att_ma_gai                   AS product_att_ma_gai
         """
 
     def _from_clause(self):

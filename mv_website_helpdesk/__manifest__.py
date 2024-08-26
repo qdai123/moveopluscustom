@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Website Helpdesk",
+    "name": "Website Helpdesk",
     "version": "17.0.1.0",
-    "category": "Moveoplus/MV Website Helpdesk",
+    "countries": ["vi"],
+    "category": "Moveoplus/Website Helpdesk",
     "description": "Base on Website Helpdesk module to customize new features",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
     "depends": [
         # Odoo
@@ -25,7 +27,7 @@
         "views/helpdesk_team_views.xml",
         "views/helpdesk_ticket_views.xml",
         "views/helpdesk_templates.xml",
-        'views/claim_warranty_portal_views.xml',
+        "views/claim_warranty_portal_views.xml",
         # DEFAULT DATA
         "data/default_data_helpdesk_team.xml",
     ],
