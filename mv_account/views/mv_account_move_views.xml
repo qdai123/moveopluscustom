@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!-- ====== MOVEO PLUS INHERIT: VIEWS ====== -->
+<odoo>
+    <record id="mv_account_move_view_form" model="ir.ui.view">
+        <field name="name">mv_account.inherit.view_move_form</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">32</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_line_ids']/tree/field[@name='quantity']" position="attributes">
+                <attribute name="sum">Total Quantity</attribute>
+            </xpath>
+            <xpath expr="//field[@name='invoice_line_ids']/tree/field[@name='price_subtotal']" position="attributes">
+                <attribute name="sum">Total Price Sub</attribute>
+            </xpath>
+            <xpath expr="//field[@name='invoice_line_ids']/tree/field[@name='price_unit']" position="attributes">
+                <attribute name="sum">Total Price Unit</attribute>
+            </xpath>
+            <xpath expr="//field[@name='invoice_line_ids']/tree//field[@name='price_discount']" position="attributes">
+                <attribute name="sum">Total Price Discount</attribute>
+            </xpath>
+            <xpath expr="//field[@name='invoice_line_ids']/tree//field[@name='price_total_before_discount']" position="attributes">
+                <attribute name="sum">Total Price Before Discount</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
