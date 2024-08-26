@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-from odoo import _, fields, models
+import logging
+
+from odoo import _, api, fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class MvBrandProportion(models.Model):
@@ -17,13 +21,39 @@ class MvBrandProportion(models.Model):
     )
     brand_id = fields.Many2one("mv.brand", "Hãng lốp")
     year_participation = fields.Char("Năm tham gia", required=True, size=10)
-    proportion = fields.Float("Tỷ trọng", default=0)
+    proportion = fields.Float("Tỷ trọng", compute="_compute_proportion", store=True)
     quantity_per_month = fields.Integer("Số lượng quả/tháng", default=0)
 
     _sql_constraints = [
         (
-            "mv_brand_proportion_unique",
-            "unique(partner_survey_id, brand_id)",
-            "Không được tạo dữ liệu trùng lặp cho cùng Phiếu khảo sát, Thương hiệu.",
-        )
+            "brand_year_participation_unique",
+            "UNIQUE(brand_id, year_participation)",
+            "Hãng lốp và năm tham gia phải là duy nhất!",
+        ),
     ]
+
+    @api.depends(
+        "partner_survey_id",
+        "partner_survey_id.total_quantity_brand_proportion",
+        "quantity_per_month",
+    )
+    def _compute_proportion(self):
+        """
+        Compute the proportion of the brand based on the quantity per month and the total quantity.
+
+        This method calculates the proportion of the brand for the partner survey and updates the
+        `proportion` field accordingly.
+
+        :return: None
+        """
+        for record in self:
+            if (
+                record.partner_survey_id
+                and record.partner_survey_id.total_quantity_brand_proportion
+            ):
+                record.proportion = (
+                    record.quantity_per_month
+                    / record.partner_survey_id.total_quantity_brand_proportion
+                ) * 1
+            else:
+                record.proportion = 0

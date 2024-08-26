@@ -22,6 +22,10 @@ class MvProductAttribute(models.Model):
         compute="_compute_number_related_mv_products", readonly=True
     )
 
+    _sql_constraints = [
+        ("name_unique", "UNIQUE(name)", "The name of the attribute must be unique!")
+    ]
+
     @api.depends("mv_product_ids")
     def _compute_number_related_mv_products(self):
         for mvpa in self:

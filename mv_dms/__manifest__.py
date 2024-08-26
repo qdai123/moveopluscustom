@@ -34,12 +34,17 @@ increase revenue, and enhance customer satisfaction by providing a unified view 
         "views/mv_region_views.xml",
         "views/mv_product_attribute_views.xml",
         "views/mv_product_product_views.xml",
+        "views/mv_service_detail_views.xml",
         "views/mv_shop_views.xml",
         "views/mv_partner_survey_views.xml",
         # WIZARD
         # MENU
         "views/menus.xml",
     ],
+    "bootstrap": True,
+    "assets": {
+        "web.assets_backend": ["mv_dms/static/src/scss/dms_style.scss"],
+    },
     "license": "LGPL-3",
     "application": True,
     "auto_install": False,

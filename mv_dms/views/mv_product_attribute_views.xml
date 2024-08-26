@@ -4,7 +4,7 @@
         <field name="name">mv.product.attribute.tree</field>
         <field name="model">mv.product.attribute</field>
         <field name="arch" type="xml">
-            <tree editable="bottom">
+            <tree multi_edit="true" editable="bottom" duplicate="false" sample="true">
                 <field name="sequence" widget="handle"/>
                 <field name="name" string="Thuộc tính"/>
                 <field name="mv_product_ids" string="Sản phẩm liên kết" widget="many2many_tags" options="{'no_create_edit': True}" optional="hidden"/>

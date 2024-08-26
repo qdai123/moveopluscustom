@@ -109,15 +109,40 @@ class MvPartnerSurvey(models.Model):
         "mv.brand.proportion",
         "partner_survey_id",
         "Tỷ trọng thương hiệu",
-        domain=lambda self: [("partner_survey_id", "=", self.id)],
+        domain=lambda self: [
+            ("partner_survey_id", "=", self.id),
+            ("brand_id.type", "=", "size_lop"),
+        ],
         required=True,
     )
-    service_detail_ids = fields.One2many(
-        "mv.service.detail",
+    total_quantity_brand_proportion = fields.Float(
+        "Tổng số lượng theo tỷ trọng thương hiệu",
+        compute="_compute_total_quantity_brand_proportion",
+        store=True,
+        readonly=True,
+    )
+    brand_proportion_non_tire_ids = fields.One2many(
+        "mv.brand.proportion",
         "partner_survey_id",
-        "Dịch vụ",
-        domain=lambda self: [("partner_survey_id", "=", self.id)],
+        "Tỷ trọng thương hiệu (Non Tire)",
+        domain=lambda self: [
+            ("partner_survey_id", "=", self.id),
+            ("brand_id.type", "!=", "size_lop"),
+        ],
         required=True,
+    )
+    total_quantity_brand_proportion_non_tire = fields.Float(
+        "Tổng số lượng theo tỷ trọng thương hiệu (Non Tire)",
+        compute="_compute_total_quantity_brand_proportion",
+        store=True,
+        readonly=True,
+    )
+    service_detail_ids = fields.Many2many(
+        "mv.service.detail",
+        "mv_service_detail_partner_survey_rel",
+        "service_detail_id",
+        "partner_survey_id",
+        string="Dịch vụ",
     )
     mv_product_ids = fields.Many2many(
         "mv.product.product",
@@ -162,8 +187,15 @@ class MvPartnerSurvey(models.Model):
         default=lambda self: self.env.user,
         readonly=True,
     )
-    survey_date = fields.Date("Ngày khảo sát", default=fields.Date.today, tracking=True)
-    survey_completed_date = fields.Date("Ngày hoàn thành", readonly=True)
+    survey_date = fields.Date(
+        "Ngày khảo sát",
+        default=fields.Date.today,
+        tracking=True,
+    )
+    survey_completed_date = fields.Date(
+        "Ngày hoàn thành",
+        readonly=True,
+    )
     state = fields.Selection(
         BASE_SURVEY_STATEs,
         default="draft",
@@ -177,16 +209,50 @@ class MvPartnerSurvey(models.Model):
         copy=False,
         help="Không thể sửa đổi các Khảo Sát hoặc các thông tin đã khóa.",
     )
-    name = fields.Char("Phiếu khảo sát", default="SURVEY", copy=False, tracking=True)
-    owner = fields.Char("Chủ sở hữu", required=True, tracking=True)
-    owner_phone = fields.Char("Số điện thoại", required=True, tracking=True)
-    owner_email = fields.Char("Email", tracking=True)
-    owner_dob = fields.Date("Ngày sinh", required=True, tracking=True)
-    second_generation = fields.Char("Thế hệ thứ 2", required=True, tracking=True)
-    second_generation_phone = fields.Char("Số điện thoại", required=True, tracking=True)
-    second_generation_email = fields.Char("Email", tracking=True)
-    second_generation_dob = fields.Date("Ngày sinh", required=True, tracking=True)
-    relationship_with_owner = fields.Char("Mối quan hệ", tracking=True)
+    name = fields.Char(
+        "Phiếu khảo sát",
+        default="SURVEY",
+        copy=False,
+        tracking=True,
+    )
+    owner = fields.Char(
+        "Chủ sở hữu",
+        required=True,
+        tracking=True,
+    )
+    owner_phone = fields.Char(
+        "Số điện thoại",
+        size=32,
+        required=True,
+        tracking=True,
+    )
+    owner_email = fields.Char("Email", size=32)
+    owner_dob = fields.Date(
+        "Ngày sinh",
+        required=True,
+        tracking=True,
+    )
+    second_generation = fields.Char(
+        "Thế hệ thứ 2",
+        required=True,
+        tracking=True,
+    )
+    second_generation_phone = fields.Char(
+        "Số điện thoại",
+        size=32,
+        required=True,
+        tracking=True,
+    )
+    second_generation_email = fields.Char("Email", size=32)
+    second_generation_dob = fields.Date(
+        "Ngày sinh",
+        required=True,
+        tracking=True,
+    )
+    relationship_with_owner = fields.Char(
+        "Mối quan hệ",
+        tracking=True,
+    )
     number_of_years_business = fields.Float(
         "Số năm kinh doanh",
         default=0,
@@ -195,7 +261,7 @@ class MvPartnerSurvey(models.Model):
         tracking=True,
     )
     proportion = fields.Float(
-        "Tỷ trọng Continental",
+        "Tỷ trọng",
         default=1,
         required=True,
         tracking=True,
@@ -222,17 +288,19 @@ class MvPartnerSurvey(models.Model):
         tracking=True,
     )
     # BÁN LẺ
-    per_retail_customer = fields.Float("Khách hàng lẻ", default=0, tracking=True)
-    per_retail_taxi = fields.Float("Taxi", default=0, tracking=True)
-    per_retail_fleet = fields.Float("Công ty/Đội xe", default=0, tracking=True)
+    per_retail_customer = fields.Float("Khách hàng lẻ", default=0)
+    per_retail_taxi = fields.Float("Taxi", default=0)
+    per_retail_fleet = fields.Float("Công ty/Đội xe", default=0)
     total_retail = fields.Float(
         "Tổng số bán lẻ",
         compute="_compute_total_retail",
         store=True,
         readonly=True,
-        tracking=True,
     )
     # BÁN BUÔN
+    # per_wholesale_dealer = fields.Float("Đại lý cấp 1 (%)", default=0, tracking=True)
+    per_wholesale_subdealer = fields.Float("Đại lý cấp 2", default=0)
+    per_wholesale_garage = fields.Float("Garage", default=0)
     total_wholesale = fields.Float(
         "Tổng số bán buôn",
         compute="_compute_total_wholesale",
@@ -240,19 +308,20 @@ class MvPartnerSurvey(models.Model):
         readonly=True,
         tracking=True,
     )
-    # per_wholesale_dealer = fields.Float("Đại lý cấp 1 (%)", default=0, tracking=True)
-    per_wholesale_subdealer = fields.Float("Đại lý cấp 2", default=0, tracking=True)
-    per_wholesale_garage = fields.Float("Garage", default=0, tracking=True)
     # DỊCH VỤ
-    is_use_service = fields.Boolean("Sử dụng dịch vụ", default=False, tracking=True)
-    proportion_service = fields.Float(
-        "Tỷ trọng kinh doanh lốp so với dịch vụ khác", default=0, tracking=True
+    is_use_service = fields.Boolean(
+        "Sử dụng dịch vụ",
+        default=False,
+        tracking=True,
     )
-    service_bay = fields.Integer("Số lượng cầu nâng", default=0, tracking=True)
-    num_technicians = fields.Integer("Số lượng kỹ thuật viên", default=0, tracking=True)
+    proportion_service = fields.Float(
+        "Tỷ trọng kinh doanh lốp so với dịch vụ khác", default=0
+    )
+    service_bay = fields.Integer("Số lượng cầu nâng", default=0)
+    num_technicians = fields.Integer("Số lượng kỹ thuật viên", default=0)
     # num_sales = fields.Integer("Số lượng nhân viên bán hàng", default=0, tracking=True)
     num_administrative_staff = fields.Integer(
-        "Số lượng nhân viên hành chính", default=0, tracking=True
+        "Số lượng nhân viên hành chính", default=0
     )
 
     _sql_constraints = [
@@ -324,6 +393,17 @@ class MvPartnerSurvey(models.Model):
                     % SHOPs_LIMITED
                 )
 
+    @api.constrains("total_retail", "total_wholesale")
+    def _check_total_retail_wholesale(self):
+        for survey in self:
+            if survey.total_retail + survey.total_wholesale > 1:
+                raise UserError("Tổng số bán lẻ và bán buôn không được vượt quá 100%!")
+
+    @api.onchange("total_retail", "total_wholesale")
+    def _onchange_total_retail_wholesale(self):
+        if self.total_retail + self.total_wholesale > 1:
+            raise UserError("Tổng số bán lẻ và bán buôn không được vượt quá 100%!")
+
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
         if self.partner_id:
@@ -338,6 +418,18 @@ class MvPartnerSurvey(models.Model):
     def _compute_shop_limited(self):
         for survey in self:
             survey.shop_count = len(survey.shop_ids)
+
+    @api.depends("brand_proportion_ids", "brand_proportion_non_tire_ids")
+    def _compute_total_quantity_brand_proportion(self):
+        for survey in self:
+            survey.total_quantity_brand_proportion = sum(
+                proportion.quantity_per_month
+                for proportion in survey.brand_proportion_ids
+            )
+            survey.total_quantity_brand_proportion_non_tire = sum(
+                proportion.quantity_per_month
+                for proportion in survey.brand_proportion_non_tire_ids
+            )
 
     @api.depends("per_retail_customer", "per_retail_taxi", "per_retail_fleet")
     def _compute_total_retail(self):
@@ -392,6 +484,7 @@ class MvPartnerSurvey(models.Model):
 
     def action_draft(self):
         surveys = self.filtered(lambda s: s.state in ["cancel", "progressing"])
+        # TODO: Add more Wizard can clean up the data before Draft
         return surveys.write({"state": "draft"})
 
     def action_run(self):
@@ -418,14 +511,25 @@ class MvPartnerSurvey(models.Model):
         return surveys.write({"state": "done"})
 
     def action_cancel(self):
-        force_cancel = self.env.context.get(
+        """
+        Cancel surveys if they are not in the 'done' state.
+
+        This method checks if the cancellation is forced by a manager. If not, it iterates
+        through the surveys and raises an error if any survey is in the 'done' state. Otherwise,
+        it sets the state to 'cancel'.
+
+        :raises UserError: If any survey is in the 'done' state and cancellation is not forced.
+        :return: The number of records updated.
+        :rtype: int
+        """
+        is_force_cancel = self.env.context.get(
             "force_cancel_by_manager", False
         ) and self.env.user.has_group(GROUP_SALES_MANAGER)
-        if not force_cancel:
-            for survey in self:
-                if survey.state == "done":
-                    raise UserError("Không thể hủy Phiếu khảo sát đã hoàn thành!")
-                survey.state = "cancel"
+        if not is_force_cancel:
+            surveys_to_cancel = self.filtered(lambda s: s.state != "done")
+            if len(surveys_to_cancel) != len(self):
+                raise UserError("Không thể hủy Phiếu khảo sát đã hoàn thành!")
+            surveys_to_cancel.write({"state": "cancel"})
         else:
             self.write({"state": "cancel"})
 

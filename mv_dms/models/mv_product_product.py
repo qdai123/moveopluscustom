@@ -47,6 +47,14 @@ class MvProductProduct(models.Model):
     uom_id = fields.Many2one("uom.uom", default=_get_default_uom_id, required=True)
     uom_name = fields.Char("Đơn vị", related="uom_id.name", readonly=True)
 
+    _sql_constraints = [
+        (
+            "name_product_attribute_brand_unique",
+            "UNIQUE(name, product_attribute_id, brand_id)",
+            "The name of the product must be unique!",
+        )
+    ]
+
     @api.onchange("brand_id")
     def _onchange_brand_id(self):
         if self.brand_id:

@@ -6,13 +6,6 @@ class MvServiceDetail(models.Model):
     _name = "mv.service.detail"
     _description = _("Service Detail")
 
-    partner_survey_id = fields.Many2one(
-        "mv.partner.survey",
-        "Phiếu khảo sát",
-        required=True,
-        index=True,
-        ondelete="restrict",
-    )
     vnd_currency_id = fields.Many2one(
         "res.currency",
         "Tiền tệ (VNĐ)",

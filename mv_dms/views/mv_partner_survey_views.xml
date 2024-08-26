@@ -7,19 +7,19 @@
 		<field name="name">mv_partner_survey.tree</field>
 		<field name="model">mv.partner.survey</field>
 		<field name="arch" type="xml">
-			<tree duplicate="false" import="false" export_xlsx="false" sample="true">
+			<tree duplicate="false" import="false" export_xlsx="false" sample="true" decoration-muted="state == 'cancel'">
 				<field name="name"/>
 				<field name="partner_id" widget="many2one_avatar"/>
-				<field name="region_id"/>
+				<field name="create_uid" widget="many2one_avatar_user"/>
 				<field name="create_date" column_invisible="1"/>
 				<field name="survey_date"/>
-				<field name="create_uid" widget="many2one_avatar_user"/>
+				<field name="region_id"/>
 				<field name="company_id" groups="base.group_multi_company" optional="hidden"/>
 				<field name="currency_id" column_invisible="1"/>
 				<field name="state"
 				       widget="badge"
-				       decoration-muted="state == 'cancel'"
-				       decoration-info="state  == 'draft'"
+				       decoration-muted="state  == 'draft'"
+				       decoration-info="state  == 'progressing'"
 				       decoration-success="state == 'done'"/>
 				<field name="active" column_invisible="1"/>
 				<field name="is_use_service" column_invisible="1"/>
@@ -41,7 +41,9 @@
 					<field name="company_id" invisible="1"/>
 					<field name="currency_id" invisible="1"/>
 					<field name="state" widget="statusbar" statusbar_visible="draft,progressing,done"/>
-					<button name="action_complete" type="object" string="Xác nhận" class="btn btn-primary" invisible="state in ['done', 'cancel']"/>
+					<button name="action_complete" type="object" string="Hoàn thành" class="btn btn-primary" invisible="state != 'progressing'" confirm="Bạn chắc chắn muốn hoàn thành phiếu khảo sát này?"/>
+					<button name="action_draft" type="object" string="Khảo sát nháp" class="btn btn-primary" invisible="state != 'cancel'"/>
+					<button name="action_run" type="object" string="Tiến hành Khảo sát" class="btn btn-primary" invisible="state != 'draft1'"/>
 					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" invisible="state in ['done', 'cancel'] or is_sales_manager"/>
 					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" context="{'force_cancel_by_manager': True}" invisible="state != 'done' and not is_sales_manager"/>
 				</header>
@@ -117,14 +119,27 @@
 					<!-- ## Các hãng lốp tham gia & Tỷ trọng mua hàng -->
 					<label for="brand_proportion_ids" string="## Các hãng lốp tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
 					<field name="brand_proportion_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
-						<tree editable="bottom">
-							<field name="brand_id" domain="[('type', '=', 'size_lop')]" options="{'no_open': True}"/>
+						<tree editable="bottom" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" class="fw-bold" domain="[('type', '=', 'size_lop')]" options="{'no_open': True}"/>
 							<field name="year_participation"/>
-							<field name="proportion" widget="percentage"/>
-							<field name="quantity_per_month"/>
+							<field name="quantity_per_month" sum="Total Quantity per Month"/>
+							<field name="proportion" widget="percentage" sum="Total Proportion" class="fw-bold"/>
 							<field name="partner_survey_id" column_invisible="1"/>
 						</tree>
 					</field>
+					<field name="total_quantity_brand_proportion" invisible="1"/>
+					<!-- ## Các hãng Non Tire tham gia & Tỷ trọng mua hàng -->
+					<label for="brand_proportion_non_tire_ids" string="## Các hãng Non Tire tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="brand_proportion_non_tire_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
+						<tree editable="bottom" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" class="fw-bold" domain="[('type', '!=', 'size_lop')]" options="{'no_open': True}"/>
+							<field name="year_participation"/>
+							<field name="quantity_per_month" sum="Total Quantity per Month"/>
+							<field name="proportion" widget="percentage" sum="Total Proportion" class="fw-bold"/>
+							<field name="partner_survey_id" column_invisible="1"/>
+						</tree>
+					</field>
+					<field name="total_quantity_brand_proportion_non_tire" invisible="1"/>
 					<!-- ## Tỷ lệ Bán buôn & Bán lẻ -->
 					<group string="## Tỷ lệ Bán buôn &amp; Bán lẻ" name="group_wholesale_and_retail">
 						<group>
@@ -190,24 +205,23 @@
 								<field name="num_administrative_staff" no_label="1" readonly="do_readonly"/>
 							</div>
 						</group>
-						<field name="service_detail_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly" invisible="not is_use_service">
+						<field name="service_detail_ids" no_label="1" readonly="do_readonly" invisible="not is_use_service">
 							<tree editable="bottom">
-								<field name="name" string="Sản phẩm dịch vụ"/>
-								<field name="service_price" widget="monetary"/>
-								<field name="notes"/>
+								<field name="name" string="Tên sản phẩm"/>
+								<field name="service_price" class="fw-bold" widget="monetary" sum="Total Service Price"/>
+								<field name="notes" class="text-break" options="{'line_breaks': False}" widget="text"/>
 								<field name="vnd_currency_id" column_invisible="1"/>
-								<field name="partner_survey_id" column_invisible="1"/>
 							</tree>
 						</field>
 					</group>
 					<!-- ## Phân tích mặt hàng sản phẩm -->
 					<label for="mv_product_ids" string="## Phân tích mặt hàng sản phẩm" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
 					<!-- TOP 10 Sản Phẩm (Size Lốp)  -->
-					<field name="mv_product_ids" no_label="1" readonly="do_readonly">
+					<field name="mv_product_ids" no_label="1" context="{'create': False}" options="{'no_create': True, 'no_create_edit': True}" readonly="do_readonly">
 						<tree editable="bottom">
 							<field name="product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
 							<field name="brand_id" string="Hãng lốp" domain="[('type', '=', 'size_lop')]" options="{'no_create': True}"/>
-							<field name="quantity_per_month" string="Số lượng/tháng"/>
+							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
 							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
 							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
@@ -216,18 +230,18 @@
 					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom">
 							<field name="product_attribute_id" string="Dầu nhớt" options="{'no_create': True}"/>
-							<field name="brand_id" string="Hãng dầu nhớt " domain="[('type', '=', 'lubricant')]" options="{'no_create': True}"/>
-							<field name="quantity_per_month" string="Số lượng/tháng"/>
+							<field name="brand_id" string="Hãng dầu nhớt" domain="[('type', '=', 'lubricant')]" options="{'no_create': True}"/>
+							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
 							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
 							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
 					<!-- TOP 10 Sản Phẩm (Ắc quy)  -->
-					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
+					<field name="mv_product_battery_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom">
-							<field name="product_attribute_id" string="Dầu nhớt" options="{'no_create': True}"/>
-							<field name="brand_id" string="Hãng dầu nhớt " domain="[('type', '=', 'lubricant')]" options="{'no_create': True}"/>
-							<field name="quantity_per_month" string="Số lượng/tháng"/>
+							<field name="product_attribute_id" string="Ắc quy" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng ắc quy" domain="[('type', '=', 'battery')]" options="{'no_create': True}"/>
+							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
 							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
 							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>

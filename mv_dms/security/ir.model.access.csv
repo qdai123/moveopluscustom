@@ -14,7 +14,7 @@ access_mv_brand_salesman,mv.brand Salesman,model_mv_brand,sales_team.group_sale_
 
 access_mv_brand_proportion_manager,mv.brand.proportion Sale Manager,model_mv_brand_proportion,sales_team.group_sale_manager,1,1,1,1
 access_mv_brand_proportion_sale_all_leads,mv.brand.proportion Sale All Leads,model_mv_brand,sales_team.group_sale_salesman_all_leads,1,0,0,0
-access_mv_brand_proportion_salesman,mv.brand.proportion Salesman,model_mv_brand_proportion,sales_team.group_sale_salesman,1,1,1,0
+access_mv_brand_proportion_salesman,mv.brand.proportion Salesman,model_mv_brand_proportion,sales_team.group_sale_salesman,1,1,1,1
 
 access_mv_region_sale_manager,mv.region Sale Manager,model_mv_region,sales_team.group_sale_manager,1,1,1,1
 access_mv_region_sale_all_leads,mv.region Sale All Leads,model_mv_region,sales_team.group_sale_salesman_all_leads,1,0,0,0
@@ -30,11 +30,11 @@ access_mv_product_attribute_salesman,mv.product.attribute Salesman,model_mv_prod
 
 access_mv_product_product_sale_manager,mv.product.product Sale Manager,model_mv_product_product,sales_team.group_sale_manager,1,1,1,1
 access_mv_product_product_sale_all_leads,mv.product.product Sale All Leads,model_mv_product_product,sales_team.group_sale_salesman_all_leads,1,0,0,0
-access_mv_product_product_salesman,mv.product.product Salesman,model_mv_product_product,sales_team.group_sale_salesman,1,0,0,0
+access_mv_product_product_salesman,mv.product.product Salesman,model_mv_product_product,sales_team.group_sale_salesman,1,0,0,1
 
 access_mv_service_detail_sale_manager,mv.service.detail Sale Manager,model_mv_service_detail,sales_team.group_sale_manager,1,1,1,1
 access_mv_service_detail_sale_all_leads,mv.service.detail Sale All Leads,model_mv_service_detail,sales_team.group_sale_salesman_all_leads,1,0,0,0
-access_mv_service_detail_salesman,mv.service.detail Salesman,model_mv_service_detail,sales_team.group_sale_salesman,1,0,0,0
+access_mv_service_detail_salesman,mv.service.detail Salesman,model_mv_service_detail,sales_team.group_sale_salesman,1,0,0,1
 
 access_mv_shop_sale_manager,mv.shop Sale Manager,model_mv_shop,sales_team.group_sale_manager,1,1,1,1
 access_mv_shop_sale_all_leads,mv.shop Sale All Leads,model_mv_shop,sales_team.group_sale_salesman_all_leads,1,0,0,0
