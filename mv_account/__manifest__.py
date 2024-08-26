@@ -6,11 +6,9 @@
     "description": "Base on Invoicing modules and Related modules to customize new features",
     "author": "MOVEOPLUS system development team",
     "depends": [
-        # Odoo
         "account",
-        # Moveoplus
         "biz_viettel_sinvoice_v2",
-        "mv_base",
+        "mv_base"
     ],
     "data": [
         # SECURITY
