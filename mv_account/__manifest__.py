@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Invoicing",
+    "name": "Invoicing",
     "version": "17.0.1.0",
-    "category": "Moveoplus/MV Invoicing",
+    "countries": ["vi"],
+    "category": "Moveoplus/Invoicing",
     "description": "Base on Invoicing modules and Related modules to customize new features",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
-    "depends": [
-        # Odoo
-        "account",
-        # Moveoplus
-        "mv_base",
-    ],
+    "depends": ["account", "mv_base"],
     "data": [
         # SECURITY
         "security/ir.model.access.csv",
