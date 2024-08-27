@@ -297,13 +297,5 @@
 			<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_claim_warranty_activation_submitted"/>
 			<field name="track">True</field>
 		</record>
-
-        <record id="mv_claim_warranty_website_menu" model="website.menu">
-            <field name="name">Gửi Bảo hành</field>
-            <field name="url">/claim-bao-hanh</field>
-            <field name="page_id" ref="mv_website_helpdesk.mv_claim_warranty_website_page"/>
-            <field name="parent_id" ref="website.main_menu"/>
-            <field name="sequence" type="int">35</field>
-        </record>
     </data>
 </odoo>
