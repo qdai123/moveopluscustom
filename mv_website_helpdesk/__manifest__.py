@@ -16,6 +16,7 @@
         "website_helpdesk",
         # Moveoplus
         "mv_helpdesk",
+        "mv_website",
     ],
     "data": [
         # SECURITY
@@ -28,6 +29,8 @@
         "views/helpdesk_ticket_views.xml",
         "views/helpdesk_templates.xml",
         "views/claim_warranty_portal_views.xml",
+        # MENU
+        "views/website_menus.xml",
         # DEFAULT DATA
         "data/default_data_helpdesk_team.xml",
     ],

@@ -2,7 +2,7 @@
 <odoo>
 	<!-- ==================== TEMPLATEs ==================== -->
 
-    <!-- MO+ Template: =Xác nhận Kích Hoạt Bảo Hành= -->
+    <!-- MO+ Template: >> Xác nhận Kích Hoạt Bảo Hành << -->
 	<template id="mv_helpdesk_warranty_activation_submitted" name="Xác nhận Kích Hoạt Bảo Hành">
 		<t t-call="website.layout">
 			<div id="wrap" class="oe_structure oe_empty h-100">
@@ -15,29 +15,16 @@
 						<h1 class="text-center">
 							<t t-if="ticket and request.session.uid">
 								<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
-								<span>Mã số phiếu yêu cầu của bạn là
-									<a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
-										#
-										<span t-field="ticket.ticket_ref"/>
-									</a>
-									<t t-if="not request.session.get('uid')">
-										#
-										<span t-field="ticket.id"/>
-									</t>
-									.
+								<span>
+									Mã số phiếu yêu cầu của bạn là <a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">#<span t-field="ticket.ticket_ref"/></a>
+									<t t-if="not request.session.get('uid')">#<span t-field="ticket.id"/></t>.
 								</span>
 							</t>
 						</h1>
-						<h2 class="text-center">
-							Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!
-						</h2>
+						<h2 class="text-center">Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!</h2>
 						<div class="text-center">
-							<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
-								Xem phiếu
-							</a>
-							<a class="btn btn-primary" href='/'>
-								Trở về trang chủ
-							</a>
+							<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">Xem phiếu</a>
+							<a class="btn btn-primary" href='/'>Trở về trang chủ</a>
 						</div>
 					</div>
 					<div class="oe_structure" id="oe_structure_website_helpdesk_thanks_you_bottom"/>
@@ -46,7 +33,7 @@
 		</t>
 	</template>
 
-    <!-- MO+ Template: =Kích Hoạt Bảo Hành= -->
+    <!-- MO+ Template: >> Kích Hoạt Bảo Hành << -->
 	<template id="mv_helpdesk_warranty_activation_template" name="Kích Hoạt Bảo Hành">
 		<t t-call="website.layout">
 			<div id="wrap" class="container mt-4">
@@ -60,9 +47,7 @@
 									<p class="o_default_snippet_text o_small">
 										<font class="text-o-color-5">
 											<em>
-												<strong>
-													MOVEO PLUS luôn lắng nghe và giải quyết những khiếu nại của khách hàng nhanh chóng.
-												</strong>
+												<strong>MOVEO PLUS luôn lắng nghe và giải quyết những khiếu nại của khách hàng nhanh chóng.</strong>
 											</em>
 										</font>
 									</p>
@@ -280,42 +265,28 @@
 		</t>
 	</template>
 
-	<data noupdate="1">
+	<!-- ==================== PAGEs ==================== -->
 
-		<!-- ==================== PAGEs ==================== -->
+	<!-- MO+ Page Template: >> Xác nhận Kích Hoạt Bảo Hành << -->
+	<record id="mv_website_helpdesk_warranty_activation_submitted_ticket_website_page" model="website.page">
+		<field name="is_published">True</field>
+		<field name="url">/kich-hoat-bao-hanh-xac-nhan-yeu-cau</field>
+		<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_submitted"/>
+		<field name="track">True</field>
+		<field name="website_meta_description">
+			Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+ sau khi đã kích hoạt Thành Công
+		</field>
+	</record>
 
-		<!-- MO+ Page: Xác nhận Kích Hoạt Bảo Hành -->
-		<record id="mv_website_helpdesk_warranty_activation_submitted_ticket_website_page" model="website.page">
-			<field name="is_published">True</field>
-			<field name="url">/kich-hoat-bao-hanh-xac-nhan-yeu-cau</field>
-			<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_submitted"/>
-			<field name="track">True</field>
-			<field name="website_meta_description">
-				Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+ sau khi đã kích hoạt Thành Công
-			</field>
-		</record>
-
-		<!-- MO+ Page: Kích Hoạt Bảo Hành -->
-		<record id="mv_website_helpdesk_warranty_activation_website_page" model="website.page">
-			<field name="is_published">True</field>
-			<field name="url">/kich-hoat-bao-hanh</field>
-			<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_template"/>
-			<field name="track">True</field>
-			<field name="website_meta_description">
-				Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+
-			</field>
-		</record>
-
-		<!-- ==================== MENUs ==================== -->
-
-		<!-- MO+ Website Menu: Bảo Hành -->
-		<record id="mv_website_helpdesk_warranty_activation_website_menu" model="website.menu">
-			<field name="name">Bảo hành</field>
-			<field name="url">/kich-hoat-bao-hanh</field>
-			<field name="page_id" ref="mv_website_helpdesk.mv_website_helpdesk_warranty_activation_website_page"/>
-			<field name="parent_id" ref="website.main_menu"/>
-			<field name="sequence" type="int">30</field>
-		</record>
-
-	</data>
+	<!-- MO+ Page Template: >> Kích Hoạt Bảo Hành << -->
+	<record id="mv_website_helpdesk_warranty_activation_website_page" model="website.page">
+		<field name="is_published">True</field>
+		<field name="url">/kich-hoat-bao-hanh</field>
+		<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_template"/>
+		<field name="track">True</field>
+		<field name="website_indexed" eval="False"/>
+		<field name="website_meta_description">
+			Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+
+		</field>
+	</record>
 </odoo>

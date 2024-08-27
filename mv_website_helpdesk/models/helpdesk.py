@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
 from odoo.addons.http_routing.models.ir_http import slug
-
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
-    SUB_DEALER_CODE,
     END_USER_CODE,
+    SUB_DEALER_CODE,
 )
+
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class HelpdeskTeam(models.Model):

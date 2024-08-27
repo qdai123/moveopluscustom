@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- ==================== MENUs ==================== -->
+
+	<!-- MO+ Website Menu: >> Bảo hành << -->
+	<record id="mv_website_helpdesk_menu_warranty" model="website.menu">
+		<field name="name">Bảo hành</field>
+		<field name="url">/bao-hanh</field>
+		<field name="parent_id" ref="mv_website.moveoplus_main_menu"/>
+		<field name="sequence" type="int">30</field>
+	</record>
+
+	<!-- MO+ Website Sub-Menu: >> Kích hoạt bảo hành << -->
+	<record id="mv_website_helpdesk_activation_warranty_website_menu" model="website.menu">
+		<field name="name">Kích hoạt bảo hành</field>
+		<field name="url">/kich-hoat-bao-hanh</field>
+		<field name="page_id" ref="mv_website_helpdesk_warranty_activation_website_page"/>
+		<field name="parent_id" ref="mv_website_helpdesk_menu_warranty"/>
+		<field name="sequence" type="int">1</field>
+	</record>
+
+	<!-- MO+ Website Sub-Menu: >> Yêu cầu Bảo hành << -->
+	<record id="mv_website_helpdesk_claim_warranty_website_menu" model="website.menu">
+        <field name="name">Yêu cầu Bảo hành</field>
+        <field name="url">/claim-bao-hanh</field>
+        <field name="page_id" ref="mv_claim_warranty_website_page"/>
+        <field name="parent_id" ref="mv_website_helpdesk_menu_warranty"/>
+        <field name="sequence" type="int">2</field>
+    </record>
+
+	<record id="mv_website_helpdesk_menu_warranty" model="website.menu">
+		<field name="child_id" eval="[(6, 0, [ref('mv_website_helpdesk_activation_warranty_website_menu'), ref('mv_website_helpdesk_claim_warranty_website_menu')])]"/>
+	</record>
+
+</odoo>
