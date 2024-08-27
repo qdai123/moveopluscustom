@@ -89,12 +89,12 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     async _onSubmitButton(ev) {
         ev.preventDefault();
 
-        // =============== Activation Warranty FORM
         const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
         const ticketTypeObj = await this._fetchTicketType($ticketType.val());
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
         const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
+
         const phonePattern = /^[0-9]{10}$/; // Only digits, exactly 10 characters
         const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
          if ($telNumberActivation.val() && !phonePattern.test($telNumberActivation.val())) {
@@ -105,6 +105,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             );
         }
 
+        // =============== Activation Warranty FORM
         if (ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code.includes["kich_hoat_bao_hanh_dai_ly", "kich_hoat_bao_hanh_nguoi_dung_cuoi"]) {
             const validationErrors = await this._validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber);
             if (validationErrors.length > 0) {
@@ -152,30 +153,15 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             }
         } else {
             // =============== Claim Warranty FORM}
-            let claimTicket = await this.orm.call("helpdesk.ticket.type", "search_read", [], {
-                fields: ["id", "code"],
-                domain: [["id", "=", +$ticketType.val() || false]],
-            });
+            const claimTicket = await this._fetchClaimTicket($ticketType.val());
             if (claimTicket && claimTicket[0] && claimTicket[0].code == "yeu_cau_bao_hanh") {
                 const fileBlockEl = document.querySelector(".o_file_block");
                 if (!fileBlockEl) {
-                    this.notification.add(_t("Hãy đảm bảo đầy đủ hình ảnh và rõ nét để được bảo hành!"), {
+                    this.notification.add("Hãy đảm bảo đầy đủ hình ảnh và rõ nét để được bảo hành!", {
                         type: "warning",
                     });
-                    let now = new Date();
-                    let time = now.getTime();
-                    let expireTime = time + 1000*9;
-                    now.setTime(expireTime);
-
-                    let str_tmp = '+mvp_' + $("#helpdesk_warranty_input_license_plates").val() +
-                        '+mvp_' + $("#helpdesk_warranty_input_mileage").val() +
-                        '+mvp_' + $("#helpdesk_warranty_input_mv_warranty_phone").val() +
-                        '+mvp_' + $("#helpdesk_warranty_input_mv_remaining_tread_depth").val() +
-                        '+mvp_' +  $("#helpdesk_warranty_input_mv_note_sub_branch").val() +
-                        '+mvp_' +  $("#helpdesk_warranty_input_portal_lot_serial_number").val();
-                    document.cookie = str_tmp + ';expires='+now.toUTCString();
-
-                    return setInterval(this.returnClaimWarranty, 6000);
+                    //this._setCookie();
+                    //return setInterval(this.returnClaimWarranty, 6000);
                 }
             }
 
@@ -214,9 +200,8 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                     }
                 }
             }
-
-            $('#helpdesk_warranty_activation_form')[0].reset();
-            window.location.replace("/xac-nhan-yeu-cau");
+            //$('#helpdesk_warranty_activation_form')[0].reset();
+            //window.location.replace("/xac-nhan-yeu-cau");
         }
     },
 
@@ -422,18 +407,20 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
      * Set cookie.
      */
     _setCookie() {
-        let now = new Date();
-        let time = now.getTime();
-        let expireTime = time + 1000 * 9;
-        now.setTime(expireTime);
+        const now = new Date();
+        now.setTime(now.getTime() + 9000); // 1000 * 9
 
-        let str_tmp = '+mvp_' + $("#helpdesk_warranty_input_license_plates").val() +
-            '+mvp_' + $("#helpdesk_warranty_input_mileage").val() +
-            '+mvp_' + $("#helpdesk_warranty_input_mv_warranty_phone").val() +
-            '+mvp_' + $("#helpdesk_warranty_input_mv_remaining_tread_depth").val() +
-            '+mvp_' + $("#helpdesk_warranty_input_mv_note_sub_branch").val() +
-            '+mvp_' + $("#helpdesk_warranty_input_portal_lot_serial_number").val();
-        document.cookie = str_tmp + ';expires=' + now.toUTCString();
+        const fields = [
+            "#helpdesk_warranty_input_license_plates",
+            "#helpdesk_warranty_input_mileage",
+            "#helpdesk_warranty_input_mv_warranty_phone",
+            "#helpdesk_warranty_input_mv_remaining_tread_depth",
+            "#helpdesk_warranty_input_mv_note_sub_branch",
+            "#helpdesk_warranty_input_portal_lot_serial_number"
+        ];
+
+        const str_tmp = fields.map(selector => `+mvp_${$(selector).val()}`).join('');
+        document.cookie = `${str_tmp};expires=${now.toUTCString()}`;
     },
     
     /**
@@ -451,6 +438,21 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
      * Redirect to claim warranty page.
      */
     async returnClaimWarranty() {
-        window.location.replace("/claim-bao-hanh");
+        try {
+            const response = await fetch("/claim-bao-hanh", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (response.ok) {
+                window.location.replace("/claim-bao-hanh");
+            } else {
+                console.error("Failed to redirect: ", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error during AJAX request: ", error);
+        }
     },
 });
