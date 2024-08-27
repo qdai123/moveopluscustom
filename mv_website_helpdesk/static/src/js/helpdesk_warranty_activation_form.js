@@ -165,6 +165,15 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
                 }
             }
 
+            const $warrantyAttachments = $('#warranty_attachments');
+            const is_attachment_empty = !$warrantyAttachments.length || !$warrantyAttachments[0].files.length;
+            if (is_attachment_empty) {
+                $warrantyAttachments.attr("required", true).addClass("border-danger");
+                return;
+            } else {
+                $warrantyAttachments.attr('required', false);
+            }
+
             let tel_activation = null
             if ($telNumberActivation.val() == null) {
                 const domain = ['|', ['email', '=', $partnerEmail.val()], ['name', '=', $partnerName.val()]];
