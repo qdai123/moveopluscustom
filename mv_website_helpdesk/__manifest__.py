@@ -64,7 +64,7 @@
             "barcodes/static/src/components/barcode_scanner.scss",
             "barcodes/static/src/barcode_service.js",
             # MV Website Helpdesk
-            "mv_website_helpdesk/static/src/js/helpdesk_warranty_activation_form.js",
+            "mv_website_helpdesk/static/src/js/helpdesk_warranty_form.js",
             "mv_website_helpdesk/static/src/components/**/*",
         ],
     },

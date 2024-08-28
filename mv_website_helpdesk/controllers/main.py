@@ -46,62 +46,55 @@ HELPDESK_ACTIVATION_WARRANTY_TEAM = (
 HELPDESK_CLAIM_WARRANTY_ACTIVATION_FORM = (
     "mv_website_helpdesk.mv_claim_warranty_template"
 )
+HELPDESK_CLAIM_WARRANTY_TEAM = "mv_website_helpdesk.mv_helpdesk_claim_warranty"
 
 
 class MVWebsiteHelpdesk(http.Controller):
 
     @http.route("/claim-bao-hanh", type="http", auth="public", website=True)
     def website_helpdesk_claim_warranty(self, **kwargs):
-        _logger.info(f"Method [website_helpdesk_claim_warranty] Params: {kwargs}")
-        WarrantyActivationTeam = (
-            request.env["helpdesk.team"]
-            .sudo()
-            .search([("use_website_helpdesk_warranty_activation", "=", True)], limit=1)
+        _logger.debug(f"Method [website_helpdesk_claim_warranty] Params: {kwargs}")
+
+        helpdesk_claim_team = request.env.ref(HELPDESK_CLAIM_WARRANTY_TEAM)
+        teams_domain = [("use_website_helpdesk_warranty_activation", "=", True)]
+        if not request.env.user.has_group("helpdesk.group_helpdesk_manager"):
+            teams_domain = expression.AND(
+                [
+                    teams_domain,
+                    [
+                        ("website_published", "=", True),
+                        ("id", "=", helpdesk_claim_team.id),
+                    ],
+                ]
+            )
+
+        warranty_teams = (
+            request.env["helpdesk.team"].sudo().search(teams_domain, order="id asc")
         )
-        type_sub_dealer = (
+        if not warranty_teams:
+            raise NotFound()
+
+        # === FETCH Ticket Types === #
+        WarrantyType = (
             request.env["helpdesk.ticket.type"]
             .sudo()
-            .search(
-                [
-                    ("user_for_warranty_activation", "=", True),
-                    ("code", "=", SUB_DEALER_CODE),
-                ],
-                limit=1,
-            )
+            .search([("code", "=", "yeu_cau_bao_hanh")], limit=1)
         )
-        type_end_user = (
-            request.env["helpdesk.ticket.type"]
-            .sudo()
-            .search(
-                [
-                    ("user_for_warranty_activation", "=", True),
-                    ("code", "=", END_USER_CODE),
-                ],
-                limit=1,
-            )
-        )
-        return http.request.render(
-            HELPDESK_CLAIM_WARRANTY_ACTIVATION_FORM,
-            {
-                "anonymous": self._is_anonymous(),
-                "default_helpdesk_team": WarrantyActivationTeam,
-                "ticket_type_objects": request.env.ref(
-                    "mv_website_helpdesk.mv_helpdesk_claim_warranty_type",
-                    raise_if_not_found=False,
-                ),
-                "type_is_sub_dealer_id": type_sub_dealer.id or False,
-                "type_is_end_user_id": type_end_user.id or False,
-            },
-        )
+
+        result = {
+            "helpdesk_team": "claim_warranty",
+            "default_helpdesk_team": warranty_teams,
+            "team": warranty_teams[0],
+            "multiple_teams": len(warranty_teams) > 1,
+            "ticket_type_objects": WarrantyType,
+        }
+        return request.render(HELPDESK_CLAIM_WARRANTY_ACTIVATION_FORM, result)
 
     @http.route("/kich-hoat-bao-hanh", type="http", auth="public", website=True)
     def website_helpdesk_activation_warranty(self, **kwargs):
         _logger.debug(f"Method [website_helpdesk_activation_warranty] Params: {kwargs}")
 
-        helpdesk_activation_team = request.env.ref(
-            HELPDESK_ACTIVATION_WARRANTY_TEAM, raise_if_not_found=False
-        )
-
+        helpdesk_activation_team = request.env.ref(HELPDESK_ACTIVATION_WARRANTY_TEAM)
         teams_domain = [("use_website_helpdesk_warranty_activation", "=", True)]
         if not request.env.user.has_group("helpdesk.group_helpdesk_manager"):
             teams_domain = expression.AND(
@@ -130,6 +123,7 @@ class MVWebsiteHelpdesk(http.Controller):
         EndUser = ticket_types.filtered(lambda t: t.code == END_USER_CODE)
 
         result = {
+            "helpdesk_team": "activation_warranty",
             "default_helpdesk_team": warranty_teams,
             "team": warranty_teams[0],
             "multiple_teams": len(warranty_teams) > 1,
@@ -139,6 +133,10 @@ class MVWebsiteHelpdesk(http.Controller):
             "anonymous": self._is_anonymous(),
         }
         return request.render(HELPDESK_ACTIVATION_WARRANTY_FORM, result)
+
+    # =================================
+    # VALIDATION Methods
+    # =================================
 
     @http.route("/helpdesk/check_partner_phone", type="json", auth="public")
     def check_partner_phonenumber(self, phone_number):
@@ -170,10 +168,10 @@ class MVWebsiteHelpdesk(http.Controller):
 
     @http.route("/helpdesk/check_scanned_code", type="json", auth="public")
     def check_scanned_code(self, codes, **kwargs):
-        error_messages = []
         session_info = request.env["ir.http"].session_info()
         _logger.debug(f"Session Info: {session_info}")
 
+        error_messages = []
         ticket_type = kwargs.get("ticket_type")
         ticket_type_id = int(ticket_type)
         partner_name = kwargs.get("partner_name")

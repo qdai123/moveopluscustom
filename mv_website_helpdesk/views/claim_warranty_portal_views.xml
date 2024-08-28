@@ -51,7 +51,7 @@
                         <div class="col-md-8 ps-4">
                             <div class="container">
                                 <h2 class="text-muted">Gửi sản phẩm bảo hành</h2>
-                                <div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_form_left"/>
+                                <div class="oe_structure" id="oe_structure_whelpdesk_claim_warranty_form_left"/>
                                 <section class="s_text_block o_colored_level pt4 pb8" data-snippet="s_text_block" data-name="Text" style="background-image: none;">
                                     <div class="container s_allow_columns">
                                         <p class="o_default_snippet_text o_small">
@@ -65,11 +65,11 @@
                                         </p>
                                     </div>
                                 </section>
-                                <span class="hidden" data-for="helpdesk_warranty_activation_form" t-att-data-values="{'team_id': default_helpdesk_team and default_helpdesk_team.id or ''}"/>
-                                <div id="helpdesk_warranty_activation_section">
+                                <span class="hidden" data-for="helpdesk_claim_warranty_form" t-att-data-values="{'team_id': default_helpdesk_team and default_helpdesk_team.id or ''}"/>
+                                <div id="helpdesk_claim_warranty_section">
                                     <section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
                                         <div class="container">
-                                            <form id="helpdesk_warranty_activation_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
+                                            <form name="claim_warranty_form" id="helpdesk_claim_warranty_form" action="/website/form/" method="post" enctype="multipart/form-data" class="o_mark_required needs-validation" data-mark="*" data-pre-fill="true" data-success-mode="redirect" data-success-page="/xac-nhan-yeu-cau" data-model_name="helpdesk.ticket">
                                                 <div class="s_website_form_rows row s_col_no_bgcolor">
                                                     <!-- label Thông tin đại lý -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
@@ -79,18 +79,6 @@
                                                             </label>                                                        
                                                         </div>
                                                     </div>
-                                                    <!-- [!] Validation Partner Phone Number -->
-                                                    <t t-if="anonymous">
-                                                        <div class="mb-0 py-2 s_website_form_field col-12">
-                                                            <div class="o_search input-group col-sm has-validation" style="height: 80%;">
-                                                                <input type="search" name="search" id="o_website_helpdesk_search_phone_number" class="form-control hide-focus" placeholder="Nhập số điện thoại..."/>
-                                                                <a href="#" role="button" id="search-btn" class="btn btn-primary btn-lg" style="background-color: #461885; border-color: #461885;">
-                                                                    <i class="fa fa-search" style="vertical-align: super;"/>
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <div role="alert" id="phonenumber-error-message" style="font-size: 1rem; display:none; margin-bottom: 0.25rem;"/>
-                                                    </t>
                                                     <!-- Field: partner_name (Required) -->
                                                     <div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
                                                         <div class="row s_col_no_resize s_col_no_bgcolor">
@@ -142,7 +130,7 @@
 																<span class="s_website_form_label_content">Loại</span>
 															</label>
 															<div class="col-sm">
-																<select id="helpdesk_warranty_select_ticket_type_id" class="form-select s_website_form_input" name="ticket_type_id" required="True">
+																<select id="helpdesk_warranty_select_ticket_type_id" class="form-select s_website_form_input" name="ticket_type_id">
 																	<option t-foreach="ticket_type_objects or []" t-as="type" t-att-value="type.id">
 																		<t t-out="type.name"/>
 																	</option>
@@ -191,7 +179,7 @@
                                                                 <span class="s_website_form_mark">*</span>
                                                             </label>
                                                             <div class="col-sm">
-                                                                <textarea rows="1" spellcheck="false" required="True" id="helpdesk_warranty_input_mv_remaining_tread_depth" class="form-control s_website_form_input" type="text" name="mv_remaining_tread_depth" data-fill-with="mv_remaining_tread_depth" />
+                                                                <textarea required="True" rows="1" spellcheck="false" id="helpdesk_warranty_input_mv_remaining_tread_depth" class="form-control s_website_form_input" type="text" name="mv_remaining_tread_depth" data-fill-with="mv_remaining_tread_depth" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -205,8 +193,8 @@
                                                             <div class="col-sm">
                                                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>                                                                
                                                                 <div class="col-lg-7 col-md-8">
-                                                                    <input type="file" id="warranty_attachments" name="att" multiple="true" class="form-control s_website_form_input" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
-                                                                    <br/><span class="s_website_form_label_content">Ghi chú: hình ảnh phải mô tả rõ chi tiết lỗi</span>
+                                                                    <input type="file" id="warranty_attachments" name="attachments" multiple="true" class="form-control s_website_form_input" data-show-upload="true" data-show-caption="true" lass="file" data-show-preview="true" accept="image/*,application/pdf,video/*"/>
+                                                                    <span class="s_website_form_label_content"><i><b>Ghi chú:</b> hình ảnh phải mô tả rõ chi tiết lỗi</i></span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -220,8 +208,8 @@
                                                                 
                                                             </label>
                                                             <div class="col-sm">
-                                                                <textarea rows="3" spellcheck="false" required="True" id="helpdesk_warranty_input_mv_note_sub_branch" class="form-control s_website_form_input" type="text" name="mv_note_sub_branch" data-fill-with="mv_note_sub_branch" />
-                                                                <br/><span class="s_website_form_label_content">Ghi chú: nhận định kết quả theo thực tế</span>
+                                                                <textarea required="True" rows="3" spellcheck="false" id="helpdesk_warranty_input_mv_note_sub_branch" class="form-control s_website_form_input" type="text" name="mv_note_sub_branch" data-fill-with="mv_note_sub_branch" />
+	                                                            <span class="s_website_form_label_content"><i><b>Ghi chú:</b> nhận định kết quả theo thực tế</i></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -240,7 +228,7 @@
                                                     <!-- ACTION: Submit Button -->
                                                     <div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
                                                         <div style="width: 200px;" class="s_website_form_label"/>
-                                                        <a href="#" role="button" id="submit-btn" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text" style="background-color: #461885; border-color: #461885;">
+                                                        <a href="#" role="button" id="submit-claim-warranty" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text" style="background-color: #461885; border-color: #461885;">
                                                             Gửi sản phẩm bảo hành
                                                         </a>
                                                     </div>
@@ -255,7 +243,7 @@
                             </div>
                         </div>
                         <div class="col-md-4" id="right-column">
-                            <div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_sidebar_right">
+                            <div class="oe_structure" id="oe_structure_whelpdesk_claim_warranty_sidebar_right">
                                 <section class="s_text_image pt32 pb32 o_colored_level" data-snippet="s_text_image" data-name="Text - Image" style="background-image: none;">
                                     <div class="container">
                                         <div class="row o_grid_mode" data-row-count="6">
@@ -275,10 +263,6 @@
                                 </section>
                             </div>
                         </div>
-                        <!-- <form action="/form/submit" method="post" enctype="multipart/form-data">
-                            
-                            <button type="submit" class="btn btn-primary">Create </button>
-                        </form> -->
                     </div>
                 </div>
             </t>

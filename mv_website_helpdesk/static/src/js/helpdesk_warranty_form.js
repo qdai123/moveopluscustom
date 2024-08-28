@@ -1,6 +1,7 @@
 /** @odoo-module **/
 
 import {_t} from "@web/core/l10n/translation";
+import { Component, useState } from "@odoo/owl";
 import publicWidget from "@web/legacy/js/public/public_widget";
 import {ScannerDialog} from "../components/scanner_dialog/scanner_dialog";
 
@@ -13,27 +14,38 @@ const ERROR_MESSAGES = {
 };
 
 /**
- * Portal Warranty Activation Form View
+ * Helpdesk Warranty Form Widget
  */
-publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.extend({
-    selector: "#helpdesk_warranty_activation_form",
+publicWidget.registry.HelpdeskWarrantyForm = publicWidget.Widget.extend({
+    selector: "form[name='activation_warranty_form'], form[name='claim_warranty_form']",
     events: {
-        "click #search-btn": "_onSearchButton",
-        "click #submit-btn": "_onSubmitButton",
         "click #scanning-btn": "openScannerDialog",
+        "click #search-btn": "_onSearchButton",
+        "click #submit-activation-warranty": "_onSubmitActivationButton",
+        "click #submit-claim-warranty": "_onSubmitClaimButton",
     },
     
     /**
      * @constructor
+     * @param {Object} parent
      */
     init() {
         this._super(...arguments);
         this._initializeServices();
-        this._populateFormFromCookies();
-        this._clearCookies();
+        this.canSubmitTicket = true;
     },
 
+    /**
+     * @override
+     * @returns {Promise}
+     */
     async willStart() {
+        // Check if the form is 'claim_warranty_form'
+        this.isClaimWarrantyForm = this.$target.closest("form[name='claim_warranty_form']").length > 0;
+        if (this.isClaimWarrantyForm) {
+            this._populateFormFromCookies();
+            this._clearCookies();
+        }
         return Promise.all([this._super()]);
     },
 
@@ -83,14 +95,16 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     },
     
     /**
+     * Handles the submit button click event on Claim Warranty Form.
      * @private
      * @param {Event} ev
      */
-    async _onSubmitButton(ev) {
+    async _onSubmitClaimButton(ev) {
         ev.preventDefault();
 
         const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
-        const ticketTypeObj = await this._fetchTicketType($ticketType.val());
+        const ticketTypeObj = await this._fetchClaimTicket($ticketType.val());
+
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
         const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
@@ -99,119 +113,151 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
          if ($telNumberActivation.val() && !phonePattern.test($telNumberActivation.val())) {
             console.error("Errors: ", ERROR_MESSAGES.INVALID_PHONE_PATTERN);
-            return this.notification.add(
+            this.notification.add(
                 ERROR_MESSAGES.INVALID_PHONE_PATTERN,
                 { type: "warning" }
             );
+            this.canSubmitTicket = false;
         }
 
-        // =============== Activation Warranty FORM
-        if (ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code.includes["kich_hoat_bao_hanh_dai_ly", "kich_hoat_bao_hanh_nguoi_dung_cuoi"]) {
-            const validationErrors = await this._validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber);
-            if (validationErrors.length > 0) {
-                console.error("Errors: ", ERROR_MESSAGES.EMPTY_REQUIRED_FIELDS);
-                return this.notification.add(
-                    ERROR_MESSAGES.EMPTY_REQUIRED_FIELDS,
-                    { type: "danger" }
-                );
-            }
-            if (ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code === "kich_hoat_bao_hanh_nguoi_dung_cuoi") {
-                const $licensePlatesActivation = $("#helpdesk_warranty_input_license_plates");
-                const $mileageActivation = $("#helpdesk_warranty_input_mileage");
-                const validationTicketTypeErrors = this._validateFormTicketTypeFields($telNumberActivation, $licensePlatesActivation, $mileageActivation);
-                if (validationTicketTypeErrors.length > 0) {
-                    console.error("Errors: ", ERROR_MESSAGES.ERROR_MESSAGES);
-                    return this.notification.add(
-                        ERROR_MESSAGES.EMPTY_REQUIRED_FIELDS,
-                        { type: "danger"}
-                    );
-                }
-            }
-
-            // Check scanned codes
-            if ($portalLotSerialNumber.val()) {
-                const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
-                const res = await this.rpc("/helpdesk/check_scanned_code", {
-                    codes: codes,
-                    ticket_type: $ticketType.val(),
-                    partner_name: $partnerName.val(),
-                    partner_email: $partnerEmail.val(),
-                    tel_activation: tel_activation,
-                    by_pass_check: false,
-                });
-
-                if (!res || res.length === 0) return;
-
-                for (const [keyName, keyMessage] of res) {
-                    if (["is_not_agency", "is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
-                        console.error("Errors: ", keyMessage);
-                        return this.notification.add(_t(keyMessage), {
-                            type: "warning",
-                        });
-                    }
-                }
-            }
+        const $warrantyAttachments = $('#warranty_attachments');
+        const is_attachment_empty = !$warrantyAttachments.length || !$warrantyAttachments[0].files.length;
+        if (is_attachment_empty) {
+            $warrantyAttachments.attr("required", true).addClass("border-danger");
+            this.canSubmitTicket = false;
         } else {
-            // =============== Claim Warranty FORM}
-            const claimTicket = await this._fetchClaimTicket($ticketType.val());
-            if (claimTicket && claimTicket[0] && claimTicket[0].code == "yeu_cau_bao_hanh") {
-                const fileBlockEl = document.querySelector(".o_file_block");
-                if (!fileBlockEl) {
-                    this.notification.add("Hãy đảm bảo đầy đủ hình ảnh và rõ nét để được bảo hành!", {
+            $warrantyAttachments.attr('required', false);
+        }
+
+        if (ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code == "yeu_cau_bao_hanh") {
+            const fileBlockEl = document.querySelector(".o_file_block");
+            if (!fileBlockEl) {
+                this.canSubmitTicket = false;
+                //this._setCookie();
+                //return setInterval(this.returnClaimWarranty, 6000);
+            }
+        }
+
+        let tel_activation = null
+        if ($telNumberActivation.val() == null) {
+            const domain = ['|', ['email', '=', $partnerEmail.val()], ['name', '=', $partnerName.val()]];
+            const res = await this.orm.searchRead("res.partner", domain, ['name', 'email', 'phone', 'mobile'], {
+                limit: 1,
+            });
+            if (res[0].phone) {
+                tel_activation = res[0].phone
+            } else if (res[0].mobile) {
+                tel_activation = res[0].mobile
+            }
+        }
+
+        // Check scanned codes
+        if ($portalLotSerialNumber.val()) {
+            const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
+            const res = await this.rpc("/helpdesk/check_scanned_code", {
+                codes: codes,
+                ticket_type: $ticketType.val(),
+                partner_name: $partnerName.val(),
+                partner_email: $partnerEmail.val(),
+                tel_activation: tel_activation,
+                by_pass_check: false,
+            });
+
+            if (!res || res.length === 0) return;
+
+            for (const [keyName, keyMessage] of res) {
+                if (["is_not_agency", "is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
+                    return this.notification.add(_t(keyMessage), {
                         type: "warning",
                     });
-                    //this._setCookie();
-                    //return setInterval(this.returnClaimWarranty, 6000);
                 }
             }
-
-            const $warrantyAttachments = $('#warranty_attachments');
-            const is_attachment_empty = !$warrantyAttachments.length || !$warrantyAttachments[0].files.length;
-            if (is_attachment_empty) {
-                $warrantyAttachments.attr("required", true).addClass("border-danger");
-                return;
-            } else {
-                $warrantyAttachments.attr('required', false);
-            }
-
-            let tel_activation = null
-            if ($telNumberActivation.val() == null) {
-                const domain = ['|', ['email', '=', $partnerEmail.val()], ['name', '=', $partnerName.val()]];
-                const res = await this.orm.searchRead("res.partner", domain, ['name', 'email', 'phone', 'mobile'], {
-                    limit: 1,
-                });
-                if (res[0].phone) {
-                    tel_activation = res[0].phone
-                } else if (res[0].mobile) {
-                    tel_activation = res[0].mobile
-                }
-            }
-
-            // Check scanned codes
-            if ($portalLotSerialNumber.val()) {
-                const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
-                const res = await this.rpc("/helpdesk/check_scanned_code", {
-                    codes: codes,
-                    ticket_type: $ticketType.val(),
-                    partner_name: $partnerName.val(),
-                    partner_email: $partnerEmail.val(),
-                    tel_activation: tel_activation,
-                    by_pass_check: false,
-                });
-
-                if (!res || res.length === 0) return;
-
-                for (const [keyName, keyMessage] of res) {
-                    if (["is_not_agency", "is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
-                        return this.notification.add(_t(keyMessage), {
-                            type: "warning",
-                        });
-                    }
-                }
-            }
-            //$('#helpdesk_warranty_activation_form')[0].reset();
-            //window.location.replace("/xac-nhan-yeu-cau");
         }
+
+        if (!this.canSubmitTicket) {
+            this.notification.add("Hãy đảm bảo đầy đủ hình ảnh và thông tin cần thiết để được bảo hành!", {
+                type: "danger",
+            });
+            return;
+        }
+
+        //$('#helpdesk_warranty_activation_form')[0].reset();
+        //window.location.replace("/xac-nhan-yeu-cau");
+    },
+
+    /**
+     * Handles the submit button click event on Activation Warranty Form.
+     * @private
+     * @param {Event} ev
+     */
+    async _onSubmitActivationButton(ev) {
+        ev.preventDefault();
+
+        const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
+        const ticketTypeObj = await this._fetchTicketType($ticketType.val());
+
+        const $partnerName = $("#helpdeskWarrantyInputPartnerName");
+        const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
+        const $portalLotSerialNumber = $("#helpdesk_warranty_input_portal_lot_serial_number");
+
+        const phonePattern = /^[0-9]{10}$/; // Only digits, exactly 10 characters
+        const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
+         if ($telNumberActivation.val() && !phonePattern.test($telNumberActivation.val())) {
+            this.notification.add(
+                ERROR_MESSAGES.INVALID_PHONE_PATTERN,
+                { type: "warning" }
+            );
+            this.canSubmitTicket = false;
+        }
+
+        const validationErrors = await this._validateFormFields($partnerName, $partnerEmail, $portalLotSerialNumber);
+        if (validationErrors.length > 0) {
+            this.notification.add(
+                ERROR_MESSAGES.EMPTY_REQUIRED_FIELDS,
+                { type: "danger" }
+            );
+            this.canSubmitTicket = false;
+        }
+
+        let isEndUserType = ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code === "kich_hoat_bao_hanh_nguoi_dung_cuoi";
+        if (isEndUserType) {
+            const $licensePlatesActivation = $("#helpdesk_warranty_input_license_plates");
+            const $mileageActivation = $("#helpdesk_warranty_input_mileage");
+
+            const validationTicketTypeErrors = this._validateFormTicketTypeFields($telNumberActivation, $licensePlatesActivation, $mileageActivation);
+            if (validationTicketTypeErrors.length > 0) {
+                this.notification.add(
+                    ERROR_MESSAGES.EMPTY_REQUIRED_FIELDS,
+                    { type: "danger"}
+                );
+                this.canSubmitTicket = false;
+            }
+        }
+
+        // Check scanned codes
+        if ($portalLotSerialNumber.val()) {
+            const codes = this._cleanAndConvertCodesToArray($portalLotSerialNumber.val());
+            const res = await this.rpc("/helpdesk/check_scanned_code", {
+                codes: codes,
+                ticket_type: $ticketType.val(),
+                partner_name: $partnerName.val(),
+                partner_email: $partnerEmail.val(),
+                tel_activation: null,
+                by_pass_check: false,
+            });
+
+            if (!res || res.length === 0) return;
+
+            for (const [keyName, keyMessage] of res) {
+                if (["is_not_agency", "is_empty", "code_not_found", "code_already_registered"].includes(keyName)) {
+                    return this.notification.add(_t(keyMessage), {
+                        type: "warning",
+                    });
+                }
+            }
+        }
+
+        if (!this.canSubmitTicket) { return; }
     },
 
     //--------------------------------------------------------------------------
@@ -219,7 +265,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     //--------------------------------------------------------------------------
 
     /**
-     * Initialize services.
+     * Initialize services
      */
     _initializeServices() {
         this.orm = this.bindService("orm");
@@ -229,7 +275,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     },
 
     /**
-     * Populate form fields from cookies.
+     * Populate form fields from cookies
      */
     _populateFormFromCookies() {
         if (document.cookie) {
@@ -248,7 +294,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     },
 
     /**
-     * Clear cookies.
+     * Clear cookies
      */
     _clearCookies() {
         document.cookie.replace(/(?<=^|;).+?(?=\=|;|$)/g, name => location.hostname.split('.').reverse().reduce(domain => (domain=domain.replace(/^\.?[^.]+/, ''),document.cookie=`${name}=;max-age=0;path=/;domain=${domain}`,domain), location.hostname));
@@ -326,10 +372,8 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
             $partnerEmail.attr("required", true).addClass("border-danger");
             validationErrors.push("Partner email is required");
         }
-        
-        const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
-        const ticketType = await this._fetchTicketType($ticketType.val());
-        if (!$portalLotSerialNumber.val().trim() && ticket_type[0].code != "yeu_cau_bao_hanh") {
+
+        if (!$portalLotSerialNumber.val().trim()) {
             $portalLotSerialNumber.attr("required", true).addClass("border-danger");
             validationErrors.push("Portal lot serial number is required");
         }
@@ -413,7 +457,7 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     },
 
     /**
-     * Set cookie.
+     * Set cookie
      */
     _setCookie() {
         const now = new Date();
@@ -444,7 +488,8 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
     },
 
     /**
-     * Redirect to claim warranty page.
+     * Redirect to claim warranty page
+     * FIXME: This is a temporary solution to redirect to claim warranty page
      */
     async returnClaimWarranty() {
         try {
@@ -465,3 +510,5 @@ publicWidget.registry.helpdeskWarrantyActivationForm = publicWidget.Widget.exten
         }
     },
 });
+
+export const helpdeskWarrantyForm = publicWidget.registry.HelpdeskWarrantyForm;
