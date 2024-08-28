@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mv_shop_form" model="ir.ui.view">
+        <field name="name">mv.shop.form</field>
+        <field name="model">mv.shop</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group col="2">
+                        <group>
+                            <field name="name" options="{'no_open': True}"/>
+                            <field name="street" options="{'no_open': True}"/>
+                            <field name="state_id" options="{'no_open': True}"/>
+                            <field name="district_id" options="{'no_open': True}"/>
+                            <field name="wards_id" options="{'no_open': True}"/>
+                            <field name="country_id" options="{'no_open': True}"/>
+                            <field name="partner_survey_id" options="{'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="brand_id" options="{'no_open': True}"/>
+                            <field name="square_meter" options="{'no_open': True}"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mv_shop_tree" model="ir.ui.view">
+        <field name="name">mv.shop.tree</field>
+        <field name="model">mv.shop</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="partner_survey_id" optional="hidden"/>
+                <field name="name"/>
+                <field name="country_id"/>
+                <field name="state_id"/>
+                <field name="district_id"/>
+                <field name="wards_id"/>
+                <field name="address" optional="hidden"/>
+                <field name="square_meter"/>
+                <field name="brand_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mv_shop_search" model="ir.ui.view">
+        <field name="name">mv.shop.search</field>
+        <field name="model">mv.shop</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="brand_id"/>
+                <field name="partner_survey_id"/>
+                <filter string="Current Month" name="current_month"
+                        domain="[('partner_survey_id.create_date', '&lt;',(context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')),
+('partner_survey_id.create_date', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
+                <filter string="Previous Month" name="previous_month"
+                        domain="[('partner_survey_id.create_date', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')),
+('partner_survey_id.create_date', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
+                <group string="Group by">
+                    <filter name="group_brand" string="Group by Brand" context="{'group_by':'brand_id'}"/>
+                    <separator/>
+                    <filter name="group_survey" string="Group by Survey" context="{'group_by':'partner_survey_id'}"/>
+                    <separator/>
+                    <filter name="group_state" string="Group by State" context="{'group_by':'state_id'}"/>
+                    <filter name="group_district" string="Group by District" context="{'group_by':'district_id'}"/>
+                    <filter name="group_ward" string="Group by Ward" context="{'group_by':'wards_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_mv_shop" model="ir.actions.act_window">
+        <field name="name">Shop</field>
+        <field name="res_model">mv.shop</field>
+        <field name="view_mode">tree,form,kanban</field>
+
+    </record>
+
+</odoo>

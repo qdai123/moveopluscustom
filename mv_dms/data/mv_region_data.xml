@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data noupdate="0">
+		<!-- ==== CÁC KHU VỰC THEO CHÂU LỤC TRÊN THẾ GIỚI HIỆN TẠI ==== -->
+		<record id="mv_region__east_asia" model="mv.region">
+			<field name="name">East Asia</field>
+			<field name="code">EA</field>
+			<field name="type">region</field>
+			<field name="describe">Đông Á</field>
+			<field name="parent_id" ref="mv_region__asia"/>
+		</record>
+		<record id="mv_region__southeast_asia" model="mv.region">
+			<field name="name">Southeast Asia</field>
+			<field name="code">SEA</field>
+			<field name="type">region</field>
+			<field name="describe">Đông Nam Á</field>
+			<field name="parent_id" ref="mv_region__asia"/>
+		</record>
+		<record id="mv_region__south_asia" model="mv.region">
+			<field name="name">South Asia</field>
+			<field name="code">SA</field>
+			<field name="type">region</field>
+			<field name="describe">Nam Á</field>
+			<field name="parent_id" ref="mv_region__asia"/>
+		</record>
+		<record id="mv_region__west_asia" model="mv.region">
+			<field name="name">West Asia</field>
+			<field name="code">WA</field>
+			<field name="type">region</field>
+			<field name="describe">Tây Á</field>
+			<field name="parent_id" ref="mv_region__asia"/>
+		</record>
+		<record id="mv_region__central_asia" model="mv.region">
+			<field name="name">Central Asia</field>
+			<field name="code">CA</field>
+			<field name="type">region</field>
+			<field name="describe">Trung Á</field>
+			<field name="parent_id" ref="mv_region__asia"/>
+		</record>
+		<record id="mv_region__northeast_asia" model="mv.region">
+			<field name="name">Northeast Asia</field>
+			<field name="code">NA</field>
+			<field name="type">region</field>
+			<field name="describe">Bắc Á</field>
+			<field name="parent_id" ref="mv_region__asia"/>
+		</record>
+	</data>
+
+	<data noupdate="1">
+		<!-- ==== CÁC KHU VỰC THUỘC QUỐC GIA VIỆT NAM HIỆN TẠI ==== -->
+		<record id="mv_region__region_northern_vietnam" model="mv.region">
+			<field name="name">Miền Bắc</field>
+			<field name="code">vn_mien_bac</field>
+			<field name="type">region</field>
+			<field name="describe">Bắc Bộ, Miền Bắc - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__southeast_asia"/>
+		</record>
+		<record id="mv_region__region_northeast_vietnam" model="mv.region">
+			<field name="name">Đông Bắc Bộ</field>
+			<field name="code">vn_dong_bac_bo</field>
+			<field name="type">subregion</field>
+			<field name="describe">Đông Bắc Bộ - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_northern_vietnam"/>
+		</record>
+		<record id="mv_region__region_northwest_vietnam" model="mv.region">
+			<field name="name">Tây Bắc Bộ</field>
+			<field name="code">vn_tay_bac_bo</field>
+			<field name="type">subregion</field>
+			<field name="describe">Tây Bắc Bộ - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_northern_vietnam"/>
+		</record>
+		<record id="mv_region__region_red_river_delta_vietnam" model="mv.region">
+			<field name="name">Đồng Bằng Sông Hồng</field>
+			<field name="code">vn_dong_bang_song_hong</field>
+			<field name="type">subregion</field>
+			<field name="describe">Đồng Bằng Sông Hồng - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_northern_vietnam"/>
+		</record>
+
+		<record id="mv_region__region_central_vietnam" model="mv.region">
+			<field name="name">Miền Trung</field>
+			<field name="code">vn_mien_trung</field>
+			<field name="type">region</field>
+			<field name="describe">Trung Bộ, Miền Trung - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__southeast_asia"/>
+		</record>
+		<record id="mv_region__region_north_central_coast_vietnam" model="mv.region">
+			<field name="name">Bắc Trung Bộ</field>
+			<field name="code">vn_bac_trung_bo</field>
+			<field name="type">subregion</field>
+			<field name="describe">Bắc Trung Bộ - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_central_vietnam"/>
+		</record>
+		<record id="mv_region__region_south_central_coast_vietnam" model="mv.region">
+			<field name="name">Duyên hải Nam Trung Bộ</field>
+			<field name="code">vn_duyen_hai_nam_trung_bo</field>
+			<field name="type">subregion</field>
+			<field name="describe">Duyên hải Nam Trung Bộ - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_central_vietnam"/>
+		</record>
+		<record id="mv_region__region_central_highlands_vietnam" model="mv.region">
+			<field name="name">Tây Nguyên</field>
+			<field name="code">vn_tay_nguyen</field>
+			<field name="type">subregion</field>
+			<field name="describe">Tây Nguyên - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_central_vietnam"/>
+		</record>
+
+		<record id="mv_region__region_southern_vietnam" model="mv.region">
+			<field name="name">Miền Nam</field>
+			<field name="code">vn_mien_name</field>
+			<field name="type">region</field>
+			<field name="describe">Nam Bộ, Miền Nam - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__southeast_asia"/>
+		</record>
+		<record id="mv_region__region_southeast_vietnam" model="mv.region">
+			<field name="name">Đông Nam Bộ</field>
+			<field name="code">vn_dong_nam_bo</field>
+			<field name="type">subregion</field>
+			<field name="describe">Đông Nam Bộ, Miền Đông - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_southern_vietnam"/>
+		</record>
+		<record id="mv_region__region_mekong_river_delta_vietnam" model="mv.region">
+			<field name="name">Đồng Bằng Sông Cửu Long</field>
+			<field name="code">vn_dong_bang_song_cuu_long</field>
+			<field name="type">subregion</field>
+			<field name="describe">Đồng Bằng Sông Cửu Long - Việt Nam</field>
+			<field name="parent_id" ref="mv_region__region_southern_vietnam"/>
+		</record>
+	</data>
+</odoo>

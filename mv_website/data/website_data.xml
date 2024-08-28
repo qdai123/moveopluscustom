@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- MO+ Website Template: >> HOME << -->
+	<template id="mv_website.moveoplus_homepage" name="Moveoplus Home">
+		<t t-call="website.layout">
+			<t t-set="pageName" t-value="'moveoplus_homepage'"/>
+			<div id="wrap" class="oe_structure oe_empty"/>
+		</t>
+	</template>
+
+	<data noupdate="1">
+		<!-- MO+ Website Page: >> Default Moveoplus Home Page << -->
+		<record id="moveoplus_homepage_page" model="website.page">
+			<field name="is_published">True</field>
+			<field name="url">/</field>
+			<field name="view_id" ref="moveoplus_homepage"/>
+			<field name="track">True</field>
+			<field name="website_meta_description">Đây là trang chủ của trang web của Moveo Plus</field>
+		</record>
+
+		<!-- MO+ Website Menu: Default Menu to store module menus for new website for Moveo Plus -->
+		<record id="moveoplus_main_menu" model="website.menu">
+			<field name="name">Moveo Plus (Main Menu)</field>
+			<field name="url">/moveoplus-main-menu</field>
+			<field name="parent_id" eval="False"/>
+			<field name="sequence" type="int">1</field>
+		</record>
+
+		<record id="moveoplus_menu_home" model="website.menu">
+			<field name="name">Trang chủ</field>
+			<field name="url">/</field>
+			<field name="page_id" ref="mv_website.moveoplus_homepage_page"/>
+			<field name="parent_id" ref="mv_website.moveoplus_main_menu"/>
+			<field name="sequence" type="int">1</field>
+		</record>
+	</data>
+</odoo>

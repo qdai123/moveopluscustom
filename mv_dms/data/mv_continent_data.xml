@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data noupdate="0">
+		<!-- ==== CÁC CHÂU LỤC TRÊN THẾ GIỚI HIỆN TẠI ==== -->
+		<record id="mv_region__asia" model="mv.region">
+			<field name="name">Asia</field>
+			<field name="code">AS</field>
+			<field name="type">continent</field>
+			<field name="describe">Châu Á</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="mv_region__europe" model="mv.region">
+			<field name="name">Europe</field>
+			<field name="code">EU</field>
+			<field name="type">continent</field>
+			<field name="describe">Châu Âu</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="mv_region__africa" model="mv.region">
+			<field name="name">Africa</field>
+			<field name="code">AF</field>
+			<field name="type">continent</field>
+			<field name="describe">Châu Phi</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="mv_region__north_america" model="mv.region">
+			<field name="name">North America</field>
+			<field name="code">NA</field>
+			<field name="type">continent</field>
+			<field name="describe">Bắc Mỹ</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="mv_region__south_america" model="mv.region">
+			<field name="name">South America</field>
+			<field name="code">SA</field>
+			<field name="type">continent</field>
+			<field name="describe">Nam Mỹ</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="mv_region__oceania" model="mv.region">
+			<field name="name">Oceania</field>
+			<field name="code">OC</field>
+			<field name="type">continent</field>
+			<field name="describe">Châu Đại Dương</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="mv_region__antarctica" model="mv.region">
+			<field name="name">Antarctica</field>
+			<field name="code">AN</field>
+			<field name="type">continent</field>
+			<field name="describe">Châu Nam Cực</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+		<record id="mv_region__world" model="mv.region">
+			<field name="name">World</field>
+			<field name="code">WD</field>
+			<field name="type">other</field>
+			<field name="describe">Thế giới</field>
+			<field name="parent_id" eval="False"/>
+		</record>
+	</data>
+</odoo>
