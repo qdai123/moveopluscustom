@@ -9,12 +9,7 @@
 		<form t-attf-action="/shop/apply_discount#{redirect and '?r=' + redirect or ''}" method="post" name="applying_partner_discount">
 			<input type="hidden" name="csrf_token" t-att-value="request.csrf_token()" t-nocache="The csrf token must always be up to date."/>
 			<div class="input-group w-100 my-2">
-				<input name="discount_amount"
-				       type="number"
-				       id="applying_partner_discount_input"
-				       class="form-control"
-				       t-attf-value="{{website_sale_order.bonus_remaining if website_sale_order.bonus_remaining > 0 else 0}}"
-				       min="0"/>
+				<input name="discount_amount" type="number" id="applying_partner_discount_input" class="form-control" t-attf-value="{{website_sale_order.bonus_remaining if website_sale_order.bonus_remaining > 0 else 0}}" min="0"/>
 				<a href="#" role="button" id="button-apply" class="btn btn-secondary a-submit">Áp dụng</a>
 			</div>
 		</form>
@@ -44,10 +39,7 @@
 					Giá chưa chiết khấu
 				</td>
 				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-					<span t-field="website_sale_order.total_price_no_service"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					<span t-field="website_sale_order.total_price_no_service" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</td>
 			</tr>
 			<tr id="order_percentage_for_each_product">
@@ -55,10 +47,7 @@
 					Chiết khấu (Sản phẩm) <t t-out="'({}%)'.format(int(website_sale_order.percentage))"/>
 				</td>
 				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-					<span t-out="-website_sale_order.total_price_discount"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					<span t-out="-website_sale_order.total_price_discount" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</td>
 			</tr>
 
@@ -70,10 +59,7 @@
 							<t t-out="so_line.name_short"/>
 						</td>
 						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-							<span t-out="so_line.price_unit"
-							      class="monetary_field"
-							      style="white-space: nowrap;"
-							      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+							<span t-out="so_line.price_unit" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 						</td>
 					</tr>
 				</t>
@@ -88,10 +74,7 @@
 							Chiết khấu Sản Lượng (Tháng/Quý/Năm)
 						</td>
 						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-							<span t-out="so_line.price_unit"
-							      class="monetary_field"
-							      style="white-space: nowrap;"
-							      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+							<span t-out="so_line.price_unit" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 						</td>
 					</tr>
 				</t>
@@ -105,10 +88,7 @@
 						Chiết khấu bảo lãnh Ngân Hàng
 					</td>
 					<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-						<span t-out="-website_sale_order.discount_bank_guarantee"
-						      class="monetary_field"
-						      style="white-space: nowrap;"
-						      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+						<span t-out="-website_sale_order.discount_bank_guarantee" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 					</td>
 				</tr>
 			</t>
@@ -121,19 +101,13 @@
 					Giá sau chiết khấu
 				</td>
 				<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-					<span t-field="website_sale_order.amount_untaxed"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					<span t-field="website_sale_order.amount_untaxed" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</td>
 			</tr>
 			<tr id="order_total_taxes">
 				<td colspan="2" class="text-muted border-0 ps-0 pt-0 pb-3">Thuế</td>
 				<td class="text-end border-0 pe-0 pt-0 pb-3 text-muted">
-					<span t-field="website_sale_order.amount_tax"
-					      class="monetary_field"
-					      style="white-space: nowrap;"
-					      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					<span t-field="website_sale_order.amount_tax" class="monetary_field" style="white-space: nowrap;" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</td>
 			</tr>
 		</xpath>
@@ -141,7 +115,8 @@
 			<tr t-if="is_partner_agency and not hide_discount_amount" id="order_total_partner_discount_amount">
 				<td colspan="2" class="border-0 ps-0 pt-3">
 					<span class="fw-bold">
-						<i class="fa fa-fw fa-money me-1 text-success"/>Tiền chiết khấu hiện có
+						<i class="fa fa-fw fa-money me-1 text-success"/>
+Tiền chiết khấu hiện có
 						<p class="fw-normal">
 							<small class="text-muted">(Lưu ý: Số tiền chiết khấu sử dụng không vượt quá
 								<b>
@@ -152,9 +127,7 @@
 					</span>
 				</td>
 				<td class="text-end text-success border-0 px-0 pt-3">
-					<strong t-field="website_sale_order.bonus_remaining"
-					        class="monetary_field text-end p-0"
-					        t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
+					<strong t-field="website_sale_order.bonus_remaining" class="monetary_field text-end p-0" t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 				</td>
 			</tr>
 		</xpath>
@@ -172,8 +145,8 @@
 		<xpath expr="//tr[hasclass('oe_website_sale_gift_card')]" position="replace"/>
 	</template>
 
-	<!-- MOVEO+ Inherited: Navigations Buttons (website_sale.navigation_buttons) -->
-	<template id="mv_website_sale.navigation_buttons" name="MOVEO+ Inherited: Navigations Buttons" inherit_id="website_sale.navigation_buttons">
+	<!-- MOVEO+ Inherited: Navigation's Buttons (website_sale.navigation_buttons) -->
+	<template id="mv_website_sale.navigation_buttons" name="MOVEO+ Inherited: Navigation's Buttons" inherit_id="website_sale.navigation_buttons">
 		<xpath expr="//a[@name='website_sale_main_button']" position="after">
 			<div class="warning_checkout" style="padding-top: inherit;">
 				<t t-if="request.params.get('show_warning')" name="show_warning">
@@ -193,22 +166,22 @@
 	</template>
 
 	<!-- MOVEO+ Inherited: Shopping Cart Lines (website_sale.cart_lines) -->
-	<template id="mv_website_sale.cart_lines_mv_sale" inherit_id="website_sale.cart_lines">
+	<template id="mv_website_sale.cart_lines_mv_sale" name="MOVEO+ Inherited: Shopping Cart Lines" inherit_id="website_sale.cart_lines">
 		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']" position="attributes">
-			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line._is_not_sellable_line())</attribute>
+			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line.is_service)</attribute>
+		</xpath>
+		<xpath expr="//div[@name='website_sale_cart_line_quantity']/t[@t-if='not line._is_not_sellable_line()']" position="attributes">
+			<attribute name="t-if">not line.is_service</attribute>
 		</xpath>
 		<xpath expr="//a[hasclass('js_delete_product')]" position="replace">
-			<a href='#'
-			   class="js_delete_product d-none d-md-inline-block small"
-			   aria-label="Remove from cart"
-			   title="Remove from cart">Xóa</a>
+			<a href="#" class="js_delete_product d-none d-md-inline-block small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
 		</xpath>
 	</template>
 
 	<!-- MOVEO+ Inherited: Shopping Checkout Layout (website_sale.checkout_layout) -->
 	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">
 		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="attributes">
-			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line._is_not_sellable_line())</attribute>
+			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line.is_service)</attribute>
 		</xpath>
 	</template>
 
@@ -220,5 +193,4 @@
 			</t>
 		</xpath>
 	</template>
-
 </odoo>
