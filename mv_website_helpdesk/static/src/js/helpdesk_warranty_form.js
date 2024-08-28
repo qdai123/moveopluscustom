@@ -124,6 +124,9 @@ publicWidget.registry.HelpdeskWarrantyForm = publicWidget.Widget.extend({
         const is_attachment_empty = !$warrantyAttachments.length || !$warrantyAttachments[0].files.length;
         if (is_attachment_empty) {
             $warrantyAttachments.attr("required", true).addClass("border-danger");
+            this.notification.add("Vui lòng đính kèm thêm tài liệu, hình ảnh để bảo hành!", {
+                type: "warning",
+            });
             this.canSubmitTicket = false;
         } else {
             $warrantyAttachments.attr('required', false);
@@ -131,7 +134,10 @@ publicWidget.registry.HelpdeskWarrantyForm = publicWidget.Widget.extend({
 
         if (ticketTypeObj && ticketTypeObj[0] && ticketTypeObj[0].code == "yeu_cau_bao_hanh") {
             const fileBlockEl = document.querySelector(".o_file_block");
-            if (!fileBlockEl) {
+            if (!fileBlockEl && is_attachment_empty) {
+                this.notification.add(ERROR_MESSAGES.EMPTY_REQUIRED_FIELDS, {
+                    type: "danger",
+                });
                 this.canSubmitTicket = false;
                 //this._setCookie();
                 //return setInterval(this.returnClaimWarranty, 6000);
@@ -174,15 +180,9 @@ publicWidget.registry.HelpdeskWarrantyForm = publicWidget.Widget.extend({
             }
         }
 
-        if (!this.canSubmitTicket) {
-            this.notification.add("Hãy đảm bảo đầy đủ hình ảnh và thông tin cần thiết để được bảo hành!", {
-                type: "danger",
-            });
-            return;
-        }
+        if (!this.canSubmitTicket || is_attachment_empty) { return; }
 
-        //$('#helpdesk_warranty_activation_form')[0].reset();
-        //window.location.replace("/xac-nhan-yeu-cau");
+        debugger;
     },
 
     /**
@@ -376,7 +376,7 @@ publicWidget.registry.HelpdeskWarrantyForm = publicWidget.Widget.extend({
         if (!$portalLotSerialNumber.val().trim()) {
             $portalLotSerialNumber.attr("required", true).addClass("border-danger");
             validationErrors.push("Portal lot serial number is required");
-        }
+        } else { $portalLotSerialNumber.removeClass("border-danger"); }
         return validationErrors;
     },
     
