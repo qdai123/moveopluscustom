@@ -65,7 +65,7 @@
                                         </p>
                                     </div>
                                 </section>
-                                <span class="hidden" data-for="helpdesk_claim_warranty_form" t-att-data-values="{'team_id': default_helpdesk_team and default_helpdesk_team.id or ''}"/>
+                                <span class="hidden" data-for="helpdesk_claim_warranty_form" t-att-data-values="{'team_id': team and team.id or ''}"/>
                                 <div id="helpdesk_claim_warranty_section">
                                     <section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
                                         <div class="container">

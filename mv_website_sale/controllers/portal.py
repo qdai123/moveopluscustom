@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.sale.controllers import portal
+
 from odoo import http
 from odoo.http import request
-from odoo.addons.sale.controllers import portal
 
 
 class MoveoplusCustomerPortal(portal.CustomerPortal):
@@ -11,11 +12,7 @@ class MoveoplusCustomerPortal(portal.CustomerPortal):
         res = super().home(**kw)
 
         user = request.env.user
-        partner = (
-            request.env["res.partner"]
-            .sudo()
-            .search([("id", "=", user.partner_id.id)], limit=1)
-        )
+        partner = user.partner_id.sudo()
         if partner:
             partner.action_update_discount_amount()
 

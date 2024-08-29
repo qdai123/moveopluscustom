@@ -53,7 +53,7 @@
 									</p>
 								</div>
 							</section>
-							<span class="hidden" data-for="helpdesk_activation_warranty_form" t-att-data-values="{'team_id': default_helpdesk_team and default_helpdesk_team.id or ''}"/>
+							<span class="hidden" data-for="helpdesk_activation_warranty_form" t-att-data-values="{'team_id': team and team.id or ''}"/>
 							<div id="helpdesk_activation_warranty_section">
 								<section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
 									<div class="container">
@@ -122,8 +122,8 @@
 						<div class="col-sm">
 							<select id="helpdesk_warranty_team_id_default" name="team_id"
 							        class="form-select s_website_form_input">
-								<option t-att-value="default_helpdesk_team.id">
-									<t t-out="default_helpdesk_team.name"/>
+								<option t-att-value="team.id">
+									<t t-out="team.name"/>
 								</option>
 							</select>
 						</div>

@@ -136,19 +136,16 @@ class SaleOrderLine(models.Model):
     def unlink(self):
         """
         Override the unlink method to handle specific logic for sale order lines.
-
         :return: Boolean indicating the success of the unlink operation.
         """
         for order_line in self:
-            sol_discount_agency = order_line._get_discount_agency_line()
-            if sol_discount_agency:
-                for line in sol_discount_agency:
-                    line.order_id.message_post(
-                        body=Markup(
-                            "Dòng %s đã bị xóa, số tiền: %s"
-                            % (line.product_id.name, line.price_unit)
-                        )
+            if order_line.is_discount_agency:
+                order_line.order_id.message_post(
+                    body=Markup(
+                        "Dòng %s đã bị xóa, số tiền: %s"
+                        % (order_line.product_id.name, order_line.price_unit)
                     )
+                )
 
         return super(SaleOrderLine, self).unlink()
 
