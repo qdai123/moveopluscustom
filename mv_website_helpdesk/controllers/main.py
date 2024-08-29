@@ -221,12 +221,8 @@ class MVWebsiteHelpdesk(http.Controller):
 
         # [!] ===== Validate empty codes =====
         if not codes:
-            error_messages.append(
-                (
-                    IS_EMPTY,
-                    "Vui lòng nhập vào Số lô/Mã vạch hoặc mã QR-Code để kiểm tra!",
-                )
-            )
+            message_err = "Vui lòng nhập vào Số lô/Mã vạch hoặc mã QR-Code để kiểm tra!"
+            error_messages.append((IS_EMPTY, message_err))
             return error_messages
 
         # Convert to list of codes
@@ -245,13 +241,11 @@ class MVWebsiteHelpdesk(http.Controller):
 
         # [!] ===== Validate codes are not found on system =====
         if not valid_qr_code and not valid_lot_serial_number:
-            error_messages.append(
-                (
-                    CODE_NOT_FOUND,
-                    f"Mã {', '.join(codes_val) if len(codes_val) > 1 else codes_val[0]} "
-                    f"không tồn tại trên hệ thống hoặc chưa cập nhật.",
-                )
+            message_err = (
+                f"Mã {', '.join(codes_val) if len(codes_val) > 1 else codes_val[0]} "
+                f"không tồn tại trên hệ thống hoặc chưa cập nhật."
             )
+            error_messages.append((CODE_NOT_FOUND, message_err))
 
         # [!] ===== Validate codes has been registered on other tickets =====
         qrcodes = list(set(valid_qr_code.mapped("qr_code")))

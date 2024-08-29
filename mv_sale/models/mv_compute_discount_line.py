@@ -49,14 +49,16 @@ class MvComputeDiscountLine(models.Model):
     order_line_ids = fields.One2many(
         "sale.order.line", "discount_line_id", "Dòng đơn hàng"
     )
-    opening_balance = fields.Monetary("Số dư đầu kỳ", digits=(16, 2))
-    closing_balance = fields.Monetary("Số dư cuối kỳ", digits=(16, 2))
+    opening_balance = fields.Monetary("Số dư đầu kỳ")
+    closing_balance = fields.Monetary("Số dư cuối kỳ")
 
     # TOTAL Fields:
     amount_total = fields.Float("Doanh thu tháng")
     total_discount = fields.Float("Total % Discount")
     total_money = fields.Integer(
-        "Tổng tiền chiết khấu ", compute="_compute_total_money", store=True
+        "Tổng tiền chiết khấu ",
+        compute="_compute_total_money",
+        store=True,
     )
 
     # Chiết Khấu 1 Tháng

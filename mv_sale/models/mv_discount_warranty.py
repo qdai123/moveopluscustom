@@ -265,7 +265,7 @@ class MvWarrantyDiscountPolicyLine(models.Model):
     quantity_from = fields.Integer("Số lượng Min", default=0)
     quantity_to = fields.Integer("Số lượng Max", default=0)
     discount_amount = fields.Monetary(
-        "Số tiền chiết khấu", digits=(16, 2), currency_field="currency_id"
+        "Số tiền chiết khấu", currency_field="currency_id"
     )
     explanation = fields.Text("Diễn giải")
     explanation_code = fields.Char(
@@ -850,11 +850,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                         f"Chính sách của {record.month}/{record.year} đã được tạo hoặc đã được tính toán rồi!"
                     )
 
-    @api.constrains(
-        "compute_date",
-        "warranty_discount_policy_id.date_from",
-        "warranty_discount_policy_id.date_to",
-    )
+    @api.constrains("compute_date", "warranty_discount_policy_id")
     def _validate_time_frame_of_discount_policy(self):
         for record in self:
             if record.warranty_discount_policy_id and record.compute_date:
@@ -1616,40 +1612,27 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     first_count = fields.Integer()
     first_quantity_from = fields.Integer()
     first_quantity_to = fields.Integer()
-    first_warranty_policy_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
-    first_warranty_policy_total_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
+    first_warranty_policy_money = fields.Monetary(currency_field="currency_id")
+    first_warranty_policy_total_money = fields.Monetary(currency_field="currency_id")
     second_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
     second_count = fields.Integer()
     second_quantity_from = fields.Integer()
     second_quantity_to = fields.Integer()
-    second_warranty_policy_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
-    second_warranty_policy_total_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
+    second_warranty_policy_money = fields.Monetary(currency_field="currency_id")
+    second_warranty_policy_total_money = fields.Monetary(currency_field="currency_id")
     third_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
     third_count = fields.Integer()
     third_quantity_from = fields.Integer()
     third_quantity_to = fields.Integer()
-    third_warranty_policy_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
-    third_warranty_policy_total_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
+    third_warranty_policy_money = fields.Monetary(currency_field="currency_id")
+    third_warranty_policy_total_money = fields.Monetary(currency_field="currency_id")
     total_amount_currency = fields.Monetary(
         compute="_compute_total",
         store=True,
-        digits=(16, 2),
         currency_field="currency_id",
     )
 

@@ -12,7 +12,7 @@
                             <field name="helpdesk_ticket_id" string="Ticket" readonly="True"/>
                         </group>
                         <group>
-                            <field name="portal_lot_serial_number" required="True"/>
+                            <field name="portal_lot_serial_number" string="Input Lot/Serial Number or QR-Code" required="True"/>
                         </group>
                     </group>
                 </sheet>
