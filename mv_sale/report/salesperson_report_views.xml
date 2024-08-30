@@ -87,6 +87,8 @@
 				<field name="serial_number" string="Mã vạch"/>
 				<field name="qrcode" string="Mã QR-Code"/>
 				<filter string="Đơn hàng của tôi" domain="[('sale_user_id', '=', uid)]" name="my_sale_orders_filter"/>
+				<separator/>
+				<filter string="Đơn hàng Khuyến Mãi" domain="[('product_price_unit', '=', 0), ('product_price_subtotal', '=', 0)]" name="my_sale_orders_promote_filter"/>
 				<group expand="0" string="Group By" colspan="16">
 					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'partner_id'}"/>
 					<separator/>
