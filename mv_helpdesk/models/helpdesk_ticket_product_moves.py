@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+from collections import defaultdict
 
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
+    SUB_DEALER_CODE,
     END_USER_CODE,
     HELPDESK_MANAGER,
 )
@@ -34,7 +36,6 @@ class HelpdeskTicketProductMoves(models.Model):
 
     name = fields.Char(compute="_compute_name", store=True)
     product_activate_twice = fields.Boolean(
-        "Activate Twice",
         compute="_compute_product_activate_twice",
         store=True,
         tracking=True,
@@ -42,19 +43,16 @@ class HelpdeskTicketProductMoves(models.Model):
     # === HELPDESK TICKET Fields ==== #
     helpdesk_ticket_id = fields.Many2one(
         "helpdesk.ticket",
-        "Ticket",
         index=True,
         tracking=True,
     )
     helpdesk_ticket_ref = fields.Char(
-        "Ticket Ref.",
         related="helpdesk_ticket_id.ticket_ref",
         store=True,
         tracking=True,
     )
     helpdesk_ticket_type_id = fields.Many2one(
         "helpdesk.ticket.type",
-        "Ticket Type",
         compute="_compute_helpdesk_ticket_id",
         store=True,
         tracking=True,
@@ -72,13 +70,11 @@ class HelpdeskTicketProductMoves(models.Model):
         tracking=True,
     )
     lot_name = fields.Char(
-        "Số mã vạch",
         compute="_compute_product_stock",
         store=True,
         tracking=True,
     )
     qr_code = fields.Char(
-        "Mã QR",
         compute="_compute_product_stock",
         store=True,
         tracking=True,
@@ -116,10 +112,11 @@ class HelpdeskTicketProductMoves(models.Model):
         store=True,
         tracking=True,
     )
+    sale_order_ids = fields.Many2many("sale.order", compute="_compute_sale_order_ids")
+    sale_order_count = fields.Integer(compute="_compute_sale_order_ids")
     # STOCK MOVE LINE Fields
     stock_move_line_id = fields.Many2one(
         "stock.move.line",
-        "Product Moves",
         context={"helpdesk_ticket_lot_name": True},
         index=True,
         tracking=True,
@@ -137,9 +134,7 @@ class HelpdeskTicketProductMoves(models.Model):
     customer_warranty_date_activation = fields.Date(
         "Ngày yêu cầu bảo hành", tracking=True
     )
-    mv_warranty_ticket_id = fields.Many2one(
-        "helpdesk.ticket", string="Helpdesk warranty ticket", tracking=True
-    )
+    mv_warranty_ticket_id = fields.Many2one("helpdesk.ticket", tracking=True)
     mv_warranty_license_plate = fields.Char("Biển số bảo hành", tracking=True)
     mv_num_of_km = fields.Float("Số km bảo hành", tracking=True)
     mv_warranty_phone = fields.Char("Số điện thoại bảo hành", tracking=True)
@@ -200,6 +195,22 @@ class HelpdeskTicketProductMoves(models.Model):
         for move in self:
             move.mv_customer_warranty_date = move.customer_warranty_date_activation
 
+    @api.depends("stock_lot_id")
+    def _compute_sale_order_ids(self):
+        sale_orders = defaultdict(lambda: self.env["sale.order"])
+        for move_line in self.env["stock.move.line"].search(
+            [("lot_id", "in", self.stock_lot_id.ids), ("state", "=", "done")]
+        ):
+            move = move_line.move_id
+            if (
+                move.picking_id.location_dest_id.usage == "customer"
+                and move.sale_line_id.order_id
+            ):
+                sale_orders[move_line.lot_id.id] |= move.sale_line_id.order_id
+        for record in self:
+            record.sale_order_ids = sale_orders[record.stock_lot_id.id]
+            record.sale_order_count = len(record.sale_order_ids)
+
     @api.depends("helpdesk_ticket_id")
     def _compute_helpdesk_ticket_id(self):
         for record in self:
@@ -217,59 +228,50 @@ class HelpdeskTicketProductMoves(models.Model):
                 record.partner_id = False
                 record.helpdesk_ticket_type_id = False
 
-    @api.depends("stock_lot_id", "stock_move_line_id")
+    @api.depends("stock_lot_id")
     def _compute_product_stock(self):
         for record in self:
             if record.stock_lot_id:
                 record.lot_name = record.stock_lot_id.name
                 record.qr_code = record.stock_lot_id.ref
                 record.product_id = record.stock_lot_id.product_id.id
+                record.stock_location_id = record.stock_lot_id.location_id.id
             else:
-                if record.stock_move_line_id:
-                    record.lot_name = record.stock_move_line_id.lot_name
-                    record.qr_code = record.stock_move_line_id.qr_code
-                    record.product_id = record.stock_move_line_id.product_id.id
-                else:
-                    record.lot_name = False
-                    record.qr_code = False
-                    record.product_id = False
+                record.lot_name = False
+                record.qr_code = False
+                record.product_id = False
+                record.stock_location_id = False
 
     @api.depends("stock_lot_id", "lot_name", "qr_code")
     def _compute_product_activate_twice(self):
-        tickets = self.filtered(lambda r: r.helpdesk_ticket_id)
-        if not tickets:
+        tickets_with_lots = self.filtered(lambda r: r.stock_lot_id)
+        if not tickets_with_lots:
             return
 
-        ticket_activation_same_code = self.env[
-            "mv.helpdesk.ticket.product.moves"
-        ].search(
-            [
-                ("stock_lot_id", "in", tickets.mapped("stock_lot_id").ids),
-                ("lot_name", "in", tickets.mapped("lot_name")),
-                ("qr_code", "in", tickets.mapped("qr_code")),
-            ]
+        ticket_lots = tickets_with_lots.mapped("stock_lot_id").ids
+        if not ticket_lots:
+            return
+
+        # Fetch all relevant records in a single search
+        matching_tickets = self.env["mv.helpdesk.ticket.product.moves"].search(
+            [("stock_lot_id", "in", ticket_lots)]
         )
 
-        for ticket in tickets:
-            ticket_create_date = ticket.helpdesk_ticket_id.create_date
-            ticket_type_id = ticket.helpdesk_ticket_type_id
-            ticket_stock_lot_id = ticket.stock_lot_id
-
-            same_code_ticket = ticket_activation_same_code.filtered(
-                lambda line: line.stock_lot_id.id == ticket_stock_lot_id.id
-                and line.helpdesk_ticket_type_id.id != ticket_type_id.id
+        for ticket in tickets_with_lots:
+            ticket_same_lot = matching_tickets.filtered(
+                lambda line: line.stock_lot_id == ticket.stock_lot_id
+                and line.helpdesk_ticket_type_id != ticket.helpdesk_ticket_type_id
             )
-
-            if same_code_ticket:
+            if ticket_same_lot:
+                ticket_same_lot.product_activate_twice = True
                 latest_ticket = max(
-                    same_code_ticket, key=lambda r: r.helpdesk_ticket_id.create_date
+                    ticket_same_lot, key=lambda r: r.helpdesk_ticket_id.create_date
                 )
-                if latest_ticket.helpdesk_ticket_id.create_date > ticket_create_date:
-                    record.product_activate_twice = False
-                    latest_ticket.product_activate_twice = True
-                else:
-                    record.product_activate_twice = True
-                    latest_ticket.product_activate_twice = False
+                ticket.product_activate_twice = (
+                    latest_ticket.helpdesk_ticket_id.create_date
+                    < ticket.helpdesk_ticket_id.create_date
+                )
+                latest_ticket.product_activate_twice = not ticket.product_activate_twice
             else:
                 ticket.product_activate_twice = False
 
@@ -371,7 +373,6 @@ class HelpdeskTicketProductMoves(models.Model):
                 if line.helpdesk_ticket_id:
                     line._compute_product_stock()  # Reload Product Information
                     line._compute_helpdesk_ticket_id()  # Reload Ticket Information
-                    line._compute_product_activate_twice()  # Reload Product Activation
 
                     if line.helpdesk_ticket_id.ticket_type_id.code == END_USER_CODE:
                         line.customer_date_activation = (
@@ -396,6 +397,30 @@ class HelpdeskTicketProductMoves(models.Model):
                 _logger.error(f"Failed to reload data for line {line.id}: {e}")
 
         _logger.debug("Completed 'action_reload' for records: %s", self.ids)
+
+    def action_update_activation_twice(self):
+        """
+        Update the 'product_activate_twice' field for each record in the recordset.
+
+        This method updates the 'product_activate_twice' field based on the activation status of the product.
+
+        :return: None
+        """
+        _logger.debug(
+            "Starting 'action_update_activation_twice' for records: %s", self.ids
+        )
+
+        for line in self:
+            try:
+                line._compute_product_activate_twice()
+            except Exception as e:
+                _logger.error(
+                    f"Failed to update activation twice for line {line.id}: {e}"
+                )
+
+        _logger.debug(
+            "Completed 'action_update_activation_twice' for records: %s", self.ids
+        )
 
     def action_open_stock(self):
         self.ensure_one()

@@ -4,7 +4,6 @@ import re
 from datetime import datetime
 
 import pytz
-from torchvision import message
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -96,7 +95,7 @@ class HelpdeskTicket(models.Model):
         "claim_ticket_id",
         "move_id",
         string="Sản phẩm yêu cầu bảo hành",
-        domain="[('stock_move_line_id', '!=', False)]",
+        domain="[('stock_lot_id', '!=', False)]",
     )
     can_be_create_order = fields.Boolean(readonly=True)
 
@@ -305,7 +304,7 @@ class HelpdeskTicket(models.Model):
 
         ticket_product_data = {
             "helpdesk_ticket_id": ticket.id,
-            "stock_move_line_id": stock_move_line.id,
+            "stock_lot_id": stock.id,
         }
 
         if ticket_type.code == END_USER_CODE:
@@ -347,17 +346,21 @@ class HelpdeskTicket(models.Model):
         # QR-Codes VALIDATION
         if qr_codes:
             self._validate_codes(
-                qr_codes, ticket_type, ticket.partner_id, error_messages, "qr_code"
+                error_messages=error_messages,
+                field_name="ref",
+                codes=qr_codes,
+                ticket_type=ticket_type,
+                partner=ticket.partner_id,
             )
 
         # Lot/Serial Number VALIDATION
         if lot_serial_numbers:
             self._validate_codes(
-                lot_serial_numbers,
-                ticket_type,
-                ticket.partner_id,
-                error_messages,
-                "lot_name",
+                error_messages=error_messages,
+                field_name="name",
+                codes=lot_serial_numbers,
+                ticket_type=ticket_type,
+                partner=ticket.partner_id,
             )
 
         # Merge the results and remove duplicates by using a set
@@ -424,58 +427,61 @@ class HelpdeskTicket(models.Model):
         return product_lots or self.env["stock.lot"]
 
     def _validate_codes(self, error_messages, field_name, **kwargs):
-        """Validate the input codes."""
-        TicketProductMoves = self.env["mv.helpdesk.ticket.product.moves"].sudo()
+        model_search = "mv.helpdesk.ticket.product.moves"
+        codes = kwargs.get("codes")
+        ticketType = kwargs.get("ticket_type")
+        partner = kwargs.get("partner")
 
         for code in codes:
-            conflicting_ticket_sub_dealer = TicketProductMoves.search(
-                self._get_domain(SUB_DEALER_CODE, code, field_name), limit=1
+            conflicting_ticket_sub_dealer = (
+                request.env[model_search]
+                .sudo()
+                .search(self._get_domain(SUB_DEALER_CODE, code, field_name), limit=1)
             )
-            conflicting_ticket_end_user = TicketProductMoves.search(
-                self._get_domain(END_USER_CODE, code, field_name), limit=1
+            conflicting_ticket_end_user = (
+                request.env[model_search]
+                .sudo()
+                .search(self._get_domain(END_USER_CODE, code, field_name), limit=1)
             )
 
             if (
                 len(conflicting_ticket_sub_dealer) > 0
                 and len(conflicting_ticket_end_user) > 0
             ):
-                message = (
+                message_err = (
                     f"Mã {code} đã trùng với Tickets khác có mã là "
                     f"(#{conflicting_ticket_sub_dealer.helpdesk_ticket_id.id}, "
                     f"#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
                 )
-                error_messages.append((CODE_ALREADY_REGISTERED, message))
+                error_messages.append((CODE_ALREADY_REGISTERED, message_err))
             else:
                 if ticket_type.code in [SUB_DEALER_CODE, END_USER_CODE]:
                     self._handle_code(
-                        conflicting_ticket_sub_dealer,
-                        conflicting_ticket_end_user,
-                        code,
-                        partner,
-                        error_messages,
-                        ticket_type.code,
+                        conflicting_ticket_sub_dealer=conflicting_ticket_sub_dealer,
+                        conflicting_ticket_end_user=conflicting_ticket_end_user,
+                        code=code,
+                        partner=partner,
+                        error_messages=error_messages,
+                        ticket_type_code=ticketType.code,
                     )
 
     def _get_domain(self, ticket_type_code, code, field_name):
-        """Get the domain for searching conflicting tickets."""
         return [
             ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
-            (f"stock_move_line_id.{field_name}", "=", code),
+            (f"stock_lot_id.{field_name}", "=", code),
             "|",
             ("helpdesk_ticket_id", "!=", False),
             ("mv_warranty_ticket_id", "!=", False),
         ]
 
-    def _handle_code(
-        self,
-        conflicting_ticket_sub_dealer,
-        conflicting_ticket_end_user,
-        code,
-        partner,
-        error_messages,
-        ticket_type_code,
-    ):
-        """Handle the validation of conflicting codes."""
+    def _handle_code(self, **kwargs):
+        conflicting_ticket_sub_dealer = kwargs.get("conflicting_ticket_sub_dealer")
+        conflicting_ticket_end_user = kwargs.get("conflicting_ticket_end_user")
+        code = kwargs.get("code")
+        partner = kwargs.get("partner")
+        error_messages = kwargs.get("error_messages")
+        ticket_type_code = kwargs.get("ticket_type_code")
+
         validate_different_partner_for_sub = (
             len(conflicting_ticket_sub_dealer) > 0
             and conflicting_ticket_sub_dealer.partner_id
@@ -503,11 +509,11 @@ class HelpdeskTicket(models.Model):
                 if validate_different_partner_for_sub
                 else conflicting_ticket_end_user
             )
-            message = (
+            message_err = (
                 f"Mã {code} đã được đăng ký cho đơn vị khác, "
                 f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
             )
-            error_messages.append((CODE_ALREADY_REGISTERED, message))
+            error_messages.append((CODE_ALREADY_REGISTERED, message_err))
         # Validate if the code is already registered on other tickets by same Partners
         elif validate_same_partner_for_sub or validate_same_partner_for_end:
             conflicting_ticket = (
@@ -515,34 +521,33 @@ class HelpdeskTicket(models.Model):
                 if validate_same_partner_for_sub
                 else conflicting_ticket_end_user
             )
-            message = (
+            message_err = (
                 f"Mã {code} đã được đăng ký cho đơn vị khác, "
                 f"phiếu có mã là (#{conflicting_ticket.helpdesk_ticket_id.id})."
             )
-            error_messages.append((CODE_ALREADY_REGISTERED, message))
+            error_messages.append((CODE_ALREADY_REGISTERED, message_err))
         # Validate if the code is already registered on other tickets with specific ticket type by current Partner
         else:
             if (
                 ticket_type_code == SUB_DEALER_CODE
                 and len(conflicting_ticket_end_user) > 0
             ):
-                message = (
+                message_err = (
                     f"Mã {code} đã trùng với Ticket khác, "
                     f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
                 )
-                error_messages.append((CODE_ALREADY_REGISTERED, message))
+                error_messages.append((CODE_ALREADY_REGISTERED, message_err))
             elif (
                 ticket_type_code == END_USER_CODE
                 and len(conflicting_ticket_end_user) > 0
             ):
-                message = (
+                message_err = (
                     f"Mã {code} đã trùng với Ticket khác, "
                     f"phiếu có mã là (#{conflicting_ticket_end_user.helpdesk_ticket_id.id})."
                 )
-                error_messages.append((CODE_ALREADY_REGISTERED, message))
+                error_messages.append((CODE_ALREADY_REGISTERED, message_err))
 
     def clean_data(self):
-        """Clean the data by resetting the portal lot serial number."""
         self.write({"portal_lot_serial_number": ""})
 
     # ==================================

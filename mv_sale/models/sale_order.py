@@ -358,8 +358,7 @@ class SaleOrder(models.Model):
 
     def write(self, vals):
         if "product_uom_qty" in vals and vals["product_uom_qty"]:
-            orders_to_update = self.filtered(lambda so: so.product_uom_qty > 0)
-            for order in orders_to_update:
+            for order in self:
                 order._update_programs_and_rewards()
                 order._auto_apply_rewards()
 

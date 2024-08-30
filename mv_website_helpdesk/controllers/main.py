@@ -255,7 +255,7 @@ class MVWebsiteHelpdesk(http.Controller):
         if not by_pass_check and qrcodes:
             self._validate_codes(
                 error_messages=error_messages,
-                field_name="qr_code",
+                field_name="ref",
                 codes=qrcodes,
                 ticket_type=TicketType,
                 partner=partner,
@@ -265,7 +265,7 @@ class MVWebsiteHelpdesk(http.Controller):
         if not by_pass_check and serial_numbers:
             self._validate_codes(
                 error_messages=error_messages,
-                field_name="lot_name",
+                field_name="name",
                 codes=serial_numbers,
                 ticket_type=TicketType,
                 partner=partner,
@@ -340,7 +340,7 @@ class MVWebsiteHelpdesk(http.Controller):
         return [
             ("helpdesk_ticket_id", "!=", False),
             ("helpdesk_ticket_type_id.code", "=", ticket_type_code),
-            (f"stock_move_line_id.{field_name}", "=", code),
+            (f"stock_lot_id.{field_name}", "=", code),
         ]
 
     def _handle_code(self, **kwargs):
@@ -354,18 +354,22 @@ class MVWebsiteHelpdesk(http.Controller):
         if ticket_type_code != "yeu_cau_bao_hanh":
             validate_different_partner_for_sub = (
                 len(conflicting_ticket_sub_dealer) > 0
+                and conflicting_ticket_sub_dealer.partner_id
                 and conflicting_ticket_sub_dealer.partner_id.id != partner.id
             )
             validate_different_partner_for_end = (
                 len(conflicting_ticket_end_user) > 0
+                and conflicting_ticket_end_user.partner_id
                 and conflicting_ticket_end_user.partner_id.id != partner.id
             )
             validate_same_partner_for_sub = (
                 len(conflicting_ticket_sub_dealer) > 0
+                and conflicting_ticket_sub_dealer.partner_id
                 and conflicting_ticket_sub_dealer.partner_id.id == partner.id
             )
             validate_same_partner_for_end = (
                 len(conflicting_ticket_end_user) > 0
+                and conflicting_ticket_end_user.partner_id
                 and conflicting_ticket_end_user.partner_id.id == partner.id
             )
             # Validate if the code is already registered on other tickets by different Partners

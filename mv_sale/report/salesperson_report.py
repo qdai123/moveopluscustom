@@ -21,16 +21,30 @@ class SalespersonReport(models.Model):
     _order = "sale_id DESC, serial_number"
 
     # ==== Product FIELDS ==== #
-    product_id = fields.Many2one("product.product", "Base Product", readonly=True)
-    product_template_id = fields.Many2one("product.template", "Sản phẩm", readonly=True)
+    product_id = fields.Many2one(
+        "product.product",
+        "Base Product",
+        readonly=True,
+    )
+    product_template_id = fields.Many2one(
+        "product.template",
+        "Sản phẩm",
+        readonly=True,
+    )
     product_price_unit = fields.Float(
-        string="Đơn giá", digits="Product Price", readonly=True
+        string="Đơn giá",
+        digits="Product Price",
+        readonly=True,
     )
     product_country_of_origin = fields.Many2one(
-        "res.country", "Quốc Gia (Sản phẩm)", readonly=True
+        "res.country",
+        "Quốc Gia (Sản phẩm)",
+        readonly=True,
     )
     product_category_id = fields.Many2one(
-        "product.category", "Danh mục sản phẩm", readonly=True
+        "product.category",
+        "Danh mục sản phẩm",
+        readonly=True,
     )
     product_att_size_lop = fields.Char("Size (lốp)", readonly=True)
     product_att_ma_gai = fields.Char("Mã gai", readonly=True)
@@ -221,10 +235,7 @@ class SalespersonReport(models.Model):
         self, domain, specification, offset=0, limit=None, order=None, count_limit=None
     ):
         has_orders_today = self.env["sale.order"].search_count(
-            [
-                ("state", "=", "sale"),
-                ("date_order", "=", fields.Date.today()),
-            ]
+            [("state", "=", "sale"), ("date_order", "=", fields.Date.today())]
         )
         if has_orders_today > 0:
             _logger.debug("SalespersonReport: Orders found today.")

@@ -7,7 +7,7 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
             <xpath expr="//notebook//page[@name='description']" position="before">
-                <page string="Details" name="ticket_product_moves_tab" invisible="mv_is_warranty_ticket">
+                <page string="Details" name="page_ticket_products_activation_warranty" invisible="mv_is_warranty_ticket">
                     <button name="action_wizard_import_lot_serial_number" string="Import Data" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary" invisible="not id"/>
                     <field invisible="True" name="portal_lot_serial_number"/>
                     <field mode="tree" name="helpdesk_ticket_product_move_ids" context="{'default_helpdesk_ticket_id': id}" domain="[('stock_move_line_id', '!=', False)]">

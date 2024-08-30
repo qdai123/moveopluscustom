@@ -74,15 +74,17 @@
         <field name="arch" type="xml">
             <tree string="Ticket Registered LIST" create="false" edit="false" duplicate="false" delete="true" import="false" export_xlsx="false">
                 <header>
-                    <button name="action_reload" string="RELOAD" type="object" class="oe_highlight" groups="base.group_system"/>
+                    <button name="action_reload" string="Reload Data" type="object" class="oe_highlight" groups="base.group_system"/>
+                    <button name="action_update_activation_twice" string="Check Activation Twice" type="object" class="btn btn-warning" groups="base.group_system"/>
                 </header>
-                <field name="lot_name"/>
-                <field name="qr_code"/>
-                <field name="product_id"/>
-                <field name="helpdesk_ticket_id" optional="hidden"/>
-                <field name="helpdesk_ticket_ref" optional="hidden"/>
-                <field name="helpdesk_ticket_type_id" optional="show"/>
-                <field name="partner_id" string="Customer"/>
+                <field name="stock_lot_id" string="Số mã vạch"/>
+                <field name="qr_code" string="Mã QR Code"/>
+                <field name="product_id" string="Sản phẩm" domain="[('sale_ok', '=', True)]" options="{'no_open': True}"/>
+                <field name="stock_location_id" string="Ví trí kho" optional="hidden"/>
+                <field name="sale_order_ids" string="Đơn bán hàng" widget="many2many_tags" options="{'no_open': True}" optional="hidden"/>
+                <field name="partner_id" string="Đại lý"/>
+                <field name="helpdesk_ticket_ref" string="Mã phiếu" optional="hidden"/>
+                <field name="helpdesk_ticket_type_id" string="Loại phiếu" optional="show"/>
                 <field name="customer_warranty_date_activation" string="Ngày bảo hành" optional="hidden"/>
                 <field name="mv_num_of_km" optional="hidden"/>
                 <field name="mv_warranty_license_plate" optional="hidden"/>
@@ -93,11 +95,12 @@
                 <field name="customer_license_plates_activation" optional="hidden"/>
                 <field name="customer_mileage_activation" optional="hidden"/>
                 <field name="customer_warranty_mileage_activation" optional="hidden"/>
-                <field name="product_activate_twice" optional="hidden"/>
+                <field name="product_activate_twice" string="Kích hoạt lần 2" optional="hidden"/>
+                <field name="lot_name" column_invisible="1"/>
+                <field name="sale_order_count" column_invisible="1"/>
+                <field name="helpdesk_ticket_id" column_invisible="1"/>
                 <field name="stock_move_id" column_invisible="True"/>
                 <field name="stock_move_line_id" column_invisible="True"/>
-                <field name="stock_lot_id" column_invisible="True"/>
-                <field name="stock_location_id" column_invisible="True"/>
                 <field name="name" column_invisible="True"/>
             </tree>
         </field>
@@ -116,6 +119,8 @@
                 <filter string="Previous Month" name="previous_month" domain="[('helpdesk_ticket_id.create_date', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')), ('helpdesk_ticket_id.create_date', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
                 <separator/>
                 <filter string="Ticket registered" name="filter_ticket_registered" domain="[('helpdesk_ticket_id', '!=', False)]"/>
+                <filter string="Ticket Activation Warranty" name="filter_ticket_activation_warranty" domain="[('helpdesk_ticket_type_id.code', 'in', ['kich_hoat_bao_hanh_dai_ly', 'kich_hoat_bao_hanh_nguoi_dung_cuoi'])]"/>
+                <filter string="Ticket Claim Warranty" name="filter_ticket_claim_warranty" domain="[('helpdesk_ticket_type_id.code', '=', 'yeu_cau_bao_hanh')]"/>
                 <group expand="0" string="Group By">
                     <filter string="Ticket" name="groupby_ticket" context="{'group_by':'helpdesk_ticket_id'}"/>
                     <filter string="Ticket Type" name="groupby_ticket_type" context="{'group_by':'helpdesk_ticket_type_id'}"/>
