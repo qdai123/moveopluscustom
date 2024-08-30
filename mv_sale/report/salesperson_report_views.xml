@@ -49,8 +49,9 @@
 				<field name="product_id" column_invisible="1"/>
 				<field name="product_template_id" options="{'no_open': True}"/>
 				<field class="fw-bold" name="product_price_unit" optional="show"/>
-				<field name="serial_number"/>
-				<field name="qrcode"/>
+				<field class="fw-bold" name="product_price_subtotal" optional="show"/>
+				<field name="serial_number" string="Mã vạch"/>
+				<field name="qrcode" string="Mã QR Code"/>
 				<field name="product_att_size_lop" optional="show"/>
 				<field name="product_att_ma_gai" optional="show"/>
 				<field name="product_att_rim_diameter_inch" optional="show"/>
@@ -86,6 +87,8 @@
 				<field name="serial_number" string="Mã vạch"/>
 				<field name="qrcode" string="Mã QR-Code"/>
 				<filter string="Đơn hàng của tôi" domain="[('sale_user_id', '=', uid)]" name="my_sale_orders_filter"/>
+				<separator/>
+				<filter string="Đơn hàng Khuyến Mãi" domain="[('product_price_unit', '=', 0), ('product_price_subtotal', '=', 0)]" name="my_sale_orders_promote_filter"/>
 				<group expand="0" string="Group By" colspan="16">
 					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'partner_id'}"/>
 					<separator/>
@@ -108,7 +111,7 @@
 	</record>
 
 	<record id="salesperson_report_action_view" model="ir.actions.act_window">
-		<field name="name">Analysis Report</field>
+		<field name="name">Salesperson Analysis Report</field>
 		<field name="res_model">salesperson.report</field>
 		<field name="view_mode">tree,form</field>
 		<field name="search_view_id" ref="salesperson_report_view_search"/>

@@ -36,6 +36,11 @@ class SalespersonReport(models.Model):
         digits="Product Price",
         readonly=True,
     )
+    product_price_subtotal = fields.Float(
+        "Đơn giá sau C/K",
+        digits="Product Price",
+        readonly=True,
+    )
     product_country_of_origin = fields.Many2one(
         "res.country",
         "Quốc Gia (Sản phẩm)",
@@ -148,7 +153,13 @@ class SalespersonReport(models.Model):
                                    so.country_id,
                                    pp.id                            AS product_id,
                                    pt.id                            AS product_template_id,
-                                   COALESCE(pt.list_price, 0)       AS product_price_unit,
+                                   CASE
+                                        WHEN sol.price_unit > 0 THEN sol.price_unit
+                                        ELSE 0 END       AS product_price_unit,
+                                    CASE
+                                        WHEN sol.price_unit > 0 THEN COALESCE(
+                                                sol.price_unit - (sol.price_unit * (sol.discount / 100)), 0)
+                                        ELSE 0 END       AS product_price_subtotal,
                                    pt.country_of_origin             AS product_country_of_origin,
                                    pt.categ_id                      AS product_category_id,
                                    stl.name                         AS serial_number,
@@ -221,6 +232,7 @@ class SalespersonReport(models.Model):
                      line.product_id,
                      line.product_template_id,
                      line.product_price_unit,
+                     line.product_price_subtotal,
                      line.product_country_of_origin,
                      line.product_category_id,
                      line.serial_number,
