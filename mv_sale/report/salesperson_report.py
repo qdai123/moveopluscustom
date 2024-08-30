@@ -23,8 +23,9 @@ class SalespersonReport(models.Model):
     # ==== Product FIELDS ==== #
     product_id = fields.Many2one("product.product", "Base Product", readonly=True)
     product_template_id = fields.Many2one("product.template", "Sản phẩm", readonly=True)
-    product_price_unit = fields.Float(
-        string="Đơn giá", digits="Product Price", readonly=True
+    product_price_unit = fields.Float("Đơn giá", digits="Product Price", readonly=True)
+    product_price_subtotal = fields.Float(
+        "Đơn giá sau C/K", digits="Product Price", readonly=True
     )
     product_country_of_origin = fields.Many2one(
         "res.country", "Quốc Gia (Sản phẩm)", readonly=True
@@ -135,6 +136,7 @@ class SalespersonReport(models.Model):
                                    pp.id                            AS product_id,
                                    pt.id                            AS product_template_id,
                                    COALESCE(pt.list_price, 0)       AS product_price_unit,
+                                   COALESCE(pt.list_price - (pt.list_price * (sol.discount / 100)), 0) AS product_price_subtotal,
                                    pt.country_of_origin             AS product_country_of_origin,
                                    pt.categ_id                      AS product_category_id,
                                    stl.name                         AS serial_number,
@@ -207,6 +209,7 @@ class SalespersonReport(models.Model):
                      line.product_id,
                      line.product_template_id,
                      line.product_price_unit,
+                     line.product_price_subtotal,
                      line.product_country_of_origin,
                      line.product_category_id,
                      line.serial_number,
