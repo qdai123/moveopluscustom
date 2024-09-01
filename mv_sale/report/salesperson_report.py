@@ -71,18 +71,18 @@ class SalespersonReport(models.Model):
     def _compute_product_total(self):
         for record in self:
             # Filter order lines within the sale order, avoiding unnecessary searches
-            product_order_line = record.sale_id.order_line.filtered(
+            product_order_lines = record.sale_id.order_line.filtered(
                 lambda line: line.product_id == record.product_id
             )
 
-            if product_order_line:
-                # If the price subtotal is positive, calculate the discounted price
-                record.product_price_subtotal = max(
-                    0,
-                    product_order_line.price_unit
-                    * (1 - product_order_line.discount / 100),
-                )
-                record.product_promotion = False
+            if product_order_lines:
+                for product_line in product_order_lines:
+                    # If the price subtotal is positive, calculate the discounted price
+                    record.product_price_subtotal = max(
+                        0,
+                        product_line.price_unit * (1 - product_line.discount / 100),
+                    )
+                    record.product_promotion = False
             else:
                 # For promotional products (price_subtotal = 0)
                 record.product_price_subtotal = 0
