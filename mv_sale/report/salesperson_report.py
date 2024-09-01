@@ -18,7 +18,7 @@ class SalespersonReport(models.Model):
     _auto = False
     _rec_name = "product_template_id"
     _rec_names_search = ["sale_id", "partner_id", "serial_number", "qrcode"]
-    _order = "sale_date_order DESC, sale_id DESC,"
+    _order = "sale_date_order DESC, sale_id DESC"
 
     # ==== Product/Product template FIELDS ==== #
     product_category_id = fields.Many2one("product.category", readonly=True)
@@ -296,6 +296,10 @@ class SalespersonReport(models.Model):
         if has_orders_today > 0:
             _logger.debug("SalespersonReport: Orders found today.")
             self.init()
+
+        # Ensure the order parameter is not empty or improperly formatted
+        if not order:
+            order = "sale_date_order DESC, sale_id DESC"
 
         return super(SalespersonReport, self).web_search_read(
             domain,
