@@ -267,12 +267,6 @@ class SalespersonReport(models.Model):
                 pa.product_att_rim_diameter_inch
         """
 
-    def init(self):
-        tools.drop_view_if_exists(self.env.cr, self._table)
-        self.env.cr.execute(
-            "CREATE OR REPLACE VIEW %s AS (%s);" % (self._table, self.query())
-        )
-
     def query(self):
         return f"""
               WITH 
@@ -282,6 +276,12 @@ class SalespersonReport(models.Model):
               {self._where_clause()}
               {self._group_by_clause()}
         """
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute(
+            "CREATE OR REPLACE VIEW %s AS (%s);" % (self._table, self.query())
+        )
 
     @api.model
     def web_search_read(
