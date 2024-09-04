@@ -9,11 +9,11 @@
     "author": "MOVEOPLUS system development team",
     "depends": ["web"],
     "data": [],
-    "assets": {
-        "web.assets_backend": [
-            "mv_web/static/src/views/**/*",
-        ],
-    },
+    # "assets": {
+    #     "web.assets_backend": [
+    #         "mv_web/static/src/views/**/*",
+    #     ],
+    # },
     "license": "LGPL-3",
     "application": False,
     "auto_install": True,
