@@ -707,28 +707,29 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                     ("product_activate_twice", "=", False),
                 ]
             )
+            return ticket_product_moves
 
-            unique_records = {}
-            duplicates = self.env["mv.helpdesk.ticket.product.moves"]
-
-            for record in ticket_product_moves:
-                key = (
-                    record.helpdesk_ticket_id.id,
-                    record.stock_lot_id.id,
-                    record.product_id.id,
-                )
-                if key in unique_records:
-                    duplicates |= record
-                else:
-                    unique_records[key] = record
-
-            if duplicates:
-                duplicates.unlink()
-                _logger.info(f"Removed {len(duplicates)} duplicate records!")
-
-            return self.env["mv.helpdesk.ticket.product.moves"].browse(
-                unique_records.values()
-            )
+            # unique_records = {}
+            # duplicates = self.env["mv.helpdesk.ticket.product.moves"]
+            #
+            # for record in ticket_product_moves:
+            #     key = (
+            #         record.helpdesk_ticket_id.id,
+            #         record.stock_lot_id.id,
+            #         record.product_id.id,
+            #     )
+            #     if key in unique_records:
+            #         duplicates |= record
+            #     else:
+            #         unique_records[key] = record
+            #
+            # if duplicates:
+            #     duplicates.unlink()
+            #     _logger.info(f"Removed {len(duplicates)} duplicate records!")
+            #
+            # return self.env["mv.helpdesk.ticket.product.moves"].browse(
+            #     unique_records.values()
+            # )
 
         except Exception as e:
             _logger.error(f"Failed to fetch ticket product moves: {e}")
