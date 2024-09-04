@@ -1633,7 +1633,6 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         "mv.helpdesk.ticket.product.moves",
         "compute_warranty_discount_policy_ticket_product_moves_rel",
         readonly=True,
-        context={"create": False, "edit": False},
     )
     product_activation_count = fields.Integer(default=0)
     first_warranty_policy_requirement_id = fields.Many2one(
