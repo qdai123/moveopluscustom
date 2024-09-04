@@ -9,7 +9,7 @@
                     <field name="is_two_month" invisible="1"/>
                     <field name="is_quarter" invisible="1"/>
                     <field name="is_year" invisible="1"/>
-                    <div class="oe_button_box" name="button_box" groups="base.group_user">
+                    <div class="oe_button_box" name="button_box">
                         <button name="action_view_two_month"
                                 type="object"
                                 class="oe_stat_button"
@@ -43,6 +43,8 @@
                             <group>
                                 <field name="quantity"/>
                                 <field name="quantity_discount"/>
+                                <field name="quantity_returns"/>
+                                <field name="quantity_claim_warranty"/>
                             </group>
                             <group>
                                 <field name="quantity_from"/>
@@ -88,7 +90,7 @@
                                 <tree create="false" edit="false" delete="false" default_order="id">
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
-                                    <field name="partner_id" string="Dealer/Sub-Dealer/Customer"/>
+                                    <field name="partner_id" string="Customer"/>
                                     <field name="amount_total" sum="Price" widget="monetary"/>
                                 </tree>
                             </field>
@@ -104,6 +106,36 @@
                                     <field name="price_unit" widget="monetary" sum="Price"/>
                                     <field name="price_subtotal"  widget="monetary" sum="Price Subtotal" optional="hidden"/>
                                     <field name="price_subtotal_before_discount" string="Amount"  widget="monetary" sum="Price Subtotal before Discount"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Đơn khuyến mãi">
+                            <field name="sale_promote_ids" nolabel="1">
+                                <tree create="false" edit="false" delete="false" default_order="id">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="name" string="Order"/>
+                                    <field name="partner_id" string="Customer"/>
+                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Đơn đổi trả">
+                            <field name="sale_return_ids" nolabel="1">
+                                <tree create="false" edit="false" delete="false" default_order="id">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="name" string="Order"/>
+                                    <field name="partner_id" string="Customer"/>
+                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Đơn bảo hành">
+                            <field name="sale_claim_warranty_ids" nolabel="1">
+                                <tree create="false" edit="false" delete="false" default_order="id">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="name" string="Order"/>
+                                    <field name="partner_id" string="Customer"/>
+                                    <field name="amount_total" sum="Price" widget="monetary"/>
                                 </tree>
                             </field>
                         </page>

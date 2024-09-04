@@ -182,6 +182,7 @@ class MvComputeDiscount(models.Model):
         sale_orders = self.env["sale.order"].search(
             [
                 ("is_order_returns", "=", False),
+                ("is_claim_warranty", "=", False),
                 ("state", "=", "sale"),
                 ("date_invoice", ">=", date_from),
                 ("date_invoice", "<", date_to),
@@ -228,7 +229,6 @@ class MvComputeDiscount(models.Model):
             total_quantity_minimum = 0
             total_quantity_maximum = 0
             total_quantity_delivered = 0
-            total_quantity_for_discount = 0
             total_sales = 0
 
             vals = self._prepare_values_for_confirmation(partner_id, self.report_date)
@@ -261,14 +261,6 @@ class MvComputeDiscount(models.Model):
                 )
             )
             vals["quantity"] = total_quantity_delivered
-
-            # [UP] Update Quantity Discount (Get only with [qty_delivered] field)
-            total_quantity_for_discount += sum(
-                order_by_partner_agency.filtered(
-                    lambda rec: rec.price_unit == 0
-                ).mapped("qty_delivered")
-            )
-            vals["quantity_discount"] = total_quantity_for_discount
 
             # [!] Determine Partner Discount Level
             line_ids = partner.line_ids.filtered(
@@ -411,6 +403,59 @@ class MvComputeDiscount(models.Model):
                     vals["order_line_ids"] = order_line_ids
                     vals["discount_line_id"] = discount_line_id.id
 
+                    model_load_data = self.env["mv.compute.discount.line"].sudo()
+                    # [>] Get Sale Promote
+                    sale_promote_ids = self.env["sale.order"].browse(
+                        model_load_data._sql_get_sale_promote_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[0]
+                    )
+                    sale_promote_quantity = model_load_data._sql_get_sale_promote_ids(
+                        partner_id=partner,
+                        date_from=date_from.date(),
+                        date_to=date_to.date(),
+                    )[1]
+                    vals["sale_promote_ids"] = [(6, 0, sale_promote_ids.ids)]
+                    vals["quantity_discount"] = sale_promote_quantity
+
+                    # [>] Get Sale Returns
+                    sale_returns_ids = self.env["sale.order"].browse(
+                        model_load_data._sql_get_sale_return_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[0]
+                    )
+                    sale_returns_quantity = model_load_data._sql_get_sale_return_ids(
+                        partner_id=partner,
+                        date_from=date_from.date(),
+                        date_to=date_to.date(),
+                    )[1]
+                    vals["sale_return_ids"] = [(6, 0, sale_returns_ids.ids)]
+                    vals["quantity_returns"] = sale_returns_quantity
+
+                    # [>] Get Sale Claim Warranty
+                    sale_claim_warranty_ids = self.env["sale.order"].browse(
+                        model_load_data._sql_get_sale_claim_warranty_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[0]
+                    )
+                    sale_claim_warranty_quantity = (
+                        model_load_data._sql_get_sale_claim_warranty_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[1]
+                    )
+                    vals["sale_claim_warranty_ids"] = [
+                        (6, 0, sale_claim_warranty_ids.ids)
+                    ]
+                    vals["quantity_claim_warranty"] = sale_claim_warranty_quantity
+
                 list_line_ids.append((0, 0, vals))
 
         if not list_line_ids:
@@ -421,13 +466,13 @@ class MvComputeDiscount(models.Model):
         self.write({"line_ids": list_line_ids, "state": "confirm"})
 
         # Create history line for discount
-        if self.line_ids:
-            for line in self.line_ids.filtered(lambda rec: rec.parent_id):
-                self.create_history_line(
-                    line,
-                    "confirm",
-                    "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
-                )
+        # if self.line_ids:
+        #     for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+        #         self.create_history_line(
+        #             line,
+        #             "confirm",
+        #             "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
+        #         )
 
     def action_done(self):
         if not self._access_approve():
@@ -525,8 +570,13 @@ class MvComputeDiscount(models.Model):
             "level": 0,
             "sale_ids": [],
             "order_line_ids": [],
+            "sale_promote_ids": [],
+            "sale_return_ids": [],
+            "sale_claim_warranty_ids": [],
             "quantity": 0,
             "quantity_discount": 0,
+            "quantity_returns": 0,
+            "quantity_claim_warranty": 0,
             "quantity_from": 0,
             "quantity_to": 0,
             "amount_total": 0,
@@ -824,6 +874,8 @@ class MvComputeDiscount(models.Model):
                        cdl.quantity_from                       AS quantity_from,
                        cdl.quantity                            AS quantity,
                        cdl.quantity_discount                   AS quantity_discount,
+                       cdl.quantity_returns                   AS quantity_returns,
+                       cdl.quantity_claim_warranty                   AS quantity_claim_warranty,
                        cdl.amount_total                        AS total,
                        cdl.month_money                         AS month_money,
                        cdl.two_money                           AS two_money,
@@ -845,6 +897,8 @@ class MvComputeDiscount(models.Model):
                     "quantity_from": data["quantity_from"],
                     "quantity": data["quantity"],
                     "quantity_discount": data["quantity_discount"],
+                    "quantity_returns": data["quantity_returns"],
+                    "quantity_claim_warranty": data["quantity_claim_warranty"],
                     "amount_total": data["total"],
                     "amount_month_money": data["month_money"],
                     "amount_two_money": data["two_money"],
@@ -872,7 +926,6 @@ class MvComputeDiscount(models.Model):
                 ("res_id", "=", self.id),
                 ("create_uid", "=", self.env.uid),
                 ("create_date", "<", fields.Datetime.now()),
-                ("name", "ilike", "Moveoplus-Partners-Discount-Detail%"),
             ]
         )
         if attachments_to_remove:
@@ -933,7 +986,7 @@ class MvComputeDiscount(models.Model):
         sheet.set_row(0, 30)
 
         # ////// NAME = "Chi tiết chiết khấu của Đại Lý trong tháng {month/year}"
-        sheet.merge_range("A1:M1", "", DEFAULT_FORMAT)
+        sheet.merge_range("A1:O1", "", DEFAULT_FORMAT)
         format_first_title = [
             "Chi tiết chiết khấu của Đại Lý trong tháng ",
             workbook.add_format(
@@ -1003,35 +1056,43 @@ class MvComputeDiscount(models.Model):
         sheet.merge_range("F2:F3", "", DEFAULT_FORMAT)
         sheet.write("F2", "SL lốp khuyến mãi (Cái)", SUB_TITLE_FORMAT)
 
-        # ////// NAME = "Doanh thu Tháng"
+        # ////// NAME = "Số lượng lốp Đổi Trả (Cái)"
         sheet.merge_range("G2:G3", "", DEFAULT_FORMAT)
-        sheet.write("G2", "Doanh thu", SUB_TITLE_TOTAL_FORMAT)
+        sheet.write("G2", "SL lốp đổi trả (Cái)", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "Số lượng lốp Bảo Hành (Cái)"
+        sheet.merge_range("H2:H3", "", DEFAULT_FORMAT)
+        sheet.write("H2", "SL lốp bảo hành (Cái)", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "Doanh thu Tháng"
+        sheet.merge_range("I2:I3", "", DEFAULT_FORMAT)
+        sheet.write("I2", "Doanh thu", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu tháng"
-        sheet.merge_range("H2:H3", "", DEFAULT_FORMAT)
-        sheet.write("H2", "Tiền CK Tháng", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("J2:J3", "", DEFAULT_FORMAT)
+        sheet.write("J2", "Tiền CK Tháng", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu 2 tháng"
-        sheet.merge_range("I2:I3", "", DEFAULT_FORMAT)
-        sheet.write("I2", "Tiền CK 2 Tháng", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("K2:K3", "", DEFAULT_FORMAT)
+        sheet.write("K2", "Tiền CK 2 Tháng", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu quý"
-        sheet.merge_range("J2:J3", "", DEFAULT_FORMAT)
-        sheet.write("J2", "Tiền CK Quý", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
+        sheet.write("L2", "Tiền CK Quý", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu năm"
-        sheet.merge_range("K2:K3", "", DEFAULT_FORMAT)
-        sheet.write("K2", "Tiền CK Năm", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("M2:M3", "", DEFAULT_FORMAT)
+        sheet.write("M2", "Tiền CK Năm", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu khuyến khích"
-        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
-        sheet.write("L2", "Tiền CK Khuyến Khích", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("N2:N3", "", DEFAULT_FORMAT)
+        sheet.write("N2", "Tiền CK Khuyến Khích", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Tổng tiền chiết khấu"
-        sheet.merge_range("M2:M3", "", DEFAULT_FORMAT)
-        sheet.write("M2", "Tổng tiền", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("O2:O3", "", DEFAULT_FORMAT)
+        sheet.write("O2", "Tổng tiền", SUB_TITLE_TOTAL_FORMAT)
 
-        sheet.set_column(4, 12, 15)
+        sheet.set_column(4, 14, 15)
 
         # ############# [BODY] #############
         BODY_CHAR_FORMAT = workbook.add_format(
@@ -1071,7 +1132,7 @@ class MvComputeDiscount(models.Model):
                 if isinstance(data[key], str):
                     sheet.write(count, col, data[key], BODY_CHAR_FORMAT)
                 elif isinstance(data[key], int) or isinstance(data[key], float):
-                    if col in [6, 7, 8, 9, 10, 11, 12]:
+                    if col in [8, 9, 10, 11, 12, 13, 14]:
                         sheet.write(count, col, data[key], BODY_TOTAL_NUM_FORMAT)
                     else:
                         sheet.write(count, col, data[key], BODY_NUM_FORMAT)
