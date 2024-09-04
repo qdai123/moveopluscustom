@@ -5,7 +5,6 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 from odoo.tools.misc import formatLang
 
-# GROUP ACCESS
 GROUP_APPROVER = "mv_sale.group_mv_compute_discount_approver"
 
 
@@ -40,19 +39,55 @@ class MvComputeDiscountLine(models.Model):
         store=True,
     )
     level = fields.Integer("Bậc")
+    basic = fields.Float("Cơ bản (%)")
     quantity = fields.Integer("Số lượng lốp đã bán")
-    quantity_discount = fields.Integer("Số lượng khuyến mãi")
+    quantity_discount = fields.Integer("Số lượng lốp khuyến mãi")
+    quantity_returns = fields.Integer("Số lượng lốp đổi trả")
+    quantity_claim_warranty = fields.Integer("Số lượng lốp bảo hành")
     quantity_from = fields.Integer("Số lượng lốp min")
     quantity_to = fields.Integer("Số lượng lốp max")
-    basic = fields.Float("Cơ bản (%)")
-    sale_ids = fields.One2many("sale.order", "discount_line_id", "Đơn hàng")
-    order_line_ids = fields.One2many(
-        "sale.order.line", "discount_line_id", "Dòng đơn hàng"
+
+    # SALES Fields:
+    sale_ids = fields.One2many(
+        "sale.order",
+        "discount_line_id",
+        string="Đơn hàng",
+        help="Danh sách đơn hàng trong tháng của đại lý",
     )
-    opening_balance = fields.Monetary("Số dư đầu kỳ")
-    closing_balance = fields.Monetary("Số dư cuối kỳ")
+    order_line_ids = fields.One2many(
+        "sale.order.line",
+        "discount_line_id",
+        string="Dòng đơn hàng",
+        help="Chi tiết đơn hàng trong tháng của đại lý",
+    )
+    sale_promote_ids = fields.Many2many(
+        "sale.order",
+        "sale_promote_discount_rel",
+        "discount_line_id",
+        "sale_id",
+        string="Đơn hàng khuyến khích",
+        help="Danh sách đơn hàng khuyến khích trong tháng của đại lý",
+    )
+    sale_return_ids = fields.Many2many(
+        "sale.order",
+        "sale_returns_discount_rel",
+        "discount_line_id",
+        "sale_id",
+        string="Đơn hàng trả",
+        help="Danh sách đơn hàng trả trong tháng của đại lý",
+    )
+    sale_claim_warranty_ids = fields.Many2many(
+        "sale.order",
+        "sale_claim_warranty_discount_rel",
+        "discount_line_id",
+        "sale_id",
+        string="Đơn hàng bảo hành",
+        help="Danh sách đơn hàng bảo hành trong tháng của đại lý",
+    )
 
     # TOTAL Fields:
+    opening_balance = fields.Monetary("Số dư đầu kỳ")
+    closing_balance = fields.Monetary("Số dư cuối kỳ")
     amount_total = fields.Float("Doanh thu tháng")
     total_discount = fields.Float("Total % Discount")
     total_money = fields.Integer(
@@ -359,6 +394,87 @@ class MvComputeDiscountLine(models.Model):
         )
 
     # =================================
+    # SQL Methods
+    # =================================]
+
+    def _sql_get_sale_promote_ids(self, partner_id, **kwargs):
+        date_from = kwargs.get("date_from")
+        date_to = kwargs.get("date_to")
+
+        query = """
+            SELECT so.id                                            AS sale_id,
+                        SUM(sol.product_uom_qty)         AS quantity,
+                        SUM(sol.qty_delivered)                AS quantity_delivered
+            FROM sale_order so
+                    JOIN sale_order_line AS sol ON (sol.order_id = so.id AND (sol.price_unit = 0 OR sol.discount = 100))
+                    JOIN product_product AS pp ON (pp.id = sol.product_id)
+                    JOIN product_template AS pt ON (pt.id = pp.product_tmpl_id AND pt.detailed_type = 'product')
+            WHERE so.date_order BETWEEN %s AND %s
+                AND so.partner_id = %s
+                AND so.state = 'sale'
+            GROUP BY so.id;
+        """
+        self.env.cr.execute(query, [date_from, date_to, partner_id.id])
+        results = self.env.cr.fetchall()
+
+        sales_ids = [result[0] for result in results] or []
+        total_quantity_delivered = sum(result[2] for result in results) or 0
+
+        return sales_ids, total_quantity_delivered
+
+    def _sql_get_sale_return_ids(self, partner_id, **kwargs):
+        date_from = kwargs.get("date_from")
+        date_to = kwargs.get("date_to")
+
+        query = """
+            SELECT so.id                                            AS sale_id,
+                        SUM(sol.product_uom_qty)         AS quantity,
+                        SUM(sol.qty_delivered)                AS quantity_delivered
+            FROM sale_order so
+                    JOIN sale_order_line AS sol ON (sol.order_id = so.id)
+                    JOIN product_product AS pp ON (pp.id = sol.product_id)
+                    JOIN product_template AS pt ON (pt.id = pp.product_tmpl_id AND pt.detailed_type = 'product')
+            WHERE so.date_order BETWEEN %s AND %s
+                AND so.partner_id = %s
+                AND so.state = 'sale'
+                AND so.is_order_returns = TRUE
+            GROUP BY so.id;
+        """
+        self.env.cr.execute(query, [date_from, date_to, partner_id.id])
+        results = self.env.cr.fetchall()
+
+        sales_ids = [result[0] for result in results] or []
+        total_quantity_delivered = sum(result[2] for result in results) or 0
+
+        return sales_ids, total_quantity_delivered
+
+    def _sql_get_sale_claim_warranty_ids(self, partner_id, **kwargs):
+        date_from = kwargs.get("date_from")
+        date_to = kwargs.get("date_to")
+
+        query = """
+            SELECT so.id                                            AS sale_id,
+                        SUM(sol.product_uom_qty)         AS quantity,
+                        SUM(sol.qty_delivered)                AS quantity_delivered
+            FROM sale_order so
+                    JOIN sale_order_line AS sol ON (sol.order_id = so.id)
+                    JOIN product_product AS pp ON (pp.id = sol.product_id)
+                    JOIN product_template AS pt ON (pt.id = pp.product_tmpl_id AND pt.detailed_type = 'product')
+            WHERE so.date_order BETWEEN %s AND %s
+                AND so.partner_id = %s
+                AND so.state = 'sale'
+                AND so.is_claim_warranty = TRUE
+            GROUP BY so.id;
+        """
+        self.env.cr.execute(query, [date_from, date_to, partner_id.id])
+        results = self.env.cr.fetchall()
+
+        sales_ids = [result[0] for result in results] or []
+        total_quantity_delivered = sum(result[2] for result in results) or 0
+
+        return sales_ids, total_quantity_delivered
+
+    # =================================
     # ACTION VIEWS Methods
     # =================================
 
@@ -373,7 +489,7 @@ class MvComputeDiscountLine(models.Model):
         domain = [("partner_id", "=", self.partner_id.id), ("name", "=", list_name)]
         line_ids = self.search(domain)
         return {
-            "name": "Chiếu khấu 2 tháng đạt chỉ tiêu",
+            "name": "Chiết khấu 2 tháng đạt chỉ tiêu",
             "view_mode": "tree,form",
             "res_model": "mv.compute.discount.line",
             "type": "ir.actions.act_window",
@@ -398,7 +514,7 @@ class MvComputeDiscountLine(models.Model):
         domain = [("partner_id", "=", self.partner_id.id), ("name", "=", list_name)]
         line_ids = self.search(domain)
         return {
-            "name": "Chiếu khấu theo quý %s đạt chỉ tiêu" % str(int(month) / 3),
+            "name": "Chiết khấu theo quý %s đạt chỉ tiêu" % str(int(month) / 3),
             "view_mode": "tree,form",
             "res_model": "mv.compute.discount.line",
             "type": "ir.actions.act_window",
