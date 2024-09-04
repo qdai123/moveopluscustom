@@ -14,6 +14,13 @@ from odoo.exceptions import AccessError, ValidationError
 _logger = logging.getLogger(__name__)
 
 
+NEW_STATE = "mv_website_helpdesk.warranty_stage_new"
+NOT_ASSIGNED_ERROR = (
+    "You are not assigned to the ticket or don't have sufficient permissions!"
+)
+NOT_NEW_STATE_ERROR = "You can only delete a ticket when it is in 'New' state."
+
+
 class HelpdeskTicketProductMoves(models.Model):
     _name = "mv.helpdesk.ticket.product.moves"
     _inherit = ["mail.thread", "mail.activity.mixin"]
@@ -63,6 +70,7 @@ class HelpdeskTicketProductMoves(models.Model):
         store=True,
         tracking=True,
     )
+    partner_short_name = fields.Char(related="partner_id.short_name", store=True)
     product_id = fields.Many2one(
         "product.product",
         compute="_compute_product_stock",
@@ -280,21 +288,18 @@ class HelpdeskTicketProductMoves(models.Model):
     # ==================================
 
     def unlink(self):
-        NEW_STATE = "New"
-        NOT_ASSIGNED_ERROR = (
-            "You are not assigned to the ticket or don't have sufficient permissions!"
-        )
-        NOT_NEW_STATE_ERROR = "You can only delete a ticket when it is in 'New' state."
+        not_system_user = not (self.env.is_admin() or self.env.is_superuser())
+        is_not_manager = self.env.user.has_group(HELPDESK_MANAGER)
 
         for record in self:
-            not_system_user = not (self.env.is_admin() or self.env.is_superuser())
-            is_not_manager = self.env.user.has_group(HELPDESK_MANAGER)
             not_assigned_to_user = record.helpdesk_ticket_id.user_id != self.env.user
 
             if not_system_user and is_not_manager and not_assigned_to_user:
                 raise AccessError(_(NOT_ASSIGNED_ERROR))
             elif (
-                not_system_user and is_not_manager and record.stage_id.name != NEW_STATE
+                not_system_user
+                and is_not_manager
+                and record.stage_id.id != self.env.ref(NEW_STATE).id
             ):
                 raise ValidationError(_(NOT_NEW_STATE_ERROR))
 
@@ -374,13 +379,7 @@ class HelpdeskTicketProductMoves(models.Model):
                     line._compute_product_stock()  # Reload Product Information
                     line._compute_helpdesk_ticket_id()  # Reload Ticket Information
 
-                    if line.helpdesk_ticket_id.ticket_type_id.code == END_USER_CODE:
-                        line.customer_date_activation = (
-                            line.helpdesk_ticket_id.create_date
-                        )
-                    else:
-                        line.customer_date_activation = False
-
+                    line.customer_date_activation = line.helpdesk_ticket_id.create_date
                     line.customer_phone_activation = (
                         line.helpdesk_ticket_id.tel_activation
                     )

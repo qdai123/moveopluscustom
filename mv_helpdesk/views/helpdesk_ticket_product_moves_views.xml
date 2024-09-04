@@ -82,7 +82,8 @@
                 <field name="product_id" string="Sản phẩm" domain="[('sale_ok', '=', True)]" options="{'no_open': True}"/>
                 <field name="stock_location_id" string="Ví trí kho" optional="hidden"/>
                 <field name="sale_order_ids" string="Đơn bán hàng" widget="many2many_tags" options="{'no_open': True}" optional="hidden"/>
-                <field name="partner_id" string="Đại lý"/>
+                <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+                <field name="partner_short_name" column_invisible="1"/>
                 <field name="helpdesk_ticket_ref" string="Mã phiếu" optional="hidden"/>
                 <field name="helpdesk_ticket_type_id" string="Loại phiếu" optional="show"/>
                 <field name="customer_warranty_date_activation" string="Ngày bảo hành" optional="hidden"/>
@@ -118,9 +119,9 @@
                 <filter string="Current Month" name="current_month" domain="[('helpdesk_ticket_id.create_date', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('helpdesk_ticket_id.create_date', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
                 <filter string="Previous Month" name="previous_month" domain="[('helpdesk_ticket_id.create_date', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')), ('helpdesk_ticket_id.create_date', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
                 <separator/>
-                <filter string="Ticket registered" name="filter_ticket_registered" domain="[('helpdesk_ticket_id', '!=', False)]"/>
-                <filter string="Ticket Activation Warranty" name="filter_ticket_activation_warranty" domain="[('helpdesk_ticket_type_id.code', 'in', ['kich_hoat_bao_hanh_dai_ly', 'kich_hoat_bao_hanh_nguoi_dung_cuoi'])]"/>
-                <filter string="Ticket Claim Warranty" name="filter_ticket_claim_warranty" domain="[('helpdesk_ticket_type_id.code', '=', 'yeu_cau_bao_hanh')]"/>
+                <filter string="Registered ticket" name="filter_ticket_registered" domain="[('helpdesk_ticket_id', '!=', False)]"/>
+                <filter string="Warranty Activation Ticket" name="filter_ticket_activation_warranty" domain="[('helpdesk_ticket_type_id.code', 'in', ['kich_hoat_bao_hanh_dai_ly', 'kich_hoat_bao_hanh_nguoi_dung_cuoi'])]"/>
+                <filter string="Warranty Claim Ticket" name="filter_ticket_claim_warranty" domain="[('helpdesk_ticket_type_id.code', '=', 'yeu_cau_bao_hanh')]"/>
                 <group expand="0" string="Group By">
                     <filter string="Ticket" name="groupby_ticket" context="{'group_by':'helpdesk_ticket_id'}"/>
                     <filter string="Ticket Type" name="groupby_ticket_type" context="{'group_by':'helpdesk_ticket_type_id'}"/>

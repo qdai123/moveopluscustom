@@ -21,6 +21,12 @@ HELPDESK_MANAGER = "helpdesk.group_helpdesk_manager"
 SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
 END_USER_CODE = "kich_hoat_bao_hanh_nguoi_dung_cuoi"
 
+NEW_STATE = "mv_website_helpdesk.warranty_stage_new"
+NOT_ASSIGNED_ERROR = (
+    "You are not assigned to the ticket or don't have sufficient permissions!"
+)
+NOT_NEW_STATE_ERROR = "You can only delete a ticket when it is in 'New' state."
+
 # Error Codes
 IS_EMPTY = "is_empty"
 CODE_NOT_FOUND = "code_not_found"
@@ -212,22 +218,19 @@ class HelpdeskTicket(models.Model):
         return super(HelpdeskTicket, self).write(vals)
 
     def unlink(self):
-        NEW_STATE = "New"
-        NOT_ASSIGNED_ERROR = (
-            "You are not assigned to the ticket or don't have sufficient permissions!"
-        )
-        NOT_NEW_STATE_ERROR = "You can only delete a ticket when it is in 'New' state."
+        not_system_user = not (self.env.is_admin() or self.env.is_superuser())
+        is_not_manager = self.env.user.has_group(HELPDESK_MANAGER)
 
         for ticket in self:
-            is_not_helpdesk_manager = (
-                not ticket.is_helpdesk_manager
-                or not self.env.user.has_group(HELPDESK_MANAGER)
-            )
-            not_assigned_to_user = ticket.user_id != self.env.user
+            not_assigned_to_user = record.helpdesk_ticket_id.user_id != self.env.user
 
-            if is_not_helpdesk_manager and not_assigned_to_user:
+            if not_system_user and is_not_manager and not_assigned_to_user:
                 raise AccessError(_(NOT_ASSIGNED_ERROR))
-            elif is_not_helpdesk_manager and ticket.stage_id.name != NEW_STATE:
+            elif (
+                not_system_user
+                and is_not_manager
+                and record.stage_id.id != self.env.ref(NEW_STATE).id
+            ):
                 raise ValidationError(_(NOT_NEW_STATE_ERROR))
 
             # Unlink all related ticket product moves
@@ -305,13 +308,13 @@ class HelpdeskTicket(models.Model):
         ticket_product_data = {
             "helpdesk_ticket_id": ticket.id,
             "stock_lot_id": stock.id,
+            "customer_date_activation": fields.Date.today(),
         }
 
         if ticket_type.code == END_USER_CODE:
             ticket_product_data.update(
                 {
                     "customer_phone_activation": ticket.tel_activation,
-                    "customer_date_activation": fields.Date.today(),
                     "customer_license_plates_activation": ticket.license_plates,
                     "customer_mileage_activation": ticket.mileage,
                 }

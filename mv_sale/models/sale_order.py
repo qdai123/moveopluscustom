@@ -3,7 +3,7 @@ import itertools
 import logging
 from collections import defaultdict
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
