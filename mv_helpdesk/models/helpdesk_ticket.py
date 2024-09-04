@@ -206,7 +206,6 @@ class HelpdeskTicket(models.Model):
             if ticket.ticket_type_id and ticket.ticket_type_id.code in [
                 SUB_DEALER_CODE,
                 END_USER_CODE,
-                "yeu_cau_bao_hanh",
             ]:
                 self._process_ticket(ticket, vals_list)
 
@@ -222,14 +221,14 @@ class HelpdeskTicket(models.Model):
         is_not_manager = self.env.user.has_group(HELPDESK_MANAGER)
 
         for ticket in self:
-            not_assigned_to_user = record.helpdesk_ticket_id.user_id != self.env.user
+            not_assigned_to_user = ticket.user_id != self.env.user
 
             if not_system_user and is_not_manager and not_assigned_to_user:
                 raise AccessError(_(NOT_ASSIGNED_ERROR))
             elif (
                 not_system_user
                 and is_not_manager
-                and record.stage_id.id != self.env.ref(NEW_STATE).id
+                and ticket.stage_id.id != self.env.ref(NEW_STATE).id
             ):
                 raise ValidationError(_(NOT_NEW_STATE_ERROR))
 
