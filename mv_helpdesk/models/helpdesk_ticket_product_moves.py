@@ -70,7 +70,6 @@ class HelpdeskTicketProductMoves(models.Model):
         store=True,
         tracking=True,
     )
-    partner_short_name = fields.Char(related="partner_id.short_name", store=True)
     product_id = fields.Many2one(
         "product.product",
         compute="_compute_product_stock",

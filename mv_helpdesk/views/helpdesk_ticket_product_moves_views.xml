@@ -83,7 +83,6 @@
                 <field name="stock_location_id" string="Ví trí kho" optional="hidden"/>
                 <field name="sale_order_ids" string="Đơn bán hàng" widget="many2many_tags" options="{'no_open': True}" optional="hidden"/>
                 <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
-                <field name="partner_short_name" column_invisible="1"/>
                 <field name="helpdesk_ticket_ref" string="Mã phiếu" optional="hidden"/>
                 <field name="helpdesk_ticket_type_id" string="Loại phiếu" optional="show"/>
                 <field name="customer_warranty_date_activation" string="Ngày bảo hành" optional="hidden"/>
