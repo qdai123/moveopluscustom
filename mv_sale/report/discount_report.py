@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 
-from odoo import api, fields, models, _
+from odoo import _, fields, models
 
 
 def get_years():
@@ -13,8 +13,8 @@ class DiscountReport(models.Model):
     _description = _("Report Discount")
 
     line_ids = fields.One2many("discount.report.line", "parent_id")
-    partner_id = fields.Many2one("res.partner", required=1, string="Chọn Đại lý")
-    name = fields.Selection(get_years(), string="Chọn Năm", required=1)
+    partner_id = fields.Many2one("res.partner", required=True, string="Chọn Đại lý")
+    name = fields.Selection(get_years(), string="Chọn Năm", required=True)
 
     def create_discount_report(
         self,

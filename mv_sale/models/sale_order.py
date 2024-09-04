@@ -3,7 +3,7 @@ import itertools
 import logging
 from collections import defaultdict
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -75,19 +75,19 @@ class SaleOrder(models.Model):
         store=True,
         help="Số tiền Đại lý có thể áp dụng để tính chiết khấu.",
     )
-    is_claim_warranty = fields.Boolean("Áp dụng CS bảo hành", readonly="1")
+    is_claim_warranty = fields.Boolean("Áp dụng CS bảo hành", readonly=True)
     mv_moves_warranty_ids = fields.Many2many(
         "mv.helpdesk.ticket.product.moves",
         "order_warranty_products_relation",
         "order_id",
         "warranty_id",
         string="Áp dụng cho số serial",
-        readonly="1",
+        readonly=True,
     )
 
-    @api.onchange('company_id')
+    @api.onchange("company_id")
     def _onchange_company_id_warning(self):
-        if self.env.context.get('create_order_from_claim_ticket'):
+        if self.env.context.get("create_order_from_claim_ticket"):
             self.show_update_pricelist = True
             return {}
         else:
@@ -358,8 +358,7 @@ class SaleOrder(models.Model):
 
     def write(self, vals):
         if "product_uom_qty" in vals and vals["product_uom_qty"]:
-            orders_to_update = self.filtered(lambda so: so.product_uom_qty > 0)
-            for order in orders_to_update:
+            for order in self:
                 order._update_programs_and_rewards()
                 order._auto_apply_rewards()
 

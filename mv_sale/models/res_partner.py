@@ -164,7 +164,6 @@ class ResPartner(models.Model):
 
         :return: dict: A success notification if triggered manually, otherwise None.
         """
-        _logger.debug("Starting 'action_update_discount_amount'.")
 
         for partner in self:
             # Initialize discount-related fields
@@ -204,8 +203,6 @@ class ResPartner(models.Model):
             wallet = total_amount_discount_approved - partner.total_so_bonus_order
             partner.amount = wallet if wallet > 0 else 0.0
             partner.amount_currency = wallet if wallet > 0 else 0.0
-
-        _logger.debug("Completed 'action_update_discount_amount'.")
 
     # =================================
     # CONSTRAINS Methods

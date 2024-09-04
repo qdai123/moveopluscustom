@@ -68,35 +68,71 @@
         </field>
     </record>
 
+    <record id="mv_helpdesk_ticket_product_moves_simple_form_view" model="ir.ui.view">
+        <field name="name">mv.helpdesk.ticket.product.moves.simple.form</field>
+        <field name="model">mv.helpdesk.ticket.product.moves</field>
+        <field name="arch" type="xml">
+            <form string="Ticket Registered Simple FORM">
+                <sheet>
+                    <group>
+                        <group string="Thông tin Đại lý">
+                            <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+                        </group>
+                        <group string="Thông tin Sản Phẩm">
+                            <field name="product_id" string="Sản phẩm" domain="[('sale_ok', '=', True)]" options="{'no_open': True}"/>
+                            <field name="stock_lot_id" string="Số mã vạch" options="{'no_open': True}"/>
+                            <field name="qr_code" string="Mã QR Code"/>
+                        </group>
+                        <group string="Thông tin Phiếu">
+                            <field name="helpdesk_ticket_ref" string="Mã phiếu" options="{'no_open': True}"/>
+                            <field name="helpdesk_ticket_type_id" string="Loại phiếu" options="{'no_open': True}"/>
+                        </group>
+                        <group string="Thông tin Kích hoạt">
+                            <field name="customer_date_activation" string="Ngày kích hoạt"/>
+                            <field name="customer_phone_activation" string="Điện thoại"/>
+                            <field name="customer_license_plates_activation" string="Biển số xe"/>
+                            <field name="customer_mileage_activation" string="Số Km"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="mv_helpdesk_ticket_product_moves_tree_view" model="ir.ui.view">
         <field name="name">mv.helpdesk.ticket.product.moves.tree</field>
         <field name="model">mv.helpdesk.ticket.product.moves</field>
         <field name="arch" type="xml">
             <tree string="Ticket Registered LIST" create="false" edit="false" duplicate="false" delete="true" import="false" export_xlsx="false">
                 <header>
-                    <button name="action_reload" string="RELOAD" type="object" class="oe_highlight" groups="base.group_system"/>
+                    <button name="action_reload" string="Reload Data" type="object" class="oe_highlight" groups="base.group_system"/>
+                    <button name="action_update_activation_twice" string="Check Activation Twice" type="object" class="btn btn-warning" groups="base.group_system"/>
                 </header>
-                <field name="name" string="Ref." column_invisible="True"/>
-                <field name="lot_name"/>
-                <field name="qr_code"/>
-                <field name="product_id"/>
-                <field name="helpdesk_ticket_id" optional="hidden"/>
-                <field name="helpdesk_ticket_ref" optional="hidden"/>
-                <field name="helpdesk_ticket_type_id" optional="show"/>
-                <field name="partner_id" string="Customer"/>
-                <field name="customer_warranty_date_activation" string="Ngày bảo hành" optional="show"/>
-                <field name="mv_num_of_km" optional="show"/>
-                <field name="mv_warranty_license_plate" optional="show"/>
-                <field name="mv_warranty_phone" optional="show"/>
-                <field name="reason_no_warranty" optional="show"/>
+                <field name="stock_lot_id" string="Số mã vạch"/>
+                <field name="qr_code" string="Mã QR Code"/>
+                <field name="product_id" string="Sản phẩm" domain="[('sale_ok', '=', True)]" options="{'no_open': True}"/>
+                <field name="stock_location_id" string="Ví trí kho" optional="hidden"/>
+                <field name="sale_order_ids" string="Đơn bán hàng" widget="many2many_tags" options="{'no_open': True}" optional="hidden"/>
+                <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+                <field name="helpdesk_ticket_ref" string="Mã phiếu" optional="hidden"/>
+                <field name="helpdesk_ticket_type_id" string="Loại phiếu" optional="show"/>
+                <field name="customer_warranty_date_activation" string="Ngày bảo hành" optional="hidden"/>
+                <field name="mv_num_of_km" optional="hidden"/>
+                <field name="mv_warranty_license_plate" optional="hidden"/>
+                <field name="mv_warranty_phone" optional="hidden"/>
+                <field name="reason_no_warranty" optional="hidden"/>
                 <field name="customer_date_activation" optional="hidden"/>
                 <field name="customer_phone_activation" optional="hidden"/>
                 <field name="customer_license_plates_activation" optional="hidden"/>
                 <field name="customer_mileage_activation" optional="hidden"/>
-                <field name="customer_warranty_mileage_activation" column_invisible="True"/>
-                <field name="stock_move_line_id" column_invisible="True"/>
+                <field name="customer_warranty_mileage_activation" optional="hidden"/>
+                <field name="product_activate_twice" string="Kích hoạt lần 2" optional="hidden"/>
+                <field name="lot_name" column_invisible="1"/>
+                <field name="sale_order_count" column_invisible="1"/>
+                <field name="helpdesk_ticket_id" column_invisible="1"/>
                 <field name="stock_move_id" column_invisible="True"/>
-                <field name="product_activate_twice" optional="hidden"/>
+                <field name="stock_move_line_id" column_invisible="True"/>
+                <field name="name" column_invisible="True"/>
             </tree>
         </field>
     </record>
@@ -106,14 +142,16 @@
         <field name="model">mv.helpdesk.ticket.product.moves</field>
         <field name="arch" type="xml">
             <search string="Ticket Registered SEARCH">
-                <field name="lot_name" filter_domain="['|', ('lot_name', 'ilike', self), ('stock_move_line_id.lot_name', 'ilike', self)]"/>
-                <field name="qr_code" filter_domain="['|', ('qr_code', 'ilike', self), ('stock_move_line_id.qr_code', 'ilike', self)]"/>
+                <field name="lot_name" filter_domain="['|', '|', ('lot_name', 'ilike', self), ('stock_move_line_id.lot_name', 'ilike', self), ('stock_lot_id.name', 'ilike', self)]"/>
+                <field name="qr_code" filter_domain="['|', '|', ('qr_code', 'ilike', self), ('stock_move_line_id.qr_code', 'ilike', self), ('stock_lot_id.ref', 'ilike', self)]"/>
                 <field name="helpdesk_ticket_id"/>
                 <field name="partner_id"/>
                 <filter string="Current Month" name="current_month" domain="[('helpdesk_ticket_id.create_date', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('helpdesk_ticket_id.create_date', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
                 <filter string="Previous Month" name="previous_month" domain="[('helpdesk_ticket_id.create_date', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')), ('helpdesk_ticket_id.create_date', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
                 <separator/>
-                <filter string="Ticket registered" name="filter_ticket_registered" domain="[('helpdesk_ticket_id', '!=', False)]"/>
+                <filter string="Registered ticket" name="filter_ticket_registered" domain="[('helpdesk_ticket_id', '!=', False)]"/>
+                <filter string="Warranty Activation Ticket" name="filter_ticket_activation_warranty" domain="[('helpdesk_ticket_type_id.code', 'in', ['kich_hoat_bao_hanh_dai_ly', 'kich_hoat_bao_hanh_nguoi_dung_cuoi'])]"/>
+                <filter string="Warranty Claim Ticket" name="filter_ticket_claim_warranty" domain="[('helpdesk_ticket_type_id.code', '=', 'yeu_cau_bao_hanh')]"/>
                 <group expand="0" string="Group By">
                     <filter string="Ticket" name="groupby_ticket" context="{'group_by':'helpdesk_ticket_id'}"/>
                     <filter string="Ticket Type" name="groupby_ticket_type" context="{'group_by':'helpdesk_ticket_type_id'}"/>
@@ -132,7 +170,7 @@
         <field name="view_mode">tree</field>
         <field name="search_view_id" ref="mv_helpdesk_ticket_product_moves_search_view"/>
         <field name="view_id" ref="mv_helpdesk_ticket_product_moves_tree_view"/>
-        <field name="domain" eval="[('stock_move_line_id', '!=', False)]"/>
+        <field name="domain" eval="[]"/>
         <field name="context">{'search_default_filter_ticket_registered': True}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">

@@ -6,6 +6,10 @@ from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
     END_USER_CODE,
 )
 
+HELPDESK_ACTIVATION_WARRANTY_TEAM = (
+    "mv_website_helpdesk.mv_website_helpdesk_helpdesk_team_warranty_activation_form"
+)
+
 
 class HelpdeskStockMoveLineReport(models.Model):
     _name = "mv.helpdesk.stock.move.line.report"
@@ -16,17 +20,17 @@ class HelpdeskStockMoveLineReport(models.Model):
     _order = "ticket_create_date desc"
 
     @api.model
-    def _get_default_helpdesk_warranty_team(self):
+    def get_default_helpdesk_activation_warranty_team(self):
         return self.env.ref(
-            "mv_website_helpdesk.mv_website_helpdesk_helpdesk_team_warranty_activation_form"
+            HELPDESK_ACTIVATION_WARRANTY_TEAM, raise_if_not_found=False
         ).id
 
     @api.model
-    def _get_new_stage(self):
+    def get_new_stage(self):
         return self.env.ref("mv_website_helpdesk.warranty_stage_new").id
 
     @api.model
-    def _get_done_stage(self):
+    def get_done_stage(self):
         return self.env.ref("mv_website_helpdesk.warranty_stage_done").id
 
     # ==== Product fields ====
@@ -38,12 +42,13 @@ class HelpdeskStockMoveLineReport(models.Model):
     product_att_ma_gai = fields.Char(readonly=True)
 
     # ==== Stock fields ====
+    stock_lot_id = fields.Many2one("stock.lot", readonly=True)
     stock_move_line_id = fields.Many2one("stock.move.line", readonly=True)
     serial_number = fields.Char(readonly=True)
     qrcode = fields.Char(readonly=True)
     week_number = fields.Many2one("inventory.period", readonly=True)
 
-    # ==== Helpdesk Ticket fields (For Warranty Activation ONLY) ====
+    # ==== Helpdesk Ticket fields ====
     ticket_create_date = fields.Datetime("Created On", readonly=True)
     ticket_create_day = fields.Char("Day", readonly=True)
     ticket_create_month = fields.Char("Month", readonly=True)
@@ -52,7 +57,17 @@ class HelpdeskStockMoveLineReport(models.Model):
     ticket_id = fields.Many2one("helpdesk.ticket", readonly=True)
     ticket_ref = fields.Char(readonly=True)
     ticket_type_id = fields.Many2one("helpdesk.ticket.type", readonly=True)
+    ticket_team = fields.Selection(
+        [
+            ("activation_warranty_team", "Team: Kích Hoạt Bảo Hành"),
+            ("claim_warranty_team", "Team Yêu Cầu Bảo Hành"),
+        ],
+        "Business Type",
+        readonly=True,
+    )
     ticket_stage_id = fields.Many2one("helpdesk.stage", readonly=True)
+
+    # ==== Partner fields ====
     parent_partner_id = fields.Many2one("res.partner", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
     partner_company_registry = fields.Char(readonly=True)
@@ -65,9 +80,9 @@ class HelpdeskStockMoveLineReport(models.Model):
 
     @api.model
     def _sql_tickets(self):
-        warranty_team_id = self._get_default_helpdesk_warranty_team()
-        ticket_stage_new = self._get_new_stage()
-        ticket_stage_done = self._get_done_stage()
+        warranty_team_id = self.get_default_helpdesk_activation_warranty_team()
+        ticket_stage_new = self.get_new_stage()
+        ticket_stage_done = self.get_done_stage()
         return f"""
                 SELECT t.id                                    AS ticket_id,
                         t.ticket_ref                            AS ticket_ref,
