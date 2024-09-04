@@ -343,8 +343,8 @@ class HelpdeskTicket(models.Model):
             error_messages.append((CODE_NOT_FOUND, message_err))
 
         # [!] ===== Validate codes has been registered on other tickets =====
-        qr_codes = list(set(validated_qr_code.mapped("qr_code")))
-        lot_serial_numbers = list(set(validated_lot_serial_number.mapped("lot_name")))
+        qr_codes = list(set(validated_qr_code.mapped("ref")))
+        lot_serial_numbers = list(set(validated_lot_serial_number.mapped("name")))
 
         # QR-Codes VALIDATION
         if qr_codes:
@@ -436,15 +436,14 @@ class HelpdeskTicket(models.Model):
         partner = kwargs.get("partner")
 
         for code in codes:
+            domain_sub_dealer = self._get_domain(SUB_DEALER_CODE, code, field_name)
             conflicting_ticket_sub_dealer = (
-                request.env[model_search]
-                .sudo()
-                .search(self._get_domain(SUB_DEALER_CODE, code, field_name), limit=1)
+                self.env[model_search].sudo().search(domain_sub_dealer, limit=1)
             )
+
+            domain_end_user = self._get_domain(END_USER_CODE, code, field_name)
             conflicting_ticket_end_user = (
-                request.env[model_search]
-                .sudo()
-                .search(self._get_domain(END_USER_CODE, code, field_name), limit=1)
+                self.env[model_search].sudo().search(domain_end_user, limit=1)
             )
 
             if (
@@ -458,7 +457,7 @@ class HelpdeskTicket(models.Model):
                 )
                 error_messages.append((CODE_ALREADY_REGISTERED, message_err))
             else:
-                if ticket_type.code in [SUB_DEALER_CODE, END_USER_CODE]:
+                if ticketType.code in [SUB_DEALER_CODE, END_USER_CODE]:
                     self._handle_code(
                         conflicting_ticket_sub_dealer=conflicting_ticket_sub_dealer,
                         conflicting_ticket_end_user=conflicting_ticket_end_user,

@@ -248,8 +248,8 @@ class MVWebsiteHelpdesk(http.Controller):
             error_messages.append((CODE_NOT_FOUND, message_err))
 
         # [!] ===== Validate codes has been registered on other tickets =====
-        qrcodes = list(set(valid_qr_code.mapped("qr_code")))
-        serial_numbers = list(set(valid_lot_serial_number.mapped("lot_name")))
+        qrcodes = list(set(valid_qr_code.mapped("ref")))
+        serial_numbers = list(set(valid_lot_serial_number.mapped("name")))
 
         # QR-Codes VALIDATION
         if not by_pass_check and qrcodes:
