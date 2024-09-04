@@ -141,12 +141,12 @@
 					</group>
 					<notebook>
 						<page string="Phiếu" name="page_tickets">
-							<field name="helpdesk_ticket_product_moves_ids" nolabel="1" context="{'create': False, 'edit': False}" options="{'no_open': True}">
+							<field name="helpdesk_ticket_product_moves_ids" nolabel="1" context="{'form_view_ref': 'mv_helpdesk.mv_helpdesk_ticket_product_moves_simple_form_view'}" options="{'no_open': True}">
 								<tree default_order="helpdesk_ticket_ref, lot_name, qr_code" create="false" edit="false" delete="false">
 									<field name="product_activate_twice" column_invisible="True"/>
 									<field name="partner_id" string="Đại lý" options="{'no_open': True}" optional="show"/>
 									<field name="product_id" string="Sản phẩm" options="{'no_open': True}" optional="hidden"/>
-									<field name="helpdesk_ticket_ref" string="Mã phiếu" column_invisible="True"/>
+									<field name="helpdesk_ticket_ref" string="Mã phiếu" optional="hidden"/>
 									<field name="helpdesk_ticket_type_id" string="Loại phiếu" options="{'no_open': True}" optional="hidden"/>
 									<field name="lot_name" string="Mã vạch" widget="badge" decoration-info="lot_name and not product_activate_twice" decoration-warning="product_activate_twice"/>
 									<field name="qr_code" string="Mã QR-Code" widget="badge" decoration-info="qr_code and not product_activate_twice" decoration-warning="product_activate_twice"/>

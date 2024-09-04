@@ -425,8 +425,8 @@ class HelpdeskTicketProductMoves(models.Model):
         action = {
             "name": _("Stock Info"),
             "type": "ir.actions.act_window",
-            "res_model": "stock.move",
-            "res_id": self.stock_move_id.id,
+            "res_model": "stock.lot",
+            "res_id": self.stock_lot_id.id,
             "context": {"create": False, "edit": False},
             "view_mode": "form",
             "target": "new",
