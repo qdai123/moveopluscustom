@@ -49,41 +49,43 @@ class MvComputeDiscountLine(models.Model):
     order_line_ids = fields.One2many(
         "sale.order.line", "discount_line_id", "Dòng đơn hàng"
     )
-    opening_balance = fields.Monetary("Số dư đầu kỳ", digits=(16, 2))
-    closing_balance = fields.Monetary("Số dư cuối kỳ", digits=(16, 2))
+    opening_balance = fields.Monetary("Số dư đầu kỳ")
+    closing_balance = fields.Monetary("Số dư cuối kỳ")
 
     # TOTAL Fields:
     amount_total = fields.Float("Doanh thu tháng")
     total_discount = fields.Float("Total % Discount")
     total_money = fields.Integer(
-        "Tổng tiền chiết khấu ", compute="_compute_total_money", store=True
+        "Tổng tiền chiết khấu ",
+        compute="_compute_total_money",
+        store=True,
     )
 
     # Chiết Khấu 1 Tháng
     is_month = fields.Boolean()
-    month = fields.Float("% chiết khấu tháng", digits=(16, 1))
+    month = fields.Float("% chiết khấu tháng", digits=(16, 2))
     month_money = fields.Integer("Số tiền chiết khấu tháng")
 
     # Chiết Khấu 2 Tháng
     is_two_month = fields.Boolean()
     amount_two_month = fields.Float("Số tiền 2 Tháng")
-    two_month = fields.Float("% chiết khấu 2 tháng", digits=(16, 1))
+    two_month = fields.Float("% chiết khấu 2 tháng", digits=(16, 2))
     two_money = fields.Integer("Số tiền chiết khấu 2 tháng")
 
     # Chiết Khấu Quý
     is_quarter = fields.Boolean()
-    quarter = fields.Float("% chiết khấu quý", digits=(16, 1))
+    quarter = fields.Float("% chiết khấu quý", digits=(16, 2))
     quarter_money = fields.Integer("Số tiền chiết khấu quý")
 
     # Chiết Khấu Năm
     is_year = fields.Boolean()
-    year = fields.Float("% chiết khấu năm", digits=(16, 1))
+    year = fields.Float("% chiết khấu năm", digits=(16, 2))
     year_money = fields.Integer("Số tiền chiết khấu năm")
 
     # Chiết Khấu Khuyến Khích
     is_promote_discount = fields.Boolean()
     promote_discount_percentage = fields.Float(
-        "% chiết khấu khuyến khích", digits=(16, 1)
+        "% chiết khấu khuyến khích", digits=(16, 2)
     )
     promote_discount_money = fields.Float("Số tiền chiết khấu khuyến khích")
 

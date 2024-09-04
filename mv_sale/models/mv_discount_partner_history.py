@@ -33,9 +33,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
     is_positive_money = fields.Boolean(string="C/k Dương", default=False)
     is_negative_money = fields.Boolean(string="C/k Âm", default=False)
     total_money = fields.Monetary(
-        string="Tổng tiền",
-        currency_field="partner_currency_id",
-        digits=(16, 2),
+        string="Tổng tiền", currency_field="partner_currency_id"
     )
     total_money_discount_display = fields.Char(string="Số tiền chiết khấu (+/-)")
     history_description = fields.Char(string="Diễn giải/Hành động", readonly=True)
@@ -53,9 +51,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
     )
     sale_order_state = fields.Char(string="Trạng thái đơn hàng")
     sale_order_discount_money_apply = fields.Monetary(
-        string="Tiền chiết khấu áp dụng",
-        currency_field="partner_currency_id",
-        digits=(16, 2),
+        string="Tiền chiết khấu áp dụng", currency_field="partner_currency_id"
     )
     # === CHÍNH SÁCH CHIẾT KHẤU SẢN LƯỢNG ===
     production_discount_policy_id = fields.Many2one(
@@ -64,9 +60,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
         domain=[("parent_id", "!=", False), ("partner_id", "=", partner_id)],
     )
     production_discount_policy_total_money = fields.Monetary(
-        string="Tiền CKSL",
-        currency_field="partner_currency_id",
-        digits=(16, 2),
+        string="Tiền CKSL", currency_field="partner_currency_id"
     )
     # === CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===
     warranty_discount_policy_id = fields.Many2one(
@@ -75,9 +69,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
         domain=[("parent_id", "!=", False), ("partner_id", "=", partner_id)],
     )
     warranty_discount_policy_total_money = fields.Monetary(
-        string="Tiền CKKHBH",
-        currency_field="partner_currency_id",
-        digits=(16, 2),
+        string="Tiền CKKHBH", currency_field="partner_currency_id"
     )
 
     @api.model

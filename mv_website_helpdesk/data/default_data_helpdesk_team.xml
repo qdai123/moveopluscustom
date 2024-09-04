@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <data>
-        <data noupdate="1">
-            <!-- Default helpdesk ticket type data -->
-            <record id="mv_helpdesk_claim_warranty_type" model="helpdesk.ticket.type">
-                <field name="name">Yêu cầu bảo hành</field>
-                <field name="code">yeu_cau_bao_hanh</field>
-                <field name="user_for_warranty_activation" eval="False" />
-            </record>
-        </data>
+    <data noupdate="1">
+        <!-- Default helpdesk ticket type data -->
+        <record id="mv_helpdesk_claim_warranty_type" model="helpdesk.ticket.type">
+            <field name="name">Yêu cầu bảo hành</field>
+            <field name="code">yeu_cau_bao_hanh</field>
+            <field name="user_for_warranty_activation" eval="False" />
+        </record>
+    </data>
 
+    <data>
         <!-- MOVEOPLUS Helpdesk Team Default: Warranty Activation Form -->
         <record id="mv_website_helpdesk_helpdesk_team_warranty_activation_form" model="helpdesk.team">
             <field name="name">Kích hoạt bảo hành</field>

@@ -13,7 +13,7 @@ class MvReportDiscount(models.TransientModel):
     _name = "mv.report.discount"
     _description = "Màn hình báo cáo"
 
-    year = fields.Selection(get_years(), string="Chọn Năm", required=1)
+    year = fields.Selection(get_years(), string="Chọn Năm", required=True)
     partner_id = fields.Many2one("res.partner")
     type = fields.Selection(
         [
