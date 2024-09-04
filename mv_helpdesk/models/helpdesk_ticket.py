@@ -399,7 +399,7 @@ class HelpdeskTicket(models.Model):
             valid_codes = [str(code) for code in codes if isinstance(code, (int, str))]
 
         product_lots = self.env["stock.lot"].search(
-            [("qr_code", "in", valid_codes), ("inventory_period_id", "!=", False)],
+            [("ref", "in", valid_codes), ("inventory_period_id", "!=", False)],
             order="ref desc",
         )
         return product_lots or self.env["stock.lot"]
