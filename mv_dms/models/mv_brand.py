@@ -23,6 +23,7 @@ class MvBrand(models.Model):
     type = fields.Selection(BRAND_TYPEs, "Loại", default="size_lop")
     uom_id = fields.Many2one("uom.uom", default=_get_default_uom_id, required=True)
     uom_name = fields.Char("Đơn vị", related="uom_id.name", readonly=True)
+    mv_brand_categ_id = fields.Many2one("mv.brand.category", "Danh mục thương hiệu")
 
     _sql_constraints = [
         (

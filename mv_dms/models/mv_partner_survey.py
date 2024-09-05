@@ -198,8 +198,8 @@ class MvPartnerSurvey(models.Model):
     )
     state = fields.Selection(
         BASE_SURVEY_STATEs,
+        "Trạng thái",
         default="draft",
-        string="Trạng thái",
         readonly=True,
         index=True,
         tracking=True,
@@ -283,8 +283,8 @@ class MvPartnerSurvey(models.Model):
             ("average", "Trung bình"),
             ("weak", "Yếu"),
         ],
+        "Khả năng tài chính",
         default="good",
-        string="Khả năng tài chính",
         tracking=True,
     )
     # BÁN LẺ
