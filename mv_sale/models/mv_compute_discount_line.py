@@ -412,6 +412,8 @@ class MvComputeDiscountLine(models.Model):
             WHERE so.date_order BETWEEN %s AND %s
                 AND so.partner_id = %s
                 AND so.state = 'sale'
+                AND (so.is_order_returns = FALSE OR so.is_order_returns ISNULL)
+                AND (so.is_claim_warranty = FALSE OR so.is_claim_warranty ISNULL)
             GROUP BY so.id;
         """
         self.env.cr.execute(query, [date_from, date_to, partner_id.id])
