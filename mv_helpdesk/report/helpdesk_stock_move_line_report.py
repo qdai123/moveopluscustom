@@ -57,14 +57,6 @@ class HelpdeskStockMoveLineReport(models.Model):
     ticket_id = fields.Many2one("helpdesk.ticket", readonly=True)
     ticket_ref = fields.Char(readonly=True)
     ticket_type_id = fields.Many2one("helpdesk.ticket.type", readonly=True)
-    ticket_team = fields.Selection(
-        [
-            ("activation_warranty_team", "Team: Kích Hoạt Bảo Hành"),
-            ("claim_warranty_team", "Team Yêu Cầu Bảo Hành"),
-        ],
-        "Business Type",
-        readonly=True,
-    )
     ticket_stage_id = fields.Many2one("helpdesk.stage", readonly=True)
 
     # ==== Partner fields ====
