@@ -34,7 +34,8 @@
                             <field name="product_barcode" string="Barcode"/>
                             <field name="product_att_size_lop" string="Size (lốp)"/>
                             <field name="product_att_ma_gai" string="Mã gai"/>
-		                    <field name="stock_move_line_id" invisible="True"/>
+		                    <field name="stock_lot_id" invisible="True"/>
+		                    <field name="stock_location_id" invisible="True"/>
                             <field name="serial_number" string="Mã vạch"/>
                             <field name="qrcode" string="QR-Code"/>
                             <field name="week_number" string="Số tuần" options="{'no_open': True}"/>
@@ -81,7 +82,8 @@
 				<field name="product_att_size_lop" string="Size (lốp)" optional="show"/>
 				<field name="product_att_ma_gai" string="Mã gai" optional="show"/>
 				<field name="product_country_of_origin" string="Quốc Gia" options="{'no_open': True}" optional="show"/>
-				<field name="stock_move_line_id" column_invisible="True"/>
+				<field name="stock_lot_id" column_invisible="True"/>
+				<field name="stock_location_id" column_invisible="True"/>
 				<field name="serial_number" string="Mã vạch"/>
 				<field name="qrcode" string="QR-Code"/>
 				<field name="week_number" string="Số tuần" optional="show"/>
