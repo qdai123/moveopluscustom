@@ -32,6 +32,11 @@ class SaleOrder(models.Model):
         compute="_compute_permissions",
         string="Discount Agency Amount should be recomputed",
     )
+    should_recompute_discount_agency = fields.Boolean(
+        string="Discount Agency Amount should be recomputed",
+        default=False,
+        readonly=True,
+    )
     is_order_returns = fields.Boolean(
         default=False, help="Ghi nhận: Là đơn đổi/trả hàng."
     )  # TODO: Needs study cases for SO Returns
@@ -40,26 +45,47 @@ class SaleOrder(models.Model):
 
     # === PARTNER FIELDS ===#
     partner_agency = fields.Boolean(
-        related="partner_id.is_agency", store=True, readonly=True
+        related="partner_id.is_agency",
+        store=True,
+        readonly=True,
     )
     partner_white_agency = fields.Boolean(
-        related="partner_id.is_white_agency", store=True, readonly=True
+        related="partner_id.is_white_agency",
+        store=True,
+        readonly=True,
     )
     partner_southern_agency = fields.Boolean(
-        related="partner_id.is_southern_agency", store=True, readonly=True
+        related="partner_id.is_southern_agency",
+        store=True,
+        readonly=True,
     )
     bank_guarantee = fields.Boolean(
-        related="partner_id.bank_guarantee", store=True, readonly=True
+        related="partner_id.bank_guarantee",
+        store=True,
+        readonly=True,
     )
-    discount_bank_guarantee = fields.Float(compute="_compute_discount", store=True)
+    discount_bank_guarantee = fields.Float(
+        compute="_compute_discount",
+        store=True,
+    )
     after_discount_bank_guarantee = fields.Float(
-        compute="_compute_discount", store=True
+        compute="_compute_discount",
+        store=True,
     )
 
     # === DISCOUNT POLICY FIELDS ===#
-    discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
-    check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
-    percentage = fields.Float(compute="_compute_discount", store=True)
+    discount_line_id = fields.Many2one(
+        "mv.compute.discount.line",
+        readonly=True,
+    )
+    check_discount_10 = fields.Boolean(
+        compute="_compute_discount",
+        store=True,
+    )
+    percentage = fields.Float(
+        compute="_compute_discount",
+        store=True,
+    )
     bonus_max = fields.Float(
         compute="_compute_bonus_order_line",
         store=True,
@@ -75,7 +101,10 @@ class SaleOrder(models.Model):
         store=True,
         help="Số tiền Đại lý có thể áp dụng để tính chiết khấu.",
     )
-    is_claim_warranty = fields.Boolean("Áp dụng CS bảo hành", readonly=True)
+    is_claim_warranty = fields.Boolean(
+        "Áp dụng CS bảo hành",
+        readonly=True,
+    )
     mv_moves_warranty_ids = fields.Many2many(
         "mv.helpdesk.ticket.product.moves",
         "order_warranty_products_relation",
@@ -357,10 +386,14 @@ class SaleOrder(models.Model):
     # ==================================
 
     def write(self, vals):
-        if "product_uom_qty" in vals and vals["product_uom_qty"]:
-            for order in self:
-                order._update_programs_and_rewards()
-                order._auto_apply_rewards()
+        if "order_line" in vals and vals["order_line"]:
+            for item in vals["order_line"]:
+                if (
+                    "product_uom_qty" in item[2]
+                    and item[2]["product_uom_qty"]
+                    and not self.should_recompute_discount_agency
+                ):
+                    self.should_recompute_discount_agency = True
 
         return super(SaleOrder, self).write(vals)
 
@@ -572,12 +605,13 @@ class SaleOrder(models.Model):
         order_with_company = order.with_company(order.company_id)
         context["default_sale_order_id"] = order.id
         context["default_total_weight"] = order._get_estimated_weight()
-        context["default_discount_amount_apply"] = order.partner_id.amount_currency
 
         if context.get("recompute_discount_agency"):
             wizard_name = "Cập nhật chiết khấu"
+            context["default_discount_amount_apply"] = order.bonus_remaining
         else:
             wizard_name = "Chiết khấu"
+            context["default_discount_amount_apply"] = order.partner_id.amount_currency
 
         carrier = (
             (
@@ -709,6 +743,13 @@ class SaleOrder(models.Model):
             ):
                 error_message = (
                     "Các đơn hàng sau không có Phương thức vận chuyển HOẶC Chiết Khấu Sản Lượng, vui lòng kiểm tra: %s"
+                    % ", ".join(orders_agency.mapped("display_name")),
+                )
+                raise UserError(error_message)
+
+            if all(order.should_recompute_discount_agency for order in orders_agency):
+                error_message = (
+                    "Các đơn hàng sau cần được tính lại Chiết Khấu Sản Lượng: %s"
                     % ", ".join(orders_agency.mapped("display_name")),
                 )
                 raise UserError(error_message)
