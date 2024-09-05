@@ -1,21 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_mv_brand_tree" model="ir.ui.view">
-        <field name="name">mv.brand.tree</field>
-        <field name="model">mv.brand</field>
-        <field name="arch" type="xml">
-            <tree editable="bottom">
-                <field name="name" class="fw-bold"/>
-                <field name="type"/>
-                <field name="uom_id" string="Đơn vị" options="{'no_create_edit': True}" groups="uom.group_uom"/>
-            </tree>
-        </field>
-    </record>
+	<record id="view_mv_brand_tree" model="ir.ui.view">
+		<field name="name">mv.brand.tree</field>
+		<field name="model">mv.brand</field>
+		<field name="arch" type="xml">
+			<tree string="Brands" multi_edit="true" sample="true">
+				<field name="name" class="fw-bold"/>
+				<field name="default_code" optional="show"/>
+				<field name="mv_brand_categ_id" optional="hide"/>
+				<field name="uom_id" readonly="1" optional="show" groups="uom.group_uom"/>
+				<field name="active" column_invisible="True"/>
+			</tree>
+		</field>
+	</record>
 
-    <record id="action_view_mv_brand" model="ir.actions.act_window">
-        <field name="name">Brand</field>
-        <field name="res_model">mv.brand</field>
-        <field name="view_mode">tree</field>
-        <field name="context">{'default_view_type': 'list'}</field>
-    </record>
+	<record id="view_mv_brand_form" model="ir.ui.view">
+		<field name="name">mv.brand.form</field>
+		<field name="model">mv.brand</field>
+		<field name="arch" type="xml">
+			<form string="Brands">
+				<sheet name="brand_form">
+					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<field name="id" invisible="1"/>
+                    <field name="image_1920" widget="image" class="oe_avatar" options="{'preview_image': 'image_128'}"/>
+					<field name="name" class="fw-bold"/>
+					<field name="default_code" optional="show"/>
+					<field name="mv_brand_categ_id" optional="hide"/>
+					<field name="uom_id" readonly="1" optional="show" groups="uom.group_uom"/>
+					<field name="active" column_invisible="True"/>
+				</sheet>
+			</form>
+		</field>
+	</record>
+
+	<record id="action_view_mv_brand" model="ir.actions.act_window">
+		<field name="name">Brands</field>
+		<field name="res_model">mv.brand</field>
+		<field name="view_mode">kanban,tree,form</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_smiling_face">
+				Create a new brand
+			</p>
+		</field>
+	</record>
 </odoo>
