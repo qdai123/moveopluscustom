@@ -20,7 +20,11 @@
 				<group class="col-8">
 					<field name="discount_agency_set" invisible="1"/>
 					<field name="discount_amount_invalid" invisible="1"/>
-					<field string="Số tiền chiết khấu" name="discount_amount_apply"/>
+					<field string="Số tiền chiết khấu" name="discount_amount_apply" readonly="set_to_zero"/>
+					<label for="set_to_zero" string="Trả về 0" invisible="not is_update"/>
+					<div class="row" invisible="not is_update">
+						<field name="set_to_zero" class="d-inline"/><span class="text-muted fst-italic">(Chiết khấu sản lượng đang áp dụng sẽ được trả về = 0)</span>
+					</div>
 					<field string="Tiền chiết khấu hiện có"
 					       name="discount_amount_remaining"
 					       widget="monetary"

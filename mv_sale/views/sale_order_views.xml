@@ -11,6 +11,7 @@
 				<field name="partner_agency" column_invisible="1"/>
 				<field name="partner_white_agency" column_invisible="1"/>
 				<field name="partner_southern_agency" column_invisible="1"/>
+				<field name="should_recompute_discount_agency" column_invisible="1"/>
 			</xpath>
 		</field>
 	</record>
@@ -32,6 +33,7 @@
 				<field name="discount_agency_set" invisible="1"/>
 				<field name="compute_discount_agency" invisible="1"/>
 				<field name="recompute_discount_agency" invisible="1"/>
+				<field name="should_recompute_discount_agency" string="Cần cập nhật C/K" invisible="1"/>
             </xpath>
 			<xpath expr="//group[@name='order_details']" position="inside">
 				<field name="check_discount_10" invisible="1"/>

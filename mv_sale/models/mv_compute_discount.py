@@ -207,6 +207,7 @@ class MvComputeDiscount(models.Model):
             and order.product_id.detailed_type == "product"
             and order.qty_delivered > 0
             and order.qty_invoiced > 0
+            and order.discount != 100
         )
 
         # Fetch partners at once
@@ -250,15 +251,17 @@ class MvComputeDiscount(models.Model):
                 lambda sol: sol.order_id.check_category_product(sol.product_id.categ_id)
                 and sol.product_id.detailed_type == "product"
                 and sol.qty_delivered > 0
+                and sol.price_unit > 0
+                and sol.discount != 100
             )
             if orders_by_child_of_partner_agency:
                 order_by_partner_agency += orders_by_child_of_partner_agency
 
             # [UP] Update Quantity (Get only with [qty_delivered] field)
             total_quantity_delivered += sum(
-                order_by_partner_agency.filtered(lambda rec: rec.price_unit > 0).mapped(
-                    "qty_delivered"
-                )
+                order_by_partner_agency.filtered(
+                    lambda rec: rec.price_unit > 0 and rec.discount != 100
+                ).mapped("qty_delivered")
             )
             vals["quantity"] = total_quantity_delivered
 
@@ -276,9 +279,7 @@ class MvComputeDiscount(models.Model):
 
                 # [UP] Update Total Sales
                 total_sales += sum(
-                    order_by_partner_agency.filtered(
-                        lambda rec: rec.price_unit > 0
-                    ).mapped("price_subtotal_before_discount")
+                    order_by_partner_agency.mapped("price_subtotal_before_discount")
                 )
                 vals["amount_total"] = total_sales
 
