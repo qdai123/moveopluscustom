@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import ValidationError
 
 
-class MvBrandCategory(models.Model):
-    _name = "mv.brand.category"
-    _description = _("Brand Category")
-    _parent_name = "parent_id"
-    _parent_store = True
-    _rec_name = "complete_name"
-    _order = "complete_name"
+class MvShopCategory(models.Model):
+    _name = "mv.shop.category"
+    _description = _("Shop Category")
 
     name = fields.Char(
         "Name",
@@ -23,23 +19,23 @@ class MvBrandCategory(models.Model):
         store=True,
     )
     parent_id = fields.Many2one(
-        "mv.brand.category",
-        "Parent Category",
+        comodel_name="mv.shop.category",
+        string="Parent Category",
         index=True,
         ondelete="cascade",
     )
     parent_path = fields.Char(index=True, unaccent=False)
     child_id = fields.One2many(
-        "mv.brand.category",
+        "mv.shop.category",
         "parent_id",
         "Child Categories",
     )
-    brand_count = fields.Integer(
-        "# Brands",
-        compute="_compute_brand_count",
-        help="The number of brands under this category (Does not consider the children categories)",
+    shop_count = fields.Integer(
+        "# Shops",
+        compute="_compute_shop_count",
+        help="The number of shops under this category (Does not consider the children categories)",
     )
-    brand_properties_definition = fields.PropertiesDefinition("Brand Properties")
+    shop_properties_definition = fields.PropertiesDefinition("Shop Properties")
 
     @api.depends("name", "parent_id.complete_name")
     def _compute_complete_name(self):
@@ -52,10 +48,10 @@ class MvBrandCategory(models.Model):
             else:
                 category.complete_name = category.name
 
-    def _compute_brand_count(self):
-        read_group_res = self.env["mv.brand"]._read_group(
-            [("mv_brand_categ_id", "child_of", self.ids)],
-            ["mv_brand_categ_id"],
+    def _compute_shop_count(self):
+        read_group_res = self.env["mv.shop"]._read_group(
+            [("mv_shop_categ_id", "child_of", self.ids)],
+            ["mv_shop_categ_id"],
             ["__count"],
         )
         group_data = {categ.id: count for categ, count in read_group_res}
@@ -81,22 +77,3 @@ class MvBrandCategory(models.Model):
             return super()._compute_display_name()
         for record in self:
             record.display_name = record.name
-
-    @api.ondelete(at_uninstall=False)
-    def _unlink_except_default_category(self):
-        main_category = self.env.ref(
-            "mv_dms.brand_category_all", raise_if_not_found=False
-        )
-        if main_category and main_category in self:
-            raise UserError(
-                _(
-                    "You cannot delete this brand category, it is the default generic category."
-                )
-            )
-        brand_tire_category = self.env.ref(
-            "mv_dms.brand_category_tire", raise_if_not_found=False
-        )
-        if brand_tire_category and brand_tire_category in self:
-            raise UserError(
-                _("You cannot delete the %s brand category.", brand_tire_category.name)
-            )

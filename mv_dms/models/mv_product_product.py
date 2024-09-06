@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import _, api, fields, models, tools
 
-PRODUCT_TYPEs = [
-    ("size_lop", "Size Lốp"),
-    ("lubricant", "Dầu nhớt"),
-    ("battery", "Ắc quy"),
-]
-
 
 class MvProductProduct(models.Model):
     _name = "mv.product.product"
@@ -18,11 +12,7 @@ class MvProductProduct(models.Model):
         # Deletion forbidden (at least through unlink)
         return self.env.ref("uom.product_uom_unit")
 
-    active = fields.Boolean(
-        "Active",
-        default=True,
-        help="If unchecked, it will allow you to hide the product without removing it.",
-    )
+    active = fields.Boolean("Active", default=True)
     name = fields.Char(
         "Tên sản phẩm",
         compute="_compute_name",
@@ -33,12 +23,6 @@ class MvProductProduct(models.Model):
     partner_survey_ref = fields.Char(
         "Mã khảo sát đối tác",
         compute="_compute_partner_survey_ref",
-    )
-    product_type = fields.Selection(
-        PRODUCT_TYPEs,
-        "Loại sản phẩm",
-        default="size_lop",
-        required=True,
     )
     product_code = fields.Char("Mã sản phẩm", index=True)
     product_attribute_id = fields.Many2one("mv.product.attribute", "Thuộc tính")
@@ -54,11 +38,6 @@ class MvProductProduct(models.Model):
             "The name of the product must be unique!",
         )
     ]
-
-    @api.onchange("brand_id")
-    def _onchange_brand_id(self):
-        if self.brand_id:
-            self.product_type = self.brand_id.type
 
     @api.depends("product_attribute_id", "brand_id")
     def _compute_name(self):

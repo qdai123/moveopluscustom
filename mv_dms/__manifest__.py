@@ -30,12 +30,14 @@ increase revenue, and enhance customer satisfaction by providing a unified view 
         "security/ir.model.access.csv",
         # VIEWS
         "views/mv_brand_views.xml",
+        "views/mv_brand_category_views.xml",
         "views/mv_brand_proportion.xml",
         "views/mv_region_views.xml",
         "views/mv_product_attribute_views.xml",
         "views/mv_product_product_views.xml",
         "views/mv_service_detail_views.xml",
         "views/mv_shop_views.xml",
+        "views/mv_shop_category_views.xml",
         "views/mv_partner_survey_views.xml",
         # WIZARD
         # MENU

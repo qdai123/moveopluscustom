@@ -50,6 +50,15 @@ class MvBrand(models.Model):
         group_expand="_read_group_categ_id",
         required=True,
     )
+    priority = fields.Selection(
+        [
+            ("0", "Normal"),
+            ("1", "Favorite"),
+        ],
+        "Yêu thích",
+        default="0",
+    )
+    color = fields.Integer("Color Index")
     # all image fields are base64 encoded and PIL-supported
     image_1920 = fields.Image(
         "Hình ảnh",
