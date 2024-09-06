@@ -150,7 +150,9 @@ Tiền chiết khấu hiện có
 		<xpath expr="//a[@name='website_sale_main_button']" position="after">
 			<div class="warning_checkout" style="padding-top: inherit;">
 				<t t-if="request.params.get('show_warning')" name="show_warning">
-					<div class="alert alert-danger text-center" role="alert">Bạn phải đặt từ 4 lốp xe trở lên!</div>
+					<div class="alert alert-danger text-center" role="alert">
+						Bạn phải đặt từ <t t-esc="request.env.user.partner_id.quantity_threshold_value"/> lốp xe trở lên!
+					</div>
 				</t>
 				<t t-if="request.params.get('missing_partner_discount')" name="missing_partner_discount">
 					<div class="alert alert-danger text-center" role="alert">Vui lòng áp dụng Chiết khấu cho đơn hàng!</div>
