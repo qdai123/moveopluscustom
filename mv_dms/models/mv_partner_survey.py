@@ -111,18 +111,21 @@ class MvPartnerSurvey(models.Model):
         "partner_survey_id",
         "Tỷ trọng thương hiệu (Lốp)",
         domain=_domain_brand_is_tire,
+        context={"default_is_tire": True},
     )
     brand_proportion_lubricant_ids = fields.One2many(
         "mv.brand.proportion",
         "partner_survey_id",
         "Tỷ trọng thương hiệu (Dầu nhớt)",
         domain=_domain_brand_is_lubricant,
+        context={"default_is_lubricant": True},
     )
     brand_proportion_battery_ids = fields.One2many(
         "mv.brand.proportion",
         "partner_survey_id",
         "Tỷ trọng thương hiệu (Ắc quy)",
         domain=_domain_brand_is_battery,
+        context={"default_is_battery": True},
     )
     total_quantity_brand_proportion_of_tire = fields.Float(
         "Tổng số lượng theo tỷ trọng thương hiệu (Lốp)",
@@ -147,31 +150,28 @@ class MvPartnerSurvey(models.Model):
         "mv_service_detail_partner_survey_rel",
         "service_detail_id",
         "partner_survey_id",
-        "Dịch vụ",
+        "Sản phẩm dịch vụ",
     )
-    mv_product_ids = fields.Many2many(
+    mv_product_tire_ids = fields.One2many(
         "mv.product.product",
-        "mv_product_partner_survey_rel",
-        "mv_product_id",
         "partner_survey_id",
-        "TOP Sản phẩm (Size Lốp)",
-        domain="[('product_type', 'in',  ['size_lop'])]",
+        "TOP Sản phẩm (Lốp xe)",
+        domain=_domain_brand_is_tire,
+        context={"default_is_tire": True},
     )
-    mv_product_lubricant_ids = fields.Many2many(
+    mv_product_lubricant_ids = fields.One2many(
         "mv.product.product",
-        "mv_product_lubricant_partner_survey_rel",
-        "mv_product_id",
         "partner_survey_id",
         "TOP Sản phẩm (Dầu nhớt)",
-        domain="[('product_type', 'in',  ['lubricant'])]",
+        domain=_domain_brand_is_lubricant,
+        context={"default_is_lubricant": True},
     )
-    mv_product_battery_ids = fields.Many2many(
+    mv_product_battery_ids = fields.One2many(
         "mv.product.product",
-        "mv_product_battery_partner_survey_rel",
-        "mv_product_id",
         "partner_survey_id",
         "TOP Sản phẩm (Ắc quy)",
-        domain="[('product_type', 'in',  ['battery'])]",
+        domain=_domain_brand_is_battery,
+        context={"default_is_battery": True},
     )
 
     # === BASE Fields ===#

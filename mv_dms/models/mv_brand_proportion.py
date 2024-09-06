@@ -34,26 +34,29 @@ class MvBrandProportion(models.Model):
 
     @api.depends(
         "partner_survey_id",
-        "partner_survey_id.total_quantity_brand_proportion",
+        "partner_survey_id.total_quantity_brand_proportion_of_tire",
+        "partner_survey_id.total_quantity_brand_proportion_of_lubricant",
+        "partner_survey_id.total_quantity_brand_proportion_battery",
         "quantity_per_month",
     )
     def _compute_proportion(self):
-        """
-        Compute the proportion of the brand based on the quantity per month and the total quantity.
-
-        This method calculates the proportion of the brand for the partner survey and updates the
-        `proportion` field accordingly.
-
-        :return: None
-        """
         for record in self:
-            if (
-                record.partner_survey_id
-                and record.partner_survey_id.total_quantity_brand_proportion
-            ):
-                record.proportion = (
-                    record.quantity_per_month
-                    / record.partner_survey_id.total_quantity_brand_proportion
-                ) * 1
+            has_partner_survey = record.partner_survey_id
+            if has_partner_survey.total_quantity_brand_proportion_of_tire:
+                if has_partner_survey:
+                    record.proportion = (
+                        record.quantity_per_month
+                        / record.partner_survey_id.total_quantity_brand_proportion_of_tire
+                    ) * 1
+                elif has_partner_survey.total_quantity_brand_proportion_of_lubricant:
+                    record.proportion = (
+                        record.quantity_per_month
+                        / record.partner_survey_id.total_quantity_brand_proportion_of_lubricant
+                    ) * 1
+                elif has_partner_survey.total_quantity_brand_proportion_battery:
+                    record.proportion = (
+                        record.quantity_per_month
+                        / record.partner_survey_id.total_quantity_brand_proportion_battery
+                    ) * 1
             else:
                 record.proportion = 0

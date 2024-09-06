@@ -6,7 +6,7 @@
 		</record>
 		<record id="brand_category_tire" model="mv.brand.category">
 			<field name="parent_id" ref="brand_category_all"/>
-			<field name="name">Tre</field>
+			<field name="name">Tire</field>
 		</record>
 		<record id="brand_category_lubricant" model="mv.brand.category">
 			<field name="parent_id" ref="brand_category_all"/>

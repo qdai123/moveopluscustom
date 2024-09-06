@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
-from odoo import _, api, fields, models, tools
+from odoo import _, api, fields, models
 
 
 class MvProductProduct(models.Model):
     _name = "mv.product.product"
-    _description = _("Product Variant")
-    _order = "product_code, name, id"
+    _description = _("Product")
 
-    @tools.ormcache()
-    def _get_default_uom_id(self):
-        # Deletion forbidden (at least through unlink)
-        return self.env.ref("uom.product_uom_unit")
-
+    partner_survey_id = fields.Many2one(
+        comodel_name="mv.partner.survey",
+        string="Phiếu khảo sát",
+        required=True,
+        index=True,
+        ondelete="restrict",
+    )
+    partner_survey_ref = fields.Char(
+        "Mã khảo sát đối tác",
+        compute="_compute_partner_survey_ref",
+    )
     active = fields.Boolean("Active", default=True)
     name = fields.Char(
         "Tên sản phẩm",
@@ -20,16 +25,10 @@ class MvProductProduct(models.Model):
         readonly=False,
         index="trigram",
     )
-    partner_survey_ref = fields.Char(
-        "Mã khảo sát đối tác",
-        compute="_compute_partner_survey_ref",
-    )
-    product_code = fields.Char("Mã sản phẩm", index=True)
-    product_attribute_id = fields.Many2one("mv.product.attribute", "Thuộc tính")
+    product_attribute_id = fields.Many2one("mv.product.attribute", "Thuộc tính S/P")
     brand_id = fields.Many2one("mv.brand", "Hãng/Thương hiệu")
+    uom_id = fields.Many2one("uom.uom", "Đơn vị", related="brand_id.uom_id")
     quantity_per_month = fields.Integer("Số lượng mỗi tháng", default=0)
-    uom_id = fields.Many2one("uom.uom", default=_get_default_uom_id, required=True)
-    uom_name = fields.Char("Đơn vị", related="uom_id.name", readonly=True)
 
     _sql_constraints = [
         (
@@ -43,17 +42,17 @@ class MvProductProduct(models.Model):
     def _compute_name(self):
         for product in self:
             if product.product_attribute_id and product.brand_id:
-                product.name = "%s %s (%s)" % (
+                product.name = "%s %s" % (
                     product.brand_id.name,
                     product.product_attribute_id.name,
-                    (
-                        "Loại: Lốp xe"
-                        if product.brand_id.type == "size_lop"
-                        else "Loại: Dầu nhớt"
-                    ),
                 )
 
+    @api.depends("partner_survey_id")
     @api.depends_context("partner_survey_ref")
     def _compute_partner_survey_ref(self):
         for product in self:
-            product.partner_survey_ref = self.env.context.get("partner_survey_ref")
+            survey_ref = self.env.context.get("partner_survey_ref")
+            if survey_ref:
+                product.partner_survey_ref = survey_ref
+            else:
+                product.partner_survey_ref = product.partner_survey_id.name

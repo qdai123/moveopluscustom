@@ -104,42 +104,49 @@
 					<label for="shop_ids" string="## Thông tin cửa hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
 					<field name="shop_count" invisible="1"/>
 					<field name="shop_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
-						<tree editable="bottom">
+						<tree editable="bottom" no_open="True">
 							<field name="name" string="Tên cửa hàng"/>
+							<field name="mv_shop_categ_id" options="{'no_open': True}" required="1"/>
 							<field name="street"/>
-							<field name="country_id" options="{'no_open': True}" optional="show"/>
-							<field name="state_id" options="{'no_open': True}" required="country_id" readonly="not country_id" optional="show"/>
+							<field name="country_id" options="{'no_open': True}"/>
+							<field name="state_id" options="{'no_open': True}" required="country_id" readonly="not country_id"/>
 							<field name="district_id" options="{'no_open': True}" required="country_id and state_id" readonly="not country_id or not state_id" optional="show"/>
 							<field name="wards_id" options="{'no_open': True}" required="country_id and state_id and district_id" readonly="not country_id or not state_id or not district_id" optional="show"/>
 							<field name="address" optional="hidden"/>
 							<field name="square_meter" string="Diện tích"/>
-							<field name="brand_id" string="Thương hiệu" class="fw-bold" options="{'no_open': True}"/>
 						</tree>
 					</field>
 					<!-- ## Các hãng lốp tham gia & Tỷ trọng mua hàng -->
-					<label for="brand_proportion_ids" string="## Các hãng lốp tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
-					<field name="brand_proportion_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
-						<tree editable="bottom" default_order="year_participation desc, quantity_per_month desc">
-							<field name="brand_id" class="fw-bold" domain="[('type', '=', 'size_lop')]" options="{'no_open': True}"/>
+					<label for="brand_proportion_tire_ids" string="## Các hãng lốp tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="brand_proportion_tire_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
+						<tree editable="bottom" no_open="True" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" class="fw-bold" options="{'no_open': True}"/>
 							<field name="year_participation"/>
 							<field name="quantity_per_month" sum="Total Quantity per Month"/>
 							<field name="proportion" widget="percentage" sum="Total Proportion" class="fw-bold"/>
-							<field name="partner_survey_id" column_invisible="1"/>
 						</tree>
 					</field>
-					<field name="total_quantity_brand_proportion" invisible="1"/>
-					<!-- ## Các hãng Non Tire tham gia & Tỷ trọng mua hàng -->
-					<label for="brand_proportion_non_tire_ids" string="## Các hãng Non Tire tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
-					<field name="brand_proportion_non_tire_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
-						<tree editable="bottom" default_order="year_participation desc, quantity_per_month desc">
-							<field name="brand_id" class="fw-bold" domain="[('type', '!=', 'size_lop')]" options="{'no_open': True}"/>
+					<field name="total_quantity_brand_proportion_of_tire" invisible="1"/>
+					<!-- ## Các hãng Non-Tire tham gia & Tỷ trọng mua hàng -->
+					<label for="brand_proportion_lubricant_ids" string="## Các hãng Non Tire tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="brand_proportion_lubricant_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
+						<tree editable="bottom" no_open="True" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" class="fw-bold" options="{'no_open': True}"/>
 							<field name="year_participation"/>
 							<field name="quantity_per_month" sum="Total Quantity per Month"/>
 							<field name="proportion" widget="percentage" sum="Total Proportion" class="fw-bold"/>
-							<field name="partner_survey_id" column_invisible="1"/>
 						</tree>
 					</field>
-					<field name="total_quantity_brand_proportion_non_tire" invisible="1"/>
+					<field name="total_quantity_brand_proportion_of_lubricant" invisible="1"/>
+					<field name="brand_proportion_battery_ids" no_label="1" context="{'default_partner_survey_id': active_id}" readonly="do_readonly">
+						<tree editable="bottom" no_open="True" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" class="fw-bold" options="{'no_open': True}"/>
+							<field name="year_participation"/>
+							<field name="quantity_per_month" sum="Total Quantity per Month"/>
+							<field name="proportion" widget="percentage" sum="Total Proportion" class="fw-bold"/>
+						</tree>
+					</field>
+					<field name="total_quantity_brand_proportion_battery" invisible="1"/>
 					<!-- ## Tỷ lệ Bán buôn & Bán lẻ -->
 					<group string="## Tỷ lệ Bán buôn &amp; Bán lẻ" name="group_wholesale_and_retail">
 						<group>
@@ -215,35 +222,29 @@
 						</field>
 					</group>
 					<!-- ## Phân tích mặt hàng sản phẩm -->
-					<label for="mv_product_ids" string="## Phân tích mặt hàng sản phẩm" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<label for="mv_product_tire_ids" string="## Phân tích mặt hàng sản phẩm" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
 					<!-- TOP 10 Sản Phẩm (Size Lốp)  -->
-					<field name="mv_product_ids" no_label="1" context="{'create': False}" options="{'no_create': True, 'no_create_edit': True}" readonly="do_readonly">
-						<tree editable="bottom">
+					<field name="mv_product_tire_ids" no_label="1" readonly="do_readonly">
+						<tree editable="bottom" no_open="True">
 							<field name="product_attribute_id" string="Size lốp" options="{'no_create': True}"/>
-							<field name="brand_id" string="Hãng lốp" domain="[('type', '=', 'size_lop')]" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng lốp" context="{'search_default_brand_tire': 1}" options="{'no_create': True}"/>
 							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
-							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
-							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
 					<!-- TOP 10 Sản Phẩm (Dầu nhớt)  -->
 					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
-						<tree editable="bottom">
+						<tree editable="bottom" no_open="True">
 							<field name="product_attribute_id" string="Dầu nhớt" options="{'no_create': True}"/>
-							<field name="brand_id" string="Hãng dầu nhớt" domain="[('type', '=', 'lubricant')]" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng dầu nhớt" context="{'search_default_brand_lubricant': 1}" options="{'no_create': True}"/>
 							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
-							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
-							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
 					<!-- TOP 10 Sản Phẩm (Ắc quy)  -->
 					<field name="mv_product_battery_ids" no_label="1" readonly="do_readonly">
-						<tree editable="bottom">
+						<tree editable="bottom" no_open="True">
 							<field name="product_attribute_id" string="Ắc quy" options="{'no_create': True}"/>
-							<field name="brand_id" string="Hãng ắc quy" domain="[('type', '=', 'battery')]" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng ắc quy" context="{'search_default_brand_battery': 1}" options="{'no_create': True}"/>
 							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
-							<field name="uom_id" string="Đơn vị" groups="uom.group_uom" options="{'no_create': True}" optional="hidden"/>
-							<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 						</tree>
 					</field>
 					<!-- ## Lịch sử bán hàng -->
@@ -269,7 +270,6 @@
 				<field name="region_id"/>
 				<field name="shop_ids"/>
 				<field name="service_detail_ids"/>
-				<field name="mv_product_ids"/>
 				<field name="company_id"/>
 				<filter string="Ngày tạo phiếu" name="filter_create_date" date="create_date"/>
 				<separator/>

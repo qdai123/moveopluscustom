@@ -7,6 +7,7 @@ class MvBrand(models.Model):
 
     _name = "mv.brand"
     _description = _("Brand")
+    _order = "priority desc, name, id"
 
     @tools.ormcache()
     def _get_default_category_id(self):

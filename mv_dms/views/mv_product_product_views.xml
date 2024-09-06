@@ -7,13 +7,10 @@
 		<field name="name">mv_product_product.tree</field>
 		<field name="model">mv.product.product</field>
 		<field name="arch" type="xml">
-			<tree string="Product Variants" multi_edit="true" editable="bottom" duplicate="false" sample="true">
-				<field name="brand_id" string="Thương hiệu" options="{'no_create': True, 'no_create_edit': True}"/>
+			<tree string="Products" editable="bottom" multi_edit="true" duplicate="false" sample="true">
 				<field name="product_attribute_id" string="Thuộc tính" options="{'no_create': True, 'no_create_edit': True}"/>
-				<field name="name" string="Tên sản phẩm"/>
+				<field name="brand_id" string="Thương hiệu" options="{'no_create': True, 'no_create_edit': True}"/>
 				<field name="quantity_per_month" string="Số lượng/tháng"/>
-				<field name="uom_id" groups="uom.group_uom" options="{'no_open': True, 'no_create': True}" optional="hidden"/>
-				<field name="uom_name" groups="uom.group_uom" column_invisible="1"/>
 			</tree>
 		</field>
 	</record>
@@ -26,12 +23,12 @@
 			<form>
 				<group col="2">
 					<group>
-						<field name="brand_id" string="Thương hiệu" options="{'no_create_edit': True}"/>
-						<field name="product_attribute_id" string="Thuộc tính" options="{'no_create_edit': True}"/>
 						<field name="name" string="Tên sản phẩm"/>
+						<field name="product_attribute_id" string="Thuộc tính" options="{'no_create_edit': True}"/>
+						<field name="brand_id" string="Thương hiệu" options="{'no_create_edit': True}"/>
 					</group>
 					<group>
-						<field name="product_type" string="Loại sản phẩm"/>
+						<field name="quantity_per_month" string="Số lượng/tháng"/>
 						<field name="uom_id"/>
 					</group>
 				</group>

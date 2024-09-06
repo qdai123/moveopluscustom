@@ -57,7 +57,6 @@ class MvShop(models.Model):
         "mv.shop.category",
         "Danh mục cửa hàng",
         group_expand="_read_group_categ_id",
-        required=True,
     )
     color = fields.Integer("Color Index")
 
