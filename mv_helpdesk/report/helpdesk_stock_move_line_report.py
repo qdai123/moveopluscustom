@@ -11,7 +11,7 @@ HELPDESK_ACTIVATION_WARRANTY_TEAM = (
 )
 
 
-class HelpdeskStockMoveLineReport(models.Model):
+class HelpdeskStockReport(models.Model):
     _name = "mv.helpdesk.stock.move.line.report"
     _description = _("Ticket Registered Analysis Report")
     _auto = False
@@ -43,7 +43,7 @@ class HelpdeskStockMoveLineReport(models.Model):
 
     # ==== Stock fields ====
     stock_lot_id = fields.Many2one("stock.lot", readonly=True)
-    stock_move_line_id = fields.Many2one("stock.move.line", readonly=True)
+    stock_location_id = fields.Many2one("stock.location", readonly=True)
     serial_number = fields.Char(readonly=True)
     qrcode = fields.Char(readonly=True)
     week_number = fields.Many2one("inventory.period", readonly=True)
@@ -57,14 +57,6 @@ class HelpdeskStockMoveLineReport(models.Model):
     ticket_id = fields.Many2one("helpdesk.ticket", readonly=True)
     ticket_ref = fields.Char(readonly=True)
     ticket_type_id = fields.Many2one("helpdesk.ticket.type", readonly=True)
-    ticket_team = fields.Selection(
-        [
-            ("activation_warranty_team", "Team: Kích Hoạt Bảo Hành"),
-            ("claim_warranty_team", "Team Yêu Cầu Bảo Hành"),
-        ],
-        "Business Type",
-        readonly=True,
-    )
     ticket_stage_id = fields.Many2one("helpdesk.stage", readonly=True)
 
     # ==== Partner fields ====
@@ -73,6 +65,20 @@ class HelpdeskStockMoveLineReport(models.Model):
     partner_company_registry = fields.Char(readonly=True)
     partner_email = fields.Char(readonly=True)
     partner_phone = fields.Char(readonly=True)
+
+    def _fields_ignored(self):
+        return ["stock_lot_id", "stock_location_id"]
+
+    @api.model
+    def fields_get(self, allfields=None, attributes=None):
+        fields_get = super().fields_get(allfields=allfields, attributes=attributes)
+
+        for field in self._fields_ignored():
+            fields_get.get(field, {}).setdefault("searchable", True)
+            fields_get[field]["searchable"] = False
+            fields_get[field]["group_expand"] = None
+
+        return fields_get
 
     # ==================================
     # SQL Queries / Initialization
@@ -117,14 +123,15 @@ class HelpdeskStockMoveLineReport(models.Model):
         return f"""
             tickets AS ({self._sql_tickets()}),
             ticket_product_moves AS (SELECT t.*,
-                                                                   tp.stock_move_line_id,
-                                                                   tp.lot_name                         AS serial_number,
-                                                                   tp.qr_code                           AS qrcode,
-                                                                   sml.inventory_period_id       AS week_number,
-                                                                   tp.product_id
+                                                                 sl.id                  AS stock_lot_id,
+                                                                 sl.location_id         AS stock_location_id,
+                                                                 sl.name                AS serial_number,
+                                                                 sl.ref                 AS qrcode,
+                                                                 sl.inventory_period_id AS week_number,
+                                                                 sl.product_id          AS product_id
                                                     FROM mv_helpdesk_ticket_product_moves AS tp
                                                             JOIN tickets AS t ON (t.ticket_id = tp.helpdesk_ticket_id)
-                                                            JOIN stock_move_line AS sml ON (sml.id = tp.stock_move_line_id)
+                                                            JOIN stock_lot AS sl ON (sl.id = tp.stock_lot_id)
                                                     WHERE NOT tp.product_activate_twice
                                                     ORDER BY tp.helpdesk_ticket_id DESC),
             products AS (SELECT pp.id                           AS product_id,

@@ -34,7 +34,6 @@
                             <field name="product_barcode" string="Barcode"/>
                             <field name="product_att_size_lop" string="Size (lốp)"/>
                             <field name="product_att_ma_gai" string="Mã gai"/>
-		                    <field name="stock_move_line_id" invisible="True"/>
                             <field name="serial_number" string="Mã vạch"/>
                             <field name="qrcode" string="QR-Code"/>
                             <field name="week_number" string="Số tuần" options="{'no_open': True}"/>
@@ -51,10 +50,10 @@
 		<field name="arch" type="xml">
 			<pivot string="Ticket Registered Analysis">
 				<field name="ticket_create_date" interval="month" type="col"/>
-                 <field name="partner_id" type="row"/>
-                 <field name="serial_number" invisible="True"/>
-                 <field name="qrcode" invisible="True"/>
-                 <field name="ticket_stage_id"/>
+                 <field name="partner_id" string="Đại lý" type="row"/>
+                 <field name="serial_number" string="Mã vạch" invisible="True"/>
+                 <field name="qrcode" string="Mã QR-Code" invisible="True"/>
+                 <field name="ticket_stage_id" string="Trạng thái"/>
              </pivot>
 		</field>
 	</record>
@@ -64,8 +63,8 @@
 		<field name="model">mv.helpdesk.stock.move.line.report</field>
 		<field name="arch" type="xml">
 			<graph string="Ticket Registered Analysis" type="bar">
-                 <field name="ticket_create_date" interval="month"/>
-                 <field name="partner_id"/>
+                 <field name="ticket_create_date" string="Ngày tạo" interval="month"/>
+                 <field name="partner_id" string="Đại lý"/>
              </graph>
 		</field>
 	</record>
@@ -81,9 +80,8 @@
 				<field name="product_att_size_lop" string="Size (lốp)" optional="show"/>
 				<field name="product_att_ma_gai" string="Mã gai" optional="show"/>
 				<field name="product_country_of_origin" string="Quốc Gia" options="{'no_open': True}" optional="show"/>
-				<field name="stock_move_line_id" column_invisible="True"/>
 				<field name="serial_number" string="Mã vạch"/>
-				<field name="qrcode" string="QR-Code"/>
+				<field name="qrcode" string="Mã QR-Code"/>
 				<field name="week_number" string="Số tuần" optional="show"/>
 				<field name="parent_partner_id" string="Đại lý (Cha)" options="{'no_open': True}" optional="hidden"/>
 				<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
@@ -117,7 +115,7 @@
                         ('product_template_id', 'ilike', self),
                         ('product_template_id.name', 'ilike', self)]"/>
 				<field name="serial_number" string="Mã vạch"/>
-				<field name="qrcode" string="QR-Code"/>
+				<field name="qrcode" string="Mã QR-Code"/>
 				<field name="week_number" string="Số tuần"/>
 				<field name="ticket_id" operator="child_of" string="Phiếu" filter_domain="[
                         '|',
@@ -135,7 +133,7 @@
 					<filter string="Quốc Gia" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
 					<separator/>
 					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
-					<filter string="QR-Code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
+					<filter string="Mã QR-Code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
 				</group>
 			</search>
 		</field>
