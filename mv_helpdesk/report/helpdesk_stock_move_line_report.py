@@ -11,7 +11,7 @@ HELPDESK_ACTIVATION_WARRANTY_TEAM = (
 )
 
 
-class HelpdeskStockMoveLineReport(models.Model):
+class HelpdeskStockReport(models.Model):
     _name = "mv.helpdesk.stock.move.line.report"
     _description = _("Ticket Registered Analysis Report")
     _auto = False
@@ -65,6 +65,20 @@ class HelpdeskStockMoveLineReport(models.Model):
     partner_company_registry = fields.Char(readonly=True)
     partner_email = fields.Char(readonly=True)
     partner_phone = fields.Char(readonly=True)
+
+    def _fields_ignored(self):
+        return ["stock_lot_id", "stock_location_id"]
+
+    @api.model
+    def fields_get(self, allfields=None, attributes=None):
+        fields_get = super().fields_get(allfields=allfields, attributes=attributes)
+
+        for field in self._fields_ignored():
+            fields_get.get(field, {}).setdefault("searchable", True)
+            fields_get[field]["searchable"] = False
+            fields_get[field]["group_expand"] = None
+
+        return fields_get
 
     # ==================================
     # SQL Queries / Initialization
