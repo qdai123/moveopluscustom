@@ -11,7 +11,7 @@ increase revenue, and enhance customer satisfaction by providing a unified view 
     "summary": "Help dealerships improve efficiency, increase revenue, and enhance customer satisfaction.",
     "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS System Development Team",
-    "depends": ["contacts", "portal", "biz_vn_address", "mv_base", "mv_sale", "mv_uom"],
+    "depends": ["contacts", "portal", "biz_vn_address", "mv_base", "mv_sale"],
     "data": [
         # DATA
         "data/mv_dms_data.xml",
