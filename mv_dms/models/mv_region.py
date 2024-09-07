@@ -26,7 +26,7 @@ class MvRegion(models.Model):
         "mv_region_res_country_rel",
         "region_id",
         "country_id",
-        string="Countries",
+        "Countries",
     )  # TODO: This field should be computed to get countries from regions
     parent_id = fields.Many2one(
         "mv.region",

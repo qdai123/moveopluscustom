@@ -13,12 +13,8 @@ class MvServiceDetail(models.Model):
             [("name", "=", "VND")], limit=1
         ),
     )
-    name = fields.Char("Dịch vụ", default="NEW", required=True)
-    service_price = fields.Monetary(
-        "Giá dịch vụ/ doanh thu trung bình (VNĐ)",
-        default=0.0,
-        currency_field="vnd_currency_id",
-    )
+    name = fields.Char("Dịch vụ", required=True)
+    service_price = fields.Float("Giá dịch vụ/ doanh thu trung bình (VNĐ)")
     notes = fields.Text("Ghi chú")
 
     _sql_constraints = [

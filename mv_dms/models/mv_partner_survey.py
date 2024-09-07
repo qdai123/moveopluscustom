@@ -31,34 +31,38 @@ class MvPartnerSurvey(models.Model):
     def _get_default_access_token(self):
         return str(uuid.uuid4())
 
-    # === RULES Fields ===#
-    def _do_readonly(self):
-        """
-        Set the `do_readonly` field based on the state of the record.
+    def _domain_brand_is_tire(self):
+        brand_tire_id = self.env["mv.brand"].search(
+            [("mv_brand_categ_id", "=", self.env.ref("mv_dms.brand_category_tire").id)],
+            order="priority",
+        )
+        return [("brand_id", "in", brand_tire_id.ids)]
 
-        This method iterates over each record and sets the `do_readonly` field to `True`
-        if the state is "done", otherwise sets it to `False`.
+    def _domain_brand_is_lubricant(self):
+        brand_tire_id = self.env["mv.brand"].search(
+            [
+                (
+                    "mv_brand_categ_id",
+                    "=",
+                    self.env.ref("mv_dms.brand_category_lubricant").id,
+                )
+            ],
+            order="priority",
+        )
+        return [("brand_id", "in", brand_tire_id.ids)]
 
-        :return: False
-        """
-        for survey in self:
-            survey.do_readonly = survey.state == "done"
-
-    @api.depends_context("uid")
-    def _compute_permissions(self):
-        """
-        Compute the permissions of the current user.
-
-        This method computes the permissions of the current user and sets the `is_sales_manager`
-        field to `True` if the user belongs to the "Sales Manager" group, otherwise sets it to `False`.
-
-        :return: False
-        """
-        is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
-        self.is_sales_manager = is_sales_manager
-
-    do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
-    is_sales_manager = fields.Boolean(compute="_compute_permissions")
+    def _domain_brand_is_battery(self):
+        brand_tire_id = self.env["mv.brand"].search(
+            [
+                (
+                    "mv_brand_categ_id",
+                    "=",
+                    self.env.ref("mv_dms.brand_category_battery").id,
+                )
+            ],
+            order="priority",
+        )
+        return [("brand_id", "in", brand_tire_id.ids)]
 
     # === RELATIONAL Fields ===#
     partner_id = fields.Many2one(
@@ -76,8 +80,6 @@ class MvPartnerSurvey(models.Model):
     company_id = fields.Many2one(
         "res.company",
         "Công ty",
-        required=True,
-        tracking=True,
         default=lambda self: self.env.company,
     )
     currency_id = fields.Many2one(
@@ -99,40 +101,46 @@ class MvPartnerSurvey(models.Model):
         "partner_survey_id",
         "Cửa hàng",
         domain=lambda self: [("partner_survey_id", "=", self.id)],
-        required=True,
     )
     shop_count = fields.Integer(
-        "Số cửa hàng cho phép",
+        "Số cửa hàng cho phép tạo",
         compute="_compute_shop_limited",
     )
-    brand_proportion_ids = fields.One2many(
+    brand_proportion_tire_ids = fields.One2many(
         "mv.brand.proportion",
         "partner_survey_id",
-        "Tỷ trọng thương hiệu",
-        domain=lambda self: [
-            ("partner_survey_id", "=", self.id),
-            ("brand_id.type", "=", "size_lop"),
-        ],
-        required=True,
+        "Tỷ trọng thương hiệu (Lốp)",
+        domain=_domain_brand_is_tire,
+        context={"default_is_tire": True},
     )
-    total_quantity_brand_proportion = fields.Float(
-        "Tổng số lượng theo tỷ trọng thương hiệu",
+    brand_proportion_lubricant_ids = fields.One2many(
+        "mv.brand.proportion",
+        "partner_survey_id",
+        "Tỷ trọng thương hiệu (Dầu nhớt)",
+        domain=_domain_brand_is_lubricant,
+        context={"default_is_lubricant": True},
+    )
+    brand_proportion_battery_ids = fields.One2many(
+        "mv.brand.proportion",
+        "partner_survey_id",
+        "Tỷ trọng thương hiệu (Ắc quy)",
+        domain=_domain_brand_is_battery,
+        context={"default_is_battery": True},
+    )
+    total_quantity_brand_proportion_of_tire = fields.Float(
+        "Tổng số lượng theo tỷ trọng thương hiệu (Lốp)",
         compute="_compute_total_quantity_brand_proportion",
         store=True,
         readonly=True,
     )
-    brand_proportion_non_tire_ids = fields.One2many(
-        "mv.brand.proportion",
-        "partner_survey_id",
-        "Tỷ trọng thương hiệu (Non Tire)",
-        domain=lambda self: [
-            ("partner_survey_id", "=", self.id),
-            ("brand_id.type", "!=", "size_lop"),
-        ],
-        required=True,
+    total_quantity_brand_proportion_of_lubricant = fields.Float(
+        "Tổng số lượng theo tỷ trọng thương hiệu (Dầu nhớt)",
+        compute="_compute_total_quantity_brand_proportion",
+        store=True,
+        readonly=True,
     )
-    total_quantity_brand_proportion_non_tire = fields.Float(
-        "Tổng số lượng theo tỷ trọng thương hiệu (Non Tire)",
+    total_quantity_brand_proportion_battery = fields.Float(
+        "Tổng số lượng theo tỷ trọng thương hiệu (Ắc quy)",
         compute="_compute_total_quantity_brand_proportion",
         store=True,
         readonly=True,
@@ -142,31 +150,28 @@ class MvPartnerSurvey(models.Model):
         "mv_service_detail_partner_survey_rel",
         "service_detail_id",
         "partner_survey_id",
-        string="Dịch vụ",
+        "Sản phẩm dịch vụ",
     )
-    mv_product_ids = fields.Many2many(
+    mv_product_tire_ids = fields.One2many(
         "mv.product.product",
-        "mv_product_partner_survey_rel",
-        "mv_product_id",
         "partner_survey_id",
-        domain="[('product_type', 'in',  ['size_lop'])]",
-        string="TOP Sản phẩm (Size Lốp)",
+        "TOP Sản phẩm (Lốp xe)",
+        domain=_domain_brand_is_tire,
+        context={"default_is_tire": True},
     )
-    mv_product_lubricant_ids = fields.Many2many(
+    mv_product_lubricant_ids = fields.One2many(
         "mv.product.product",
-        "mv_product_lubricant_partner_survey_rel",
-        "mv_product_id",
         "partner_survey_id",
-        domain="[('product_type', 'in',  ['lubricant'])]",
-        string="TOP Sản phẩm (Dầu nhớt)",
+        "TOP Sản phẩm (Dầu nhớt)",
+        domain=_domain_brand_is_lubricant,
+        context={"default_is_lubricant": True},
     )
-    mv_product_battery_ids = fields.Many2many(
+    mv_product_battery_ids = fields.One2many(
         "mv.product.product",
-        "mv_product_battery_partner_survey_rel",
-        "mv_product_id",
         "partner_survey_id",
-        domain="[('product_type', 'in',  ['battery'])]",
-        string="TOP Sản phẩm (Ắc quy)",
+        "TOP Sản phẩm (Ắc quy)",
+        domain=_domain_brand_is_battery,
+        context={"default_is_battery": True},
     )
 
     # === BASE Fields ===#
@@ -198,8 +203,8 @@ class MvPartnerSurvey(models.Model):
     )
     state = fields.Selection(
         BASE_SURVEY_STATEs,
+        "Trạng thái",
         default="draft",
-        string="Trạng thái",
         readonly=True,
         index=True,
         tracking=True,
@@ -223,30 +228,25 @@ class MvPartnerSurvey(models.Model):
     owner_phone = fields.Char(
         "Số điện thoại",
         size=32,
-        required=True,
         tracking=True,
     )
     owner_email = fields.Char("Email", size=32)
     owner_dob = fields.Date(
         "Ngày sinh",
-        required=True,
         tracking=True,
     )
     second_generation = fields.Char(
         "Thế hệ thứ 2",
-        required=True,
         tracking=True,
     )
     second_generation_phone = fields.Char(
         "Số điện thoại",
         size=32,
-        required=True,
         tracking=True,
     )
     second_generation_email = fields.Char("Email", size=32)
     second_generation_dob = fields.Date(
         "Ngày sinh",
-        required=True,
         tracking=True,
     )
     relationship_with_owner = fields.Char(
@@ -257,13 +257,11 @@ class MvPartnerSurvey(models.Model):
         "Số năm kinh doanh",
         default=0,
         digits=(10, 1),
-        required=True,
         tracking=True,
     )
     proportion = fields.Float(
         "Tỷ trọng",
         default=1,
-        required=True,
         tracking=True,
     )
     is_moveoplus_agency = fields.Boolean(
@@ -283,8 +281,8 @@ class MvPartnerSurvey(models.Model):
             ("average", "Trung bình"),
             ("weak", "Yếu"),
         ],
+        "Khả năng tài chính",
         default="good",
-        string="Khả năng tài chính",
         tracking=True,
     )
     # BÁN LẺ
@@ -324,6 +322,10 @@ class MvPartnerSurvey(models.Model):
         "Số lượng nhân viên hành chính", default=0
     )
 
+    # === RULES Fields ===#
+    do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
+
     _sql_constraints = [
         (
             "name_unique",
@@ -336,6 +338,31 @@ class MvPartnerSurvey(models.Model):
             "Access token should be unique",
         ),
     ]
+
+    def _do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+
+        :return: False
+        """
+        for survey in self:
+            survey.do_readonly = survey.state == "done"
+
+    @api.depends_context("uid")
+    def _compute_permissions(self):
+        """
+        Compute the permissions of the current user.
+
+        This method computes the permissions of the current user and sets the `is_sales_manager`
+        field to `True` if the user belongs to the "Sales Manager" group, otherwise sets it to `False`.
+
+        :return: False
+        """
+        is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
+        self.is_sales_manager = is_sales_manager
 
     @api.constrains("owner")
     def _check_owner_is_human(self):
@@ -419,17 +446,25 @@ class MvPartnerSurvey(models.Model):
         for survey in self:
             survey.shop_count = len(survey.shop_ids)
 
-    @api.depends("brand_proportion_ids", "brand_proportion_non_tire_ids")
+    @api.depends(
+        "brand_proportion_tire_ids",
+        "brand_proportion_lubricant_ids",
+        "brand_proportion_battery_ids",
+    )
     def _compute_total_quantity_brand_proportion(self):
         for survey in self:
-            survey.total_quantity_brand_proportion = sum(
-                proportion.quantity_per_month
-                for proportion in survey.brand_proportion_ids
+            survey.total_quantity_brand_proportion_of_tire = (
+                self._calculate_total_quantity(survey.brand_proportion_tire_ids)
             )
-            survey.total_quantity_brand_proportion_non_tire = sum(
-                proportion.quantity_per_month
-                for proportion in survey.brand_proportion_non_tire_ids
+            survey.total_quantity_brand_proportion_of_lubricant = (
+                self._calculate_total_quantity(survey.brand_proportion_lubricant_ids)
             )
+            survey.total_quantity_brand_proportion_battery = (
+                self._calculate_total_quantity(survey.brand_proportion_battery_ids)
+            )
+
+    def _calculate_total_quantity(self, brand_proportion_ids):
+        return sum(proportion.quantity_per_month for proportion in brand_proportion_ids)
 
     @api.depends("per_retail_customer", "per_retail_taxi", "per_retail_fleet")
     def _compute_total_retail(self):

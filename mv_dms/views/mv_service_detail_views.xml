@@ -1,24 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- TREE VIEW -->
 	<record model="ir.ui.view" id="mv_service_detail_tree_view">
 		<field name="name">mv_service_detail.tree</field>
 		<field name="model">mv.service.detail</field>
 		<field name="arch" type="xml">
 			<tree string="Service Detail" editable="bottom" multi_edit="true" duplicate="false" sample="true">
 				<field name="name" string="Tên sản phẩm"/>
-				<field name="service_price" class="fw-bold" widget="monetary"/>
+				<field name="service_price" widget="monetary"/>
 				<field name="notes" class="text-break" options="{'line_breaks': False}" widget="text" placeholder="Các thông tin cần ghi chú thêm ..."/>
 				<field name="vnd_currency_id" column_invisible="1"/>
 			</tree>
 		</field>
 	</record>
 
-	<!-- ACTION -->
+	<record model="ir.ui.view" id="mv_service_detail_form_view">
+		<field name="name">mv_service_detail.form</field>
+		<field name="model">mv.service.detail</field>
+		<field name="arch" type="xml">
+			<form string="Service Detail">
+				<sheet>
+					<group>
+						<field name="name"/>
+						<field name="vnd_currency_id" invisible="1"/>
+						<field name="service_price" widget="monetary" options="{'currency_field': 'vnd_currency_id'}"/>
+						<field name="notes" no_label="1" widget="text" placeholder="Các thông tin cần ghi chú thêm ..."/>
+					</group>
+				</sheet>
+			</form>
+		</field>
+	</record>
+
 	<record model="ir.actions.act_window" id="mv_dms_action_view_all_services_detail">
 		<field name="name">Sản phẩm dịch vụ</field>
 		<field name="res_model">mv.service.detail</field>
-		<field name="view_mode">tree</field>
+		<field name="view_mode">form,tree</field>
 		<field name="context">{}</field>
 		<field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

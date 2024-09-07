@@ -7,6 +7,7 @@
             <tree multi_edit="true" editable="bottom" duplicate="false" sample="true">
                 <field name="sequence" widget="handle"/>
                 <field name="name" string="Thuộc tính"/>
+                <field name="brand_id" string="Thương hiệu" options="{'no_create': True, 'no_create_edit': True}" required="1"/>
                 <field name="mv_product_ids" string="Sản phẩm liên kết" widget="many2many_tags" options="{'no_create_edit': True}" optional="hidden"/>
                 <field name="number_related_mv_products" string="Số sản phẩm liên kết" column_invisible="1"/>
             </tree>
