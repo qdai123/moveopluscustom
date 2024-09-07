@@ -59,7 +59,7 @@
 					<field name="id" invisible="True"/>
                     <field name="image_1920" widget="image" class="oe_avatar" options="{'preview_image': 'image_128'}"/>
 					<div class="oe_title">
-                        <label for="name" string="Tên Hãng/Thương hiệu"/>
+                        <label for="name" string="Tên Thương hiệu"/>
                         <h1>
                             <div class="d-flex">
                                 <field name="priority" widget="priority" class="me-3"/>
@@ -75,7 +75,7 @@
 									<field name="mv_brand_categ_id" options="{'no_open': True}"/>
 								</group>
 								<group>
-									<field name="active" string="Kích hoạt" readonly="1"/>
+									<field name="active" invisible="1"/>
 									<field name="uom_id" groups="uom.group_uom"/>
 								</group>
 							</group>

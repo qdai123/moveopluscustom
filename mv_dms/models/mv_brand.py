@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import SUPERUSER_ID, _, fields, models, tools
+from odoo import SUPERUSER_ID, _, api, fields, models, tools
 
 
 class MvBrand(models.Model):
@@ -99,6 +99,30 @@ class MvBrand(models.Model):
             "Tên thương hiệu đã tồn tại, vui lòng chọn tên khác!",
         )
     ]
+
+    @api.model
+    def name_search(self, name="", args=None, operator="ilike", limit=100):
+        if args is None:
+            args = []
+
+        args += self._get_contextual_brand_filter()
+        return super(MvBrand, self).name_search(name, args, operator, limit)
+
+    def _get_contextual_brand_filter(self):
+        search_context = dict(self.env.context or {})
+        brand_filter = []
+
+        if search_context.get("search_default_brand_tire"):
+            brand_tire = self.env.ref("mv_dms.brand_category_tire")
+            brand_filter = [("mv_brand_categ_id", "=", brand_tire.id)]
+        elif search_context.get("search_default_brand_lubricant"):
+            brand_lubricant = self.env.ref("mv_dms.brand_category_lubricant")
+            brand_filter = [("mv_brand_categ_id", "=", brand_lubricant.id)]
+        elif search_context.get("search_default_brand_battery"):
+            brand_battery = self.env.ref("mv_dms.brand_category_battery")
+            brand_filter = [("mv_brand_categ_id", "=", brand_battery.id)]
+
+        return brand_filter
 
     def _get_placeholder_filename(self, field):
         image_fields = ["image_%s" % size for size in [1920, 1024, 512, 256, 128]]

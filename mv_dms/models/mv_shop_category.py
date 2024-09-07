@@ -56,10 +56,10 @@ class MvShopCategory(models.Model):
         )
         group_data = {categ.id: count for categ, count in read_group_res}
         for categ in self:
-            brand_count = 0
+            shop_count = 0
             for sub_categ_id in categ.search([("id", "child_of", categ.ids)]).ids:
-                brand_count += group_data.get(sub_categ_id, 0)
-            categ.brand_count = brand_count
+                shop_count += group_data.get(sub_categ_id, 0)
+            categ.shop_count = shop_count
 
     @api.constrains("parent_id")
     def _check_category_recursion(self):

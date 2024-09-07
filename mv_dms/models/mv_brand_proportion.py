@@ -22,7 +22,7 @@ class MvBrandProportion(models.Model):
     brand_id = fields.Many2one("mv.brand", index=True)
     year_participation = fields.Char("Năm tham gia", required=True, size=10)
     proportion = fields.Float("Tỷ trọng", compute="_compute_proportion", store=True)
-    quantity_per_month = fields.Integer("Số lượng quả/tháng", default=0)
+    quantity_per_month = fields.Integer("Số lượng/tháng", default=0)
 
     _sql_constraints = [
         (

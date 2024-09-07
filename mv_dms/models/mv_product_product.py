@@ -26,7 +26,7 @@ class MvProductProduct(models.Model):
         index="trigram",
     )
     product_attribute_id = fields.Many2one("mv.product.attribute", "Thuộc tính S/P")
-    brand_id = fields.Many2one("mv.brand", "Hãng/Thương hiệu")
+    brand_id = fields.Many2one("mv.brand", "Thương hiệu")
     uom_id = fields.Many2one("uom.uom", "Đơn vị", related="brand_id.uom_id")
     quantity_per_month = fields.Integer("Số lượng mỗi tháng", default=0)
 

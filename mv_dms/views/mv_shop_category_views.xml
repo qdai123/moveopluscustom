@@ -28,7 +28,7 @@
 						</h1>
 					</div>
 					<group name="first" col="2">
-						<field name="parent_id" class="oe_inline"/>
+						<field name="parent_id" class="oe_inline" domain="[('parent_id', '=', False)]" options="{'no_create': True, 'no_create_edit': True}"/>
 					</group>
 				</sheet>
 			</form>
@@ -42,6 +42,7 @@
 		<field name="arch" type="xml">
 			<tree string="Shop Categories">
 				<field name="display_name" string="Shop Category"/>
+				<field name="parent_id" string="Parent Shop Category"/>
 			</tree>
 		</field>
 	</record>

@@ -50,15 +50,15 @@ class MvShop(models.Model):
         domain="[('district_id', '=', district_id)]",
     )
     address = fields.Char(string="Địa chỉ", compute="_compute_address", store=True)
-    latitude = fields.Float(string="Vĩ độ", digits=(16, 5))
-    longitude = fields.Float(string="Kinh độ", digits=(16, 5))
+    latitude = fields.Float(string="Vĩ độ", default=0, digits=(16, 5))
+    longitude = fields.Float(string="Kinh độ", default=0, digits=(16, 5))
     square_meter = fields.Float(string="Diện tích (m2)", default=0)
     mv_shop_categ_id = fields.Many2one(
         "mv.shop.category",
         "Danh mục cửa hàng",
         group_expand="_read_group_categ_id",
     )
-    color = fields.Integer("Color Index")
+    color = fields.Integer("Color Index", default=0)
 
     _sql_constraints = [
         (
