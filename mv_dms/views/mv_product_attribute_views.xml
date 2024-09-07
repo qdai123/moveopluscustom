@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="mv_product_attribute_tree_view">
+        <field name="name">mv.product.attribute.tree</field>
+        <field name="model">mv.product.attribute</field>
+        <field name="arch" type="xml">
+            <tree multi_edit="true" editable="bottom" duplicate="false" sample="true">
+                <field name="sequence" widget="handle"/>
+                <field name="name" string="Thuộc tính"/>
+                <field name="brand_id" string="Thương hiệu" options="{'no_create': True, 'no_create_edit': True}" required="1"/>
+                <field name="mv_product_ids" string="Sản phẩm liên kết" widget="many2many_tags" options="{'no_create_edit': True}" optional="hidden"/>
+                <field name="number_related_mv_products" string="Số sản phẩm liên kết" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="mv_dms_action_view_product_attributes">
+        <field name="name">Thuộc tính</field>
+        <field name="res_model">mv.product.attribute</field>
+        <field name="view_mode">tree</field>
+        <field name="context">{'default_view_type': 'list'}</field>
+    </record>
+</odoo>

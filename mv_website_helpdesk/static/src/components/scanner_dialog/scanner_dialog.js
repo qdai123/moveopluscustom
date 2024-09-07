@@ -61,14 +61,13 @@ export class ScannerDialog extends Component {
      */
     async _onBarcodeScanned(code) {
         if (!code) return;
-
         const listCode = this._cleanAndConvertCodesToArray(code);
         const $ticketType = $("#helpdesk_warranty_select_ticket_type_id");
         const $partnerName = $("#helpdeskWarrantyInputPartnerName");
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
         const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
         try {
-            const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {
+            const res = await this.rpc("/helpdesk/check_scanned_code", {
                 codes: listCode,
                 ticket_type: $ticketType.val(),
                 partner_name: $partnerName.val(),

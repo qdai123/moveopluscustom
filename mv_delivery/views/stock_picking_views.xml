@@ -14,6 +14,12 @@
                     <field name="volume_uom_name" nolabel="1" class="oe_inline" style="margin-left:5px"/>
                 </div>
             </xpath>
+            <xpath expr="//field[@name='move_ids_without_package']/tree//field[@name='product_uom_qty']" position="attributes">
+                <attribute name="sum">Total Product Uom Quantity</attribute>
+            </xpath>
+            <xpath expr="//field[@name='move_ids_without_package']/tree//field[@name='quantity']" position="attributes">
+                <attribute name="sum">Total Product Packaging Quantity</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>

@@ -9,14 +9,26 @@
                     <field name="is_two_month" invisible="1"/>
                     <field name="is_quarter" invisible="1"/>
                     <field name="is_year" invisible="1"/>
-                    <div class="oe_button_box" name="button_box" groups="base.group_user">
-                        <button class="oe_stat_button" name="action_view_two_month" type="object" icon="fa-pencil-square-o" invisible="is_two_month == False">
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_two_month"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-pencil-square-o"
+                                invisible="not is_two_month">
                             Xem chiết khấu 2 Tháng
                         </button>
-                        <button class="oe_stat_button" name="action_view_quarter" type="object" icon="fa-pencil-square-o" invisible="is_quarter == False">
+                        <button name="action_view_quarter"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-pencil-square-o"
+                                invisible="not is_quarter">
                             Xem chiết khấu Quý
                         </button>
-                        <button class="oe_stat_button" name="action_view_year" type="object" icon="fa-pencil-square-o" invisible="is_year == False">
+                        <button name="action_view_year"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-pencil-square-o"
+                                invisible="not is_year">
                             Xem chiết khấu Năm
                         </button>
                     </div>
@@ -24,13 +36,15 @@
                         <group name="group_information_1">
                             <field name="partner_id"/>
                             <field name="level"/>
-                            <field name="basic" invisible="True"/>
-                            <field name="currency_id" invisible="True"/>
+                            <field name="basic" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
                         </group>
                         <group name="group_information_2">
                             <group>
                                 <field name="quantity"/>
                                 <field name="quantity_discount"/>
+                                <field name="quantity_returns"/>
+                                <field name="quantity_claim_warranty"/>
                             </group>
                             <group>
                                 <field name="quantity_from"/>
@@ -74,9 +88,9 @@
                         <page string="Đơn hàng">
                             <field name="sale_ids" nolabel="1">
                                 <tree create="false" edit="false" delete="false" default_order="id">
-                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
-                                    <field name="partner_id" string="Dealer/Sub-Dealer/Customer"/>
+                                    <field name="partner_id" string="Customer"/>
                                     <field name="amount_total" sum="Price" widget="monetary"/>
                                 </tree>
                             </field>
@@ -84,7 +98,7 @@
                         <page string="Chi tiết sản phẩm lốp">
                             <field name="order_line_ids" nolabel="1">
                                 <tree create="false" edit="false" delete="false" default_order="id" decoration-danger="price_unit == 0">
-                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="currency_id" column_invisible="1"/>
                                     <field name="order_id" string="Order"/>
                                     <field name="product_id"/>
                                     <field name="product_uom_qty" sum="Quantity" decoration-danger="product_uom_qty &lt; 1"/>
@@ -92,6 +106,36 @@
                                     <field name="price_unit" widget="monetary" sum="Price"/>
                                     <field name="price_subtotal"  widget="monetary" sum="Price Subtotal" optional="hidden"/>
                                     <field name="price_subtotal_before_discount" string="Amount"  widget="monetary" sum="Price Subtotal before Discount"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Đơn khuyến mãi">
+                            <field name="sale_promote_ids" nolabel="1">
+                                <tree create="false" edit="false" delete="false" default_order="id">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="name" string="Order"/>
+                                    <field name="partner_id" string="Customer"/>
+                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Đơn đổi trả">
+                            <field name="sale_return_ids" nolabel="1">
+                                <tree create="false" edit="false" delete="false" default_order="id">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="name" string="Order"/>
+                                    <field name="partner_id" string="Customer"/>
+                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Đơn bảo hành">
+                            <field name="sale_claim_warranty_ids" nolabel="1">
+                                <tree create="false" edit="false" delete="false" default_order="id">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="name" string="Order"/>
+                                    <field name="partner_id" string="Customer"/>
+                                    <field name="amount_total" sum="Price" widget="monetary"/>
                                 </tree>
                             </field>
                         </page>
@@ -105,17 +149,25 @@
         <field name="name">mv_compute_discount_line_tree</field>
         <field name="model">mv.compute.discount.line</field>
         <field name="arch" type="xml">
-            <tree string="MV Compute Discount Line TREE" default_order="partner_id desc month_parent desc">
-                <field name="month_parent" optional="hidden"/>
+            <tree string="MV Compute Discount Line TREE" default_order="level">
+                <field column_invisible="1" name="month_parent"/>
+                <field name="state"
+                       decoration-success="state == 'done'"
+                       decoration-info="state == 'confirm'"
+                       decoration-muted="state == 'draft'"
+                       widget="badge"/>
+                <field name="partner_sales_state"
+                       decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']"
+                       decoration-warning="partner_sales_state == 'imqualified'"
+                       widget="badge"/>
                 <field name="name" string="Tháng/Năm" optional="hidden"/>
-                <field name="partner_sales_state" decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']" decoration-warning="partner_sales_state == 'imqualified'" widget="badge" optional="hidden"/>
                 <field name="partner_id"/>
                 <field name="level" optional="show"/>
                 <field name="quantity" sum="Quantity" optional="show"/>
                 <field name="quantity_discount" sum="Quantity" optional="hidden"/>
                 <field name="quantity_from" optional="hidden"/>
                 <field name="quantity_to" optional="hidden"/>
-                <field name="amount_total" string="Doanh thu" widget="monetary" sum="Amount month"/>
+                <field name="amount_total" string="Doanh thu" class="fw-bold" widget="monetary" sum="Amount month"/>
                 <field name="month" optional="hidden"/>
                 <field name="month_money" widget="monetary" sum="Discount month"/>
                 <field name="two_month" optional="hidden"/>
@@ -126,9 +178,9 @@
                 <field name="year_money" widget="monetary" sum="Discount year"/>
                 <field name="promote_discount_percentage" optional="hidden"/>
                 <field name="promote_discount_money" widget="monetary" sum="Promote Discount"/>
-                <field name="total_money" string="Tổng số tiền" widget="monetary" sum="Total money"/>
-                <field column_invisible="True" name="basic"/>
-                <field column_invisible="True" name="currency_id"/>
+                <field name="total_money" string="Tổng số tiền" class="fw-bold" widget="monetary" sum="Total money"/>
+                <field column_invisible="1" name="basic"/>
+                <field column_invisible="1" name="currency_id"/>
             </tree>
         </field>
     </record>

@@ -14,7 +14,7 @@ MOVEOPLUS_TITLES = {
 
 MOVEOPLUS_MESSAGES = {
     "discount_amount_apply_exceeded": "Tiền chiết khấu áp dụng không được lớn hơn số tiền chiết khấu tối đa.",
-    "discount_amount_invalid": "Tiền chiết khấu áp dụng đang lớn số tiền chiết khấu hiện có, vui lòng nhập lại!",
+    "discount_amount_invalid": "Tiền chiết khấu áp dụng đang lớn hơn số tiền chiết khấu hiện có, vui lòng nhập lại!",
 }
 
 
@@ -27,15 +27,15 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             "product.template"
         ]._get_weight_uom_name_from_ir_config_parameter()
 
+    set_to_zero = fields.Boolean(default=False)
+    is_update = fields.Boolean(compute="_compute_sale_order_id")
     # === Sale Order Fields ===#
-    sale_order_id = fields.Many2one("sale.order", required=True)
+    sale_order_id = fields.Many2one("sale.order", required=True, ondelete="cascade")
     company_id = fields.Many2one("res.company", related="sale_order_id.company_id")
     currency_id = fields.Many2one("res.currency", related="sale_order_id.currency_id")
     partner_id = fields.Many2one(
         "res.partner", related="sale_order_id.partner_id", required=True
     )
-    is_update = fields.Boolean(compute="_compute_sale_order_id")
-
     # === Delivery Carrier Fields ===#
     delivery_set = fields.Boolean(compute="_compute_sale_order_id")
     carrier_id = fields.Many2one("delivery.carrier", required=True)
@@ -55,7 +55,6 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         readonly=False,
     )
     weight_uom_name = fields.Char(readonly=True, default=_get_default_weight_uom)
-
     # === Discount Policy Fields ===#
     discount_agency_set = fields.Boolean(compute="_compute_sale_order_id")
     discount_amount_invalid = fields.Boolean(readonly=True)
@@ -92,6 +91,11 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
     # COMPUTE / ONCHANGE Methods
     # ==================================
 
+    @api.onchange("set_to_zero")
+    def _onchange_set_to_zero(self):
+        if self.set_to_zero:
+            self.discount_amount_apply = 0.0
+
     @api.onchange("discount_amount_invalid")
     def onchange_discount_amount_invalid_message(self):
         if self.discount_amount_invalid:
@@ -99,22 +103,39 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                 "discount_amount_invalid"
             ]
 
-    @api.depends("sale_order_id", "sale_order_id.order_line")
+    @api.depends("partner_id", "sale_order_id", "sale_order_id.order_line")
+    @api.depends_context("recompute_discount_agency")
     def _compute_sale_order_id(self):
         for wizard in self:
             order = wizard.sale_order_id
+            partner = wizard.partner_id
+
             wizard.is_update = order.recompute_discount_agency
-            wizard.delivery_set = any(line.is_delivery for line in order.order_line)
-            wizard.discount_agency_set = order.order_line._filter_discount_agency_lines(
-                order
-            )
-            total_remaining = wizard.partner_id.amount_currency - order.bonus_order
-            wizard.discount_amount_remaining = (
-                total_remaining if total_remaining > 0 else 0.0
-            )
-            wizard.discount_amount_applied = (
-                order.bonus_order if not wizard.discount_amount_invalid else 0.0
-            )
+            wizard.delivery_set = self._has_delivery_line(order)
+            wizard.discount_agency_set = self._has_discount_agency_lines(order)
+
+            partner.action_update_discount_amount()
+            if not self.env.context.get("recompute_discount_agency"):
+                self._compute_discount_amounts(wizard, order, partner)
+            else:
+                wizard.discount_amount_remaining = order.bonus_remaining
+                wizard.discount_amount_applied = order.bonus_order
+
+    def _has_delivery_line(self, order):
+        return any(line.is_delivery for line in order.order_line)
+
+    def _has_discount_agency_lines(self, order):
+        return order.order_line._filter_discount_agency_lines(order)
+
+    def _compute_discount_amounts(self, wizard, order, partner):
+        partner_amount_remaining = partner.amount_currency
+        wizard.discount_amount_remaining = max(partner_amount_remaining, 0.0)
+        wizard.discount_amount_applied = (
+            order.bonus_order
+            if not wizard.discount_amount_invalid
+            and partner_amount_remaining > order.bonus_order
+            else 0.0
+        )
 
     @api.depends("carrier_id")
     def _compute_invoicing_message(self):
@@ -135,14 +156,6 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                 else carriers
             )
 
-    @api.onchange("carrier_id", "total_weight")
-    def _onchange_carrier_id(self):
-        self.delivery_message = False
-        if self.delivery_type in ("fixed", "base_on_rule"):
-            vals = self._get_shipment_rate()
-            if vals.get("error_message"):
-                return {"error": vals["error_message"]}
-
     @api.onchange("sale_order_id")
     def _onchange_order_id(self):
         # fixed and base_on_rule delivery price will compute on each carrier change so no need to recompute here
@@ -159,6 +172,14 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                     "type": "notification",
                 }
                 return {"warning": warning}
+
+    @api.onchange("carrier_id", "total_weight")
+    def _onchange_carrier_id(self):
+        self.delivery_message = False
+        if self.delivery_type in ("fixed", "base_on_rule"):
+            vals = self._get_shipment_rate()
+            if vals.get("error_message"):
+                return {"error": vals["error_message"]}
 
     # ==================================
     # BUSINESS Methods
@@ -251,40 +272,95 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         order._update_programs_and_rewards()
         order._auto_apply_rewards()
 
+        # Create history line for discount
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+            is_waiting_approval = wizard.discount_amount_apply > 0
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=f"Đã áp dụng chiết khấu cho đơn {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận.",
+                sale_order_id=order.id,
+                sale_order_state=order.get_selection_label(
+                    order._name, "state", order.id
+                )[1],
+                sale_order_discount_money_apply=wizard.discount_amount_apply,
+                total_money=wizard.discount_amount_apply,
+                total_money_discount_display=(
+                    "- {:,.2f}".format(wizard.discount_amount_apply)
+                    if wizard.discount_amount_apply > 0
+                    else "{:,.2f}".format(wizard.discount_amount_apply)
+                ),
+                is_waiting_approval=is_waiting_approval,
+                is_positive_money=False,
+                is_negative_money=False,
+            )
+
         return True
 
     def action_update(self):
         wizard = self.with_company(self.company_id)
         order = wizard.sale_order_id
 
-        # [>] For Product Discount with code 'CKT'
         if wizard.discount_agency_set:
             """Update SOline(s) discount according to wizard configuration"""
 
+            order_line_agency = order.order_line.filtered(
+                lambda line: line.product_id.default_code == "CKT"
+                or line.is_discount_agency
+            )
             total_order_discount_CKT = (
                 (wizard.discount_amount_apply + wizard.discount_amount_applied)
                 if wizard.discount_amount_remaining > 0
                 else wizard.discount_amount_apply
             )
-            order.order_line.filtered(
-                lambda line: line.product_id.default_code == "CKT"
-            ).write(
-                {
-                    "price_unit": (
-                        -total_order_discount_CKT
-                        if total_order_discount_CKT > 0
-                        else 0.0
-                    )
-                }
+            total_price_after_update = (
+                0 if wizard.set_to_zero else total_order_discount_CKT
             )
-            order._compute_partner_bonus()
-            order._compute_bonus_order_line()
+            if total_price_after_update != 0:
+                order_line_agency.write({"price_unit": -total_price_after_update})
+                order._compute_partner_bonus()
+                order._compute_bonus_order_line()
 
         order._update_programs_and_rewards()
         order._auto_apply_rewards()
+
+        # [!] Should recompute discount agency
+        order.should_recompute_discount_agency = False
+
+        # [>] Create history line for discount
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+            is_waiting_approval = wizard.discount_amount_apply > 0
+            self.env["mv.discount.partner.history"]._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=f"Đã cập nhật bổ sung chiết khấu cho đơn có {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận.",
+                sale_order_id=order.id,
+                sale_order_state=order.get_selection_label(
+                    order._name, "state", order.id
+                )[1],
+                sale_order_discount_money_apply=wizard.discount_amount_apply,
+                total_money=wizard.discount_amount_apply,
+                total_money_discount_display=(
+                    "- {:,.2f}".format(wizard.discount_amount_apply)
+                    if wizard.discount_amount_apply > 0
+                    else "{:,.2f}".format(wizard.discount_amount_apply)
+                ),
+                is_waiting_approval=is_waiting_approval,
+                is_positive_money=False,
+                is_negative_money=False,
+            )
 
         return True
 
     def action_apply_and_confirm(self):
         self.action_update()
+        self.sale_order_id.write({"should_recompute_discount_agency": False})
         return self.sale_order_id.with_context(apply_confirm=True).action_confirm()

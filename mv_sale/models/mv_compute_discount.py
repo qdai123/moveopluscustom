@@ -31,27 +31,11 @@ QUARTER_OF_YEAR = ["3", "6", "9", "12"]
 
 
 def get_years():
-    year_list = []
-    for year in range(2000, 2100):
-        year_list.append((str(year), str(year)))
-    return year_list
+    return [(str(i), str(i)) for i in range(2000, datetime.now().year + 1)]
 
 
 def get_months():
-    return [
-        ("1", "1"),
-        ("2", "2"),
-        ("3", "3"),
-        ("4", "4"),
-        ("5", "5"),
-        ("6", "6"),
-        ("7", "7"),
-        ("8", "8"),
-        ("9", "9"),
-        ("10", "10"),
-        ("11", "11"),
-        ("12", "12"),
-    ]
+    return [(str(i), str(i)) for i in range(1, 13)]
 
 
 class MvComputeDiscount(models.Model):
@@ -78,24 +62,20 @@ class MvComputeDiscount(models.Model):
             .level_promote_apply
         )
 
-    def _get_promote_discount_level(self):
-        for record in self:
-            record.level_promote_apply_for = self._default_level()
-
-    @api.depends("month", "year")
-    def _compute_name(self):
-        for record in self:
-            record.name = "{}/{}".format(str(record.month), str(record.year))
-
-    def _do_readonly(self):
-        for rec in self:
-            if rec.state in ["done"]:
-                rec.do_readonly = True
-            else:
-                rec.do_readonly = False
-
     # RULE Fields:
     do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
+
+    def _do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+
+        :return: False
+        """
+        for rec in self:
+            rec.do_readonly = rec.state == "done"
 
     # BASE Fields:
     name = fields.Char(compute="_compute_name", default="New", store=True)
@@ -113,9 +93,13 @@ class MvComputeDiscount(models.Model):
         readonly=True,
     )
     line_ids = fields.One2many("mv.compute.discount.line", "parent_id")
-    report_date = fields.Datetime(
-        compute="_compute_report_date_by_month_year", store=True
+    production_discount_policy_details_history_ids = fields.One2many(
+        comodel_name="mv.partner.total.discount.detail.history",
+        inverse_name="parent_id",
+        string="Lịch sử chi tiết số tiền CKSL",
     )
+    report_date = fields.Datetime(compute="_compute_report_date", store=True)
+    approved_date = fields.Datetime(readonly=True)
     level_promote_apply_for = fields.Integer(
         "Bậc áp dụng (Khuyến khích)", compute="_get_promote_discount_level"
     )
@@ -128,28 +112,50 @@ class MvComputeDiscount(models.Model):
         )
     ]
 
+    def _get_promote_discount_level(self):
+        for record in self:
+            record.level_promote_apply_for = self._default_level()
+
     @api.depends("year", "month")
-    def _compute_report_date_by_month_year(self):
+    def _compute_name(self):
+        """
+        Compute the name based on the month and year.
+
+        This method sets the `name` field to "month/year" if both `month` and `year` are set.
+        If either is not set, it uses the current month and year.
+
+        :return: None
+        """
+        for rec in self:
+            if rec.month and rec.year:
+                rec.name = "{}/{}".format(str(rec.month), str(rec.year))
+            else:
+                dt = datetime.now().replace(day=1)
+                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+
+    @api.depends("year", "month")
+    def _compute_report_date(self):
+        """
+        Compute the `report_date` based on the month and year.
+
+        This method sets the `report_date` field to the first day of the given month and year
+        if both `month` and `year` are set. If either is not set, it uses the first day of the current month and year.
+
+        :return: None
+        """
         for rec in self:
             if rec.month and rec.year:
                 rec.report_date = datetime.now().replace(
                     day=1, month=int(rec.month), year=int(rec.year)
                 )
             else:
-                rec.report_date = rec.create_date.replace(
-                    day=1,
-                    month=int(rec.create_date.month),
-                    year=int(rec.create_date.year),
-                )
+                rec.report_date = datetime.now().replace(day=1)
 
     # =================================
     # BUSINESS Methods
     # =================================
 
     def action_reset_to_draft(self):
-        """
-        Resets the state of the current record to 'draft'.
-        """
         try:
             self.ensure_one()
             if self.state != "draft":
@@ -176,6 +182,7 @@ class MvComputeDiscount(models.Model):
         sale_orders = self.env["sale.order"].search(
             [
                 ("is_order_returns", "=", False),
+                ("is_claim_warranty", "=", False),
                 ("state", "=", "sale"),
                 ("date_invoice", ">=", date_from),
                 ("date_invoice", "<", date_to),
@@ -200,6 +207,7 @@ class MvComputeDiscount(models.Model):
             and order.product_id.detailed_type == "product"
             and order.qty_delivered > 0
             and order.qty_invoiced > 0
+            and order.discount != 100
         )
 
         # Fetch partners at once
@@ -222,10 +230,7 @@ class MvComputeDiscount(models.Model):
             total_quantity_minimum = 0
             total_quantity_maximum = 0
             total_quantity_delivered = 0
-            total_quantity_for_discount = 0
             total_sales = 0
-            total_discount = 0
-            total_sales_after_discount = 0
 
             vals = self._prepare_values_for_confirmation(partner_id, self.report_date)
             partner = self.env["res.partner"].sudo().browse(partner_id.id)
@@ -246,6 +251,8 @@ class MvComputeDiscount(models.Model):
                 lambda sol: sol.order_id.check_category_product(sol.product_id.categ_id)
                 and sol.product_id.detailed_type == "product"
                 and sol.qty_delivered > 0
+                and sol.price_unit > 0
+                and sol.discount != 100
             )
             if orders_by_child_of_partner_agency:
                 order_by_partner_agency += orders_by_child_of_partner_agency
@@ -253,18 +260,10 @@ class MvComputeDiscount(models.Model):
             # [UP] Update Quantity (Get only with [qty_delivered] field)
             total_quantity_delivered += sum(
                 order_by_partner_agency.filtered(
-                    lambda line: line.price_unit > 0
+                    lambda rec: rec.price_unit > 0 and rec.discount != 100
                 ).mapped("qty_delivered")
             )
             vals["quantity"] = total_quantity_delivered
-
-            # [UP] Update Quantity Discount (Get only with [qty_delivered] field)
-            total_quantity_for_discount += sum(
-                order_by_partner_agency.filtered(
-                    lambda line: line.price_unit == 0
-                ).mapped("qty_delivered")
-            )
-            vals["quantity_discount"] = total_quantity_for_discount
 
             # [!] Determine Partner Discount Level
             line_ids = partner.line_ids.filtered(
@@ -280,16 +279,14 @@ class MvComputeDiscount(models.Model):
 
                 # [UP] Update Total Sales
                 total_sales += sum(
-                    order_by_partner_agency.filtered(
-                        lambda line: line.price_unit > 0
-                    ).mapped("price_subtotal_before_discount")
+                    order_by_partner_agency.mapped("price_subtotal_before_discount")
                 )
                 vals["amount_total"] = total_sales
 
                 level = line_ids[-1].level
                 discount_id = line_ids[-1].parent_id
                 discount_line_id = discount_id.line_ids.filtered(
-                    lambda line: line.level == level
+                    lambda rec: rec.level == level
                 )
                 vals["level"] = discount_line_id.level
                 total_quantity_minimum += discount_line_id.quantity_from
@@ -407,6 +404,59 @@ class MvComputeDiscount(models.Model):
                     vals["order_line_ids"] = order_line_ids
                     vals["discount_line_id"] = discount_line_id.id
 
+                    model_load_data = self.env["mv.compute.discount.line"].sudo()
+                    # [>] Get Sale Promote
+                    sale_promote_ids = self.env["sale.order"].browse(
+                        model_load_data._sql_get_sale_promote_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[0]
+                    )
+                    sale_promote_quantity = model_load_data._sql_get_sale_promote_ids(
+                        partner_id=partner,
+                        date_from=date_from.date(),
+                        date_to=date_to.date(),
+                    )[1]
+                    vals["sale_promote_ids"] = [(6, 0, sale_promote_ids.ids)]
+                    vals["quantity_discount"] = sale_promote_quantity
+
+                    # [>] Get Sale Returns
+                    sale_returns_ids = self.env["sale.order"].browse(
+                        model_load_data._sql_get_sale_return_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[0]
+                    )
+                    sale_returns_quantity = model_load_data._sql_get_sale_return_ids(
+                        partner_id=partner,
+                        date_from=date_from.date(),
+                        date_to=date_to.date(),
+                    )[1]
+                    vals["sale_return_ids"] = [(6, 0, sale_returns_ids.ids)]
+                    vals["quantity_returns"] = sale_returns_quantity
+
+                    # [>] Get Sale Claim Warranty
+                    sale_claim_warranty_ids = self.env["sale.order"].browse(
+                        model_load_data._sql_get_sale_claim_warranty_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[0]
+                    )
+                    sale_claim_warranty_quantity = (
+                        model_load_data._sql_get_sale_claim_warranty_ids(
+                            partner_id=partner,
+                            date_from=date_from.date(),
+                            date_to=date_to.date(),
+                        )[1]
+                    )
+                    vals["sale_claim_warranty_ids"] = [
+                        (6, 0, sale_claim_warranty_ids.ids)
+                    ]
+                    vals["quantity_claim_warranty"] = sale_claim_warranty_quantity
+
                 list_line_ids.append((0, 0, vals))
 
         if not list_line_ids:
@@ -415,6 +465,99 @@ class MvComputeDiscount(models.Model):
             )
 
         self.write({"line_ids": list_line_ids, "state": "confirm"})
+
+        # Create history line for discount
+        # if self.line_ids:
+        #     for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+        #         self.create_history_line(
+        #             line,
+        #             "confirm",
+        #             "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
+        #         )
+
+    def action_done(self):
+        if not self._access_approve():
+            raise AccessError("Bạn không có quyền duyệt!")
+
+        base_total_detail_histories_of_partner = self.env[
+            "mv.partner.total.discount.detail.history"
+        ].search([("partner_id", "in", self.line_ids.mapped("partner_id").ids)])
+
+        for record in self.filtered(lambda r: len(r.line_ids) > 0):
+            partners_updates = {}
+            for discount_line in record.line_ids:
+                partner_id = discount_line.partner_id.id
+                total_money = discount_line.total_money
+                partners_updates[partner_id] = (
+                    partners_updates.get(partner_id, 0) + total_money
+                )
+
+            for partner_id, total_money in partners_updates.items():
+                partner = self.env["res.partner"].sudo().browse(partner_id)
+                partner.write({"amount": partner.amount + total_money})
+
+            # Create history line for discount
+            for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                record.create_history_line(
+                    line,
+                    "done",
+                    "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
+                )
+
+            # Create total detail discount history
+            if (
+                record.id
+                not in base_total_detail_histories_of_partner.mapped("parent_id").ids
+            ):
+                record.create_total_discount_detail_history()
+
+            record.write({"state": "done", "approved_date": fields.Datetime.now()})
+
+    def action_undo(self):
+        # Create history line for discount
+        for record in self:
+            if record.line_ids:
+                for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                    self.create_history_line(
+                        line,
+                        "cancel",
+                        "Chiết khấu sản lượng tháng %s đã bị từ chối và đang chờ xem xét."
+                        % line.name,
+                    )
+
+            record.write({"state": "draft", "approved_date": False, "line_ids": False})
+
+    def create_history_line(self, record, state, description):
+        total_money = record.total_money
+        money_display = "{:,.2f}".format(total_money)
+        is_waiting_approval = state == "confirm" and total_money > 0
+        is_positive_money = state == "done" and total_money > 0
+        is_negative_money = state == "cancel" and total_money > 0
+
+        if state in ["confirm", "done"]:
+            money_display = "+ " + money_display if total_money > 0 else money_display
+        elif state == "cancel":
+            money_display = "- " + money_display if total_money > 0 else money_display
+
+        return self.env["mv.discount.partner.history"]._create_history_line(
+            partner_id=record.sudo().partner_id.id,
+            history_description=description,
+            history_date=record.parent_id.approved_date or record.parent_id.write_date,
+            history_user_action_id=record.parent_id.write_uid.id,
+            production_discount_policy_id=record.id,
+            production_discount_policy_total_money=total_money,
+            total_money=total_money,
+            total_money_discount_display=money_display,
+            is_waiting_approval=is_waiting_approval,
+            is_positive_money=is_positive_money,
+            is_negative_money=is_negative_money,
+        )
+
+    def create_total_discount_detail_history(self):
+        for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+            self.env[
+                "mv.partner.total.discount.detail.history"
+            ]._create_total_discount_detail_history_line(parent_id=self, policy_id=line)
 
     def _prepare_values_for_confirmation(self, partner_id, report_date):
         """Gets the data and returns it the right format for render."""
@@ -428,8 +571,13 @@ class MvComputeDiscount(models.Model):
             "level": 0,
             "sale_ids": [],
             "order_line_ids": [],
+            "sale_promote_ids": [],
+            "sale_return_ids": [],
+            "sale_claim_warranty_ids": [],
             "quantity": 0,
             "quantity_discount": 0,
+            "quantity_returns": 0,
+            "quantity_claim_warranty": 0,
             "quantity_from": 0,
             "quantity_to": 0,
             "amount_total": 0,
@@ -452,28 +600,9 @@ class MvComputeDiscount(models.Model):
             "year_money": 0,
         }
 
-    def action_done(self):
-        if not self._access_approve():
-            raise AccessError("Bạn không có quyền duyệt!")
-
-        for rec in self:
-            if rec.line_ids:
-                for discount_line in rec.line_ids:
-                    discount_line.partner_id.write(
-                        {
-                            "amount": discount_line.partner_id.amount
-                            + discount_line.total_money
-                        }
-                    )
-            rec.state = "done"
-
-    def action_undo(self):
-        self.write(
-            {
-                "state": "draft",
-                "line_ids": False,
-            }
-        )
+    # =================================
+    # ACTION Methods
+    # =================================
 
     def action_view_tree(self):
         return {
@@ -501,6 +630,7 @@ class MvComputeDiscount(models.Model):
                 "edit": False,
                 "tree_view_ref": "mv_sale.mv_compute_discount_line_tree",
                 "form_view_ref": "mv_sale.mv_compute_discount_line_form",
+                "search_default_filter_partner_sales_state": True,
             },
         }
 
@@ -745,6 +875,8 @@ class MvComputeDiscount(models.Model):
                        cdl.quantity_from                       AS quantity_from,
                        cdl.quantity                            AS quantity,
                        cdl.quantity_discount                   AS quantity_discount,
+                       cdl.quantity_returns                   AS quantity_returns,
+                       cdl.quantity_claim_warranty                   AS quantity_claim_warranty,
                        cdl.amount_total                        AS total,
                        cdl.month_money                         AS month_money,
                        cdl.two_money                           AS two_money,
@@ -766,6 +898,8 @@ class MvComputeDiscount(models.Model):
                     "quantity_from": data["quantity_from"],
                     "quantity": data["quantity"],
                     "quantity_discount": data["quantity_discount"],
+                    "quantity_returns": data["quantity_returns"],
+                    "quantity_claim_warranty": data["quantity_claim_warranty"],
                     "amount_total": data["total"],
                     "amount_month_money": data["month_money"],
                     "amount_two_money": data["two_money"],
@@ -793,7 +927,6 @@ class MvComputeDiscount(models.Model):
                 ("res_id", "=", self.id),
                 ("create_uid", "=", self.env.uid),
                 ("create_date", "<", fields.Datetime.now()),
-                ("name", "ilike", "Moveoplus-Partners-Discount-Detail%"),
             ]
         )
         if attachments_to_remove:
@@ -854,7 +987,7 @@ class MvComputeDiscount(models.Model):
         sheet.set_row(0, 30)
 
         # ////// NAME = "Chi tiết chiết khấu của Đại Lý trong tháng {month/year}"
-        sheet.merge_range("A1:M1", "", DEFAULT_FORMAT)
+        sheet.merge_range("A1:O1", "", DEFAULT_FORMAT)
         format_first_title = [
             "Chi tiết chiết khấu của Đại Lý trong tháng ",
             workbook.add_format(
@@ -924,35 +1057,43 @@ class MvComputeDiscount(models.Model):
         sheet.merge_range("F2:F3", "", DEFAULT_FORMAT)
         sheet.write("F2", "SL lốp khuyến mãi (Cái)", SUB_TITLE_FORMAT)
 
-        # ////// NAME = "Doanh thu Tháng"
+        # ////// NAME = "Số lượng lốp Đổi Trả (Cái)"
         sheet.merge_range("G2:G3", "", DEFAULT_FORMAT)
-        sheet.write("G2", "Doanh thu", SUB_TITLE_TOTAL_FORMAT)
+        sheet.write("G2", "SL lốp đổi trả (Cái)", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "Số lượng lốp Bảo Hành (Cái)"
+        sheet.merge_range("H2:H3", "", DEFAULT_FORMAT)
+        sheet.write("H2", "SL lốp bảo hành (Cái)", SUB_TITLE_FORMAT)
+
+        # ////// NAME = "Doanh thu Tháng"
+        sheet.merge_range("I2:I3", "", DEFAULT_FORMAT)
+        sheet.write("I2", "Doanh thu", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu tháng"
-        sheet.merge_range("H2:H3", "", DEFAULT_FORMAT)
-        sheet.write("H2", "Tiền CK Tháng", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("J2:J3", "", DEFAULT_FORMAT)
+        sheet.write("J2", "Tiền CK Tháng", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu 2 tháng"
-        sheet.merge_range("I2:I3", "", DEFAULT_FORMAT)
-        sheet.write("I2", "Tiền CK 2 Tháng", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("K2:K3", "", DEFAULT_FORMAT)
+        sheet.write("K2", "Tiền CK 2 Tháng", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu quý"
-        sheet.merge_range("J2:J3", "", DEFAULT_FORMAT)
-        sheet.write("J2", "Tiền CK Quý", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
+        sheet.write("L2", "Tiền CK Quý", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu năm"
-        sheet.merge_range("K2:K3", "", DEFAULT_FORMAT)
-        sheet.write("K2", "Tiền CK Năm", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("M2:M3", "", DEFAULT_FORMAT)
+        sheet.write("M2", "Tiền CK Năm", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Số tiền chiết khấu khuyến khích"
-        sheet.merge_range("L2:L3", "", DEFAULT_FORMAT)
-        sheet.write("L2", "Tiền CK Khuyến Khích", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("N2:N3", "", DEFAULT_FORMAT)
+        sheet.write("N2", "Tiền CK Khuyến Khích", SUB_TITLE_TOTAL_FORMAT)
 
         # ////// NAME = "Tổng tiền chiết khấu"
-        sheet.merge_range("M2:M3", "", DEFAULT_FORMAT)
-        sheet.write("M2", "Tổng tiền", SUB_TITLE_TOTAL_FORMAT)
+        sheet.merge_range("O2:O3", "", DEFAULT_FORMAT)
+        sheet.write("O2", "Tổng tiền", SUB_TITLE_TOTAL_FORMAT)
 
-        sheet.set_column(4, 12, 15)
+        sheet.set_column(4, 14, 15)
 
         # ############# [BODY] #############
         BODY_CHAR_FORMAT = workbook.add_format(
@@ -992,7 +1133,7 @@ class MvComputeDiscount(models.Model):
                 if isinstance(data[key], str):
                     sheet.write(count, col, data[key], BODY_CHAR_FORMAT)
                 elif isinstance(data[key], int) or isinstance(data[key], float):
-                    if col in [6, 7, 8, 9, 10, 11, 12]:
+                    if col in [8, 9, 10, 11, 12, 13, 14]:
                         sheet.write(count, col, data[key], BODY_TOTAL_NUM_FORMAT)
                     else:
                         sheet.write(count, col, data[key], BODY_NUM_FORMAT)
@@ -1005,3 +1146,18 @@ class MvComputeDiscount(models.Model):
         output.seek(0)
 
         return output.read(), file_name.replace("-", "_")
+
+    # ==================================
+    # TOOLING
+    # ==================================
+
+    def get_selection_label(self, model_name, field_name, record_id):
+        model = self.env[model_name]
+        field = model._fields[field_name]
+        selection_values = dict(field.selection)
+
+        record = model.browse(record_id)
+        selection_key = getattr(record, field_name)
+        selection_label = selection_values.get(selection_key, "Unknown")
+
+        return selection_key, selection_label

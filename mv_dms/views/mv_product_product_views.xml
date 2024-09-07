@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- KANBAN VIEW -->
+
+	<!-- TREE VIEW -->
+	<record model="ir.ui.view" id="mv_product_product_tree_view">
+		<field name="name">mv_product_product.tree</field>
+		<field name="model">mv.product.product</field>
+		<field name="arch" type="xml">
+			<tree string="Products" editable="bottom" multi_edit="true" duplicate="false" sample="true">
+				<field name="product_attribute_id" string="Thuộc tính" options="{'no_create': True, 'no_create_edit': True}"/>
+				<field name="brand_id" string="Thương hiệu" options="{'no_create': True, 'no_create_edit': True}"/>
+				<field name="quantity_per_month" string="Số lượng/tháng"/>
+			</tree>
+		</field>
+	</record>
+
+	<!-- FORM VIEW -->
+	<record model="ir.ui.view" id="mv_product_product_form_view">
+		<field name="name">mv.product.product.form</field>
+		<field name="model">mv.product.product</field>
+		<field name="arch" type="xml">
+			<form>
+				<group col="2">
+					<group>
+						<field name="name" string="Tên sản phẩm"/>
+						<field name="product_attribute_id" string="Thuộc tính" options="{'no_create_edit': True}"/>
+						<field name="brand_id" string="Thương hiệu" options="{'no_create_edit': True}"/>
+					</group>
+					<group>
+						<field name="quantity_per_month" string="Số lượng/tháng"/>
+						<field name="uom_id"/>
+					</group>
+				</group>
+			</form>
+		</field>
+	</record>
+
+	<!-- ACTION -->
+	<record model="ir.actions.act_window" id="mv_dms_action_view_all_products">
+		<field name="name">Sản phẩm</field>
+		<field name="res_model">mv.product.product</field>
+		<field name="view_mode">tree,form</field>
+		<field name="context">{}</field>
+		<field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new product
+            </p>
+        </field>
+	</record>
+</odoo>

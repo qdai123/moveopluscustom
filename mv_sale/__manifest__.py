@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Sale",
+    "name": "Sales",
     "version": "17.0.1.0",
-    "category": "Moveoplus/MV Sale",
+    "countries": ["vi"],
+    "category": "Moveoplus/Sales",
     "description": "Base on Sale modules and Related modules to customize new features",
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
     "depends": [
         # Odoo
@@ -29,6 +31,7 @@
         # VIEWS
         "views/mv_discount_views.xml",
         "views/mv_discount_partner_views.xml",
+        "views/mv_discount_partner_history_views.xml",
         "views/mv_promote_discount_line_views.xml",
         "views/mv_warranty_discount_policy_views.xml",
         "views/mv_white_place_discount_line_views.xml",
@@ -38,9 +41,10 @@
         "views/product_attribute_views.xml",
         "views/res_partner_views.xml",
         "views/loyalty_program_views.xml",
+        "views/loyalty_reward_views.xml",
+        "views/loyalty_rule_views.xml",
         "views/sale_order_views.xml",
         # TEMPLATES
-        "views/templates.xml",
         "views/sale_portal_templates.xml",
         # REPORT
         "report/discount_report_views.xml",

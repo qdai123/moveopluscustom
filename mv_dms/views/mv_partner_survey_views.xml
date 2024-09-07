@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- KANBAN VIEW -->
+
+	<!-- TREE VIEW -->
+	<record model="ir.ui.view" id="mv_partner_survey_tree_view">
+		<field name="name">mv_partner_survey.tree</field>
+		<field name="model">mv.partner.survey</field>
+		<field name="arch" type="xml">
+			<tree duplicate="false" import="false" export_xlsx="false" sample="true" decoration-muted="state == 'cancel'">
+				<field name="name" class="fw-bold"/>
+				<field name="partner_id" widget="many2one_avatar"/>
+				<field name="create_uid" widget="many2one_avatar_user"/>
+				<field name="create_date" column_invisible="1"/>
+				<field name="survey_date"/>
+				<field name="region_id"/>
+				<field name="company_id" groups="base.group_multi_company" optional="hidden"/>
+				<field name="currency_id" column_invisible="1"/>
+				<field name="state"
+				       widget="badge"
+				       decoration-muted="state  == 'draft'"
+				       decoration-info="state  == 'progressing'"
+				       decoration-success="state == 'done'"/>
+				<field name="active" column_invisible="1"/>
+				<field name="is_use_service" column_invisible="1"/>
+				<field name="is_moveoplus_agency" column_invisible="1"/>
+			</tree>
+		</field>
+	</record>
+
+	<!-- FORM VIEW -->
+	<record model="ir.ui.view" id="mv_partner_survey_form_view">
+		<field name="name">mv_partner_survey.form</field>
+		<field name="model">mv.partner.survey</field>
+		<field name="arch" type="xml">
+			<form duplicate="false">
+				<header>
+					<field name="active" invisible="1"/>
+					<field name="do_readonly" invisible="1"/>
+					<field name="is_sales_manager" invisible="1"/>
+					<field name="company_id" invisible="1"/>
+					<field name="currency_id" invisible="1"/>
+					<field name="state" widget="statusbar" statusbar_visible="draft,progressing,done"/>
+					<button name="action_complete" type="object" string="Hoàn thành" class="btn btn-primary" invisible="state != 'progressing'" confirm="Bạn chắc chắn muốn hoàn thành phiếu khảo sát này?"/>
+					<button name="action_draft" type="object" string="Khảo sát nháp" class="btn btn-primary" invisible="state != 'cancel'"/>
+					<button name="action_run" type="object" string="Tiến hành Khảo sát" class="btn btn-primary" invisible="state != 'draft1'"/>
+					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" invisible="state in ['done', 'cancel'] or is_sales_manager"/>
+					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" context="{'force_cancel_by_manager': True}" invisible="state != 'done' and not is_sales_manager"/>
+				</header>
+				<sheet>
+					<div name="button_box" class="oe_button_box"></div>
+					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<div class="oe_title mw-75 ps-0 pe-2">
+						<h2 class="d-flex flex-row align-items-center">
+							<field name="name" placeholder="Survey Ref." readonly="1" style="font-size: min(4vw, 2.6rem);"/>
+						</h2>
+					</div>
+					<br/>
+					<group name="base_survey_info">
+						<group name="left_side_info">
+							<field name="create_uid" options="{'no_open': True}"/>
+							<field name="partner_id"
+							       widget="res_partner_many2one"
+							       class="o_field_highlight"
+							       context="{'res_partner_search_mode': 'customer', 'show_address': 1, 'show_vat': True}"
+							       options="{'no_create': True, 'no_create_edit': True}"
+							       readonly="do_readonly"/>
+							<field name="is_partner_agency" invisible="1"/>
+							<field name="is_moveoplus_agency" readonly="partner_id and is_partner_agency"/>
+							<field name="region_id" string="Thuộc khu vực" options="{'no_create': True, 'no_create_edit': True}" readonly="do_readonly"/>
+						</group>
+						<group name="right_side_info">
+							<field name="survey_date" readonly="1"/>
+							<field name="create_date" invisible="1" readonly="1"/>
+							<label for="proportion"/>
+							<div class="col-2">
+								<field name="proportion" no_label="1" widget="percentage"/>
+							</div>
+							<label for="classical"/>
+							<div class="col-4">
+								<field name="classical" no_label="1"/>
+							</div>
+							<label for="financial_ability"/>
+							<div class="col-4">
+								<field name="financial_ability" no_label="1"/>
+							</div>
+						</group>
+						<group string="## Thông tin chủ sở hữu" name="owner_detail_info">
+							<field name="owner" readonly="do_readonly"/>
+							<field name="owner_dob" readonly="do_readonly"/>
+							<field name="owner_phone" widget="phone" readonly="do_readonly"/>
+							<field name="owner_email" widget="email" readonly="do_readonly"/>
+							<field name="number_of_years_business" widget="float" readonly="do_readonly"/>
+						</group>
+						<group string="## Thông tin người kế thừa" name="second_generation_detail_info">
+							<field name="second_generation" readonly="do_readonly"/>
+							<field name="second_generation_dob" readonly="do_readonly"/>
+							<field name="second_generation_phone" widget="phone" readonly="do_readonly"/>
+							<field name="second_generation_email" widget="email" readonly="do_readonly"/>
+							<field name="relationship_with_owner" readonly="do_readonly"/>
+						</group>
+					</group>
+					<!-- ## Thông tin cửa hàng -->
+					<label for="shop_ids" string="## Thông tin cửa hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="shop_count" invisible="1"/>
+					<field name="shop_ids" no_label="1" context="{'default_partner_survey_id': id}" readonly="do_readonly">
+						<tree editable="bottom" no_open="True">
+							<field name="name" string="Tên cửa hàng"/>
+							<field name="mv_shop_categ_id" string="Thương hiệu" domain="[('parent_id', '!=', False)]" options="{'no_create': True, 'no_create_edit': True}" required="1"/>
+							<field name="street" required="1"/>
+							<field name="country_id" options="{'no_create': True, 'no_create_edit': True}"/>
+							<field name="state_id" options="{'no_create': True, 'no_create_edit': True}" required="country_id" readonly="not country_id"/>
+							<field name="district_id" options="{'no_create': True, 'no_create_edit': True}" required="country_id and state_id" readonly="not country_id or not state_id" optional="show"/>
+							<field name="wards_id" options="{'no_create': True, 'no_create_edit': True}" required="country_id and state_id and district_id" readonly="not country_id or not state_id or not district_id" optional="show"/>
+							<field name="address" optional="hidden"/>
+							<field name="square_meter" string="Diện tích"/>
+						</tree>
+					</field>
+					<!-- ## Các hãng lốp tham gia & Tỷ trọng mua hàng -->
+					<label for="brand_proportion_tire_ids" string="## Các hãng lốp tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="brand_proportion_tire_ids" no_label="1" context="{'default_partner_survey_id': id}" readonly="do_readonly">
+						<tree editable="bottom" no_open="True" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" string="Hãng lốp" context="{'search_default_brand_tire': True}" options="{'no_create': True, 'no_create_edit': True}"/>
+							<field name="year_participation"/>
+							<field name="quantity_per_month" sum="Total Quantity per Month"/>
+							<field name="proportion" class="fw-bold" widget="percentage" sum="Total Proportion"/>
+						</tree>
+					</field>
+					<field name="total_quantity_brand_proportion_of_tire" invisible="1"/>
+					<!-- ## Các hãng Non-Tire tham gia & Tỷ trọng mua hàng -->
+					<label for="brand_proportion_lubricant_ids" string="## Các hãng Non Tire tham gia &amp; Tỷ trọng mua hàng" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<field name="brand_proportion_lubricant_ids" no_label="1" context="{'default_partner_survey_id': id}" readonly="do_readonly">
+						<tree editable="bottom" no_open="True" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" string="Hãng dầu nhớt" context="{'search_default_brand_lubricant': True}" options="{'no_create': True, 'no_create_edit': True}"/>
+							<field name="year_participation"/>
+							<field name="quantity_per_month" sum="Total Quantity per Month"/>
+							<field name="proportion" class="fw-bold" widget="percentage" sum="Total Proportion"/>
+						</tree>
+					</field>
+					<field name="total_quantity_brand_proportion_of_lubricant" invisible="1"/>
+					<field name="brand_proportion_battery_ids" no_label="1" context="{'default_partner_survey_id': id}" readonly="do_readonly">
+						<tree editable="bottom" no_open="True" default_order="year_participation desc, quantity_per_month desc">
+							<field name="brand_id" string="Hãng ắc quy" context="{'search_default_brand_battery': True}" options="{'no_create': True, 'no_create_edit': True}"/>
+							<field name="year_participation"/>
+							<field name="quantity_per_month" sum="Total Quantity per Month"/>
+							<field name="proportion" class="fw-bold" widget="percentage" sum="Total Proportion"/>
+						</tree>
+					</field>
+					<field name="total_quantity_brand_proportion_battery" invisible="1"/>
+					<!-- ## Tỷ lệ Bán buôn & Bán lẻ -->
+					<group string="## Tỷ lệ Bán buôn &amp; Bán lẻ" name="group_wholesale_and_retail">
+						<group>
+							<label for="total_retail"/>
+							<div class="col-2">
+								<field name="total_retail" class="fw-bold" decoration-success="total_retail &gt; 1" no_label="1" widget="percentage"/>
+							</div>
+						</group>
+						<group>
+							<label for="total_wholesale"/>
+							<div class="col-2">
+								<field name="total_wholesale" class="fw-bold" decoration-success="total_wholesale &gt; 1" no_label="1" widget="percentage"/>
+							</div>
+						</group>
+						<group string="Chi tiết bán lẻ (%)">
+							<label for="per_retail_customer"/>
+							<div class="col-2">
+								<field name="per_retail_customer" no_label="1" widget="percentage" readonly="do_readonly"/>
+							</div>
+							<label for="per_retail_taxi"/>
+							<div class="col-2">
+								<field name="per_retail_taxi" no_label="1" widget="percentage" readonly="do_readonly"/>
+							</div>
+							<label for="per_retail_fleet"/>
+							<div class="col-2">
+								<field name="per_retail_fleet" no_label="1" widget="percentage" readonly="do_readonly"/>
+							</div>
+						</group>
+						<group string="Chi tiết bán buôn (%)">
+							<label for="per_wholesale_subdealer"/>
+							<div class="col-2">
+								<field name="per_wholesale_subdealer" no_label="1" widget="percentage" readonly="do_readonly"/>
+							</div>
+							<label for="per_wholesale_garage"/>
+							<div class="col-2">
+								<field name="per_wholesale_garage" no_label="1" widget="percentage" readonly="do_readonly"/>
+							</div>
+						</group>
+					</group>
+					<!-- ## Thông tin Dịch vụ -->
+					<group string="## Thông tin Dịch vụ" name="group_service_info">
+						<group>
+							<field name="is_use_service" string="Cửa hàng có làm dịch vụ không?" readonly="do_readonly"/>
+						</group>
+						<group/>
+						<group string="Thông tin xưởng dịch vụ" invisible="not is_use_service">
+							<label for="proportion_service"/>
+							<div class="col-2">
+								<field name="proportion_service" no_label="1" widget="percentage" readonly="do_readonly"/>
+							</div>
+							<label for="service_bay"/>
+							<div class="col-2">
+								<field name="service_bay" no_label="1" readonly="do_readonly"/>
+							</div>
+						</group>
+						<group string="Thông tin nhân sự" invisible="not is_use_service">
+							<label for="num_technicians"/>
+							<div class="col-2">
+								<field name="num_technicians" no_label="1" readonly="do_readonly"/>
+							</div>
+							<label for="num_administrative_staff"/>
+							<div class="col-2">
+								<field name="num_administrative_staff" no_label="1" readonly="do_readonly"/>
+							</div>
+						</group>
+						<field name="service_detail_ids" no_label="1" options="{'no_create_edit': True}" readonly="do_readonly" invisible="not is_use_service">
+							<tree editable="bottom">
+								<field name="name" string="Tên sản phẩm"/>
+								<field name="service_price" class="fw-bold" widget="monetary" sum="Total Service Price"/>
+								<field name="notes" class="text-break" options="{'line_breaks': False}" widget="text"/>
+							</tree>
+						</field>
+					</group>
+					<!-- ## Phân tích mặt hàng sản phẩm -->
+					<label for="mv_product_tire_ids" string="## Phân tích mặt hàng sản phẩm" class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small col-12"/>
+					<!-- TOP 10 Sản Phẩm (Size Lốp)  -->
+					<field name="mv_product_tire_ids" no_label="1" readonly="do_readonly">
+						<tree editable="bottom" no_open="True">
+							<field name="product_attribute_id" string="Size lốp" context="{'search_default_brand_tire': 1}" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng lốp" context="{'search_default_brand_tire': 1}" options="{'no_create': True}"/>
+							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
+						</tree>
+					</field>
+					<!-- TOP 10 Sản Phẩm (Dầu nhớt)  -->
+					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
+						<tree editable="bottom" no_open="True">
+							<field name="product_attribute_id" string="Dầu nhớt" context="{'search_default_brand_lubricant': 1}" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng dầu nhớt" context="{'search_default_brand_lubricant': 1}" options="{'no_create': True}"/>
+							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
+						</tree>
+					</field>
+					<!-- TOP 10 Sản Phẩm (Ắc quy)  -->
+					<field name="mv_product_battery_ids" no_label="1" readonly="do_readonly">
+						<tree editable="bottom" no_open="True">
+							<field name="product_attribute_id" string="Ắc quy" context="{'search_default_brand_battery': 1}" options="{'no_create': True}"/>
+							<field name="brand_id" string="Hãng ắc quy" context="{'search_default_brand_battery': 1}" options="{'no_create': True}"/>
+							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
+						</tree>
+					</field>
+					<!-- ## Lịch sử bán hàng -->
+					<group string="## Lịch sử bán hàng" name="group_sales_history_by_year" invisible="1">
+					</group>
+				</sheet>
+				<div class="oe_chatter">
+					<field name="message_follower_ids" groups="base.group_user"/>
+					<field name="message_ids"/>
+				</div>
+			</form>
+		</field>
+	</record>
+
+	<!-- SEARCH VIEW -->
+	<record model="ir.ui.view" id="mv_partner_survey_base_search_view">
+		<field name="name">mv_partner_survey.base.search</field>
+		<field name="model">mv.partner.survey</field>
+		<field name="arch" type="xml">
+			<search>
+				<field name="name" string="Phiếu khảo sát"/>
+				<field name="partner_id" operator="child_of"/>
+				<field name="region_id"/>
+				<field name="shop_ids"/>
+				<field name="service_detail_ids"/>
+				<field name="company_id"/>
+				<filter string="Ngày tạo phiếu" name="filter_create_date" date="create_date"/>
+				<separator/>
+				<filter string="Phiếu khảo sát của tôi" name="filter_my_surveys" domain="[('create_uid', '=', uid)]"/>
+				<separator/>
+				<filter string="Phiếu đang khảo sát" name="filter_draft_surveys" domain="[('state', '=', 'draft')]"/>
+				<filter string="Phiếu khảo sát hoàn thành" name="filter_done_surveys" domain="[('state', '=', 'done')]"/>
+				<separator/>
+				<filter string="Phiếu khảo sát dịch vụ" name="filter_is_use_service" domain="[('is_use_service', '=', True)]"/>
+				<separator/>
+				<filter string="Đại lý của MO+" name="filter_is_moveoplus_agency" domain="[('is_moveoplus_agency', '=', True)]"/>
+				<separator/>
+				<filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+				<group expand="0" string="Group By">
+					<filter name="groupby_company" domain="[]" context="{'group_by':'company_id'}" string="Công ty"/>
+					<filter name="groupby_partner_id" domain="[]" context="{'group_by':'partner_id'}" string="Đại lý"/>
+					<separator/>
+					<filter name="groupby_region_id" domain="[]" context="{'group_by':'region_id'}" string="Vùng miền"/>
+					<separator/>
+					<filter name="groupby_state" domain="[]" context="{'group_by':'state'}" string="Trạng thái"/>
+				</group>
+			</search>
+		</field>
+	</record>
+
+	<!-- ACTION -->
+	<record model="ir.actions.act_window" id="mv_dms_action_view_my_surveys">
+		<field name="name">Phiếu khảo sát</field>
+		<field name="res_model">mv.partner.survey</field>
+		<field name="view_mode">tree,form</field>
+		<field name="domain">[('create_uid', '=', uid)]</field>
+		<field name="context">{'search_default_filter_today': 1, 'search_default_filter_draft_surveys': 1}</field>
+		<field name="view_id" ref="mv_partner_survey_tree_view"/>
+		<field name="search_view_id" ref="mv_partner_survey_base_search_view"/>
+		<field name="help" type="html">
+			<p class="oe_view_nocontent_create">
+				Click to create a new survey.
+			</p>
+		</field>
+	</record>
+
+	<record model="ir.actions.act_window" id="mv_dms_action_view_all_surveys">
+		<field name="name">Phiếu khảo sát</field>
+		<field name="res_model">mv.partner.survey</field>
+		<field name="view_mode">tree,form</field>
+		<field name="domain">[('active', '=', True)]</field>
+		<field name="context">{'search_default_filter_today': 1, 'search_default_groupby_state': 1}</field>
+		<field name="view_id" ref="mv_partner_survey_tree_view"/>
+		<field name="search_view_id" ref="mv_partner_survey_base_search_view"/>
+		<field name="help" type="html">
+			<p class="oe_view_nocontent_create">
+				Click to create a new survey.
+			</p>
+		</field>
+	</record>
+</odoo>

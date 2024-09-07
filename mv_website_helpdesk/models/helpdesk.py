@@ -1,16 +1,40 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
 from odoo.addons.http_routing.models.ir_http import slug
-
 from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
-    SUB_DEALER_CODE,
     END_USER_CODE,
+    SUB_DEALER_CODE,
 )
+
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class HelpdeskTeam(models.Model):
     _inherit = "helpdesk.team"
+
+    @api.model
+    def get_activation_warranty_ticket_type_subdealer(self):
+        """Get the ticket type for activation warranty [Subdealer]."""
+        return self.env.ref(
+            "mv_helpdesk.type_guarantee_activation_for_sub_dealer",
+            raise_if_not_found=False,
+        )
+
+    @api.model
+    def get_activation_warranty_ticket_type_end_user(self):
+        """Get the ticket type for activation warranty [End User]."""
+        return self.env.ref(
+            "mv_helpdesk.type_guarantee_activation_for_end_user",
+            raise_if_not_found=False,
+        )
+
+    @api.model
+    def get_claim_warranty_ticket_type(self):
+        """Get the ticket type for claiming warranty."""
+        return self.env.ref(
+            "mv_website_helpdesk.mv_helpdesk_claim_warranty",
+            raise_if_not_found=False,
+        )
 
     use_website_helpdesk_warranty_activation = fields.Boolean(
         string="Website Warranty Activation",

@@ -79,14 +79,8 @@ class SaleOrderLine(models.Model):
                     sol.price_subtotal_before_discount = (
                         sol.price_unit * sol.qty_delivered
                     ) - ((sol.price_unit * sol.qty_delivered) * sol.discount / 100)
-                    _logger.debug(
-                        f"Computed subtotal before discount for line {sol.id}: {sol.price_subtotal_before_discount}"
-                    )
                 else:
                     sol.price_subtotal_before_discount = 0
-                    _logger.debug(
-                        f"Set subtotal before discount to 0 for line {sol.id} due to missing values."
-                    )
             except Exception as e:
                 _logger.error(
                     f"Error computing subtotal before discount for line {sol.id}: {e}"
@@ -121,60 +115,39 @@ class SaleOrderLine(models.Model):
         :param vals: Dictionary of values to write.
         :return: Boolean indicating the success of the write operation.
         """
-        _logger.debug(f"Write called with vals: {vals}")
-
-        try:
+        res = super(SaleOrderLine, self).write(vals)
+        if any(sol.hidden_show_qty or sol.reward_id for sol in self):
+            return res
+        else:
             if "product_uom_qty" in vals and vals["product_uom_qty"]:
-                self._set_recompute_discount_agency()
+                for sol in self:
+                    sol._set_recompute_discount_agency()
+                    sol.order_id._reset_discount_agency(sol.order_id.state)
 
-            if any(sol.hidden_show_qty or sol.reward_id for sol in self):
-                return super(SaleOrderLine, self).write(vals)
+            return res
 
-            return super(SaleOrderLine, self).write(vals)
-
-        except Exception as e:
-            _logger.error(f"Error in write method: {e}")
-            return
+    def _set_recompute_discount_agency(self):
+        """
+        Set the recompute_discount_agency flag to True for lines that need it.
+        """
+        lines_to_update = self._get_discount_agency_line()
+        lines_to_update.write({"recompute_discount_agency": True})
 
     def unlink(self):
         """
         Override the unlink method to handle specific logic for sale order lines.
-
         :return: Boolean indicating the success of the unlink operation.
         """
-        _logger.debug("Starting unlink operation for sale order lines.")
-
-        try:
-            for line in self:
-                if line._get_discount_agency_line():
-                    line.order_id.message_post(
-                        body=Markup(
-                            "Dòng %s đã xóa, số tiền: %s"
-                            % (
-                                line.product_id.name,
-                                line.price_unit,
-                            )
-                        )
+        for order_line in self:
+            if order_line.is_discount_agency:
+                order_line.order_id.message_post(
+                    body=Markup(
+                        "Dòng %s đã bị xóa, số tiền: %s"
+                        % (order_line.product_id.name, order_line.price_unit)
                     )
+                )
 
-            orders_to_update = self.filtered(
-                lambda sol: sol.product_id
-                and sol.product_id.default_code
-                and "Delivery_" not in sol.product_id.default_code
-            ).mapped("order_id")
-
-            unique_orders = set(orders_to_update)
-            for order in unique_orders:
-                order._compute_partner_bonus()
-                order._compute_bonus_order_line()
-
-            result = super(SaleOrderLine, self).unlink()
-            _logger.debug("Completed unlink operation for sale order lines.")
-            return result
-
-        except Exception as e:
-            _logger.error(f"Error in unlink method: {e}")
-            return
+        return super(SaleOrderLine, self).unlink()
 
     # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
     @api.ondelete(at_uninstall=False)
@@ -192,13 +165,6 @@ class SaleOrderLine(models.Model):
         )
 
     # /// HELPERS Methods
-
-    def _set_recompute_discount_agency(self):
-        """
-        Set the recompute_discount_agency flag to True for lines that need it.
-        """
-        lines_to_update = self.filtered(lambda line: line._get_discount_agency_line())
-        lines_to_update.write({"recompute_discount_agency": True})
 
     def _get_discount_agency_line(self):
         """

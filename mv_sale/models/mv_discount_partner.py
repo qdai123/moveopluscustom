@@ -3,12 +3,13 @@ from odoo import _, api, fields, models
 
 
 class MvDiscountPolicyPartner(models.Model):
-    _name = _description = "mv.discount.partner"
+    _name = "mv.discount.partner"
+    _description = _("MO+ Discount Policy for Partner")
     _rec_name = "partner_id"
 
     # === Model: [res.partner] Fields ===#
     partner_id = fields.Many2one(
-        "res.partner", "Khách hàng / Đại lý", domain=[("is_agency", "=", True)]
+        "res.partner", "Đại lý", domain=[("is_agency", "=", True)]
     )
     partner_agency = fields.Boolean(compute="_compute_partner_agency")
     partner_white_agency = fields.Boolean(compute="_compute_partner_agency")
@@ -60,22 +61,26 @@ class MvDiscountPolicyPartner(models.Model):
     # =================================
 
     def write(self, vals):
+        # Filter records that meet the condition
+        relevant_records = self.filtered(
+            lambda rec: rec.parent_id
+            and rec.partner_id
+            and rec.warranty_discount_policy_ids
+        )
+
+        # Perform the write operation first
         res = super().write(vals)
 
+        # If write was successful, update the related partner records
         if res:
-            for record in self:
-                if (
-                    record.parent_id
-                    and record.partner_id
-                    and record.warranty_discount_policy_ids
-                ):
-                    record.partner_id.write(
-                        {
-                            "warranty_discount_policy_ids": [
-                                (6, 0, record.warranty_discount_policy_ids.ids)
-                            ]
-                        }
-                    )
+            for record in relevant_records:
+                record.partner_id.write(
+                    {
+                        "warranty_discount_policy_ids": [
+                            (6, 0, record.warranty_discount_policy_ids.ids)
+                        ]
+                    }
+                )
 
         return res
 
@@ -85,24 +90,29 @@ class MvDiscountPolicyPartner(models.Model):
 
     def action_update_partner_discount(self):
         self.ensure_one()
+
+        # Prepare the context for the wizard
+        context = {
+            "default_partner_id": self.partner_id.id,
+            "default_date_effective": self.date,
+            "default_current_level": self.level,
+            "default_new_level": self.level,
+            "default_min_debt": self.min_debt,
+            "default_max_debt": self.max_debt,
+            "default_number_debt": self.number_debt,
+            "create": False,
+            "edit": False,
+        }
+
+        # Return the action for opening the wizard form view
         return {
-            "name": _(f"Cập nhật chính sách cho {self.partner_id.name}"),
+            "name": _("Update Policy for %s") % self.partner_id.name,
             "type": "ir.actions.act_window",
             "res_model": "mv.wizard.update.partner.discount",
             "view_mode": "form",
             "view_id": self.env.ref(
                 "mv_sale.mv_wizard_update_partner_discount_form_view"
             ).id,
-            "context": {
-                "default_partner_id": self.partner_id.id,
-                "default_date_effective": self.date,
-                "default_current_level": self.level,
-                "default_new_level": self.level,
-                "default_min_debt": self.min_debt,
-                "default_max_debt": self.max_debt,
-                "default_number_debt": self.number_debt,
-                "create": False,
-                "edit": False,
-            },
+            "context": context,
             "target": "new",
         }

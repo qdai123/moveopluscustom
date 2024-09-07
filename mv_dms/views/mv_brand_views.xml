@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<record id="view_mv_brand_kanban" model="ir.ui.view">
+            <field name="name">mv.band.kanban</field>
+            <field name="model">mv.brand</field>
+            <field name="arch" type="xml">
+                <kanban sample="1">
+                    <field name="id"/>
+                    <field name="color"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_card oe_kanban_global_click">
+                                <div class="o_kanban_image me-1">
+                                    <img t-att-src="kanban_image('mv.brand', 'image_128', record.id.raw_value)" alt="Brand" class="o_image_64_contain"/>
+                                </div>
+                                <div class="oe_kanban_details">
+                                    <div class="o_kanban_record_top mb-0">
+                                        <div class="o_kanban_record_headings">
+                                            <strong class="o_kanban_record_title">
+                                                <field name="name"/> - <t t-if="record.uom_id.value">(Đơn vị: <field name="uom_id"/></t>)
+                                            </strong>
+                                        </div>
+                                        <field name="priority" widget="priority"/>
+                                    </div>
+                                    <t t-if="record.default_code.value">Mã tham chiếu: <strong style="color: #461885;"><field name="default_code"/></strong></t>
+	                                <div class="o_kanban_tags_section">
+                                        Loại: <field name="mv_brand_categ_id"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+	<record id="view_mv_brand_tree" model="ir.ui.view">
+		<field name="name">mv.brand.tree</field>
+		<field name="model">mv.brand</field>
+		<field name="arch" type="xml">
+			<tree string="Brands" multi_edit="true" sample="true">
+				<field name="name" class="fw-bold"/>
+				<field name="default_code" optional="show"/>
+				<field name="mv_brand_categ_id" optional="hide"/>
+				<field name="uom_id" readonly="1" optional="show" groups="uom.group_uom"/>
+				<field name="active" column_invisible="True"/>
+			</tree>
+		</field>
+	</record>
+
+	<record id="view_mv_brand_form" model="ir.ui.view">
+		<field name="name">mv.brand.form</field>
+		<field name="model">mv.brand</field>
+		<field name="arch" type="xml">
+			<form string="Brands">
+				<sheet name="brand_form">
+					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+					<field name="id" invisible="True"/>
+                    <field name="image_1920" widget="image" class="oe_avatar" options="{'preview_image': 'image_128'}"/>
+					<div class="oe_title">
+                        <label for="name" string="Tên Thương hiệu"/>
+                        <h1>
+                            <div class="d-flex">
+                                <field name="priority" widget="priority" class="me-3"/>
+                                <field class="text-break" name="name" options="{'line_breaks': False}" widget="text" placeholder="e.g. Continental"/>
+                            </div>
+                        </h1>
+                    </div>
+					<notebook>
+						<page string="Thông tin chung" name="general_information">
+							<group>
+								<group>
+									<field name="default_code"/>
+									<field name="mv_brand_categ_id" options="{'no_open': True}"/>
+								</group>
+								<group>
+									<field name="active" invisible="1"/>
+									<field name="uom_id" groups="uom.group_uom"/>
+								</group>
+							</group>
+						</page>
+					</notebook>
+				</sheet>
+			</form>
+		</field>
+	</record>
+
+	<record id="action_view_mv_brand" model="ir.actions.act_window">
+		<field name="name">Brands</field>
+		<field name="res_model">mv.brand</field>
+		<field name="view_mode">kanban,tree,form</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_smiling_face">
+				Create a new brand
+			</p>
+		</field>
+	</record>
+
+</odoo>

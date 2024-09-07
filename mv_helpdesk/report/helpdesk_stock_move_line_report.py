@@ -6,8 +6,12 @@ from odoo.addons.mv_helpdesk.models.helpdesk_ticket import (
     END_USER_CODE,
 )
 
+HELPDESK_ACTIVATION_WARRANTY_TEAM = (
+    "mv_website_helpdesk.mv_website_helpdesk_helpdesk_team_warranty_activation_form"
+)
 
-class HelpdeskStockMoveLineReport(models.Model):
+
+class HelpdeskStockReport(models.Model):
     _name = "mv.helpdesk.stock.move.line.report"
     _description = _("Ticket Registered Analysis Report")
     _auto = False
@@ -16,17 +20,17 @@ class HelpdeskStockMoveLineReport(models.Model):
     _order = "ticket_create_date desc"
 
     @api.model
-    def _get_default_helpdesk_warranty_team(self):
+    def get_default_helpdesk_activation_warranty_team(self):
         return self.env.ref(
-            "mv_website_helpdesk.mv_website_helpdesk_helpdesk_team_warranty_activation_form"
+            HELPDESK_ACTIVATION_WARRANTY_TEAM, raise_if_not_found=False
         ).id
 
     @api.model
-    def _get_new_stage(self):
+    def get_new_stage(self):
         return self.env.ref("mv_website_helpdesk.warranty_stage_new").id
 
     @api.model
-    def _get_done_stage(self):
+    def get_done_stage(self):
         return self.env.ref("mv_website_helpdesk.warranty_stage_done").id
 
     # ==== Product fields ====
@@ -38,23 +42,43 @@ class HelpdeskStockMoveLineReport(models.Model):
     product_att_ma_gai = fields.Char(readonly=True)
 
     # ==== Stock fields ====
-    stock_move_line_id = fields.Many2one("stock.move.line", readonly=True)
+    stock_lot_id = fields.Many2one("stock.lot", readonly=True)
+    stock_location_id = fields.Many2one("stock.location", readonly=True)
     serial_number = fields.Char(readonly=True)
     qrcode = fields.Char(readonly=True)
     week_number = fields.Many2one("inventory.period", readonly=True)
 
-    # ==== Helpdesk Ticket fields (For Warranty Activation ONLY) ====
+    # ==== Helpdesk Ticket fields ====
     ticket_create_date = fields.Datetime("Created On", readonly=True)
+    ticket_create_day = fields.Char("Day", readonly=True)
+    ticket_create_month = fields.Char("Month", readonly=True)
+    ticket_create_year = fields.Char("Year", readonly=True)
     ticket_write_date = fields.Datetime("Last Updated On", readonly=True)
     ticket_id = fields.Many2one("helpdesk.ticket", readonly=True)
     ticket_ref = fields.Char(readonly=True)
     ticket_type_id = fields.Many2one("helpdesk.ticket.type", readonly=True)
     ticket_stage_id = fields.Many2one("helpdesk.stage", readonly=True)
+
+    # ==== Partner fields ====
     parent_partner_id = fields.Many2one("res.partner", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
     partner_company_registry = fields.Char(readonly=True)
     partner_email = fields.Char(readonly=True)
     partner_phone = fields.Char(readonly=True)
+
+    def _fields_ignored(self):
+        return ["stock_lot_id", "stock_location_id"]
+
+    @api.model
+    def fields_get(self, allfields=None, attributes=None):
+        fields_get = super().fields_get(allfields=allfields, attributes=attributes)
+
+        for field in self._fields_ignored():
+            fields_get.get(field, {}).setdefault("searchable", True)
+            fields_get[field]["searchable"] = False
+            fields_get[field]["group_expand"] = None
+
+        return fields_get
 
     # ==================================
     # SQL Queries / Initialization
@@ -62,21 +86,24 @@ class HelpdeskStockMoveLineReport(models.Model):
 
     @api.model
     def _sql_tickets(self):
-        warranty_team_id = self._get_default_helpdesk_warranty_team()
-        ticket_stage_new = self._get_new_stage()
-        ticket_stage_done = self._get_done_stage()
+        warranty_team_id = self.get_default_helpdesk_activation_warranty_team()
+        ticket_stage_new = self.get_new_stage()
+        ticket_stage_done = self.get_done_stage()
         return f"""
-                SELECT  t.id                    AS ticket_id,
-                        t.ticket_ref            AS ticket_ref,
-                        t.ticket_type_id        AS ticket_type_id,
-                        t.stage_id              AS ticket_stage_id,
-                        p.parent_id             AS parent_partner_id,
+                SELECT t.id                                    AS ticket_id,
+                        t.ticket_ref                            AS ticket_ref,
+                        t.ticket_type_id                        AS ticket_type_id,
+                        t.stage_id                              AS ticket_stage_id,
+                        p.parent_id                             AS parent_partner_id,
                         t.partner_id,
-                        p.company_registry      AS partner_company_registry,
+                        p.company_registry                      AS partner_company_registry,
                         t.partner_email,
                         t.partner_phone,
-                        t.create_date           AS ticket_create_date,
-                        t.ticket_update_date    AS ticket_write_date
+                        t.create_date                           AS ticket_create_date,
+                        EXTRACT(DAY FROM t.create_date)::TEXT   AS ticket_create_day,
+                        EXTRACT(MONTH FROM t.create_date)::TEXT AS ticket_create_month,
+                        EXTRACT(YEAR FROM t.create_date)::TEXT  AS ticket_create_year,
+                        t.ticket_update_date                    AS ticket_write_date
                 FROM helpdesk_ticket AS t
                     JOIN res_partner AS p ON (p.id = t.partner_id)
                 WHERE t.team_id = {warranty_team_id}  AND t.stage_id IN ({ticket_stage_new}, {ticket_stage_done})
@@ -96,15 +123,16 @@ class HelpdeskStockMoveLineReport(models.Model):
         return f"""
             tickets AS ({self._sql_tickets()}),
             ticket_product_moves AS (SELECT t.*,
-                                                                   tp.stock_move_line_id,
-                                                                   tp.lot_name                         AS serial_number,
-                                                                   tp.qr_code                           AS qrcode,
-                                                                   sml.inventory_period_id       AS week_number,
-                                                                   tp.product_id
+                                                                 sl.id                  AS stock_lot_id,
+                                                                 sl.location_id         AS stock_location_id,
+                                                                 sl.name                AS serial_number,
+                                                                 sl.ref                 AS qrcode,
+                                                                 sl.inventory_period_id AS week_number,
+                                                                 sl.product_id          AS product_id
                                                     FROM mv_helpdesk_ticket_product_moves AS tp
-                                                               JOIN tickets AS t 
-                                                                    ON (t.ticket_id = tp.helpdesk_ticket_id) AND NOT tp.product_activate_twice
-                                                                JOIN stock_move_line AS sml ON (sml.id = tp.stock_move_line_id)
+                                                            JOIN tickets AS t ON (t.ticket_id = tp.helpdesk_ticket_id)
+                                                            JOIN stock_lot AS sl ON (sl.id = tp.stock_lot_id)
+                                                    WHERE NOT tp.product_activate_twice
                                                     ORDER BY tp.helpdesk_ticket_id DESC),
             products AS (SELECT pp.id                           AS product_id,
                                                pp.barcode                 AS product_barcode,
@@ -149,11 +177,11 @@ class HelpdeskStockMoveLineReport(models.Model):
         return """
             SELECT ROW_NUMBER() OVER ()               AS id,
                           t.*,
-                          p.product_barcode                         AS product_barcode,
+                          p.product_barcode                        AS product_barcode,
                           p.product_template_id                    AS product_template_id,
-                          p.product_country_of_origin           AS product_country_of_origin,
+                          p.product_country_of_origin              AS product_country_of_origin,
                           pzl.product_att_size_lop                 AS product_att_size_lop,
-                          pmg.product_att_ma_gai                 AS product_att_ma_gai
+                          pmg.product_att_ma_gai                   AS product_att_ma_gai
         """
 
     def _from_clause(self):

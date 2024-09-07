@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import _, api, fields, models
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -27,34 +27,24 @@ class AccountPaymentRegister(models.TransientModel):
 
         :return: dict: A warning message if the payment date is invalid, otherwise None.
         """
-        _logger.debug("Starting '_onchange_payment_date'.")
+        if self.payment_date:
 
-        try:
-            first_day_of_month = fields.Date.today().replace(day=1)
-            if self.payment_date and self.payment_date < first_day_of_month:
-                _logger.warning(
-                    "Payment date is before the first day of the current month."
+            batch_result = self._get_batches()[0]
+            moves = batch_result["lines"].mapped("move_id")
+            for move in moves:
+                is_eligible_for_early_payment_discount = (
+                    move._is_eligible_for_early_payment_discount(
+                        move.currency_id, self.payment_date
+                    )
+                    or move._is_eligible_for_early_payment_discount_partial(
+                        move.currency_id, self.payment_date
+                    )
                 )
-                return {
-                    "warning": {
-                        "title": _("Warning"),
-                        "message": _(
-                            "Ngày thanh toán phải thuộc ngày của tháng có Ngày Đến Hạn, vui lòng chọn lại!"
-                        ),
-                    }
-                }
-            else:
+                self.keep_apply_discount_early = is_eligible_for_early_payment_discount
+
+            if self.keep_apply_discount_early:
+                self._compute_amount_discount_for_partial()
                 self._compute_amount()
-                self._compute_payment_difference()
-                _logger.debug(
-                    "Payment date is valid. Amount and payment difference computed."
-                )
-
-        except Exception as e:
-            _logger.error(f"Error in '_onchange_payment_date': {e}")
-            return False
-
-        _logger.debug("Completed '_onchange_payment_date'.")
 
     def _get_total_amount_using_same_currency(
         self, batch_result, early_payment_discount=True
@@ -117,34 +107,18 @@ class AccountPaymentRegister(models.TransientModel):
 
         :return: None
         """
-        _logger.debug("Starting '_compute_amount_discount_for_partial' computation.")
-
         for wizard in self:
-            try:
-                amount_discount_by_context = self.env.context.get(
-                    "amount_discount_for_partial"
-                )
-                if (
-                    wizard.can_edit_wizard
-                    and wizard.keep_apply_discount_early
-                    and amount_discount_by_context
-                ):
-                    wizard.amount_discount_for_partial = amount_discount_by_context
-                    _logger.debug(
-                        f"Wizard {wizard.id}: amount_discount_for_partial = {wizard.amount_discount_for_partial}"
-                    )
-                else:
-                    wizard.amount_discount_for_partial = 0.0
-                    _logger.debug(
-                        f"Wizard {wizard.id}: amount_discount_for_partial set to 0.0"
-                    )
-            except Exception as e:
-                _logger.error(
-                    f"Error computing amount discount for partial for wizard {wizard.id}: {e}"
-                )
+            amount_discount_by_context = self.env.context.get(
+                "amount_discount_for_partial"
+            )
+            if (
+                wizard.can_edit_wizard
+                and wizard.keep_apply_discount_early
+                and amount_discount_by_context
+            ):
+                wizard.amount_discount_for_partial = amount_discount_by_context
+            else:
                 wizard.amount_discount_for_partial = 0.0
-
-        _logger.debug("Completed '_compute_amount_discount_for_partial' computation.")
 
     @api.depends(
         "can_edit_wizard",
@@ -165,62 +139,57 @@ class AccountPaymentRegister(models.TransientModel):
 
         :return: None
         """
-        _logger.debug("Starting '_compute_amount' computation.")
-
         for wizard in self:
-            try:
-                if (
-                    not wizard.journal_id
-                    or not wizard.currency_id
-                    or not wizard.payment_date
-                ):
-                    wizard.amount = wizard.amount
-                    _logger.debug(
-                        f"Wizard {wizard.id}: amount = {wizard.amount} (no change)"
-                    )
-                elif (
-                    not wizard.keep_apply_discount_early
-                    and wizard.source_currency_id
-                    and wizard.can_edit_wizard
-                ):
-                    batch_result = wizard._get_batches()[0]
-                    wizard.amount = (
-                        wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
-                            batch_result
-                        )[0]
-                    )
-                    _logger.debug(
-                        f"Wizard {wizard.id}: amount = {wizard.amount} (without early payment discount)"
-                    )
-                elif (
-                    wizard.keep_apply_discount_early
-                    and wizard.source_currency_id
-                    and wizard.can_edit_wizard
-                ):
-                    batch_result = wizard._get_batches()[0]
-                    total_amount_residual_in_wizard_currency = (
-                        wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
-                            batch_result, early_payment_discount=False
-                        )[0]
-                    )
-                    wizard.amount = (
-                        total_amount_residual_in_wizard_currency
-                        - wizard.amount_discount_for_partial
-                    )
-                    _logger.debug(
-                        f"Wizard {wizard.id}: amount = {wizard.amount} (with early payment discount)"
-                    )
-                else:
-                    wizard.amount = None
-                    _logger.debug(
-                        f"Wizard {wizard.id}: amount set to None (not editable)"
-                    )
 
-            except Exception as e:
-                _logger.error(f"Error computing amount for wizard {wizard.id}: {e}")
+            batch_result = self._get_batches()[0]
+            moves = batch_result["lines"].mapped("move_id")
+            for move in moves:
+                is_eligible_for_early_payment_discount = (
+                    move._is_eligible_for_early_payment_discount(
+                        move.currency_id, wizard.payment_date
+                    )
+                    or move._is_eligible_for_early_payment_discount_partial(
+                        move.currency_id, wizard.payment_date
+                    )
+                )
+                wizard.keep_apply_discount_early = (
+                    is_eligible_for_early_payment_discount
+                )
+
+            if (
+                not wizard.journal_id
+                or not wizard.currency_id
+                or not wizard.payment_date
+            ):
+                wizard.amount = wizard.amount
+            elif (
+                not wizard.keep_apply_discount_early
+                and wizard.source_currency_id
+                and wizard.can_edit_wizard
+            ):
+                batch_result = wizard._get_batches()[0]
+                wizard.amount = (
+                    wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
+                        batch_result
+                    )[0]
+                )
+            elif (
+                wizard.keep_apply_discount_early
+                and wizard.source_currency_id
+                and wizard.can_edit_wizard
+            ):
+                batch_result = wizard._get_batches()[0]
+                total_amount_residual_in_wizard_currency = (
+                    wizard._get_total_amount_in_wizard_currency_to_full_reconcile(
+                        batch_result, early_payment_discount=False
+                    )[0]
+                )
+                wizard.amount = (
+                    total_amount_residual_in_wizard_currency
+                    - wizard.amount_discount_for_partial
+                )
+            else:
                 wizard.amount = None
-
-        _logger.debug("Completed '_compute_amount' computation.")
 
     @api.depends(
         "can_edit_wizard",

@@ -3,12 +3,15 @@ from . import account_move
 from . import delivery_carrier
 from . import delivery_price_rule
 from . import loyalty_program
+from . import loyalty_reward
+from . import loyalty_rule
 from . import mail_message
 from . import mv_compute_discount
 from . import mv_compute_discount_line
 from . import mv_discount
 from . import mv_discount_line
 from . import mv_discount_partner
+from . import mv_discount_partner_history
 from . import mv_discount_warranty
 from . import mv_promote_discount_line
 from . import mv_white_place_discount_line

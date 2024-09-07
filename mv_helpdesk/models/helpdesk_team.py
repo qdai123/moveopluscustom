@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import Command, models, _
+from odoo import Command, _, models
 
 
 class HelpdeskTeam(models.Model):

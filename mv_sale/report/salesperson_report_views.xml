@@ -15,24 +15,26 @@
                     </div>
                     <group>
                         <group string="Thông tin bán hàng" name="group_sale_order_info">
-	                        <field name="sale_date_order"/>
-	                        <field name="sale_user_id" options="{'no_open': True}"/>
+	                        <field name="sale_date_order" string="Ngày đặt hàng"/>
+	                        <field name="sale_user_id" string="Nhân viên bán hàng" options="{'no_open': True}"/>
                         </group>
                         <group string="Thông tin Đại lý" name="group_customer_info">
-                            <field name="partner_id" options="{'no_open': True}"/>
-	                        <field name="partner_company_registry"/>
-                            <field name="delivery_address"/>
+                            <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+	                        <field name="partner_company_registry" string="Mã Đại lý"/>
+                            <field name="delivery_address" string="Địa chỉ giao hàng"/>
                         </group>
 	                    <group string="Thông tin Sản phẩm" name="group_product_info">
-		                    <field name="product_id" invisible="True"/>
-		                    <field name="product_category_id" options="{'no_open': True}"/>
-		                    <field name="product_template_id" options="{'no_open': True}"/>
-                            <field name="product_country_of_origin" options="{'no_open': True}"/>
-                            <field name="product_att_size_lop"/>
-                            <field name="product_att_ma_gai"/>
-                            <field name="product_att_rim_diameter_inch"/>
-                            <field name="serial_number"/>
-                            <field name="qrcode"/>
+                            <field name="product_country_of_origin" string="Xuất sứ" options="{'no_open': True}"/>
+		                    <field name="product_category_id" string="Danh mục" options="{'no_open': True}"/>
+		                    <field name="product_id" string="Sản phẩm" options="{'no_open': True}"/>
+                            <field name="serial_number" string="Mã vạch"/>
+                            <field name="qrcode" string="Mã QR Code"/>
+		                    <field name="product_template_id" invisible="1"/>
+		                    <field name="product_price_unit" string="Đơn giá"/>
+		                    <field name="product_price_subtotal" string="Đơn giá sau C/K"/>
+                            <field name="product_att_size_lop" string="Size (lốp)"/>
+                            <field name="product_att_ma_gai" string="Mã gai"/>
+                            <field name="product_att_rim_diameter_inch" string="Đường kính Mâm"/>
 	                    </group>
                     </group>
                 </sheet>
@@ -45,29 +47,31 @@
 		<field name="model">salesperson.report</field>
 		<field name="arch" type="xml">
 			<tree string="Salesperson's Analysis Report TREE" create="false" edit="false" delete="false" import="false">
-				<field name="product_id" column_invisible="1"/>
-				<field name="product_template_id" options="{'no_open': True}"/>
-				<field name="serial_number"/>
-				<field name="qrcode"/>
-				<field name="product_att_size_lop" optional="show"/>
-				<field name="product_att_ma_gai" optional="show"/>
-				<field name="product_att_rim_diameter_inch" optional="show"/>
-				<field name="product_country_of_origin" options="{'no_open': True}" optional="show"/>
-				<field name="product_category_id" options="{'no_open': True}" optional="show"/>
-				<field class="fw-bold" name="sale_id" options="{'no_open': True}"/>
-				<field name="sale_user_id" widget="many2one_avatar_user" options="{'no_open': True}" optional="show"/>
-				<field name="partner_id" options="{'no_open': True}"/>
-				<field name="partner_company_registry" optional="show"/>
-				<field name="delivery_address" optional="show"/>
-				<field name="street" optional="hidden"/>
-				<field name="wards_id" optional="hidden"/>
-				<field name="district_id" optional="hidden"/>
-				<field name="state_id" optional="show"/>
-				<field name="country_id" optional="show"/>
-				<field name="sale_date_order" optional="show"/>
-				<field name="sale_day_order" optional="hidden"/>
-				<field name="sale_month_order" optional="hidden"/>
-				<field name="sale_year_order" optional="hidden"/>
+				<field name="product_id" string="Sản phẩm" options="{'no_open': True}"/>
+				<field name="product_template_id" column_invisible="1"/>
+				<field name="product_price_unit" class="fw-bold" string="Đơn giá" optional="show"/>
+				<field name="product_price_subtotal" class="fw-bold" string="Đơn giá sau C/K" optional="show"/>
+				<field name="serial_number" string="Mã vạch"/>
+				<field name="qrcode" string="Mã QR Code"/>
+				<field name="product_att_size_lop" string="Size (lốp)" optional="show"/>
+				<field name="product_att_ma_gai" string="Mã gai" optional="show"/>
+				<field name="product_att_rim_diameter_inch" string="Đường kính Mâm" optional="show"/>
+				<field name="product_country_of_origin" string="Xuất sứ" options="{'no_open': True}" optional="show"/>
+				<field name="product_category_id" string="Danh mục" options="{'no_open': True}" optional="show"/>
+				<field name="sale_id" string="Đơn hàng" class="fw-bold" options="{'no_open': True}"/>
+				<field name="sale_user_id" string="Nhân viên bán hàng" widget="many2one_avatar_user" options="{'no_open': True}" optional="show"/>
+				<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+				<field name="partner_company_registry" string="Mã Đại lý" optional="show"/>
+				<field name="delivery_address" string="Địa chỉ giao hàng" optional="show"/>
+				<field name="street" string="Đường" optional="hidden"/>
+				<field name="wards_id" string="Phường" optional="hidden"/>
+				<field name="district_id" string="Quận" optional="hidden"/>
+				<field name="state_id" string="Thành phố" optional="show"/>
+				<field name="country_id" string="Quốc gia" optional="show"/>
+				<field name="sale_date_order" string="Ngày đặt hàng" optional="show"/>
+				<field name="sale_day_order" string="Ngày" optional="hidden"/>
+				<field name="sale_month_order" string="Tháng" optional="hidden"/>
+				<field name="sale_year_order" string="Năm" optional="hidden"/>
 			</tree>
 		</field>
 	</record>
@@ -78,25 +82,24 @@
 		<field name="arch" type="xml">
 			<search string="Salesperson's Analysis Report SEARCH">
 				<field name="sale_id" />
-				<field name="sale_user_id"/>
-				<field name="partner_id"/>
-				<field name="product_template_id"/>
+				<field name="product_id"/>
 				<field name="serial_number" string="Mã vạch"/>
 				<field name="qrcode" string="Mã QR-Code"/>
+				<field name="partner_id" filter_domain="['|', ('name', 'ilike', self), ('short_name', 'ilike', self)]"/>
 				<filter string="Đơn hàng của tôi" domain="[('sale_user_id', '=', uid)]" name="my_sale_orders_filter"/>
 				<group expand="0" string="Group By" colspan="16">
 					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'partner_id'}"/>
 					<separator/>
-					<filter string="Nhân viên kinh doanh" name="groupby_sale_user" context="{'group_by':'sale_user_id'}"/>
-					<filter string="Mã đơn hàng" name="groupby_sale_order" context="{'group_by':'sale_id'}"/>
 					<filter string="Ngày đặt hàng" name="groupby_sale_date_order" domain="[]" context="{'group_by':'sale_date_order'}"/>
+					<filter string="Mã đơn hàng" name="groupby_sale_order" context="{'group_by':'sale_id'}"/>
+					<filter string="Nhân viên kinh doanh" name="groupby_sale_user" context="{'group_by':'sale_user_id'}" groups="sales_team.group_sale_salesman_all_leads"/>
 					<separator/>
+					<filter string="Quốc Gia (Sản phẩm)" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
 					<filter string="Danh mục sản phẩm" name="groupby_product_category" context="{'group_by':'product_category_id'}"/>
-					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_template_id'}"/>
+					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_id'}"/>
 					<filter string="Size (lốp)" name="groupby_product_att_size_lop" context="{'group_by':'product_att_size_lop'}"/>
 					<filter string="Mã gai" name="groupby_product_att_ma_gai" context="{'group_by':'product_att_ma_gai'}"/>
 					<filter string="Đường kính Mâm" name="groupby_product_att_rim_diameter_inch" context="{'group_by':'product_att_rim_diameter_inch'}"/>
-					<filter string="Quốc Gia (Sản phẩm)" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
 					<separator/>
 					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
 					<filter string="QR-Code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
@@ -106,7 +109,7 @@
 	</record>
 
 	<record id="salesperson_report_action_view" model="ir.actions.act_window">
-		<field name="name">Analysis Report</field>
+		<field name="name">Salesperson Analysis Report</field>
 		<field name="res_model">salesperson.report</field>
 		<field name="view_mode">tree,form</field>
 		<field name="search_view_id" ref="salesperson_report_view_search"/>
