@@ -145,12 +145,10 @@ class MvPartnerSurvey(models.Model):
         store=True,
         readonly=True,
     )
-    service_detail_ids = fields.Many2many(
+    service_detail_ids = fields.One2many(
         "mv.service.detail",
-        "mv_service_detail_partner_survey_rel",
-        "service_detail_id",
         "partner_survey_id",
-        "Sản phẩm dịch vụ",
+        "Dịch vụ",
     )
     mv_product_tire_ids = fields.One2many(
         "mv.product.product",

@@ -17,11 +17,16 @@ class MvShop(models.Model):
         return categories.browse(category_ids)
 
     partner_survey_id = fields.Many2one(
-        comodel_name="mv.partner.survey",
-        string="Phiếu khảo sát",
+        "mv.partner.survey",
+        "Phiếu khảo sát",
         required=True,
         index=True,
         ondelete="restrict",
+    )
+    mv_shop_categ_id = fields.Many2one(
+        "mv.shop.category",
+        "Danh mục cửa hàng",
+        group_expand="_read_group_categ_id",
     )
     name = fields.Char(string="Cửa hàng", required=True)
     street = fields.Char(string="Đường", required=True)
@@ -53,18 +58,13 @@ class MvShop(models.Model):
     latitude = fields.Float(string="Vĩ độ", default=0, digits=(16, 5))
     longitude = fields.Float(string="Kinh độ", default=0, digits=(16, 5))
     square_meter = fields.Float(string="Diện tích (m2)", default=0)
-    mv_shop_categ_id = fields.Many2one(
-        "mv.shop.category",
-        "Danh mục cửa hàng",
-        group_expand="_read_group_categ_id",
-    )
     color = fields.Integer("Color Index", default=0)
 
     _sql_constraints = [
         (
             "name_uniq",
             "unique(name)",
-            "Tên cửa hàng đã tồn tại, vui lòng chọn tên khác!",
+            "Cửa hàng đã tồn tại, vui lòng chọn tên khác!",
         )
     ]
 

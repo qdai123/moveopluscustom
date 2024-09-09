@@ -214,8 +214,9 @@
 						</group>
 						<field name="service_detail_ids" no_label="1" options="{'no_create_edit': True}" readonly="do_readonly" invisible="not is_use_service">
 							<tree editable="bottom">
-								<field name="name" string="Tên sản phẩm"/>
+								<field name="mv_service_id" string="Dịch vụ" options="{'no_create': True, 'no_create_edit': True}"/>
 								<field name="service_price" class="fw-bold" widget="monetary" sum="Total Service Price"/>
+								<field name="vnd_currency_id" column_invisible="1"/>
 								<field name="notes" class="text-break" options="{'line_breaks': False}" widget="text"/>
 							</tree>
 						</field>
@@ -225,24 +226,24 @@
 					<!-- TOP 10 Sản Phẩm (Size Lốp)  -->
 					<field name="mv_product_tire_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom" no_open="True">
-							<field name="product_attribute_id" string="Size lốp" context="{'search_default_brand_tire': 1}" options="{'no_create': True}"/>
 							<field name="brand_id" string="Hãng lốp" context="{'search_default_brand_tire': 1}" options="{'no_create': True}"/>
+							<field name="product_attribute_id" string="Size lốp" domain="[('brand_id', '=', brand_id)]" context="{'search_default_brand_tire': 1}" options="{'no_create': True}" readonly="not brand_id"/>
 							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
 						</tree>
 					</field>
 					<!-- TOP 10 Sản Phẩm (Dầu nhớt)  -->
 					<field name="mv_product_lubricant_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom" no_open="True">
-							<field name="product_attribute_id" string="Dầu nhớt" context="{'search_default_brand_lubricant': 1}" options="{'no_create': True}"/>
 							<field name="brand_id" string="Hãng dầu nhớt" context="{'search_default_brand_lubricant': 1}" options="{'no_create': True}"/>
+							<field name="product_attribute_id" string="Dầu nhớt" domain="[('brand_id', '=', brand_id)]" context="{'search_default_brand_lubricant': 1}" options="{'no_create': True}" readonly="not brand_id"/>
 							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
 						</tree>
 					</field>
 					<!-- TOP 10 Sản Phẩm (Ắc quy)  -->
 					<field name="mv_product_battery_ids" no_label="1" readonly="do_readonly">
 						<tree editable="bottom" no_open="True">
-							<field name="product_attribute_id" string="Ắc quy" context="{'search_default_brand_battery': 1}" options="{'no_create': True}"/>
 							<field name="brand_id" string="Hãng ắc quy" context="{'search_default_brand_battery': 1}" options="{'no_create': True}"/>
+							<field name="product_attribute_id" string="Ắc quy" domain="[('brand_id', '=', brand_id)]" context="{'search_default_brand_battery': 1}" options="{'no_create': True}" readonly="not brand_id"/>
 							<field name="quantity_per_month" string="Số lượng/tháng" sum="Total Quantity per Month"/>
 						</tree>
 					</field>
