@@ -7,19 +7,19 @@
             <field name="arch" type="xml">
                 <tree create="0" edit="0" editable="bottom">
                     <field name="sequence" />
-                    <field name="date_from" column_invisible="1" />
-                    <field name="date_to" column_invisible="1" />
+                    <field name="date_from" column_invisible="0" />
+                    <field name="date_to" column_invisible="0" />
                     <field name="product_id" />
                     <field name="uom_id" string="ĐVT" />
                     <field name="standard_price" string="Đơn giá" />
-                    <field name="first_quantity_stock" />
-                    <field name="amount_first_quantity_stock" />
-                    <field name="incoming_quantity" />
-                    <field name="amount_incoming_quantity" />
-                    <field name="outgoing_quantity" />
-                    <field name="amount_outgoing_quantity" />
-                    <field name="last_quantity_stock" />
-                    <field name="amount_last_quantity_stock" />
+                    <field name="first_quantity_stock" sum="first_qty" />
+                    <field name="amount_first_quantity_stock" sum="first_amount"/>
+                    <field name="incoming_quantity" sum="income_qty"/>
+                    <field name="amount_incoming_quantity" sum="income_amount"/>
+                    <field name="outgoing_quantity" sum="outgoing_qty"/>
+                    <field name="amount_outgoing_quantity" sum="outgoing_amount"/>
+                    <field name="last_quantity_stock" sum="last_qty"/>
+                    <field name="amount_last_quantity_stock" sum="last_amount"/>
                     <button string="Lịch sử nhập" name="action_incoming_history" type="object" class="btn-link" icon="fa-history"/>
                     <button string="Lịch sử xuất" name="action_outgoing_history" type="object" class="btn-link" icon="fa-history"/>
                     <field name="currency_id" column_invisible="1"/>
