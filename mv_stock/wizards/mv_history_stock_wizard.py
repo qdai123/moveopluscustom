@@ -13,7 +13,9 @@ class MVHistoryStockWizard(models.TransientModel):
         products = self.env['product.product'].search([
             ('detailed_type', '=', 'product')
         ])
-        self.env['mv.history.stock'].search([]).unlink()
+        self.env['mv.history.stock'].search([
+            ('create_uid', '=', self.env.user.id)
+        ]).unlink()
         history_stocks = self.env['mv.history.stock']
         sequence = 1
         for product in products:
