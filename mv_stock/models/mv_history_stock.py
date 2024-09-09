@@ -16,7 +16,7 @@ class MVHistoryStock(models.Model):
     outgoing_picking_ids = fields.Many2many(
         'stock.picking', 'mv_outgoing_history_stock_rel',
         'outgoing_id', 'picking_id', string='Xuất kho')
-    sequence = fields.Integer(default=1)
+    sequence = fields.Integer(default=1, string="STT")
     company_id = fields.Many2one(
         'res.company', string='Company', default=lambda self: self.env.company)
     currency_id = fields.Many2one(related="company_id.currency_id")
