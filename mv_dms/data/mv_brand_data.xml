@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data noupdate="1">
+		<record id="brand_category_all" model="mv.brand.category">
+			<field name="name">All</field>
+		</record>
+		<record id="brand_category_tire" model="mv.brand.category">
+			<field name="parent_id" ref="brand_category_all"/>
+			<field name="name">Tire</field>
+		</record>
+		<record id="brand_category_lubricant" model="mv.brand.category">
+			<field name="parent_id" ref="brand_category_all"/>
+			<field name="name">Lubricant</field>
+		</record>
+		<record id="brand_category_battery" model="mv.brand.category">
+			<field name="parent_id" ref="brand_category_all"/>
+			<field name="name">Battery</field>
+		</record>
+	</data>
+</odoo>
