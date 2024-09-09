@@ -1,26 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<record id="mv_helpdesk_stock_move_line_report_form_view" model="ir.ui.view">
+		<field name="name">mv.helpdesk.stock.move.line.report.form</field>
+		<field name="model">mv.helpdesk.stock.move.line.report</field>
+		<field name="arch" type="xml">
+			<form string="Ticket Registered Analysis" duplicate="false" create="false" edit="false" delete="false">
+                <sheet>
+	                <div class="oe_title pe-0">
+                        <h1 class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100">
+                                <field name="ticket_id" options="{'no_open': True}"/>
+                            </div>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Thông tin Phiếu" name="group_ticket_info">
+	                        <field name="ticket_stage_id" string="Trạng thái" widget="badge" options="{'no_open': True}"/>
+	                        <field name="ticket_type_id" string="Loại phiếu" options="{'no_open': True}"/>
+	                        <field name="ticket_create_date" string="Ngày tạo"/>
+	                        <field name="ticket_write_date" string="Ngày cập nhật"/>
+                        </group>
+                        <group string="Thông tin Đại lý" name="group_customer_info">
+                            <field name="parent_partner_id" string="Đại lý (Cha)" invisible="not parent_partner_id" options="{'no_open': True}"/>
+                            <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+                            <field name="partner_company_registry" string="Mã đại lý"/>
+                            <field name="partner_email" string="Email"/>
+                            <field name="partner_phone" string="Điện thoại"/>
+                        </group>
+	                    <group string="Thông tin Sản phẩm" name="group_product_info">
+		                    <field name="product_id" invisible="True"/>
+		                    <field name="product_template_id" string="Sản phẩm" options="{'no_open': True}"/>
+                            <field name="product_country_of_origin" string="Quốc Gia" options="{'no_open': True}"/>
+                            <field name="product_barcode" string="Barcode"/>
+                            <field name="product_att_size_lop" string="Size (lốp)"/>
+                            <field name="product_att_ma_gai" string="Mã gai"/>
+                            <field name="serial_number" string="Mã vạch"/>
+                            <field name="qrcode" string="QR-Code"/>
+                            <field name="week_number" string="Số tuần" options="{'no_open': True}"/>
+	                    </group>
+                    </group>
+                </sheet>
+            </form>
+		</field>
+	</record>
+
+	<record id="mv_helpdesk_stock_move_line_report_pivot_view" model="ir.ui.view">
+		<field name="name">mv.helpdesk.stock.move.line.report.pivot</field>
+		<field name="model">mv.helpdesk.stock.move.line.report</field>
+		<field name="arch" type="xml">
+			<pivot string="Ticket Registered Analysis">
+				<field name="ticket_create_date" interval="month" type="col"/>
+                 <field name="partner_id" string="Đại lý" type="row"/>
+                 <field name="serial_number" string="Mã vạch" invisible="True"/>
+                 <field name="qrcode" string="Mã QR-Code" invisible="True"/>
+                 <field name="ticket_stage_id" string="Trạng thái"/>
+             </pivot>
+		</field>
+	</record>
+
+	<record id="mv_helpdesk_stock_move_line_report_graph_view" model="ir.ui.view">
+		<field name="name">mv.helpdesk.stock.move.line.report.graph</field>
+		<field name="model">mv.helpdesk.stock.move.line.report</field>
+		<field name="arch" type="xml">
+			<graph string="Ticket Registered Analysis" type="bar">
+                 <field name="ticket_create_date" string="Ngày tạo" interval="month"/>
+                 <field name="partner_id" string="Đại lý"/>
+             </graph>
+		</field>
+	</record>
+
 	<record id="mv_helpdesk_stock_move_line_report_tree_view" model="ir.ui.view">
 		<field name="name">mv.helpdesk.stock.move.line.report.tree</field>
 		<field name="model">mv.helpdesk.stock.move.line.report</field>
 		<field name="arch" type="xml">
-			<tree string="Tickets &amp; Product Moves Analysis LIST" create="false" edit="false" delete="false" import="false" export_xlsx="false">
-				<field name="serial_number"/>
-				<field name="product_template_id"/>
-				<field name="product_att_size_lop"/>
-				<field name="product_att_ma_gai"/>
-				<field name="product_country_of_origin" options="{'no_open': True}"/>
-				<field name="product_barcode" optional="show"/>
-				<field name="qrcode" optional="show"/>
-				<field name="week_number" optional="show"/>
-				<field string="Customer" name="partner_id" widget="res_partner_many2one"/>
-				<field name="partner_email" optional="hidden"/>
-				<field name="partner_phone" optional="hidden"/>
+			<tree string="Ticket Registered Analysis" create="false" edit="false" delete="false" import="false" export_xlsx="false">
+				<field name="product_id" column_invisible="True"/>
+				<field name="product_template_id" string="Sản phẩm" options="{'no_open': True}"/>
+				<field name="product_barcode" string="Barcode" optional="hidden"/>
+				<field name="product_att_size_lop" string="Size (lốp)" optional="show"/>
+				<field name="product_att_ma_gai" string="Mã gai" optional="show"/>
+				<field name="product_country_of_origin" string="Quốc Gia" options="{'no_open': True}" optional="show"/>
+				<field name="serial_number" string="Mã vạch"/>
+				<field name="qrcode" string="Mã QR-Code"/>
+				<field name="week_number" string="Số tuần" optional="show"/>
+				<field name="parent_partner_id" string="Đại lý (Cha)" options="{'no_open': True}" optional="hidden"/>
+				<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
+				<field name="partner_company_registry" string="Mã đại lý"/>
+				<field name="partner_email" string="Email" optional="hidden"/>
+				<field name="partner_phone" string="Điện thoại" optional="hidden"/>
 				<field name="ticket_id" column_invisible="True"/>
-				<field name="ticket_type" optional="show"/>
-				<field name="ticket_stage" decoration-info="ticket_stage in ['New', 'In Progress']" decoration-success="ticket_stage == 'Done'" decoration-muted="ticket_stage == 'Canceled'" widget="badge" optional="show"/>
-				<field name="ticket_create_date" optional="show"/>
-				<field name="ticket_write_date" optional="show"/>
+				<field class="fw-bold" name="ticket_ref" string="Mã phiếu" optional="show"/>
+				<field name="ticket_type_id" string="Loại phiếu" options="{'no_open': True}" optional="hidden"/>
+				<field name="ticket_create_day" string="Ngày" optional="show"/>
+				<field name="ticket_create_month" string="Tháng" optional="show"/>
+				<field name="ticket_create_year" string="Năm" optional="show"/>
+				<field name="ticket_create_date" string="Ngày tạo"/>
+				<field name="ticket_write_date" string="Ngày cập nhật" optional="show"/>
+				<field name="ticket_stage_id" string="Trạng thái" widget="badge" optional="show"/>
 			</tree>
 		</field>
 	</record>
@@ -29,48 +105,51 @@
 		<field name="name">mv.helpdesk.stock.move.line.report.search</field>
 		<field name="model">mv.helpdesk.stock.move.line.report</field>
 		<field name="arch" type="xml">
-			<search string="Tickets &amp; Product Moves Analysis SEARCH">
-				<field name="serial_number" string="Serial Number"/>
-				<field name="qrcode" string="QR-Code"/>
-				<field name="week_number" string="Week Number"/>
-				<field name="ticket_id" operator="child_of" string="Ticket" filter_domain="[
+			<search string="Ticket Registered Analysis">
+				<field name="partner_id" operator="child_of" string="Đại lý" filter_domain="[
                         '|',
-                        ('ticket_id', 'ilike', self),
-                        ('ticket_id.name', 'ilike', self)]"/>
-				<field name="product_template_id" operator="child_of" string="Product" filter_domain="[
+                        ('partner_id', 'ilike', self),
+                        ('partner_email', 'ilike', self)]"/>
+				<field name="product_template_id" operator="child_of" string="Sản phẩm" filter_domain="[
                         '|',
                         ('product_template_id', 'ilike', self),
                         ('product_template_id.name', 'ilike', self)]"/>
-				<field name="partner_id" operator="child_of" string="Customer" filter_domain="[
-                        '|', '|',
-                        ('partner_id', 'ilike', self),
-                        ('partner_name', 'ilike', self),
-                        ('partner_email', 'ilike', self)]"/>
+				<field name="serial_number" string="Mã vạch"/>
+				<field name="qrcode" string="Mã QR-Code"/>
+				<field name="week_number" string="Số tuần"/>
+				<field name="ticket_id" operator="child_of" string="Phiếu" filter_domain="[
+                        '|',
+                        ('ticket_id', 'ilike', self),
+                        ('ticket_id.name', 'ilike', self)]"/>
 				<filter name="filter_ticket_create_date" date="ticket_create_date" default_period="this_year" string="Period"/>
 				<group expand="0" string="Group By" colspan="16">
-					<filter string="Ticket" name="groupby_ticket" context="{'group_by':'ticket_id'}"/>
-					<filter string="Ticket Type" name="groupby_ticket" context="{'group_by':'ticket_type'}"/>
+					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'partner_id'}"/>
 					<separator/>
-					<filter string="Product" name="groupby_product" context="{'group_by':'product_template_id'}"/>
-					<filter string="Product Country" name="groupby_product_country"
-					        context="{'group_by':'product_country_of_origin'}"/>
+					<filter string="Phiếu" name="groupby_ticket" context="{'group_by':'ticket_id'}"/>
+					<filter string="Loại phiếu" name="groupby_ticket_type" context="{'group_by':'ticket_type_id'}"/>
+					<filter string="Trạng thái phiếu" name="groupby_ticket_stage" context="{'group_by':'ticket_stage_id'}"/>
 					<separator/>
-					<filter string="Customer" name="groupby_partner" context="{'group_by':'partner_id'}"/>
+					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_template_id'}"/>
+					<filter string="Quốc Gia" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
+					<separator/>
+					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
+					<filter string="Mã QR-Code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
 				</group>
 			</search>
 		</field>
 	</record>
 
 	<record id="mv_helpdesk_stock_move_line_report_action_view" model="ir.actions.act_window">
-		<field name="name">Ticket &amp; Product Moves Analysis</field>
+		<field name="name">Ticket Registered Analysis</field>
 		<field name="res_model">mv.helpdesk.stock.move.line.report</field>
+		<field name="view_mode">pivot,graph,tree,form</field>
 		<field name="search_view_id" ref="mv_helpdesk_stock_move_line_report_search_view"/>
 		<field name="view_id" ref="mv_helpdesk_stock_move_line_report_tree_view"/>
 		<field name="domain">[]</field>
-		<field name="context">{}</field>
+		<field name="context">{'product_size_lop': 'size_lop', 'product_ma_gai': 'ma_gai'}</field>
 		<field name="help" type="html">
 			<p class="o_view_nocontent_empty_folder">
-				No data yet, please create new data!
+				No data yet, please update data!
 			</p>
 		</field>
 	</record>
