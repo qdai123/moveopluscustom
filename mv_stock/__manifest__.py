@@ -11,11 +11,14 @@
     "data": [
         # SECURITY
         "security/stock_security.xml",
-        # 'security/ir.model.access.csv',
+        'security/ir.model.access.csv',
+        # WIZARDS
+        "wizards/mv_history_stock_wizard_view.xml",
         # MENU
         "menu/stock_menu.xml",
         # VIEWS
         "views/stock_quant_view.xml",
+        "views/mv_history_stock_views.xml",
     ],
     "license": "LGPL-3",
     "application": True,
