@@ -43,7 +43,7 @@
 					<field name="state" widget="statusbar" statusbar_visible="draft,progressing,done"/>
 					<button name="action_complete" type="object" string="Hoàn thành" class="btn btn-primary" invisible="state != 'progressing'" confirm="Bạn chắc chắn muốn hoàn thành phiếu khảo sát này?"/>
 					<button name="action_draft" type="object" string="Khảo sát nháp" class="btn btn-primary" invisible="state != 'cancel'"/>
-					<button name="action_run" type="object" string="Tiến hành Khảo sát" class="btn btn-primary" invisible="state != 'draft1'"/>
+					<button name="action_run" type="object" string="Tiến hành Khảo sát" class="btn btn-primary" invisible="state != 'draft'"/>
 					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" invisible="state in ['done', 'cancel'] or is_sales_manager"/>
 					<button name="action_cancel" type="object" string="Hủy" class="btn btn-secondary" context="{'force_cancel_by_manager': True}" invisible="state != 'done' and not is_sales_manager"/>
 				</header>
