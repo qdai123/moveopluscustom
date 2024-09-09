@@ -6,87 +6,162 @@ from odoo.addons.mv_sale.models.sale_order import (
     GROUP_SALES_ALL,
     GROUP_SALES_MANAGER,
 )
+from odoo.addons.sale.models.sale_order import SALE_ORDER_STATE
 
 from odoo import _, api, fields, models, tools
 
 _logger = logging.getLogger(__name__)
 
 
-class SalespersonReport(models.Model):
-    _name = "salesperson.report"
-    _description = _("Salesperson's Analysis Report")
+class SalesDataReport(models.Model):
+    _name = "sales.data.report"
+    _description = _("Sales Data Analysis Report")
     _auto = False
-    _rec_name = "product_template_id"
-    _rec_names_search = ["sale_id", "partner_id", "serial_number", "qrcode"]
-    _order = "sale_date_order DESC, sale_id DESC"
+    _rec_name = "sale_date_order"
+    _order = "sale_date_order DESC, serial_number"
 
-    # ==== Product/Product template FIELDS ==== #
-    product_category_id = fields.Many2one("product.category", readonly=True)
-    product_id = fields.Many2one("product.product", readonly=True)
-    product_price_unit = fields.Float(digits="Product Price", readonly=True)
-    product_country_of_origin = fields.Many2one("res.country", readonly=True)
-    product_att_size_lop = fields.Char(readonly=True)
-    product_att_ma_gai = fields.Char(readonly=True)
-    product_att_rim_diameter_inch = fields.Char(readonly=True)
+    @api.model
+    def _get_done_states(self):
+        return ["sale"]
+
+    # [sale.order] fields
+    sale_id = fields.Many2one("sale.order", "Order ID", readonly=True)
+    sale_reference = fields.Char("Order Reference", readonly=True)
+    sale_date_order = fields.Date("Order Date", readonly=True)
+    sale_year_order = fields.Char("Year", readonly=True)
+    sale_month_order = fields.Char("Month", readonly=True)
+    sale_day_order = fields.Char("Day", readonly=True)
+    sale_partner_id = fields.Many2one("res.partner", "Customer", readonly=True)
+    sale_company_id = fields.Many2one("res.company", "Company", readonly=True)
+    sale_pricelist_id = fields.Many2one("product.pricelist", "Pricelist", readonly=True)
+    sale_team_id = fields.Many2one("crm.team", "Sales Team", readonly=True)
+    sale_user_id = fields.Many2one("res.users", "Salesperson", readonly=True)
+    sale_status = fields.Selection(SALE_ORDER_STATE, "Status", readonly=True)
+    sale_analytic_account_id = fields.Many2one(
+        "account.analytic.account", "Analytic Account", readonly=True
+    )
+    sale_invoice_status = fields.Selection(
+        [
+            ("upselling", "Upselling Opportunity"),
+            ("invoiced", "Fully Invoiced"),
+            ("to invoice", "To Invoice"),
+            ("no", "Nothing to Invoice"),
+        ],
+        "Invoice Status",
+        readonly=True,
+    )
+
+    # [sale.order.line] fields
+    order_reference = fields.Reference(
+        string="Related Order",
+        selection=[("sale.order", "Sales Order")],
+        group_operator="count_distinct",
+    )
+    product_category_id = fields.Many2one(
+        "product.category",
+        "Product Category",
+        readonly=True,
+    )
+    product_id = fields.Many2one(
+        "product.product",
+        "Product Variant",
+        readonly=True,
+    )
     product_template_id = fields.Many2one(
-        "product.template", compute="_compute_product"
+        "product.template",
+        "Product",
+        readonly=True,
     )
-    product_price_subtotal = fields.Float(
-        digits="Product Price", compute="_compute_product_total"
+    product_country_of_origin = fields.Many2one(
+        "res.country",
+        "Origin of goods",
+        readonly=True,
     )
-    product_promotion = fields.Boolean(compute="_compute_product_total")
-    # ==== Stock FIELDS ==== #
-    serial_number = fields.Char(readonly=True)
-    qrcode = fields.Char(readonly=True)
-    # ==== Sale FIELDS ==== #
-    sale_id = fields.Many2one("sale.order", readonly=True)
-    sale_user_id = fields.Many2one("res.users", readonly=True)
-    sale_date_order = fields.Date(readonly=True)
-    sale_day_order = fields.Char(readonly=True)
-    sale_month_order = fields.Char(readonly=True)
-    sale_year_order = fields.Char(readonly=True)
-    # ==== Partner FIELDS ==== #
-    partner_id = fields.Many2one("res.partner", readonly=True)
-    partner_company_registry = fields.Char(readonly=True)
-    street = fields.Char(readonly=True)
-    wards_id = fields.Many2one("res.country.wards", readonly=True)
-    district_id = fields.Many2one("res.country.district", readonly=True)
-    state_id = fields.Many2one("res.country.state", readonly=True)
-    country_id = fields.Many2one("res.country", readonly=True)
-    delivery_address = fields.Char(compute="_compute_sale_id")
+    product_att_size_lop = fields.Char("Size", readonly=True)
+    product_att_ma_gai = fields.Char("Thorny Code", readonly=True)
+    product_att_rim_diameter_inch = fields.Char("Rim", readonly=True)
+    product_promotion = fields.Boolean("Is promo?", readonly=True)
+    product_uom = fields.Many2one(
+        "uom.uom",
+        "Unit of Measure",
+        readonly=True,
+    )
+    price_unit = fields.Float("Price Unit", eadonly=True)
+    price_subtotal = fields.Monetary("Untaxed Total", readonly=True)
+    price_total = fields.Monetary("Total", readonly=True)
+    untaxed_amount_to_invoice = fields.Monetary(
+        "Untaxed Amount To Invoice", readonly=True
+    )
+    untaxed_amount_invoiced = fields.Monetary("Untaxed Amount Invoiced", readonly=True)
+    weight = fields.Float("Gross Weight", readonly=True)
+    volume = fields.Float("Volume", readonly=True)
+    discount = fields.Float("Discount %", readonly=True, group_operator="avg")
+    discount_amount = fields.Monetary("Discount Amount", readonly=True)
+
+    # [res.partner] fields
+    company_registry = fields.Char("Company ID", readonly=True)
+    commercial_partner_id = fields.Many2one(
+        "res.partner",
+        "Customer Entity",
+        readonly=True,
+    )
+    industry_id = fields.Many2one(
+        "res.partner.industry",
+        "Customer Industry",
+        readonly=True,
+    )
+    country_id = fields.Many2one(
+        "res.country",
+        "Customer Country",
+        readonly=True,
+    )
+    state_id = fields.Many2one(
+        "res.country.state",
+        "Customer Region",
+        readonly=True,
+    )
+    district_id = fields.Many2one(
+        "res.country.district",
+        "Customer District",
+        readonly=True,
+    )
+    wards_id = fields.Many2one(
+        "res.country.wards",
+        "Customer Ward",
+        readonly=True,
+    )
+    street = fields.Char("Customer Street", readonly=True)
+    delivery_address = fields.Char(
+        "Customer Delivery Address",
+        compute="_compute_delivery_address",
+    )
+
+    # [stock.lot] fields
+    serial_number = fields.Char("Serial Number", readonly=True)
+    qrcode = fields.Char("Qr-Code", readonly=True)
+
+    # aggregates or computed fields
+    nbr = fields.Integer("# of Lines", readonly=True)
+    currency_id = fields.Many2one("res.currency", compute="_compute_currency_id")
+
+    @api.depends_context("allowed_company_ids")
+    def _compute_currency_id(self):
+        self.currency_id = self.env.company.currency_id
 
     @api.depends("sale_id", "sale_id.partner_shipping_id")
-    def _compute_sale_id(self):
+    def _compute_delivery_address(self):
+        sale_orders = self.mapped("sale_id").sudo()
+        shipping_partners = sale_orders.mapped("partner_shipping_id")
+        shipping_addresses = {
+            partner.id: partner.full_address_vi for partner in shipping_partners
+        }
+
         for record in self:
-            order = record.sale_id.sudo()
+            order = record.sale_id
             if order and order.partner_shipping_id:
-                record.delivery_address = order.partner_shipping_id.full_address_vi
-
-    @api.depends("product_id")
-    def _compute_product(self):
-        for record in self:
-            record.product_template_id = record.product_id.product_tmpl_id
-
-    @api.depends("sale_id", "product_id")
-    def _compute_product_total(self):
-        for record in self:
-            # Filter order lines within the sale order, avoiding unnecessary searches
-            product_order_lines = record.sale_id.order_line.filtered(
-                lambda line: line.product_id == record.product_id
-            )
-
-            if product_order_lines:
-                for product_line in product_order_lines:
-                    # If the price subtotal is positive, calculate the discounted price
-                    record.product_price_subtotal = max(
-                        0,
-                        product_line.price_unit * (1 - product_line.discount / 100),
-                    )
-                    record.product_promotion = False
-            else:
-                # For promotional products (price_subtotal = 0)
-                record.product_price_subtotal = 0
-                record.product_promotion = True
+                record.delivery_address = shipping_addresses.get(
+                    order.partner_shipping_id.id, ""
+                )
 
     # ==================================
     # SQL Queries / Initialization
@@ -132,7 +207,7 @@ class SalespersonReport(models.Model):
                        fso.sale_month_order,
                        fso.sale_year_order,
                        partner.id                   AS partner_id,
-                       partner.company_registry     AS partner_company_registry,
+                       partner.company_registry     AS company_registry,
                        partner_shipping.street      AS street,
                        partner_shipping.wards_id    AS wards_id,
                        partner_shipping.district_id AS district_id,
@@ -222,7 +297,7 @@ class SalespersonReport(models.Model):
         return """
             SELECT ROW_NUMBER() OVER ()   AS id,
                         line.product_id        AS product_id,
-                        sol.price_unit         AS product_price_unit,
+                        sol.price_unit         AS price_unit,
                         pt.country_of_origin   AS product_country_of_origin,
                         pt.categ_id            AS product_category_id,
                         so.sale_id,
@@ -232,7 +307,7 @@ class SalespersonReport(models.Model):
                         so.sale_month_order,
                         so.sale_year_order,
                         so.partner_id,
-                        so.partner_company_registry,
+                        so.company_registry,
                         so.street,
                         so.wards_id,
                         so.district_id,
@@ -244,6 +319,17 @@ class SalespersonReport(models.Model):
                         pa.product_att_ma_gai,
                         pa.product_att_rim_diameter_inch
         """
+
+    def _case_value_or_one(self, value):
+        return f"""CASE COALESCE({value}, 0) WHEN 0 THEN 1.0 ELSE {value} END"""
+
+    def _select_additional_fields(self):
+        """Hook to return additional fields SQL specification for select part of the table query.
+
+        :returns: mapping field -> SQL computation of field, will be converted to '_ AS _field' in the final table definition
+        :rtype: dict
+        """
+        return {}
 
     def _from_clause(self):
         return """
@@ -262,20 +348,25 @@ class SalespersonReport(models.Model):
         return """
             GROUP BY line.product_id, sol.price_unit, pt.country_of_origin, pt.categ_id, so.sale_id, so.sale_user_id,
                 so.sale_date_order, so.sale_day_order, so.sale_month_order, so.sale_year_order, so.partner_id,
-                so.partner_company_registry, so.street, so.wards_id, so.district_id, so.state_id, so.country_id,
+                so.company_registry, so.street, so.wards_id, so.district_id, so.state_id, so.country_id,
                 line.lot_serial_number, line.qr_code, pa.product_att_size_lop, pa.product_att_ma_gai,
                 pa.product_att_rim_diameter_inch
         """
 
     def query(self):
+        with_ = self._with_clause()
         return f"""
-              WITH 
-              {self._with_clause()}
-              {self._select_clause()}
-              {self._from_clause()}
-              {self._where_clause()}
-              {self._group_by_clause()}
+            {"WITH" + with_ + "(" if with_ else ""}
+            SELECT {self._select_clause()}
+            FROM {self._from_clause()}
+            WHERE {self._where_clause()}
+            GROUP BY {self._group_by_clause()}
+            {")" if with_ else ""}
         """
+
+    @property
+    def _table_query(self):
+        return self._query()
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
@@ -299,9 +390,9 @@ class SalespersonReport(models.Model):
 
         # Ensure the order parameter is not empty or improperly formatted
         if not order:
-            order = "sale_date_order DESC, sale_id DESC"
+            order = "sale_date_order DESC, serial_number"
 
-        return super(SalespersonReport, self).web_search_read(
+        return super(SalesDataReport, self).web_search_read(
             domain,
             specification,
             offset=offset,
@@ -314,7 +405,7 @@ class SalespersonReport(models.Model):
     def web_read_group(
         self, domain, fields, groupby, limit=None, offset=0, orderby=False, lazy=True
     ):
-        res = super(SalespersonReport, self).web_read_group(
+        sales = super(SalesDataReport, self).web_read_group(
             domain,
             fields,
             groupby,
@@ -324,13 +415,11 @@ class SalespersonReport(models.Model):
             lazy=lazy,
         )
 
-        # Check if 'product_template_id' is in groupby and 'product_price_unit' is in fields
-        if "product_id" in groupby and "product_price_unit" in fields:
+        # Check if 'product_template_id' is in groupby and 'price_unit' is in fields
+        if "product_id" in groupby and "price_unit" in fields:
             # Iterate over the result groups
-            for line in res["groups"]:
-                # Adjust 'product_price_unit' by dividing it by the count of 'product_template_id'
-                line["product_price_unit"] = (
-                    line["product_price_unit"] / line["product_id_count"]
-                )
+            for line in sales["groups"]:
+                # Adjust 'price_unit' by dividing it by the count of 'product_template_id'
+                line["price_unit"] = line["price_unit"] / line["product_id_count"]
 
-        return res
+        return sales

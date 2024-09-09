@@ -20,7 +20,7 @@
                         </group>
                         <group string="Thông tin Đại lý" name="group_customer_info">
                             <field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
-	                        <field name="partner_company_registry" string="Mã Đại lý"/>
+	                        <field name="company_registry" string="Mã Đại lý"/>
                             <field name="delivery_address" string="Địa chỉ giao hàng"/>
                         </group>
 	                    <group string="Thông tin Sản phẩm" name="group_product_info">
@@ -46,7 +46,7 @@
 		<field name="name">salesperson.report.tree</field>
 		<field name="model">salesperson.report</field>
 		<field name="arch" type="xml">
-			<tree string="Salesperson's Analysis Report TREE" create="false" edit="false" delete="false" import="false">
+			<tree no_open="True" string="Sales Data Analysis" create="false" edit="false" delete="false" import="false">
 				<field name="product_id" string="Sản phẩm" options="{'no_open': True}"/>
 				<field name="product_template_id" column_invisible="1"/>
 				<field name="product_price_unit" class="fw-bold" string="Đơn giá" optional="show"/>
@@ -61,14 +61,14 @@
 				<field name="sale_id" string="Đơn hàng" class="fw-bold" options="{'no_open': True}"/>
 				<field name="sale_user_id" string="Nhân viên bán hàng" widget="many2one_avatar_user" options="{'no_open': True}" optional="show"/>
 				<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
-				<field name="partner_company_registry" string="Mã Đại lý" optional="show"/>
+				<field name="company_registry" string="Mã Đại lý" optional="show"/>
 				<field name="delivery_address" string="Địa chỉ giao hàng" optional="show"/>
 				<field name="street" string="Đường" optional="hidden"/>
 				<field name="wards_id" string="Phường" optional="hidden"/>
 				<field name="district_id" string="Quận" optional="hidden"/>
 				<field name="state_id" string="Thành phố" optional="show"/>
 				<field name="country_id" string="Quốc gia" optional="show"/>
-				<field name="sale_date_order" string="Ngày đặt hàng" optional="show"/>
+				<field name="sale_date_order" string="Ngày đặt hàng" widget="date" optional="show"/>
 				<field name="sale_day_order" string="Ngày" optional="hidden"/>
 				<field name="sale_month_order" string="Tháng" optional="hidden"/>
 				<field name="sale_year_order" string="Năm" optional="hidden"/>

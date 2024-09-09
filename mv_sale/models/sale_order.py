@@ -25,7 +25,7 @@ class SaleOrder(models.Model):
     is_sales_manager = fields.Boolean(compute="_compute_permissions")
     discount_agency_set = fields.Boolean(
         compute="_compute_permissions",
-        help="""Ghi nhận: Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
+        help="""Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
     )
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(
@@ -389,9 +389,10 @@ class SaleOrder(models.Model):
         if "order_line" in vals and vals["order_line"]:
             for item in vals["order_line"]:
                 if (
-                    "product_uom_qty" in item[2]
+                    len(item) > 2
+                    and item[2]
+                    and "product_uom_qty" in item[2]
                     and item[2]["product_uom_qty"]
-                    and not self.should_recompute_discount_agency
                 ):
                     self.should_recompute_discount_agency = True
 
