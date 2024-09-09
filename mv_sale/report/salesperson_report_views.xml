@@ -109,16 +109,22 @@
 	</record>
 
 	<record id="salesperson_report_action_view" model="ir.actions.act_window">
-		<field name="name">Salesperson Analysis Report</field>
-		<field name="res_model">salesperson.report</field>
+		<field name="name">Sales Data Analysis Report</field>
+		<field name="res_model">sales.data.report</field>
 		<field name="view_mode">tree,form</field>
 		<field name="search_view_id" ref="salesperson_report_view_search"/>
 		<field name="view_id" ref="salesperson_report_view_tree"/>
-		<field name="domain">[('sale_id.is_order_returns', '=', False)]</field>
-		<field name="context">{'attribute_ma_gai': 'ma_gai', 'attribute_size_lop': 'size_lop', 'attribute_rim_diameter_inch': 'rim_diameter_inch', 'search_default_my_sale_orders_filter': 0}</field>
+		<field name="domain">[]</field>
+		<field name="context">{
+			'attribute_size_lop': 'size_lop',
+			'attribute_dong_lop': 'dong_lop',
+			'attribute_ma_gai': 'ma_gai',
+			'attribute_rim_diameter_inch': 'rim_diameter_inch',
+			'search_default_my_sale_orders_filter': 0
+		}</field>
 		<field name="help" type="html">
 			<p class="o_view_nocontent_empty_folder">
-				No data yet, please update data!
+				No data yet, please validate and update data!
 			</p>
 		</field>
 	</record>

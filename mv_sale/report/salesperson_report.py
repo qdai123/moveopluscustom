@@ -51,53 +51,6 @@ class SalesDataReport(models.Model):
         readonly=True,
     )
 
-    # [sale.order.line] fields
-    order_reference = fields.Reference(
-        string="Related Order",
-        selection=[("sale.order", "Sales Order")],
-        group_operator="count_distinct",
-    )
-    product_category_id = fields.Many2one(
-        "product.category",
-        "Product Category",
-        readonly=True,
-    )
-    product_id = fields.Many2one(
-        "product.product",
-        "Product Variant",
-        readonly=True,
-    )
-    product_template_id = fields.Many2one(
-        "product.template",
-        "Product",
-        readonly=True,
-    )
-    product_country_of_origin = fields.Many2one(
-        "res.country",
-        "Origin of goods",
-        readonly=True,
-    )
-    product_att_size_lop = fields.Char("Size", readonly=True)
-    product_att_ma_gai = fields.Char("Thorny Code", readonly=True)
-    product_att_rim_diameter_inch = fields.Char("Rim", readonly=True)
-    product_promotion = fields.Boolean("Is promo?", readonly=True)
-    product_uom = fields.Many2one(
-        "uom.uom",
-        "Unit of Measure",
-        readonly=True,
-    )
-    price_unit = fields.Float("Price Unit", eadonly=True)
-    price_subtotal = fields.Monetary("Untaxed Total", readonly=True)
-    price_total = fields.Monetary("Total", readonly=True)
-    untaxed_amount_to_invoice = fields.Monetary(
-        "Untaxed Amount To Invoice", readonly=True
-    )
-    untaxed_amount_invoiced = fields.Monetary("Untaxed Amount Invoiced", readonly=True)
-    weight = fields.Float("Gross Weight", readonly=True)
-    volume = fields.Float("Volume", readonly=True)
-    discount = fields.Float("Discount %", readonly=True, group_operator="avg")
-    discount_amount = fields.Monetary("Discount Amount", readonly=True)
-
     # [res.partner] fields
     company_registry = fields.Char("Company ID", readonly=True)
     commercial_partner_id = fields.Many2one(
@@ -135,6 +88,58 @@ class SalesDataReport(models.Model):
         "Customer Delivery Address",
         compute="_compute_delivery_address",
     )
+
+    # [sale.order.line] fields
+    order_reference = fields.Reference(
+        string="Related Order",
+        selection=[("sale.order", "Sales Order")],
+        group_operator="count_distinct",
+    )
+    product_category_id = fields.Many2one(
+        "product.category",
+        "Product Category",
+        readonly=True,
+    )
+    product_id = fields.Many2one(
+        "product.product",
+        "Product Variant",
+        readonly=True,
+    )
+    product_template_id = fields.Many2one(
+        "product.template",
+        "Product",
+        readonly=True,
+    )
+    product_country_of_origin = fields.Many2one(
+        "res.country",
+        "Origin of goods",
+        readonly=True,
+    )
+    product_att_size_lop = fields.Char("Size", readonly=True)
+    product_att_ma_gai = fields.Char("Thorny Code", readonly=True)
+    product_att_rim_diameter_inch = fields.Char("Rim", readonly=True)
+    product_promotion = fields.Boolean("Is promo?", readonly=True)
+    product_uom = fields.Many2one(
+        "uom.uom",
+        "Unit of Measure",
+        readonly=True,
+    )
+    product_uom_qty = fields.Float("Qty Ordered", readonly=True)
+    qty_to_deliver = fields.Float("Qty To Deliver", readonly=True)
+    qty_delivered = fields.Float("Qty Delivered", readonly=True)
+    qty_to_invoice = fields.Float("Qty To Invoice", readonly=True)
+    qty_invoiced = fields.Float("Qty Invoiced", readonly=True)
+    price_unit = fields.Float("Price Unit", eadonly=True)
+    price_subtotal = fields.Monetary("Untaxed Total", readonly=True)
+    price_total = fields.Monetary("Total", readonly=True)
+    untaxed_amount_to_invoice = fields.Monetary(
+        "Untaxed Amount To Invoice", readonly=True
+    )
+    untaxed_amount_invoiced = fields.Monetary("Untaxed Amount Invoiced", readonly=True)
+    weight = fields.Float("Gross Weight", readonly=True)
+    volume = fields.Float("Volume", readonly=True)
+    discount = fields.Float("Discount %", readonly=True, group_operator="avg")
+    discount_amount = fields.Monetary("Discount Amount", readonly=True)
 
     # [stock.lot] fields
     serial_number = fields.Char("Serial Number", readonly=True)
@@ -292,6 +297,49 @@ class SalesDataReport(models.Model):
             product_atts,
         )
         return result
+
+    def _select_product_attributes(self):
+        """
+        Get the product attributes to be selected in the Query
+        All attributes use for this report:
+            - Size (size_lop)
+            - Thorny Code (ma_gai)
+            - Rim Diameter (rim_diameter_inch)
+            - Tire Line (dong_lop)
+        """
+        context = dict(self.env.context or {})
+        size_lop = context.get("att_size_lop", "size_lop")
+        dong_lop = context.get("att_dong_lop", "dong_lop")
+        ma_gai = context.get("att_ma_gai", "ma_gai")
+        rim_diameter_inch = context.get("att_rim_diameter_inch", "rim_diameter_inch")
+
+        query = f"""
+            SELECT p.id                                                             AS product_id,
+                        MAX(CASE
+                            WHEN patt.attribute_code IN ('{size_lop}', '{size_lop}_duplicated')
+                                THEN patt.name ->> 'en_US' END)     AS attribute_1,
+                       MAX(CASE
+                               WHEN patt.attribute_code IN ('{ma_gai}', '{ma_gai}_duplicated')
+                                   THEN pav.name ->> 'en_US' END)   AS attribute_2,
+                       MAX(CASE
+                               WHEN patt.attribute_code IN
+                                    ('{rim_diameter_inch}', '{rim_diameter_inch}_duplicated')
+                                   THEN pav.name ->> 'en_US' END)   AS attribute_3,
+                       MAX(CASE
+                              WHEN patt.attribute_code IN
+                                    ('{dong_lop}', '{dong_lop}_duplicated')
+                                    THEN pav.name ->> 'en_US' END) AS attribute_4
+            FROM product_product p
+                    JOIN product_template t ON t.id = p.product_tmpl_id
+                    JOIN product_template_attribute_line taline ON taline.product_tmpl_id = t.id
+                    JOIN product_attribute patt ON patt.id = taline.attribute_id
+                    JOIN product_template_attribute_value ptav 
+                            ON ptav.product_tmpl_id = t.id AND ptav.attribute_id = patt.id
+                    JOIN product_attribute_value pav ON pav.id = ptav.product_attribute_value_id
+            WHERE p.active AND t.sale_ok
+            GROUP BY p.id
+        """
+        return query
 
     def _select_clause(self):
         return """
