@@ -386,15 +386,15 @@ class SaleOrder(models.Model):
     # ==================================
 
     def write(self, vals):
-        if "order_line" in vals and vals["order_line"]:
-            for item in vals["order_line"]:
-                if (
-                    len(item) > 2
-                    and item[2]
-                    and "product_uom_qty" in item[2]
-                    and item[2]["product_uom_qty"]
-                ):
-                    self.should_recompute_discount_agency = True
+        # FIXME: HOTFIX for the issue of re-computing discount agency amount
+        # if "order_line" in vals and vals["order_line"]:
+        #     for item in vals["order_line"]:
+        #         if (
+        #             "product_uom_qty" in item[2]
+        #             and item[2]["product_uom_qty"]
+        #             and not self.should_recompute_discount_agency
+        #         ):
+        #             self.should_recompute_discount_agency = True
 
         return super(SaleOrder, self).write(vals)
 

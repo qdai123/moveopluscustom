@@ -35,6 +35,11 @@ class ResPartner(models.Model):
     )
     amount = fields.Float(readonly=True)
     amount_currency = fields.Monetary(currency_field="currency_id", readonly=True)
+    quantity_threshold_value = fields.Integer(
+        string="Quantity Threshold Value",
+        default=4,
+        help="Set the quantity threshold value for this partner."
+    )
     waiting_amount_currency = fields.Monetary(
         currency_field="currency_id", readonly=True
     )

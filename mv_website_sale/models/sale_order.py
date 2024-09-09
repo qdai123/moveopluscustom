@@ -26,16 +26,29 @@ class SaleOrder(models.Model):
     # /// VALIDATION
 
     def check_show_warning(self):
-        order = self
-        if not order.partner_id.is_southern_agency:
-            order_line = order.order_line.filtered(
-                lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
-                and order.check_category_product(sol.product_id.categ_id)
-            )
-            return (
-                len(order_line) >= 1
-                and sum(order_line.mapped("product_uom_qty")) < QUANTITY_THRESHOLD
-            )
+        for order in self:
+            # If the partner has a quantity threshold value set
+            if order.partner_id.quantity_threshold_value > 0:
+                if not order.partner_id.is_southern_agency:
+                    order_line = order.order_line.filtered(
+                        lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
+                                    and order.check_category_product(sol.product_id.categ_id)
+                    )
+                    total_qty = sum(order_line.mapped("product_uom_qty"))
+
+                    # Check if total quantity is less than the partner's threshold value
+                    if len(order_line) >= 1 and total_qty < order.partner_id.quantity_threshold_value:
+                        return True
+            else:
+                if not order.partner_id.is_southern_agency:
+                    order_line = order.order_line.filtered(
+                        lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
+                                    and order.check_category_product(sol.product_id.categ_id)
+                    )
+                    total_qty = sum(order_line.mapped("product_uom_qty"))
+
+
+        return False
 
     def check_missing_partner_discount(self):
         order = self
