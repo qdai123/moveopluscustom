@@ -8,15 +8,6 @@
 	<menuitem id="mv_dms_submenu_my_surveys" name="Phiếu khảo sát của tôi" action="mv_dms_action_view_my_surveys" parent="mv_dms_menu_partner_surveys" sequence="1"/>
 	<menuitem id="mv_dms_submenu_all_surveys" name="Tất cả phiếu khảo sát" action="mv_dms_action_view_all_surveys" parent="mv_dms_menu_partner_surveys" groups="sales_team.group_sale_salesman_all_leads" sequence="2"/>
 
-	<!-- MO+ Menu: Products -->
-	<menuitem id="mv_dms_menu_products" name="Sản phẩm" parent="mv_dms_menu_app_dms" sequence="2"/>
-	<record id="mv_dms_menu_products" model="ir.ui.menu">
-		<!-- Handle to change the Group on MV Products Menu -->
-		<field name="groups_id" eval="[(6, 0, [ref('sales_team.group_sale_manager')])]"/>
-	</record>
-	<menuitem id="mv_dms_menu_mv_products" name="Sản phẩm" action="mv_dms_action_view_all_products" parent="mv_dms_menu_products" sequence="1"/>
-	<menuitem id="mv_dms_menu_mv_service_detail" name="Sản phẩm dịch vụ" action="mv_dms_action_view_all_services_detail" parent="mv_dms_menu_products" sequence="2"/>
-
 	<!-- MO+ Menu: Reporting -->
 	<menuitem id="mv_dms_menu_reporting" name="Báo cáo" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_salesman" sequence="3"/>
 
@@ -29,5 +20,10 @@
 	<menuitem id="mv_dms_submenu_configuration_shops" name="Cửa hàng" parent="mv_dms_menu_configuration" sequence="3"/>
 	<menuitem id="mv_dms_submenu_configuration_shop_category" name="Thương hiệu cửa hàng" action="mv_shop_category_action_view" parent="mv_dms_submenu_configuration_shops" sequence="1"/>
 	<menuitem id="mv_dms_submenu_configuration_products" name="Sản phẩm" parent="mv_dms_menu_configuration" sequence="4"/>
-	<menuitem id="mv_dms_submenu_configuration_submenu_product_attributes" name="Thuộc tính sản phẩm" action="mv_dms_action_view_product_attributes" parent="mv_dms_submenu_configuration_products" sequence="1"/>
+	<record id="mv_dms_submenu_configuration_products" model="ir.ui.menu">
+		<!-- Handle to change the Group on Product Menu Configuration -->
+		<field name="groups_id" eval="[(6, 0, [ref('sales_team.group_sale_manager')])]"/>
+	</record>
+	<menuitem id="mv_dms_submenu_configuration_submenu_product_attributes" name="Thuộc tính" action="mv_dms_action_view_product_attributes" parent="mv_dms_submenu_configuration_products" sequence="1"/>
+	<menuitem id="mv_dms_menu_mv_service_detail" name="Dịch vụ" action="mv_dms_action_view_all_services" parent="mv_dms_submenu_configuration_products" sequence="2"/>
 </odoo>

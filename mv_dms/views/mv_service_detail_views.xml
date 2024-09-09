@@ -5,10 +5,10 @@
 		<field name="model">mv.service.detail</field>
 		<field name="arch" type="xml">
 			<tree string="Service Detail" editable="bottom" multi_edit="true" duplicate="false" sample="true">
-				<field name="name" string="Tên sản phẩm"/>
-				<field name="service_price" widget="monetary"/>
-				<field name="notes" class="text-break" options="{'line_breaks': False}" widget="text" placeholder="Các thông tin cần ghi chú thêm ..."/>
+				<field name="mv_service_id" string="Tên dịch vụ" options="{'no_create': True, 'no_create_edit': True}"/>
+				<field name="service_price" widget="monetary" options="{'currency_field': 'vnd_currency_id'}"/>
 				<field name="vnd_currency_id" column_invisible="1"/>
+				<field name="notes" class="text-break" options="{'line_breaks': False}" widget="text" placeholder="Các thông tin cần ghi chú thêm ..."/>
 			</tree>
 		</field>
 	</record>
@@ -17,12 +17,12 @@
 		<field name="name">mv_service_detail.form</field>
 		<field name="model">mv.service.detail</field>
 		<field name="arch" type="xml">
-			<form string="Service Detail">
+			<form string="Service Detail" create="false" edit="false">
 				<sheet>
 					<group>
-						<field name="name"/>
-						<field name="vnd_currency_id" invisible="1"/>
+						<field name="mv_service_id" options="{'no_open': True}"/>
 						<field name="service_price" widget="monetary" options="{'currency_field': 'vnd_currency_id'}"/>
+						<field name="vnd_currency_id" invisible="1"/>
 						<field name="notes" no_label="1" widget="text" placeholder="Các thông tin cần ghi chú thêm ..."/>
 					</group>
 				</sheet>
@@ -35,10 +35,6 @@
 		<field name="res_model">mv.service.detail</field>
 		<field name="view_mode">form,tree</field>
 		<field name="context">{}</field>
-		<field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Create a new product
-            </p>
-        </field>
+		<field name="domain">[]</field>
 	</record>
 </odoo>

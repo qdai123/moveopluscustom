@@ -5,6 +5,7 @@ access_mv_brand_proportion_system_user,mv.brand.proportion System User,model_mv_
 access_mv_region_system_user,mv.region System User,model_mv_region,base.group_system,1,1,1,1
 access_mv_product_attribute_system_user,mv.product.attribute System User,model_mv_product_attribute,base.group_system,1,1,1,1
 access_mv_product_product_system_user,mv.product.product System User,model_mv_product_product,base.group_system,1,1,1,1
+access_mv_service_system_user,mv.service System User,model_mv_service,base.group_system,1,1,1,1
 access_mv_service_detail_system_user,mv.service.detail System User,model_mv_service_detail,base.group_system,1,1,1,1
 access_mv_shop_system_user,mv.shop System User,model_mv_shop,base.group_system,1,1,1,1
 access_mv_shop_category_system_user,mv.shop.category System User,model_mv_shop_category,base.group_system,1,1,1,1
@@ -37,6 +38,10 @@ access_mv_product_attribute_salesman,mv.product.attribute Salesman,model_mv_prod
 access_mv_product_product_sale_manager,mv.product.product Sale Manager,model_mv_product_product,sales_team.group_sale_manager,1,1,1,1
 access_mv_product_product_sale_all_leads,mv.product.product Sale All Leads,model_mv_product_product,sales_team.group_sale_salesman_all_leads,1,0,0,0
 access_mv_product_product_salesman,mv.product.product Salesman,model_mv_product_product,sales_team.group_sale_salesman,1,0,0,1
+
+access_mv_service_sale_manager,mv.service Sale Manager,model_mv_service,sales_team.group_sale_manager,1,1,1,1
+access_mv_service_sale_all_leads,mv.service Sale All Leads,model_mv_service,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_service_salesman,mv.service Salesman,model_mv_service,sales_team.group_sale_salesman,1,0,0,1
 
 access_mv_service_detail_sale_manager,mv.service.detail Sale Manager,model_mv_service_detail,sales_team.group_sale_manager,1,1,1,1
 access_mv_service_detail_sale_all_leads,mv.service.detail Sale All Leads,model_mv_service_detail,sales_team.group_sale_salesman_all_leads,1,0,0,0
