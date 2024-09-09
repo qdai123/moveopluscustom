@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="mv_history_stock_view_tree" model="ir.ui.view">
+            <field name="name">mv.history.stock.view.tree</field>
+            <field name="model">mv.history.stock</field>
+            <field name="arch" type="xml">
+                <tree create="0" edit="0" editable="bottom">
+                    <field name="sequence" />
+                    <field name="date_from" column_invisible="1" />
+                    <field name="date_to" column_invisible="1" />
+                    <field name="product_id" />
+                    <field name="uom_id" string="ĐVT" />
+                    <field name="standard_price" string="Đơn giá" />
+                    <field name="first_quantity_stock" />
+                    <field name="amount_first_quantity_stock" />
+                    <field name="incoming_quantity" />
+                    <field name="amount_incoming_quantity" />
+                    <field name="outgoing_quantity" />
+                    <field name="amount_outgoing_quantity" />
+                    <field name="last_quantity_stock" />
+                    <field name="amount_last_quantity_stock" />
+                    <button string="Lịch sử nhập" name="action_incoming_history" type="object" class="btn-link" icon="fa-history"/>
+                    <button string="Lịch sử xuất" name="action_outgoing_history" type="object" class="btn-link" icon="fa-history"/>
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="company_id" column_invisible="1"/>
+                    <field name="barcode" column_invisible="1"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="mv_history_stock_view_search" model="ir.ui.view">
+            <field name="name">mv.history.stock.view.search</field>
+            <field name="model">mv.history.stock</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="product_id"/>
+                    <field name="barcode" string="Mã vạch" />
+                    <group expand="0" string="Group By" colspan="16">
+                        <filter string="Sản phẩm" name="groupby_product_id" context="{'group_by':'product_id'}"/>
+                        <filter string="Đơn vị tính" name="groupby_uom_id" context="{'group_by':'uom_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="mv_history_stock_action_view" model="ir.actions.act_window">
+            <field name="name">Xuất/Nhập tồn kho</field>
+            <field name="res_model">mv.history.stock</field>
+            <field name="view_mode">tree</field>
+            <field name="domain">[]</field>
+            <field name="context">{}</field>
+            <field name="search_view_id" ref="mv_history_stock_view_search"/>
+        </record>
+    </data>
+</odoo>
