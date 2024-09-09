@@ -28,6 +28,7 @@ increase revenue, and enhance customer satisfaction by providing a unified view 
         "views/mv_region_views.xml",
         "views/mv_product_attribute_views.xml",
         "views/mv_product_product_views.xml",
+        "views/mv_service_views.xml",
         "views/mv_service_detail_views.xml",
         "views/mv_shop_views.xml",
         "views/mv_shop_category_views.xml",
