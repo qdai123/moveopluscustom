@@ -28,7 +28,7 @@ class SaleOrderLine(models.Model):
             )
         return super()._auto_init()
 
-    code_product = fields.Char()
+    code_product = fields.Char("Product Code")
     price_subtotal_before_discount = fields.Monetary(
         "Subtotal before Discount",
         compute="_compute_price_subtotal_before_discount",
@@ -36,7 +36,11 @@ class SaleOrderLine(models.Model):
         currency_field="currency_id",
     )
     hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
-    discount_line_id = fields.Many2one("mv.compute.discount.line")
+    discount_line_id = fields.Many2one(
+        "mv.compute.discount.line",
+        "Discount Line by Policy",
+        readonly=True,
+    )
     is_discount_agency = fields.Boolean(
         "Agency Discount Product",
         compute="_is_discount_agency",
@@ -63,16 +67,6 @@ class SaleOrderLine(models.Model):
 
     @api.depends("qty_delivered", "price_unit", "discount")
     def _compute_price_subtotal_before_discount(self):
-        """
-        Compute the subtotal before discount for each sale order line.
-
-        This method calculates the subtotal before discount by multiplying the
-        price unit by the quantity delivered and then applying the discount.
-
-        :return: None
-        """
-        _logger.debug("Starting computation of price_subtotal_before_discount.")
-
         for sol in self:
             try:
                 if sol.price_unit and sol.qty_delivered and sol.discount:
@@ -108,14 +102,20 @@ class SaleOrderLine(models.Model):
 
     # /// CRUD Methods
 
-    def write(self, vals):
-        """
-        Override the write method to handle specific logic for sale order lines.
+    @api.model
+    def create(self, vals):
+        if "product_id" in vals and not vals.get("code_product"):
+            product = self.env["product.product"].browse(vals["product_id"])
+            vals["code_product"] = product.default_code
+        return super(SaleOrderLine, self).create(vals)
 
-        :param vals: Dictionary of values to write.
-        :return: Boolean indicating the success of the write operation.
-        """
+    def write(self, vals):
+        if "product_id" in vals and not vals.get("code_product"):
+            product = self.env["product.product"].browse(vals["product_id"])
+            vals["code_product"] = product.default_code
+
         res = super(SaleOrderLine, self).write(vals)
+
         if any(sol.hidden_show_qty or sol.reward_id for sol in self):
             return res
         else:
@@ -134,19 +134,14 @@ class SaleOrderLine(models.Model):
         lines_to_update.write({"recompute_discount_agency": True})
 
     def unlink(self):
-        """
-        Override the unlink method to handle specific logic for sale order lines.
-        :return: Boolean indicating the success of the unlink operation.
-        """
-        for order_line in self:
-            if order_line.is_discount_agency:
-                order_line.order_id.message_post(
+        for sol in self:
+            if sol.is_service and sol.is_discount_agency:
+                sol.order_id.message_notify(
                     body=Markup(
-                        "Dòng %s đã bị xóa, số tiền: %s"
-                        % (order_line.product_id.name, order_line.price_unit)
+                        "Line %s has been deleted, amount: %s"
+                        % (sol.product_id.name, sol.price_unit)
                     )
                 )
-
         return super(SaleOrderLine, self).unlink()
 
     # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
@@ -167,18 +162,9 @@ class SaleOrderLine(models.Model):
     # /// HELPERS Methods
 
     def _get_discount_agency_line(self):
-        """
-            Lấy dòng chiết khấu sản lượng của Đại lý
-        :return: sale.order.line recordset
-        """
         return self._filter_discount_agency_lines(self.order_id)
 
     def _filter_discount_agency_lines(self, order=False):
-        """
-            Tìm kiếm các dòng có tính chiết khấu sản lượng (Tháng/Quý/Năm) của Đại lý
-        :param order: Base on sale.order recordset
-        :return: sale.order.line recordset
-        """
         try:
             # [>] Ensure that the method is called on a single record
             # self.ensure_one()
