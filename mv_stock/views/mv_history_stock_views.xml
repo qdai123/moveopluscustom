@@ -5,7 +5,7 @@
             <field name="name">mv.history.stock.view.tree</field>
             <field name="model">mv.history.stock</field>
             <field name="arch" type="xml">
-                <tree create="0" edit="0" editable="bottom">
+                <tree create="0" edit="0" editable="bottom" js_class="history_stock_report_button">
                     <field name="sequence" />
                     <field name="date_from" column_invisible="0" />
                     <field name="date_to" column_invisible="0" />

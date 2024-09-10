@@ -22,4 +22,12 @@
     ],
     "license": "LGPL-3",
     "application": True,
+    'assets': {
+        'web.assets_backend': [
+            'mv_stock/static/src/**/*',
+            'mv_stock/static/src/js/history_stock.js',
+            'mv_stock/static/src/xml/template_history_stock.xml',
+        ],
+    },
+
 }
