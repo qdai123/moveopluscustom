@@ -501,9 +501,13 @@ class MvPartnerSurvey(models.Model):
 
         related_records = [
             self.with_context(force_delete=True).shop_ids,
-            self.with_context(force_delete=True).brand_proportion_ids,
+            self.with_context(force_delete=True).brand_proportion_tire_ids,
+            self.with_context(force_delete=True).brand_proportion_lubricant_ids,
+            self.with_context(force_delete=True).brand_proportion_battery_ids,
             self.with_context(force_delete=True).service_detail_ids,
-            self.with_context(force_delete=True).mv_product_ids,
+            self.with_context(force_delete=True).mv_product_tire_ids,
+            self.with_context(force_delete=True).mv_product_lubricant_ids,
+            self.with_context(force_delete=True).mv_product_battery_ids,
         ]
 
         res = super().unlink()
