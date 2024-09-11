@@ -124,8 +124,8 @@
 				<field string="Trạng thái đơn hàng" name="sale_status" widget='badge' decoration-success="sale_status == 'sale'" decoration-info="sale_status in ['draft', 'sent']" optional="hidden"/>
                 <field string="Trạng thái hóa đơn" name="sale_invoice_status" widget="badge" decoration-success="sale_invoice_status == 'invoiced'" decoration-info="sale_invoice_status == 'to invoice'" optional="hidden"/>
 				<field string="Nhân viên bán hàng" name="sale_user_id" options="{'no_open': True}" optional="hidden" widget="many2one_avatar_user"/>
-				<field string="Đại lý" name="sale_partner_id" options="{'no_open': True}" optional="hidden"/>
-				<field string="Đại lý" name="partner_nickname" options="{'no_open': True}" optional="show"/>
+				<field string="Đại lý" name="sale_partner_id" options="{'no_open': True}" optional="show"/>
+				<field string="Đại lý" name="partner_nickname" options="{'no_open': True}" optional="hidden"/>
 				<field string="Mã Đại lý" name="company_registry" optional="show"/>
 				<field string="Địa chỉ giao hàng" name="delivery_address" optional="hidden"/>
 				<field string="Đường" name="street" optional="hidden"/>
@@ -152,13 +152,11 @@
 		<field name="model">sales.data.report</field>
 		<field name="arch" type="xml">
 			<search string="Sales Data Analysis">
+				<field string="Đại lý" name="sale_partner_id"/>
 				<field string="Mã vạch" name="serial_number"/>
 				<field string="Mã QR-Code" name="qrcode"/>
 				<field string="Mã đơn" name="sale_reference" />
 				<field string="Sản phẩm" name="product_id"/>
-				<field string="Sản phẩm" name="product_template_id"/>
-				<field string="Danh mục sản phẩm" name="product_category_id"/>
-				<field string="Đại lý" name="sale_partner_id" filter_domain="['|', ('name', 'ilike', self), ('short_name', 'ilike', self)]"/>
 				<filter string="Đơn hàng của tôi" name="filter_my_sale_order" domain="[('sale_user_id', '=', uid)]"/>
 				<separator/>
 				<filter string="Cần lập hóa đơn" name="filter_to_invoice" domain="[('sale_invoice_status', '=', 'to invoice')]"/>
@@ -174,6 +172,8 @@
 					<filter string="Nhân viên kinh doanh" name="groupby_sale_user" context="{'group_by':'sale_user_id'}" groups="sales_team.group_sale_salesman_all_leads"/>
 					<separator/>
 					<filter string="Mã đơn hàng" name="groupby_sale_order" context="{'group_by':'sale_reference'}"/>
+					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
+					<filter string="Mã QR code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
 					<separator/>
                     <filter string="Ngày đặt hàng" name="groupby_sale_date_order" context="{'group_by':'sale_date_order'}"/>
 					<filter string="Ngày vào sổ" name="groupby_sale_date_invoice" context="{'group_by':'sale_date_invoice'}"/>
@@ -185,9 +185,6 @@
 					<filter string="Size (lốp)" name="groupby_product_att_size_lop" context="{'group_by':'product_att_size_lop'}"/>
 					<filter string="Mã gai" name="groupby_product_att_ma_gai" context="{'group_by':'product_att_ma_gai'}"/>
 					<filter string="Đường kính Mâm" name="groupby_product_att_rim_diameter_inch" context="{'group_by':'product_att_rim_diameter_inch'}"/>
-					<separator/>
-					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
-					<filter string="Mã QR code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
 				</group>
 			</search>
 		</field>
