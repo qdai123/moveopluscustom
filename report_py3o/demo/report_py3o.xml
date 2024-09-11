@@ -24,12 +24,12 @@
         <field name="model">mv.history.stock</field>
         <field name="report_name">py3o_mv_history_stock_info</field>
         <field name="report_type">py3o</field>
-        <field name="py3o_filetype">ods</field>
+        <field name="py3o_filetype">xls</field>
         <field name="module">report_py3o</field>
-        <field name="py3o_template_fallback">demo/test_report1.ods</field>
+        <field name="py3o_template_fallback">demo/tempate_export_import_stock.ods</field>
         <field
             name="print_report_name"
-        >object.product_id.name.replace(' ', '_') + '-demo.odt'</field>
+        >'BCTK_TuNgay_' + object.report_date_from + '_DenNgay_' + object.report_date_to</field>
         <field name="binding_model_id" ref="mv_stock.model_mv_history_stock" />
         <field name="binding_type">report</field>
     </record>

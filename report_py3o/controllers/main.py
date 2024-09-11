@@ -70,17 +70,10 @@ class ReportController(ReportController):
             return super().report_download(data, context=context, token=token)
         try:
             reportname = url.split("/report/py3o/")[1].split("?")[0]
-            import logging
-            logging.info("//////////////////////////////////////****************************//////////////////////////////////////////////")
-            logging.info(data)
-            logging.info(json.loads(data))
-            logging.info(requestcontent)
-            logging.info(reportname)
             docids = None
             if "/" in reportname:
                 reportname, docids = reportname.split("/")
 
-            logging.info(docids)
             if docids:
                 # Generic report:
                 response = self.report_routes(

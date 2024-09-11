@@ -25,6 +25,8 @@
                     <field name="currency_id" column_invisible="1"/>
                     <field name="company_id" column_invisible="1"/>
                     <field name="barcode" column_invisible="1"/>
+                    <field name="report_date_from" column_invisible="1"/>
+                    <field name="report_date_to" column_invisible="1"/>
                 </tree>
             </field>
         </record>
