@@ -20,6 +20,8 @@
         # Moveoplus
         "mv_base",
         "mv_helpdesk",
+        # Dashboard
+        "ks_dashboard_ninja",
     ],
     "data": [
         # SECURITY
@@ -48,7 +50,7 @@
         "views/sale_portal_templates.xml",
         # REPORT
         "report/discount_report_views.xml",
-        "report/salesperson_report_views.xml",
+        "report/sales_data_report_views.xml",
         # WIZARD
         "wizard/mv_wizard_discount_views.xml",
         "wizard/mv_report_discount_views.xml",
