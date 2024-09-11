@@ -20,6 +20,8 @@
         # Moveoplus
         "mv_base",
         "mv_helpdesk",
+        # Dashboard
+        "ks_dashboard_ninja",
     ],
     "data": [
         # SECURITY

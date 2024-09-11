@@ -20,7 +20,7 @@ class SalesDataReport(models.Model):
         return ["sale"]
 
     # [sale.order] fields
-    sale_id = fields.Many2one("sale.order", "Order ID", readonly=True)
+    sale_id = fields.Many2one("sale.order", "Order", readonly=True)
     sale_reference = fields.Char("Order Reference", readonly=True)
     sale_date_order = fields.Date("Order Date", readonly=True)
     sale_year_order = fields.Char("Year (Order)", readonly=True)
@@ -282,6 +282,7 @@ class SalesDataReport(models.Model):
                            ELSE 0
                            END                          AS untaxed_amount_invoiced,
                        s.id                               AS sale_id,
+                       l.id                               AS sale_order_line_id,
                        s.name                             AS sale_reference,
                        s.date_order                       AS sale_date_order,
                        EXTRACT(DAY FROM s.date_order)     AS sale_day_order,
@@ -365,6 +366,9 @@ class SalesDataReport(models.Model):
     def where_orders(self):
         return """
             WHERE l.display_type IS NULL
+                  AND is_service IS DISTINCT FROM TRUE
+                  AND s.state = 'sale'
+                  AND s.is_order_returns IS DISTINCT FROM TRUE
         """
 
     def groupby_orders(self):
@@ -372,6 +376,7 @@ class SalesDataReport(models.Model):
             GROUP BY l.product_id,
                              t.uom_id,
                              s.id,
+                             l.id,
                              s.name,
                              CONCAT('sale.order', ',', s.id),
                              s.date_order,
@@ -499,14 +504,27 @@ class SalesDataReport(models.Model):
     def _from_clause(self):
         return """
             FROM stock_move_line sml
-                    JOIN stock_move sm ON sm.id = sml.move_id
-                    JOIN stock_lot lot ON lot.id = sml.lot_id
-                    JOIN stock_picking picking ON picking.id = sml.picking_id AND picking.state = 'done'
-                    JOIN orders so ON so.sale_id = picking.sale_id AND so.product_id = sml.product_id
+                JOIN stock_lot lot ON lot.id = sml.lot_id
+                JOIN stock_move sm ON sm.id = sml.move_id
+                JOIN orders so 
+                        ON so.sale_order_line_id = sm.sale_line_id 
+                            AND so.product_id = sm.product_id
+                JOIN stock_picking picking_out
+                        ON picking_out.id = sml.picking_id 
+                            AND picking_out.state = 'done' 
+                            AND picking_out.return_id ISNULL
         """
 
     def _where_clause(self):
-        return ""
+        return """
+            WHERE lot.name NOT IN (SELECT DISTINCT lot.name
+                                                    FROM stock_move_line move_line
+                                                            JOIN stock_lot lot ON lot.id = move_line.lot_id
+                                                            JOIN stock_picking picking_in 
+                                                                ON picking_in.id = move_line.picking_id
+                                                    WHERE picking_in.state = 'done'
+                                                        AND picking_in.return_id = picking_out.id)
+        """
 
     def _group_by_clause(self):
         return ""
