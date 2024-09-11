@@ -20,7 +20,9 @@ class MVHistoryStockWizard(models.TransientModel):
             stock = self.env['mv.history.stock'].create({
                 'product_id': product.id,
                 'date_from': self.date_from,
+                'report_date_from': self.date_from.date().strftime("%d/%m/%Y"),
                 'date_to': self.date_to,
+                'report_date_to': self.date_to.date().strftime("%d/%m/%Y"),
                 'sequence': sequence,
             })
             sequence += 1
