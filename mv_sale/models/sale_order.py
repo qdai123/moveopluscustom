@@ -25,7 +25,7 @@ class SaleOrder(models.Model):
     is_sales_manager = fields.Boolean(compute="_compute_permissions")
     discount_agency_set = fields.Boolean(
         compute="_compute_permissions",
-        help="""Ghi nhận: Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
+        help="""Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
     )
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(

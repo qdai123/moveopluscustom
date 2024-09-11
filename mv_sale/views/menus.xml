@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<menuitem id="salesperson_report_menu"
-              name="Salesperson's Analysis"
-              action="salesperson_report_action_view"
+	<menuitem id="sales_data_report_menu_all"
+              name="Sales Data Analysis"
+              action="sales_data_report_action_view_all"
               parent="sale.menu_sale_report"
               sequence="50"/>
 
