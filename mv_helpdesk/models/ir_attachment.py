@@ -1,5 +1,6 @@
 from odoo import models, api, exceptions, _
 
+
 class IrAttachment(models.Model):
     _inherit = 'ir.attachment'
 
