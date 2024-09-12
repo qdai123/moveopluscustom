@@ -107,42 +107,42 @@
 		<field name="model">sales.data.report</field>
 		<field name="arch" type="xml">
 			<tree string="Sales Data Analysis">
-				<field string="Sản phẩm" name="product_id" options="{'no_open': True}"/>
-				<field name="product_template_id" column_invisible="1"/>
-				<field string="Đơn giá" name="price_unit" class="fw-bold" optional="show"/>
-				<field string="Đơn giá sau C/K" name="price_subtotal" class="fw-bold" optional="hidden" sum="Sum of Untaxed Total"/>
-				<field string="Tổng" name="price_total" class="fw-bold" optional="hidden" sum="Sum of Total"/>
+				<field column_invisible="1" name="product_id"/>
+				<field string="Ngày đặt hàng" name="sale_date_order" widget="date"/>
+				<field string="Ngày" name="sale_day_order" optional="hidden"/>
+				<field string="Tháng" name="sale_month_order" optional="hidden"/>
+				<field string="Năm" name="sale_year_order" optional="hidden"/>
+				<field string="Ngày vào sổ" name="sale_date_invoice" widget="date" optional="hidden"/>
+				<field string="Ngày" name="sale_day_invoice" optional="hidden"/>
+				<field string="Tháng" name="sale_month_invoice" optional="hidden"/>
+				<field string="Năm" name="sale_year_invoice" optional="hidden"/>
+				<field string="Đơn hàng" name="sale_id" class="fw-bold" options="{'no_open': True}"/>
+				<field string="Danh mục" name="product_category_id" options="{'no_open': True}" optional="hidden"/>
+				<field string="Sản phẩm" name="product_template_id" options="{'no_open': True}"/>
+				<field string="Nguồn gốc" name="product_country_of_origin" options="{'no_open': True}" optional="hidden"/>
 				<field string="Mã vạch" name="serial_number"/>
 				<field string="Mã QR Code" name="qrcode" optional="show"/>
 				<field string="Size (lốp)" name="product_att_size_lop" optional="hidden"/>
 				<field string="Dòng (lốp)" name="product_att_dong_lop" optional="hidden"/>
 				<field string="Mã gai" name="product_att_ma_gai" optional="hidden"/>
 				<field string="Đường kính Mâm" name="product_att_rim_diameter_inch" optional="hidden"/>
-				<field string="Nguồn gốc" name="product_country_of_origin" options="{'no_open': True}" optional="hidden"/>
-				<field string="Danh mục" name="product_category_id" options="{'no_open': True}" optional="hidden"/>
-				<field string="Đơn hàng" name="sale_id" class="fw-bold" options="{'no_open': True}"/>
-				<field string="Trạng thái đơn hàng" name="sale_status" widget='badge' decoration-success="sale_status == 'sale'" decoration-info="sale_status in ['draft', 'sent']" optional="hidden"/>
-                <field string="Trạng thái hóa đơn" name="sale_invoice_status" widget="badge" decoration-success="sale_invoice_status == 'invoiced'" decoration-info="sale_invoice_status == 'to invoice'" optional="hidden"/>
-				<field string="Nhân viên bán hàng" name="sale_user_id" options="{'no_open': True}" optional="hidden" widget="many2one_avatar_user"/>
-				<field string="Đại lý" name="sale_partner_id" options="{'no_open': True}" optional="show"/>
-				<field string="Đại lý" name="partner_nickname" options="{'no_open': True}" optional="hidden"/>
-				<field string="Mã Đại lý" name="company_registry" optional="show"/>
+				<field string="Đơn giá" name="price_unit" class="fw-bold" optional="show"/>
+				<field string="Đơn giá (Sau C/K)" name="price_subtotal" class="fw-bold" sum="Sum of Untaxed Total" optional="hidden"/>
+				<field string="Tổng" name="price_total" class="fw-bold" sum="Sum of Total" groups="sales_team.group_sale_manager" optional="hidden"/>
+				<field column_invisible="1" string="Trạng thái đơn hàng" name="sale_status" widget='badge' decoration-success="sale_status == 'sale'" decoration-info="sale_status in ['draft', 'sent']" optional="hidden"/>
+                <field column_invisible="1" string="Trạng thái hóa đơn" name="sale_invoice_status" widget="badge" decoration-success="sale_invoice_status == 'invoiced'" decoration-info="sale_invoice_status == 'to invoice'" optional="hidden"/>
+				<field string="Nhân viên bán hàng" name="sale_user_id" options="{'no_open': True}" widget="many2one_avatar_user" optional="hidden"/>
+				<field string="Đại lý" name="sale_partner_id" options="{'no_open': True}"/>
+				<field string="Đại lý (Nickname)" name="partner_nickname" options="{'no_open': True}" optional="hidden"/>
+				<field string="Mã Đại lý" name="company_registry"/>
 				<field string="Địa chỉ giao hàng" name="delivery_address" optional="hidden"/>
 				<field string="Đường" name="street" optional="hidden"/>
 				<field string="Phường" name="wards_id" options="{'no_open': True}" optional="hidden"/>
 				<field string="Quận" name="district_id" options="{'no_open': True}" optional="hidden"/>
 				<field string="Thành phố" name="state_id" options="{'no_open': True}" optional="show"/>
 				<field string="Quốc gia" name="country_id" options="{'no_open': True}" optional="show"/>
-				<field string="Ngày đặt hàng" name="sale_date_order" widget="date"/>
-				<field string="Ngày" name="sale_day_order" optional="hidden"/>
-				<field string="Tháng" name="sale_month_order" optional="hidden"/>
-				<field string="Năm" name="sale_year_order" optional="hidden"/>
-				<field string="Ngày vào sổ" name="sale_date_invoice" widget="date"/>
-				<field string="Ngày" name="sale_day_order" optional="hidden"/>
-				<field string="Tháng" name="sale_month_order" optional="hidden"/>
-				<field string="Năm" name="sale_year_order" optional="hidden"/>
 				<field string="Công ty" name="sale_company_id" groups="base.group_multi_company" optional="show"/>
-				<field name="currency_id" column_invisible="1"/>
+				<field column_invisible="1" name="currency_id" groups="base.group_multi_currency"/>
 			</tree>
 		</field>
 	</record>
@@ -152,15 +152,15 @@
 		<field name="model">sales.data.report</field>
 		<field name="arch" type="xml">
 			<search string="Sales Data Analysis">
-				<field string="Đại lý" name="sale_partner_id"/>
+				<field string="Mã đơn" name="sale_reference" />
+				<field string="Sản phẩm" name="product_template_id"/>
 				<field string="Mã vạch" name="serial_number"/>
 				<field string="Mã QR-Code" name="qrcode"/>
-				<field string="Mã đơn" name="sale_reference" />
-				<field string="Sản phẩm" name="product_id"/>
-				<filter string="Đơn hàng của tôi" name="filter_my_sale_order" domain="[('sale_user_id', '=', uid)]"/>
+				<field string="Đại lý" name="sale_partner_id"/>
+				<filter string="Đơn hàng của tôi" name="filter_my_sale_order" domain="[('sale_user_id', '=', uid)]" groups="sales_team.group_sale_salesman_all_leads"/>
 				<separator/>
-				<filter string="Cần lập hóa đơn" name="filter_to_invoice" domain="[('sale_invoice_status', '=', 'to invoice')]"/>
-                <filter string="Đã xuất hóa đơn đầy đủ" name="filter_fully_invoiced" domain="[('sale_invoice_status', '=', 'invoiced')]"/>
+				<filter string="Cần xuất hoá đơn" name="filter_to_invoice" domain="[('sale_invoice_status', '=', 'to invoice')]"/>
+                <filter string="Đã xuất hoá đơn hết" name="filter_fully_invoiced" domain="[('sale_invoice_status', '=', 'invoiced')]"/>
 				<separator/>
 				<filter string="Khuyến mãi" name="filter_order_promo" domain="['|', ('discount', '=', 100), ('price_unit', '=', 0)]"/>
 				<group expand="0" string="Extended Filters">
@@ -169,22 +169,24 @@
                 </group>
 				<group expand="1" string="Group By">
 					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'sale_partner_id'}"/>
+					<separator/>
 					<filter string="Nhân viên kinh doanh" name="groupby_sale_user" context="{'group_by':'sale_user_id'}" groups="sales_team.group_sale_salesman_all_leads"/>
 					<separator/>
 					<filter string="Mã đơn hàng" name="groupby_sale_order" context="{'group_by':'sale_reference'}"/>
 					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
 					<filter string="Mã QR code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
 					<separator/>
-                    <filter string="Ngày đặt hàng" name="groupby_sale_date_order" context="{'group_by':'sale_date_order'}"/>
-					<filter string="Ngày vào sổ" name="groupby_sale_date_invoice" context="{'group_by':'sale_date_invoice'}"/>
-					<separator/>
-					<filter string="Quốc Gia (Sản phẩm)" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
+					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_template_id'}"/>
 					<filter string="Danh mục sản phẩm" name="groupby_product_category" context="{'group_by':'product_category_id'}"/>
-					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_id'}"/>
+					<filter string="Quốc Gia (Sản phẩm)" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
 					<separator/>
 					<filter string="Size (lốp)" name="groupby_product_att_size_lop" context="{'group_by':'product_att_size_lop'}"/>
 					<filter string="Mã gai" name="groupby_product_att_ma_gai" context="{'group_by':'product_att_ma_gai'}"/>
 					<filter string="Đường kính Mâm" name="groupby_product_att_rim_diameter_inch" context="{'group_by':'product_att_rim_diameter_inch'}"/>
+					<separator/>
+                    <filter string="Ngày đặt hàng" name="groupby_sale_date_order" context="{'group_by':'sale_date_order'}"/>
+					<separator/>
+					<filter string="Ngày vào sổ" name="groupby_sale_date_invoice" context="{'group_by':'sale_date_invoice'}"/>
 				</group>
 			</search>
 		</field>
@@ -196,12 +198,35 @@
 		<field name="view_mode">tree,pivot,graph</field>
 		<field name="search_view_id" ref="sales_data_report_view_search"/>
 		<field name="view_id" ></field>  <!-- force empty -->
-		<field name="domain">[('sale_status', '!=', 'cancel')]</field>
+		<field name="domain">[]</field>
 		<field name="context">{
 			'attribute_size_lop': 'size_lop',
 			'attribute_dong_lop': 'dong_lop',
 			'attribute_ma_gai': 'ma_gai',
 			'attribute_rim_diameter_inch': 'rim_diameter_inch',
+			'search_default_filter_fully_invoiced': 1,
+			'group_by': [],
+		}</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_empty_folder">
+				No data yet, please validate and update data!
+			</p>
+		</field>
+	</record>
+
+	<record id="sales_data_report_action_view_salesman_only" model="ir.actions.act_window">
+		<field name="name">Sales Data Analysis</field>
+		<field name="res_model">sales.data.report</field>
+		<field name="view_mode">tree,pivot,graph</field>
+		<field name="search_view_id" ref="sales_data_report_view_search"/>
+		<field name="view_id" ></field>  <!-- force empty -->
+		<field name="domain">[('sale_user_id', '=', uid)]</field>
+		<field name="context">{
+			'attribute_size_lop': 'size_lop',
+			'attribute_dong_lop': 'dong_lop',
+			'attribute_ma_gai': 'ma_gai',
+			'attribute_rim_diameter_inch': 'rim_diameter_inch',
+			'search_default_filter_fully_invoiced': 1,
 			'group_by': [],
 		}</field>
 		<field name="help" type="html">

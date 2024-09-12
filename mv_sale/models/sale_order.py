@@ -846,39 +846,31 @@ class SaleOrder(models.Model):
             ("date_to", ">=", today),
         ]
 
-        # === ĐẠI LÝ CHÍNH THỨC ===#
-        if (
-            self.partner_agency
-            and not self.partner_white_agency
-            and not self.partner_southern_agency
-        ):
-            program_domain += [
+        def add_agency_conditions(domain, agency_field, agency_value):
+            domain += [
                 "|",
-                ("partner_agency_ok", "=", self.partner_agency),
+                (agency_field, "=", agency_value),
                 ("apply_for_all_agency", "=", True),
             ]
-        # === ĐẠI LÝ VÙNG TRẮNG ===#
-        elif (
-            self.partner_agency
-            and self.partner_white_agency
-            and not self.partner_southern_agency
-        ):
-            program_domain += [
-                "|",
-                ("partner_white_agency_ok", "=", self.partner_white_agency),
-                ("apply_for_all_agency", "=", True),
-            ]
-        # === ĐẠI LÝ MIỀN NAM ===#
-        elif (
-            self.partner_agency
-            and self.partner_southern_agency
-            and not self.partner_white_agency
-        ):
-            program_domain += [
-                "|",
-                ("partner_southern_agency_ok", "=", self.partner_southern_agency),
-                ("apply_for_all_agency", "=", True),
-            ]
+
+        if self.partner_agency:
+            if self.partner_white_agency:
+                # === ĐẠI LÝ VÙNG TRẮNG ===#
+                add_agency_conditions(
+                    program_domain, "partner_white_agency_ok", self.partner_white_agency
+                )
+            elif self.partner_southern_agency:
+                # === ĐẠI LÝ MIỀN NAM ===#
+                add_agency_conditions(
+                    program_domain,
+                    "partner_southern_agency_ok",
+                    self.partner_southern_agency,
+                )
+            else:
+                # === ĐẠI LÝ CHÍNH THỨC ===#
+                add_agency_conditions(
+                    program_domain, "partner_agency_ok", self.partner_agency
+                )
 
         return program_domain
 

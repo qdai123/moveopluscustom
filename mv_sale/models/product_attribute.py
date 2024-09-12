@@ -40,8 +40,8 @@ class ProductAttribute(models.Model):
 
     _sql_constraints = [
         (
-            "attribute_name_code_create_variant_uniq",
-            "unique(name, attribute_code, create_variant)",
+            "attribute_name_code_uniq",
+            "unique(name, attribute_code)",
             "A code with the same name already exists for this property. Please use another code.",
         )
     ]
