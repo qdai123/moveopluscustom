@@ -36,6 +36,9 @@ CODE_ALREADY_REGISTERED = "code_already_registered"
 class HelpdeskTicket(models.Model):
     _inherit = "helpdesk.ticket"
 
+    tag_ids = fields.Many2many(tracking=True)
+    partner_phone = fields.Char(tracking=True)
+    partner_email = fields.Char(tracking=True)
     @api.depends_context("uid")
     def _is_helpdesk_manager(self):
         """Compute if the current user is a helpdesk manager."""
@@ -191,9 +194,9 @@ class HelpdeskTicket(models.Model):
                     )
                 )
                 if (
-                    partner
-                    and not partner.is_agency
-                    and not partner.parent_id.is_agency
+                        partner
+                        and not partner.is_agency
+                        and not partner.parent_id.is_agency
                 ):
                     raise ValidationError(
                         "Bạn không phải là Đại lý của Moveo Plus. "
@@ -226,9 +229,9 @@ class HelpdeskTicket(models.Model):
             if not_system_user and is_not_manager and not_assigned_to_user:
                 raise AccessError(_(NOT_ASSIGNED_ERROR))
             elif (
-                not_system_user
-                and is_not_manager
-                and ticket.stage_id.id != self.env.ref(NEW_STATE).id
+                    not_system_user
+                    and is_not_manager
+                    and ticket.stage_id.id != self.env.ref(NEW_STATE).id
             ):
                 raise ValidationError(_(NOT_NEW_STATE_ERROR))
 
@@ -446,8 +449,8 @@ class HelpdeskTicket(models.Model):
             )
 
             if (
-                len(conflicting_ticket_sub_dealer) > 0
-                and len(conflicting_ticket_end_user) > 0
+                    len(conflicting_ticket_sub_dealer) > 0
+                    and len(conflicting_ticket_end_user) > 0
             ):
                 message_err = (
                     f"Mã {code} đã trùng với Tickets khác có mã là "
@@ -484,24 +487,24 @@ class HelpdeskTicket(models.Model):
         ticket_type_code = kwargs.get("ticket_type_code")
 
         validate_different_partner_for_sub = (
-            len(conflicting_ticket_sub_dealer) > 0
-            and conflicting_ticket_sub_dealer.partner_id
-            and conflicting_ticket_sub_dealer.partner_id.id != partner.id
+                len(conflicting_ticket_sub_dealer) > 0
+                and conflicting_ticket_sub_dealer.partner_id
+                and conflicting_ticket_sub_dealer.partner_id.id != partner.id
         )
         validate_different_partner_for_end = (
-            len(conflicting_ticket_end_user) > 0
-            and conflicting_ticket_end_user.partner_id
-            and conflicting_ticket_end_user.partner_id.id != partner.id
+                len(conflicting_ticket_end_user) > 0
+                and conflicting_ticket_end_user.partner_id
+                and conflicting_ticket_end_user.partner_id.id != partner.id
         )
         validate_same_partner_for_sub = (
-            len(conflicting_ticket_sub_dealer) > 0
-            and conflicting_ticket_sub_dealer.partner_id
-            and conflicting_ticket_sub_dealer.partner_id.id == partner.id
+                len(conflicting_ticket_sub_dealer) > 0
+                and conflicting_ticket_sub_dealer.partner_id
+                and conflicting_ticket_sub_dealer.partner_id.id == partner.id
         )
         validate_same_partner_for_end = (
-            len(conflicting_ticket_end_user) > 0
-            and conflicting_ticket_end_user.partner_id
-            and conflicting_ticket_end_user.partner_id.id == partner.id
+                len(conflicting_ticket_end_user) > 0
+                and conflicting_ticket_end_user.partner_id
+                and conflicting_ticket_end_user.partner_id.id == partner.id
         )
         # Validate if the code is already registered on other tickets by different Partners
         if validate_different_partner_for_sub or validate_different_partner_for_end:
@@ -530,8 +533,8 @@ class HelpdeskTicket(models.Model):
         # Validate if the code is already registered on other tickets with specific ticket type by current Partner
         else:
             if (
-                ticket_type_code == SUB_DEALER_CODE
-                and len(conflicting_ticket_end_user) > 0
+                    ticket_type_code == SUB_DEALER_CODE
+                    and len(conflicting_ticket_end_user) > 0
             ):
                 message_err = (
                     f"Mã {code} đã trùng với Ticket khác, "
@@ -539,8 +542,8 @@ class HelpdeskTicket(models.Model):
                 )
                 error_messages.append((CODE_ALREADY_REGISTERED, message_err))
             elif (
-                ticket_type_code == END_USER_CODE
-                and len(conflicting_ticket_end_user) > 0
+                    ticket_type_code == END_USER_CODE
+                    and len(conflicting_ticket_end_user) > 0
             ):
                 message_err = (
                     f"Mã {code} đã trùng với Ticket khác, "

@@ -4,7 +4,19 @@ from odoo.exceptions import ValidationError
 
 
 class LoyaltyProgram(models.Model):
-    _inherit = "loyalty.program"
+    _name = "loyalty.program"
+    _inherit = ["loyalty.program", "mail.thread", "mail.activity.mixin"]
+    def write(self, vals):
+        result = super(LoyaltyProgram, self).write(vals)
+        for record in self:
+            record.message_post(
+                body=f'Record updated by {self.env.user.name}',
+                subject='Record Updated',
+                message_type='notification',
+                subtype_id=self.env.ref('mail.mt_note').id
+            )
+        return result
+
 
     apply_for = fields.Boolean(string="Apply for", default=False)
     apply_for_all_agency = fields.Boolean(string="All")

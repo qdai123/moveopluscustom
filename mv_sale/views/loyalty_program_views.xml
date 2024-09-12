@@ -1,33 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<record id="mv_sale_inherit_loyalty_program_view_form" model="ir.ui.view">
-		<field name="name">mv_sale.inherit.loyalty.program.form</field>
-		<field name="model">loyalty.program</field>
-		<field name="priority">45</field>
-		<field name="inherit_id" ref="loyalty.loyalty_program_view_form"/>
-		<field name="arch" type="xml">
-			<xpath expr="//div[@id='o_loyalty_program_availabilities']" position="after">
-				<field name="apply_for" invisible="True"/>
-				<label class="o_form_label" for="apply_for" string="Áp dụng cho"/>
-				<div id="o_loyalty_program_applied_for_partners">
-					<span class="d-inline-block">
-						<field name="apply_for_all_agency" string="Tất cả" class="w-auto me-0"/>
-						<label for="apply_for_all_agency" class="me-3"/>
-					</span>
-					<span class="d-inline-block">
-						<field name="partner_agency_ok" string="Đại lý" class="w-auto me-0"/>
-						<label for="partner_agency_ok" class="me-3"/>
-					</span>
-					<span class="d-inline-block">
-						<field name="partner_white_agency_ok" string="Đại lý vùng trắng" class="w-auto me-0"/>
-						<label for="partner_white_agency_ok" class="me-3"/>
-					</span>
-					<span class="d-inline-block">
-						<field name="partner_southern_agency_ok" string="Đại lý miền Nam" class="w-auto me-0"/>
-						<label for="partner_southern_agency_ok" class="me-3"/>
-					</span>
-				</div>
-			</xpath>
-		</field>
-	</record>
+    <record id="mv_sale_inherit_loyalty_program_view_form" model="ir.ui.view">
+        <field name="name">mv_sale.inherit.loyalty.program.form</field>
+        <field name="model">loyalty.program</field>
+        <field name="priority">45</field>
+        <field name="inherit_id" ref="loyalty.loyalty_program_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@id='o_loyalty_program_availabilities']" position="after">
+                <field name="apply_for" invisible="True"/>
+                <label class="o_form_label" for="apply_for" string="Áp dụng cho"/>
+                <div id="o_loyalty_program_applied_for_partners">
+                    <span class="d-inline-block">
+                        <field name="apply_for_all_agency" string="Tất cả" class="w-auto me-0"/>
+                        <label for="apply_for_all_agency" class="me-3"/>
+                    </span>
+                    <span class="d-inline-block">
+                        <field name="partner_agency_ok" string="Đại lý" class="w-auto me-0"/>
+                        <label for="partner_agency_ok" class="me-3"/>
+                    </span>
+                    <span class="d-inline-block">
+                        <field name="partner_white_agency_ok" string="Đại lý vùng trắng" class="w-auto me-0"/>
+                        <label for="partner_white_agency_ok" class="me-3"/>
+                    </span>
+                    <span class="d-inline-block">
+                        <field name="partner_southern_agency_ok" string="Đại lý miền Nam" class="w-auto me-0"/>
+                        <label for="partner_southern_agency_ok" class="me-3"/>
+                    </span>
+                </div>
+            </xpath>
+            <xpath expr="//sheet" position="after">
+                <div class="oe_chatter">
+                    <field name="message_ids"/>
+                    <field name="activity_ids"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
 </odoo>
