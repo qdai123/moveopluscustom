@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from odoo.addons.mv_sale.models.sale_order import (
+    GROUP_SALESPERSON,
+    GROUP_SALES_ALL,
+    GROUP_SALES_MANAGER,
+)
 from odoo.addons.sale.models.sale_order import SALE_ORDER_STATE
 
 from odoo import _, api, fields, models, tools
+from odoo.osv import expression
 
 _logger = logging.getLogger(__name__)
 
@@ -13,7 +19,7 @@ class SalesDataReport(models.Model):
     _description = _("Sales Data Analysis Report")
     _auto = False
     _rec_name = "sale_date_order"
-    _order = "sale_date_order DESC, serial_number"
+    _order = "sale_date_order DESC, sale_reference DESC"
 
     @api.model
     def _get_done_states(self):
@@ -119,8 +125,8 @@ class SalesDataReport(models.Model):
     qty_delivered = fields.Float("Qty Delivered", readonly=True)
     qty_invoiced = fields.Float("Qty Invoiced", readonly=True)
     price_unit = fields.Float("Price Unit", eadonly=True)
-    price_total = fields.Monetary("Total", readonly=True)
     price_subtotal = fields.Monetary("Untaxed Total", readonly=True)
+    price_total = fields.Monetary("Total", readonly=True)
     untaxed_amount_invoiced = fields.Monetary("Untaxed Amount Invoiced", readonly=True)
     discount = fields.Float("Discount %", readonly=True, group_operator="avg")
     discount_amount = fields.Monetary("Discount Amount", readonly=True)
@@ -134,17 +140,34 @@ class SalesDataReport(models.Model):
 
     def _fields_ignored_to_search(self):
         return [
+            "order_reference",
             "sale_year_order",
             "sale_month_order",
             "sale_day_order",
             "sale_year_invoice",
             "sale_month_invoice",
             "sale_day_invoice",
+            "currency_id",
+            "discount_amount",
+            "price_subtotal",
+            "price_total",
+            "untaxed_amount_invoiced",
+            "product_uom",
+            "product_att_size_lop",
+            "product_att_dong_lop",
+            "product_att_ma_gai",
+            "product_att_rim_diameter_inch",
+            "delivery_address",
+            "commercial_partner_id",
+            "sale_pricelist_id",
+            "sale_analytic_account_id",
         ]
 
     @api.model
     def fields_get(self, allfields=None, attributes=None):
-        fields_get = super().fields_get(allfields=allfields, attributes=attributes)
+        fields_get = super(SalesDataReport, self).fields_get(
+            allfields=allfields, attributes=attributes
+        )
 
         for field in self._fields_ignored_to_search():
             fields_get.get(field, {}).setdefault("searchable", True)
@@ -366,7 +389,7 @@ class SalesDataReport(models.Model):
     def where_orders(self):
         return """
             WHERE l.display_type IS NULL
-                  AND is_service IS DISTINCT FROM TRUE
+                  AND l.is_service IS DISTINCT FROM TRUE
                   AND s.state = 'sale'
                   AND s.is_order_returns IS DISTINCT FROM TRUE
         """
@@ -546,9 +569,35 @@ class SalesDataReport(models.Model):
         )
 
     @api.model
+    def get_views(self, views, options=None):
+        res = super(SalesDataReport, self).get_views(views, options)
+        if (
+            self.env.user.has_group(GROUP_SALESPERSON)
+            and not self.env.user.has_group(GROUP_SALES_ALL)
+            and not self.env.user.has_group(GROUP_SALES_MANAGER)
+        ):
+            action_view = self.env.ref(
+                "mv_sale.sales_data_report_action_view_salesman_only"
+            )
+            if options:
+                options["action_id"] = action_view.id
+
+            res["models"]["sales.data.report"]["sale_user_id"].update(
+                {"domain": [("id", "=", self.env.user.id)]}
+            )
+        return res
+
+    @api.model
     def web_search_read(
         self, domain, specification, offset=0, limit=None, order=None, count_limit=None
     ):
+        if (
+            self.env.user.has_group(GROUP_SALESPERSON)
+            and not self.env.user.has_group(GROUP_SALES_ALL)
+            and not self.env.user.has_group(GROUP_SALES_MANAGER)
+        ):
+            domain = expression.AND([domain, [("sale_user_id", "=", self.env.user.id)]])
+
         has_orders_today = self.env["sale.order"].search_count(
             [
                 ("state", "=", "sale"),
@@ -561,7 +610,7 @@ class SalesDataReport(models.Model):
 
         # Ensure the order parameter is not empty or improperly formatted
         if not order:
-            order = "sale_date_order DESC, serial_number"
+            order = "sale_date_order DESC, sale_reference DESC"
 
         return super(SalesDataReport, self).web_search_read(
             domain,
@@ -576,6 +625,13 @@ class SalesDataReport(models.Model):
     def web_read_group(
         self, domain, fields, groupby, limit=None, offset=0, orderby=False, lazy=True
     ):
+        if (
+            self.env.user.has_group(GROUP_SALESPERSON)
+            and not self.env.user.has_group(GROUP_SALES_ALL)
+            and not self.env.user.has_group(GROUP_SALES_MANAGER)
+        ):
+            domain = expression.AND([domain, [("sale_user_id", "=", self.env.user.id)]])
+
         sales = super(SalesDataReport, self).web_read_group(
             domain,
             fields,
