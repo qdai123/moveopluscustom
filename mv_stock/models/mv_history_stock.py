@@ -7,6 +7,7 @@ class MVHistoryStock(models.Model):
     _name = 'mv.history.stock'
     _description = "Moveo quantity stock history"
 
+
     date_from = fields.Datetime('Từ ngày')
     date_to = fields.Datetime('Đến ngày')
     incoming_picking_ids = fields.Many2many(
@@ -39,24 +40,6 @@ class MVHistoryStock(models.Model):
     amount_outgoing_quantity = fields.Monetary(
         string="Số tiền", currency_field='currency_id', compute="compute_history_stocks", store=True)
     barcode = fields.Char(related='product_id.barcode', store=True)
-
-    # Dùng cho báo cáo xuất nhập tồn kho
-    report_date_from = fields.Char('Report date from')
-    report_date_to = fields.Char('Report date to')
-
-    def calculate_all_info_stock(self):
-        history_stocks = self.env['mv.history.stock'].search([
-            ('create_uid', '=', self.env.user.id)
-        ])
-        sum_1 = sum(history_stocks.mapped('first_quantity_stock'))
-        sum_2 = sum(history_stocks.mapped('amount_first_quantity_stock'))
-        sum_3 = sum(history_stocks.mapped('incoming_quantity'))
-        sum_4 = sum(history_stocks.mapped('amount_incoming_quantity'))
-        sum_5 = sum(history_stocks.mapped('outgoing_quantity'))
-        sum_6 = sum(history_stocks.mapped('amount_outgoing_quantity'))
-        sum_7 = sum(history_stocks.mapped('last_quantity_stock'))
-        sum_8 = sum(history_stocks.mapped('amount_last_quantity_stock'))
-        return [sum_1, sum_2, sum_3, sum_4, sum_5, sum_6, sum_7, sum_8]
 
     def compute_first_quantity_stock(self, product, date_from, date_to):
         domain = [
