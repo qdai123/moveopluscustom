@@ -20,6 +20,7 @@
         # Moveoplus
         "mv_base",
         "mv_helpdesk",
+        "mv_hide_menu",
         # Dashboard
         "ks_dashboard_ninja",
     ],

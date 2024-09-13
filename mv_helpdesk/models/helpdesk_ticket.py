@@ -66,6 +66,8 @@ class HelpdeskTicket(models.Model):
     is_helpdesk_manager = fields.Boolean("Manager", compute="_is_helpdesk_manager")
     # === INHERIT Fields ===#
     name = fields.Char(compute="_compute_name", store=True, required=False)
+    partner_phone = fields.Char(tracking=True)
+    partner_email = fields.Char(tracking=True)
     # === ADDITIONAL Fields ===#
     portal_lot_serial_number = fields.Text("Nhập số serial")
     ticket_update_date = fields.Datetime(
