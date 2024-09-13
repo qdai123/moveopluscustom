@@ -21,6 +21,7 @@ class MVHistoryStock(models.Model):
     currency_id = fields.Many2one(related="company_id.currency_id")
     product_id = fields.Many2one('product.product', string='Sản phẩm')
     uom_id = fields.Many2one(related='product_id.uom_id', store=True)
+    volume = fields.Float(related='product_id.volume')
     standard_price = fields.Float(related='product_id.standard_price', store=True)
     first_quantity_stock = fields.Integer(
         'Số lượng tồn đầu kì', compute="compute_history_stocks", store=True)

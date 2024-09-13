@@ -11,6 +11,7 @@
                     <field name="date_to" column_invisible="0" />
                     <field name="product_id" />
                     <field name="uom_id" string="ĐVT" />
+                    <field name="volume" string="Thể tích"/>
                     <field name="standard_price" string="Đơn giá" />
                     <field name="first_quantity_stock" sum="first_qty" />
                     <field name="amount_first_quantity_stock" sum="first_amount"/>
