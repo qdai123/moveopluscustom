@@ -16,8 +16,8 @@ class HelpdeskStockReport(models.Model):
     _description = _("Ticket Registered Analysis Report")
     _auto = False
     _rec_name = "product_template_id"
-    _rec_names_search = ["ticket_id", "serial_number", "qrcode"]
-    _order = "ticket_create_date desc"
+    _rec_names_search = ["ticket_ref", "serial_number", "qrcode"]
+    _order = "ticket_create_date DESC, ticket_write_date DESC"
 
     @api.model
     def get_default_helpdesk_activation_warranty_team(self):
