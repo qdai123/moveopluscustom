@@ -467,13 +467,13 @@ class MvComputeDiscount(models.Model):
         self.write({"line_ids": list_line_ids, "state": "confirm"})
 
         # Create history line for discount
-        # if self.line_ids:
-        #     for line in self.line_ids.filtered(lambda rec: rec.parent_id):
-        #         self.create_history_line(
-        #             line,
-        #             "confirm",
-        #             "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
-        #         )
+        if self.line_ids:
+            for line in self.line_ids.filtered(lambda rec: rec.parent_id):
+                self.create_history_line(
+                    line,
+                    "confirm",
+                    "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
+                )
 
     def action_done(self):
         if not self._access_approve():
