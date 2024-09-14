@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<menuitem id="dashboard_menu_for_sales" name="Dashboard for Sales" parent="ks_dashboard_ninja.board_menu_root" sequence="5"/>
+	<menuitem
+			id="dashboard_menu_sales_revenue_report"
+			name="Kinh doanh &amp; Bán hàng"
+			action="dashboard_action_view_for_sales_revenue_report_by_month"
+			parent="dashboard_menu_for_sales"
+			sequence="1"/>
+	<menuitem
+			id="dashboard_top_five_strategy_products_size_report"
+			name="Top 5 size chiến lược"
+			action="dashboard_action_view_for_top_five_strategy_products_size_report"
+			parent="dashboard_menu_for_sales"
+			sequence="2"/>
+</odoo>
