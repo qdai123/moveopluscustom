@@ -26,8 +26,17 @@ class SalesDataReport(models.Model):
         return ["sale"]
 
     # [sale.order] fields
-    sale_id = fields.Many2one("sale.order", "Order", readonly=True)
-    sale_reference = fields.Char("Order Reference", readonly=True)
+    sale_id = fields.Many2one(
+        "sale.order",
+        "Order",
+        readonly=True,
+        index=True,
+    )
+    sale_reference = fields.Char(
+        "Order Reference",
+        readonly=True,
+        index=True,
+    )
     sale_date_order = fields.Date("Order Date", readonly=True)
     sale_year_order = fields.Char("Year (Order)", readonly=True)
     sale_month_order = fields.Char("Month (Order)", readonly=True)
@@ -36,11 +45,26 @@ class SalesDataReport(models.Model):
     sale_year_invoice = fields.Char("Year (Invoice)", readonly=True)
     sale_month_invoice = fields.Char("Month (Invoice)", readonly=True)
     sale_day_invoice = fields.Char("Day (Invoice)", readonly=True)
-    sale_partner_id = fields.Many2one("res.partner", "Customer", readonly=True)
+    sale_partner_id = fields.Many2one(
+        "res.partner",
+        "Customer",
+        readonly=True,
+        index=True,
+    )
     sale_company_id = fields.Many2one("res.company", "Company", readonly=True)
     sale_pricelist_id = fields.Many2one("product.pricelist", "Pricelist", readonly=True)
-    sale_team_id = fields.Many2one("crm.team", "Sales Team", readonly=True)
-    sale_user_id = fields.Many2one("res.users", "Salesperson", readonly=True)
+    sale_team_id = fields.Many2one(
+        "crm.team",
+        "Sales Team",
+        readonly=True,
+        index=True,
+    )
+    sale_user_id = fields.Many2one(
+        "res.users",
+        "Salesperson",
+        readonly=True,
+        index=True,
+    )
     sale_status = fields.Selection(SALE_ORDER_STATE, "Status", readonly=True)
     sale_analytic_account_id = fields.Many2one(
         "account.analytic.account", "Analytic Account", readonly=True
@@ -124,7 +148,7 @@ class SalesDataReport(models.Model):
     product_uom_qty = fields.Float("Qty Ordered", readonly=True)
     qty_delivered = fields.Float("Qty Delivered", readonly=True)
     qty_invoiced = fields.Float("Qty Invoiced", readonly=True)
-    price_unit = fields.Float("Price Unit", eadonly=True)
+    price_unit = fields.Float("Price Unit", readonly=True)
     price_subtotal = fields.Monetary("Untaxed Total", readonly=True)
     price_total = fields.Monetary("Total", readonly=True)
     untaxed_amount_invoiced = fields.Monetary("Untaxed Amount Invoiced", readonly=True)
