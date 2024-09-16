@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<function model="ks_dashboard_ninja.board" name="write">
+		<value model="ks_dashboard_ninja.board" search="[('id', '=', ref('ks_dashboard_ninja.ks_my_default_dashboard_board'))]"/>
+		<value eval="{
+			'name': 'Báo cáo',
+			'ks_dashboard_menu_name': 'Báo cáo'
+		}"/>
+	</function>
+
+	<data noupdate="1">
+		<!-- Dashboard: Sales Reports -->
+		<record id="mv_dashboard_sale_dashboard_comprehensive_reports" model="ks_dashboard_ninja.board">
+			<field name="name">Báo cáo tổng hợp</field>
+			<field name="ks_dashboard_menu_name">Báo cáo tổng hợp</field>
+			<field name="ks_dashboard_default_template" ref="ks_dashboard_ninja.ks_blank"/>
+			<field name="ks_dashboard_active">1</field>
+			<field name="ks_dashboard_state">Locked</field>
+			<field name="ks_dashboard_top_menu_id" eval="ref('ks_dashboard_ninja.board_menu_root')"/>
+			<field name="ks_dashboard_menu_sequence">1</field>
+		</record>
+		<record id="mv_dashboard_sale_dashboard_top_five_strategy_products_size_report" model="ks_dashboard_ninja.board">
+			<field name="name">Top 5 size chiến lược</field>
+			<field name="ks_dashboard_menu_name">Top 5 size chiến lược</field>
+			<field name="ks_dashboard_state">Locked</field>
+			<field name="ks_dashboard_default_template" ref="ks_dashboard_ninja.ks_blank"/>
+			<field name="ks_dashboard_active">1</field>
+			<field name="ks_dashboard_menu_sequence">2</field>
+			<field name="ks_dashboard_top_menu_id" eval="False"/>
+		</record>
+		<record id="mv_dashboard_sale_dashboard_sales_revenue_report_by_month" model="ks_dashboard_ninja.board">
+			<field name="name">Báo cáo doanh thu tháng</field>
+			<field name="ks_dashboard_menu_name">Báo cáo doanh thu tháng</field>
+			<field name="ks_dashboard_state">Locked</field>
+			<field name="ks_dashboard_default_template" ref="ks_dashboard_ninja.ks_blank"/>
+			<field name="ks_dashboard_active">1</field>
+			<field name="ks_dashboard_menu_sequence">3</field>
+			<field name="ks_dashboard_top_menu_id" eval="False"/>
+		</record>
+	</data>
+
+</odoo>
