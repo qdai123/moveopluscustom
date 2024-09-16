@@ -112,6 +112,9 @@
 				<field string="Ngày" name="sale_day_order" optional="hidden"/>
 				<field string="Tháng" name="sale_month_order" optional="hidden"/>
 				<field string="Năm" name="sale_year_order" optional="hidden"/>
+				<field column_invisible="1" name="sale_weekday_order"/>
+				<field column_invisible="1" name="sale_week_number"/>
+				<field string="Tuần" name="sale_week_name" optional="hidden"/>
 				<field string="Ngày vào sổ" name="sale_date_invoice" widget="date" optional="hidden"/>
 				<field string="Ngày" name="sale_day_invoice" optional="hidden"/>
 				<field string="Tháng" name="sale_month_invoice" optional="hidden"/>

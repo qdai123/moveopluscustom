@@ -19,7 +19,7 @@ class SalesDataReport(models.Model):
     _description = _("Sales Data Analysis Report")
     _auto = False
     _rec_name = "sale_date_order"
-    _order = "sale_date_order DESC, sale_reference DESC"
+    _order = "sale_date_order, sale_week_number"
 
     @api.model
     def _get_done_states(self):
@@ -38,6 +38,9 @@ class SalesDataReport(models.Model):
         index=True,
     )
     sale_date_order = fields.Date("Order Date", readonly=True)
+    sale_weekday_order = fields.Char("Weekday (Order)", readonly=True)
+    sale_week_number = fields.Char("Week Number (Order)", readonly=True)
+    sale_week_name = fields.Char("Week (Order)", readonly=True)
     sale_year_order = fields.Char("Year (Order)", readonly=True)
     sale_month_order = fields.Char("Month (Order)", readonly=True)
     sale_day_order = fields.Char("Day (Order)", readonly=True)
@@ -151,7 +154,6 @@ class SalesDataReport(models.Model):
     price_unit = fields.Float("Price Unit", readonly=True)
     price_subtotal = fields.Monetary("Untaxed Total", readonly=True)
     price_total = fields.Monetary("Total", readonly=True)
-    untaxed_amount_invoiced = fields.Monetary("Untaxed Amount Invoiced", readonly=True)
     discount = fields.Float("Discount %", readonly=True, group_operator="avg")
     discount_amount = fields.Monetary("Discount Amount", readonly=True)
 
@@ -175,12 +177,7 @@ class SalesDataReport(models.Model):
             "discount_amount",
             "price_subtotal",
             "price_total",
-            "untaxed_amount_invoiced",
             "product_uom",
-            "product_att_size_lop",
-            "product_att_dong_lop",
-            "product_att_ma_gai",
-            "product_att_rim_diameter_inch",
             "delivery_address",
             "commercial_partner_id",
             "sale_pricelist_id",
@@ -309,25 +306,19 @@ class SalesDataReport(models.Model):
                        l.price_unit                     AS price_unit,
                        CASE
                            WHEN l.product_id IS NOT NULL AND SUM(l.product_uom_qty) > 0
-                               THEN (l.price_total / l.product_uom_qty)
-                                         / {self._case_value_or_one('s.currency_rate')}
-                                   * {self._case_value_or_one('currency_table.rate')}
-                           ELSE 0
-                           END                          AS price_total,
-                       CASE
-                           WHEN l.product_id IS NOT NULL AND SUM(l.product_uom_qty) > 0
-                               THEN (l.price_subtotal / l.product_uom_qty)
+                               THEN ((l.price_total_before_discount / l.product_uom_qty) -
+                                     ((l.price_total_before_discount / l.product_uom_qty) * l.discount / 100))
                                         / {self._case_value_or_one('s.currency_rate')}
                                    * {self._case_value_or_one('currency_table.rate')}
                            ELSE 0
                            END                          AS price_subtotal,
                        CASE
                            WHEN l.product_id IS NOT NULL AND SUM(l.product_uom_qty) > 0
-                               THEN (l.untaxed_amount_invoiced / l.product_uom_qty)
-                                        / {self._case_value_or_one('s.currency_rate')}
+                               THEN (l.price_total / l.product_uom_qty)
+                                         / {self._case_value_or_one('s.currency_rate')}
                                    * {self._case_value_or_one('currency_table.rate')}
                            ELSE 0
-                           END                          AS untaxed_amount_invoiced,
+                           END                          AS price_total,
                        s.id                               AS sale_id,
                        l.id                               AS sale_order_line_id,
                        s.name                             AS sale_reference,
@@ -335,6 +326,12 @@ class SalesDataReport(models.Model):
                        EXTRACT(DAY FROM s.date_order)     AS sale_day_order,
                        EXTRACT(MONTH FROM s.date_order)   AS sale_month_order,
                        EXTRACT(YEAR FROM s.date_order)    AS sale_year_order,
+                       ((EXTRACT(DOW FROM s.date_order) - 1) % 7 + 1) AS sale_weekday_order,
+                       CEIL(EXTRACT(DAY FROM (DATE_TRUNC('week', s.date_order) + INTERVAL '6 days')::DATE) /
+                            7.0)                                      AS sale_week_number,
+                       'Week ' ||
+                       CEIL(EXTRACT(DAY FROM (DATE_TRUNC('week', s.date_order) + INTERVAL '6 days')::DATE) /
+                            7.0)                                      AS sale_week_name,
                        s.date_invoice                     AS sale_date_invoice,
                        EXTRACT(DAY FROM s.date_invoice)   AS sale_day_invoice,
                        EXTRACT(MONTH FROM s.date_invoice) AS sale_month_invoice,
@@ -430,6 +427,9 @@ class SalesDataReport(models.Model):
                              EXTRACT(DAY FROM s.date_order),
                              EXTRACT(MONTH FROM s.date_order),
                              EXTRACT(YEAR FROM s.date_order),
+                             sale_weekday_order,
+                             sale_week_number,
+                             sale_week_name,
                              s.date_invoice,
                              EXTRACT(DAY FROM s.date_invoice),
                              EXTRACT(MONTH FROM s.date_invoice),
@@ -464,7 +464,6 @@ class SalesDataReport(models.Model):
                              l.product_uom_qty,
                              l.price_total,
                              l.price_subtotal,
-                             l.untaxed_amount_invoiced,
                              currency_table.rate
         """
 
@@ -509,7 +508,6 @@ class SalesDataReport(models.Model):
                         so.price_unit,
                         so.price_total,
                         so.price_subtotal,
-                        so.untaxed_amount_invoiced,
                         so.sale_id,
                         so.sale_reference,
                         so.order_reference,
@@ -517,6 +515,9 @@ class SalesDataReport(models.Model):
                         so.sale_day_order,
                         so.sale_month_order,
                         so.sale_year_order,
+                        so.sale_weekday_order,
+                        so.sale_week_number,
+                        so.sale_week_name,
                         so.sale_status,
                         so.sale_date_invoice,
                         so.sale_day_invoice,
