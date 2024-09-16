@@ -68,6 +68,7 @@ class SalesDataReport(models.Model):
         readonly=True,
         index=True,
     )
+    sale_pic_name = fields.Char("PIC", readonly=True)
     sale_status = fields.Selection(SALE_ORDER_STATE, "Status", readonly=True)
     sale_analytic_account_id = fields.Many2one(
         "account.analytic.account", "Analytic Account", readonly=True
@@ -340,6 +341,12 @@ class SalesDataReport(models.Model):
                        s.invoice_status                   AS sale_invoice_status,
                        s.partner_id                       AS sale_partner_id,
                        s.user_id                          AS sale_user_id,
+                       CASE
+                           WHEN s.user_id IS NOT NULL THEN (SELECT DISTINCT employee.name
+                                                            FROM hr_employee employee
+                                                            WHERE employee.user_id = s.user_id
+                                                            LIMIT 1)
+                           ELSE 'Others' END                          AS sale_pic_name,
                        s.company_id                       AS sale_company_id,
                        t.categ_id                         AS product_category_id,
                        s.pricelist_id                     AS sale_pricelist_id,
@@ -393,7 +400,7 @@ class SalesDataReport(models.Model):
         return """
             FROM sale_order_line l
                 LEFT JOIN sale_order s ON s.id = l.order_id
-                JOIN partners partner 
+                LEFT JOIN partners partner 
                         ON partner.id = s.partner_id AND partner.partner_shipping_id = s.partner_shipping_id
                 LEFT JOIN product_product p ON l.product_id = p.id
                 LEFT JOIN product_template t ON p.product_tmpl_id = t.id AND t.detailed_type = 'product'
@@ -438,6 +445,7 @@ class SalesDataReport(models.Model):
                              s.invoice_status,
                              s.partner_id,
                              s.user_id,
+                             sale_pic_name,
                              s.company_id,
                              t.categ_id,
                              s.pricelist_id,
@@ -525,6 +533,7 @@ class SalesDataReport(models.Model):
                         so.sale_year_invoice,
                         so.sale_invoice_status,
                         so.sale_user_id,
+                        so.sale_pic_name,
                         so.sale_partner_id,
                         so.sale_company_id,
                         so.product_category_id,
