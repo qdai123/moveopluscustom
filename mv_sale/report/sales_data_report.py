@@ -363,14 +363,8 @@ class SalesDataReport(models.Model):
                            ELSE 0
                            END                          AS discount_amount,
                        CONCAT('sale.order', ',', s.id)  AS order_reference,
-                       partner.partner_nickname,
-                       partner.company_registry,
-                       partner.commercial_partner_id,
-                       partner.street,
-                       partner.wards_id,
-                       partner.district_id,
-                       partner.state_id,
-                       partner.country_id,
+                       s.partner_id                                   AS partner_id,
+                       s.partner_shipping_id                          AS partner_shipping_id,
                        patt.attribute_1,
                        patt.attribute_2,
                        patt.attribute_3,
@@ -400,8 +394,7 @@ class SalesDataReport(models.Model):
         return """
             FROM sale_order_line l
                 LEFT JOIN sale_order s ON s.id = l.order_id
-                LEFT JOIN partners partner 
-                        ON partner.id = s.partner_id AND partner.partner_shipping_id = s.partner_shipping_id
+                LEFT JOIN partners partner ON partner.id = s.partner_id
                 LEFT JOIN product_product p ON l.product_id = p.id
                 LEFT JOIN product_template t ON p.product_tmpl_id = t.id AND t.detailed_type = 'product'
                 JOIN filtered_attributes patt ON patt.product_id = l.product_id
@@ -444,6 +437,7 @@ class SalesDataReport(models.Model):
                              s.state,
                              s.invoice_status,
                              s.partner_id,
+                             s.partner_shipping_id,
                              s.user_id,
                              sale_pic_name,
                              s.company_id,
@@ -453,16 +447,6 @@ class SalesDataReport(models.Model):
                              s.team_id,
                              p.product_tmpl_id,
                              t.country_of_origin,
-                             partner.company_registry,
-                             partner.commercial_partner_id,
-                             partner.partner_nickname,
-                             partner.company_registry,
-                             partner.commercial_partner_id,
-                             partner.street,
-                             partner.wards_id,
-                             partner.district_id,
-                             partner.state_id,
-                             partner.country_id,
                              patt.attribute_1,
                              patt.attribute_2,
                              patt.attribute_3,
@@ -535,6 +519,14 @@ class SalesDataReport(models.Model):
                         so.sale_user_id,
                         so.sale_pic_name,
                         so.sale_partner_id,
+                        partner.partner_nickname,
+                        partner.company_registry,
+                        partner.commercial_partner_id,
+                        partner.street,
+                        partner.wards_id,
+                        partner.district_id,
+                        partner.state_id,
+                        partner.country_id,
                         so.sale_company_id,
                         so.product_category_id,
                         so.sale_pricelist_id,
@@ -547,15 +539,7 @@ class SalesDataReport(models.Model):
                         so.attribute_3       AS product_att_rim_diameter_inch,
                         so.attribute_4       AS product_att_dong_lop,
                         so.discount,
-                        so.discount_amount,
-                        so.company_registry,
-                        so.commercial_partner_id,
-                        so.partner_nickname,
-                        so.street,
-                        so.wards_id,
-                        so.district_id,
-                        so.state_id,
-                        so.country_id
+                        so.discount_amount
         """
 
     def _from_clause(self):
@@ -566,6 +550,9 @@ class SalesDataReport(models.Model):
                 JOIN orders so 
                         ON so.sale_order_line_id = sm.sale_line_id 
                             AND so.product_id = sm.product_id
+                JOIN partners partner 
+                        ON partner.id = so.partner_id 
+                            AND partner.partner_shipping_id = so.partner_shipping_id
                 JOIN stock_picking picking_out
                         ON picking_out.id = sml.picking_id 
                             AND picking_out.state = 'done' 
