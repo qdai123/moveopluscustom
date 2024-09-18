@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="product_attributes_body_inherited" inherit_id="website_sale_comparison.product_attributes_body" name="Product attributes table with comma separator">
+        <xpath expr="//t[@t-foreach='ptal.value_ids']" position="replace">
+            <t t-foreach="ptal.value_ids" t-as="pav">
+                <span t-field="pav.name"/><t t-if="not pav_last">, </t>
+            </t>
+        </xpath>
+    </template>
+</odoo>
