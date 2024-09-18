@@ -17,6 +17,7 @@
         "views/portal_templates.xml",
         # "views/website_sale_delivery_templates.xml",
         "views/templates.xml",
+        "views/website_sale_comparison_template.xml",
     ],
     "bootstrap": True,
     "assets": {"web.assets_fontend": []},
