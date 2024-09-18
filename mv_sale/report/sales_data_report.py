@@ -162,6 +162,16 @@ class SalesDataReport(models.Model):
     serial_number = fields.Char("Serial Number", readonly=True)
     qrcode = fields.Char("Qr-Code", readonly=True)
 
+    # [mv.helpdesk.ticket.product.moves] fields
+    warranty_activation_date = fields.Date("Warranty Activation Date", readonly=True)
+    warranty_claimed_date = fields.Date("Warranty Claimed Date", readonly=True)
+    is_warranty_product_accepted = fields.Boolean(
+        "Warranty Product Accepted", readonly=True
+    )
+    is_warranty_claimed_approved = fields.Boolean(
+        "Warranty Claimed Approved", readonly=True
+    )
+
     # aggregates or computed fields
     currency_id = fields.Many2one("res.currency", compute="_compute_currency_id")
 
@@ -409,10 +419,10 @@ class SalesDataReport(models.Model):
 
     def where_orders(self):
         return """
-            WHERE l.display_type IS NULL
-                  AND l.is_service IS DISTINCT FROM TRUE
-                  AND s.state = 'sale'
-                  AND s.is_order_returns IS DISTINCT FROM TRUE
+            WHERE s.state = 'sale'                                                  -- GET Orders Confirmation
+                  AND s.is_order_returns IS DISTINCT FROM TRUE   -- AND NOT Orders Returned
+                  AND l.is_service IS DISTINCT FROM TRUE              -- AND NOT Service Products
+                  AND l.display_type IS NULL                                    -- AND NOT Display Type
         """
 
     def groupby_orders(self):
@@ -539,13 +549,19 @@ class SalesDataReport(models.Model):
                         so.attribute_3       AS product_att_rim_diameter_inch,
                         so.attribute_4       AS product_att_dong_lop,
                         so.discount,
-                        so.discount_amount
+                        so.discount_amount,
+                        warranty.customer_date_activation AS warranty_activation_date,
+                        warranty.mv_customer_warranty_date AS warranty_claimed_date,
+                        warranty.is_warranty_product_accept AS is_warranty_product_accepted,
+                        warranty.is_claim_warranty_approved AS is_warranty_claimed_approved
         """
 
     def _from_clause(self):
         return """
             FROM stock_move_line sml
                 JOIN stock_lot lot ON lot.id = sml.lot_id
+                LEFT JOIN mv_helpdesk_ticket_product_moves warranty 
+                        ON warranty.stock_lot_id = lot.id
                 JOIN stock_move sm ON sm.id = sml.move_id
                 JOIN orders so 
                         ON so.sale_order_line_id = sm.sale_line_id 
