@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+	<data noupdate="1">
+		<record id="mv_sale_salesperson_read_own_rule" model="ir.rule">
+			<field name="name">Salesman: Access read-only to own orders</field>
+			<field name="model_id" ref="model_sales_data_report"/>
+			<field name="domain_force">['|', ('sale_user_id', '=', user.id), ('sale_user_id', '=', False)]</field>
+			<field name="perm_write" eval="False"/>
+			<field name="perm_create" eval="False"/>
+			<field name="perm_unlink" eval="False"/>
+			<field name="groups" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+		</record>
 
+		<record id="mv_sale_sales_all_manager_read_all_rule" model="ir.rule">
+			<field name="name">Sales All &amp; Manager: Access read-only to all orders</field>
+			<field name="model_id" ref="model_sales_data_report"/>
+			<field name="domain_force">[(1,'=',1)]</field>
+			<field name="perm_write" eval="False"/>
+			<field name="perm_create" eval="False"/>
+			<field name="perm_unlink" eval="False"/>
+			<field name="groups" eval="[Command.link(ref('sales_team.group_sale_salesman_all_leads')), Command.link(ref('sales_team.group_sale_manager'))]"/>
+		</record>
+	</data>
 </odoo>

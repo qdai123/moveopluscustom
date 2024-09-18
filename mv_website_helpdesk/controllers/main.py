@@ -567,8 +567,9 @@ class WebsiteForm(form.WebsiteForm):
                         model_name, **kwargs
                     )
         result = super(WebsiteForm, self)._handle_website_form(model_name, **kwargs)
-        tmp = json.loads(result or {})
-        self.generate_ticket_details(request, tmp)
+        if model_name == "helpdesk.ticket" and request.params.get("team_id"):
+            tmp = json.loads(result or {})
+            self.generate_ticket_details(request, tmp)
         return result
 
     def _handle_helpdesk_ticket_form(self, record):

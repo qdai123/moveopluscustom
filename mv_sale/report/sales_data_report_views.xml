@@ -112,11 +112,15 @@
 				<field string="Ngày" name="sale_day_order" optional="hidden"/>
 				<field string="Tháng" name="sale_month_order" optional="hidden"/>
 				<field string="Năm" name="sale_year_order" optional="hidden"/>
+				<field column_invisible="1" name="sale_weekday_order"/>
+				<field column_invisible="1" name="sale_week_number"/>
+				<field string="Tuần" name="sale_week_name" optional="hidden"/>
 				<field string="Ngày vào sổ" name="sale_date_invoice" widget="date" optional="hidden"/>
 				<field string="Ngày" name="sale_day_invoice" optional="hidden"/>
 				<field string="Tháng" name="sale_month_invoice" optional="hidden"/>
 				<field string="Năm" name="sale_year_invoice" optional="hidden"/>
-				<field string="Đơn hàng" name="sale_id" class="fw-bold" options="{'no_open': True}"/>
+				<field column_invisible="1" name="sale_id"/>
+				<field string="Đơn hàng" name="sale_reference" class="fw-bold"/>
 				<field string="Danh mục" name="product_category_id" options="{'no_open': True}" optional="hidden"/>
 				<field string="Sản phẩm" name="product_template_id" options="{'no_open': True}"/>
 				<field string="Nguồn gốc" name="product_country_of_origin" options="{'no_open': True}" optional="hidden"/>
@@ -132,6 +136,7 @@
 				<field column_invisible="1" string="Trạng thái đơn hàng" name="sale_status" widget='badge' decoration-success="sale_status == 'sale'" decoration-info="sale_status in ['draft', 'sent']" optional="hidden"/>
                 <field column_invisible="1" string="Trạng thái hóa đơn" name="sale_invoice_status" widget="badge" decoration-success="sale_invoice_status == 'invoiced'" decoration-info="sale_invoice_status == 'to invoice'" optional="hidden"/>
 				<field string="Nhân viên bán hàng" name="sale_user_id" options="{'no_open': True}" widget="many2one_avatar_user" optional="hidden"/>
+				<field column_invisible="1" name="sale_pic_name"/>
 				<field string="Đại lý" name="sale_partner_id" options="{'no_open': True}"/>
 				<field string="Đại lý (Nickname)" name="partner_nickname" options="{'no_open': True}" optional="hidden"/>
 				<field string="Mã Đại lý" name="company_registry"/>

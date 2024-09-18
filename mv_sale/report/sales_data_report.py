@@ -19,16 +19,28 @@ class SalesDataReport(models.Model):
     _description = _("Sales Data Analysis Report")
     _auto = False
     _rec_name = "sale_date_order"
-    _order = "sale_date_order DESC, sale_reference DESC"
+    _order = "sale_date_order, sale_week_number"
 
     @api.model
     def _get_done_states(self):
         return ["sale"]
 
     # [sale.order] fields
-    sale_id = fields.Many2one("sale.order", "Order", readonly=True)
-    sale_reference = fields.Char("Order Reference", readonly=True)
+    sale_id = fields.Many2one(
+        "sale.order",
+        "Order",
+        readonly=True,
+        index=True,
+    )
+    sale_reference = fields.Char(
+        "Order Reference",
+        readonly=True,
+        index=True,
+    )
     sale_date_order = fields.Date("Order Date", readonly=True)
+    sale_weekday_order = fields.Char("Weekday (Order)", readonly=True)
+    sale_week_number = fields.Char("Week Number (Order)", readonly=True)
+    sale_week_name = fields.Char("Week (Order)", readonly=True)
     sale_year_order = fields.Char("Year (Order)", readonly=True)
     sale_month_order = fields.Char("Month (Order)", readonly=True)
     sale_day_order = fields.Char("Day (Order)", readonly=True)
@@ -36,11 +48,27 @@ class SalesDataReport(models.Model):
     sale_year_invoice = fields.Char("Year (Invoice)", readonly=True)
     sale_month_invoice = fields.Char("Month (Invoice)", readonly=True)
     sale_day_invoice = fields.Char("Day (Invoice)", readonly=True)
-    sale_partner_id = fields.Many2one("res.partner", "Customer", readonly=True)
+    sale_partner_id = fields.Many2one(
+        "res.partner",
+        "Customer",
+        readonly=True,
+        index=True,
+    )
     sale_company_id = fields.Many2one("res.company", "Company", readonly=True)
     sale_pricelist_id = fields.Many2one("product.pricelist", "Pricelist", readonly=True)
-    sale_team_id = fields.Many2one("crm.team", "Sales Team", readonly=True)
-    sale_user_id = fields.Many2one("res.users", "Salesperson", readonly=True)
+    sale_team_id = fields.Many2one(
+        "crm.team",
+        "Sales Team",
+        readonly=True,
+        index=True,
+    )
+    sale_user_id = fields.Many2one(
+        "res.users",
+        "Salesperson",
+        readonly=True,
+        index=True,
+    )
+    sale_pic_name = fields.Char("PIC", readonly=True)
     sale_status = fields.Selection(SALE_ORDER_STATE, "Status", readonly=True)
     sale_analytic_account_id = fields.Many2one(
         "account.analytic.account", "Analytic Account", readonly=True
@@ -124,10 +152,9 @@ class SalesDataReport(models.Model):
     product_uom_qty = fields.Float("Qty Ordered", readonly=True)
     qty_delivered = fields.Float("Qty Delivered", readonly=True)
     qty_invoiced = fields.Float("Qty Invoiced", readonly=True)
-    price_unit = fields.Float("Price Unit", eadonly=True)
+    price_unit = fields.Float("Price Unit", readonly=True)
     price_subtotal = fields.Monetary("Untaxed Total", readonly=True)
     price_total = fields.Monetary("Total", readonly=True)
-    untaxed_amount_invoiced = fields.Monetary("Untaxed Amount Invoiced", readonly=True)
     discount = fields.Float("Discount %", readonly=True, group_operator="avg")
     discount_amount = fields.Monetary("Discount Amount", readonly=True)
 
@@ -151,12 +178,7 @@ class SalesDataReport(models.Model):
             "discount_amount",
             "price_subtotal",
             "price_total",
-            "untaxed_amount_invoiced",
             "product_uom",
-            "product_att_size_lop",
-            "product_att_dong_lop",
-            "product_att_ma_gai",
-            "product_att_rim_diameter_inch",
             "delivery_address",
             "commercial_partner_id",
             "sale_pricelist_id",
@@ -285,25 +307,19 @@ class SalesDataReport(models.Model):
                        l.price_unit                     AS price_unit,
                        CASE
                            WHEN l.product_id IS NOT NULL AND SUM(l.product_uom_qty) > 0
-                               THEN (l.price_total / l.product_uom_qty)
-                                         / {self._case_value_or_one('s.currency_rate')}
-                                   * {self._case_value_or_one('currency_table.rate')}
-                           ELSE 0
-                           END                          AS price_total,
-                       CASE
-                           WHEN l.product_id IS NOT NULL AND SUM(l.product_uom_qty) > 0
-                               THEN (l.price_subtotal / l.product_uom_qty)
+                               THEN ((l.price_total_before_discount / l.product_uom_qty) -
+                                     ((l.price_total_before_discount / l.product_uom_qty) * l.discount / 100))
                                         / {self._case_value_or_one('s.currency_rate')}
                                    * {self._case_value_or_one('currency_table.rate')}
                            ELSE 0
                            END                          AS price_subtotal,
                        CASE
                            WHEN l.product_id IS NOT NULL AND SUM(l.product_uom_qty) > 0
-                               THEN (l.untaxed_amount_invoiced / l.product_uom_qty)
-                                        / {self._case_value_or_one('s.currency_rate')}
+                               THEN (l.price_total / l.product_uom_qty)
+                                         / {self._case_value_or_one('s.currency_rate')}
                                    * {self._case_value_or_one('currency_table.rate')}
                            ELSE 0
-                           END                          AS untaxed_amount_invoiced,
+                           END                          AS price_total,
                        s.id                               AS sale_id,
                        l.id                               AS sale_order_line_id,
                        s.name                             AS sale_reference,
@@ -311,6 +327,12 @@ class SalesDataReport(models.Model):
                        EXTRACT(DAY FROM s.date_order)     AS sale_day_order,
                        EXTRACT(MONTH FROM s.date_order)   AS sale_month_order,
                        EXTRACT(YEAR FROM s.date_order)    AS sale_year_order,
+                       ((EXTRACT(DOW FROM s.date_order) - 1) % 7 + 1) AS sale_weekday_order,
+                       CEIL(EXTRACT(DAY FROM (DATE_TRUNC('week', s.date_order) + INTERVAL '6 days')::DATE) /
+                            7.0)                                      AS sale_week_number,
+                       'Week ' ||
+                       CEIL(EXTRACT(DAY FROM (DATE_TRUNC('week', s.date_order) + INTERVAL '6 days')::DATE) /
+                            7.0)                                      AS sale_week_name,
                        s.date_invoice                     AS sale_date_invoice,
                        EXTRACT(DAY FROM s.date_invoice)   AS sale_day_invoice,
                        EXTRACT(MONTH FROM s.date_invoice) AS sale_month_invoice,
@@ -319,6 +341,12 @@ class SalesDataReport(models.Model):
                        s.invoice_status                   AS sale_invoice_status,
                        s.partner_id                       AS sale_partner_id,
                        s.user_id                          AS sale_user_id,
+                       CASE
+                           WHEN s.user_id IS NOT NULL THEN (SELECT DISTINCT employee.name
+                                                            FROM hr_employee employee
+                                                            WHERE employee.user_id = s.user_id
+                                                            LIMIT 1)
+                           ELSE 'Others' END                          AS sale_pic_name,
                        s.company_id                       AS sale_company_id,
                        t.categ_id                         AS product_category_id,
                        s.pricelist_id                     AS sale_pricelist_id,
@@ -335,14 +363,8 @@ class SalesDataReport(models.Model):
                            ELSE 0
                            END                          AS discount_amount,
                        CONCAT('sale.order', ',', s.id)  AS order_reference,
-                       partner.partner_nickname,
-                       partner.company_registry,
-                       partner.commercial_partner_id,
-                       partner.street,
-                       partner.wards_id,
-                       partner.district_id,
-                       partner.state_id,
-                       partner.country_id,
+                       s.partner_id                                   AS partner_id,
+                       s.partner_shipping_id                          AS partner_shipping_id,
                        patt.attribute_1,
                        patt.attribute_2,
                        patt.attribute_3,
@@ -372,8 +394,7 @@ class SalesDataReport(models.Model):
         return """
             FROM sale_order_line l
                 LEFT JOIN sale_order s ON s.id = l.order_id
-                JOIN partners partner 
-                        ON partner.id = s.partner_id AND partner.partner_shipping_id = s.partner_shipping_id
+                LEFT JOIN partners partner ON partner.id = s.partner_id
                 LEFT JOIN product_product p ON l.product_id = p.id
                 LEFT JOIN product_template t ON p.product_tmpl_id = t.id AND t.detailed_type = 'product'
                 JOIN filtered_attributes patt ON patt.product_id = l.product_id
@@ -406,6 +427,9 @@ class SalesDataReport(models.Model):
                              EXTRACT(DAY FROM s.date_order),
                              EXTRACT(MONTH FROM s.date_order),
                              EXTRACT(YEAR FROM s.date_order),
+                             sale_weekday_order,
+                             sale_week_number,
+                             sale_week_name,
                              s.date_invoice,
                              EXTRACT(DAY FROM s.date_invoice),
                              EXTRACT(MONTH FROM s.date_invoice),
@@ -413,7 +437,9 @@ class SalesDataReport(models.Model):
                              s.state,
                              s.invoice_status,
                              s.partner_id,
+                             s.partner_shipping_id,
                              s.user_id,
+                             sale_pic_name,
                              s.company_id,
                              t.categ_id,
                              s.pricelist_id,
@@ -421,16 +447,6 @@ class SalesDataReport(models.Model):
                              s.team_id,
                              p.product_tmpl_id,
                              t.country_of_origin,
-                             partner.company_registry,
-                             partner.commercial_partner_id,
-                             partner.partner_nickname,
-                             partner.company_registry,
-                             partner.commercial_partner_id,
-                             partner.street,
-                             partner.wards_id,
-                             partner.district_id,
-                             partner.state_id,
-                             partner.country_id,
                              patt.attribute_1,
                              patt.attribute_2,
                              patt.attribute_3,
@@ -440,7 +456,6 @@ class SalesDataReport(models.Model):
                              l.product_uom_qty,
                              l.price_total,
                              l.price_subtotal,
-                             l.untaxed_amount_invoiced,
                              currency_table.rate
         """
 
@@ -485,7 +500,6 @@ class SalesDataReport(models.Model):
                         so.price_unit,
                         so.price_total,
                         so.price_subtotal,
-                        so.untaxed_amount_invoiced,
                         so.sale_id,
                         so.sale_reference,
                         so.order_reference,
@@ -493,6 +507,9 @@ class SalesDataReport(models.Model):
                         so.sale_day_order,
                         so.sale_month_order,
                         so.sale_year_order,
+                        so.sale_weekday_order,
+                        so.sale_week_number,
+                        so.sale_week_name,
                         so.sale_status,
                         so.sale_date_invoice,
                         so.sale_day_invoice,
@@ -500,7 +517,16 @@ class SalesDataReport(models.Model):
                         so.sale_year_invoice,
                         so.sale_invoice_status,
                         so.sale_user_id,
+                        so.sale_pic_name,
                         so.sale_partner_id,
+                        partner.partner_nickname,
+                        partner.company_registry,
+                        partner.commercial_partner_id,
+                        partner.street,
+                        partner.wards_id,
+                        partner.district_id,
+                        partner.state_id,
+                        partner.country_id,
                         so.sale_company_id,
                         so.product_category_id,
                         so.sale_pricelist_id,
@@ -513,15 +539,7 @@ class SalesDataReport(models.Model):
                         so.attribute_3       AS product_att_rim_diameter_inch,
                         so.attribute_4       AS product_att_dong_lop,
                         so.discount,
-                        so.discount_amount,
-                        so.company_registry,
-                        so.commercial_partner_id,
-                        so.partner_nickname,
-                        so.street,
-                        so.wards_id,
-                        so.district_id,
-                        so.state_id,
-                        so.country_id
+                        so.discount_amount
         """
 
     def _from_clause(self):
@@ -532,6 +550,9 @@ class SalesDataReport(models.Model):
                 JOIN orders so 
                         ON so.sale_order_line_id = sm.sale_line_id 
                             AND so.product_id = sm.product_id
+                JOIN partners partner 
+                        ON partner.id = so.partner_id 
+                            AND partner.partner_shipping_id = so.partner_shipping_id
                 JOIN stock_picking picking_out
                         ON picking_out.id = sml.picking_id 
                             AND picking_out.state = 'done' 
