@@ -119,7 +119,8 @@
 				<field string="Ngày" name="sale_day_invoice" optional="hidden"/>
 				<field string="Tháng" name="sale_month_invoice" optional="hidden"/>
 				<field string="Năm" name="sale_year_invoice" optional="hidden"/>
-				<field string="Đơn hàng" name="sale_id" class="fw-bold" options="{'no_open': True}"/>
+				<field column_invisible="1" name="sale_id"/>
+				<field string="Đơn hàng" name="sale_reference" class="fw-bold"/>
 				<field string="Danh mục" name="product_category_id" options="{'no_open': True}" optional="hidden"/>
 				<field string="Sản phẩm" name="product_template_id" options="{'no_open': True}"/>
 				<field string="Nguồn gốc" name="product_country_of_origin" options="{'no_open': True}" optional="hidden"/>
