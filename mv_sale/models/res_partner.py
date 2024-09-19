@@ -38,7 +38,7 @@ class ResPartner(models.Model):
     quantity_threshold_value = fields.Integer(
         string="Quantity Threshold Value",
         default=4,
-        help="Set the quantity threshold value for this partner."
+        help="Set the quantity threshold value for this partner.",
     )
     waiting_amount_currency = fields.Monetary(
         currency_field="currency_id", readonly=True
@@ -48,6 +48,7 @@ class ResPartner(models.Model):
     total_so_quotations_discount = fields.Monetary(
         compute="_compute_sale_order", store=True
     )
+    use_for_report = fields.Boolean("Sử dụng trong Báo Cáo", default=False)
 
     # === THÔNG TIN ĐẠI LÝ
     # Đại lý: Là nhà phân phối trực thuộc của công ty MOVEOPLUS
