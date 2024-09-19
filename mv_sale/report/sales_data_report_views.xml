@@ -176,7 +176,8 @@
 				<filter string="Cần xuất hoá đơn" name="filter_to_invoice" domain="[('sale_invoice_status', '=', 'to invoice')]"/>
                 <filter string="Đã xuất hoá đơn hết" name="filter_fully_invoiced" domain="[('sale_invoice_status', '=', 'invoiced')]"/>
 				<separator/>
-				<filter string="Khuyến mãi" name="filter_order_promo" domain="['|', ('discount', '=', 100), ('price_unit', '=', 0)]"/>
+				<filter string="Bán hàng" name="filter_product_sale_confirmed" domain="[('sale_status', '=', 'sale'), ('price_subtotal', '>', 0)]"/>
+				<filter string="Khuyến mãi" name="filter_product_promo" domain="['|', ('discount', '=', 100), ('price_unit', '=', 0)]"/>
 				<separator/>
 				<filter string="Có kích hoạt bảo hành" name="filter_has_warranty_activation" domain="[('warranty_activation_date', '!=', False)]"/>
 				<filter string="Được bảo hành" name="filter_warranty_claim_accepted" domain="[('is_warranty_product_accepted', '=', True)]"/>

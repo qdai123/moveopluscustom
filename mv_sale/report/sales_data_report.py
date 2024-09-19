@@ -215,15 +215,32 @@ class SalesDataReport(models.Model):
     @api.depends("sale_id", "sale_id.partner_shipping_id")
     def _compute_delivery_address(self):
         sale_orders = self.mapped("sale_id").sudo()
-        shipping_partners = sale_orders.mapped("partner_shipping_id")
-        shipping_addresses = {
+        shipping_partners_agency = sale_orders.filtered(
+            lambda so: so.partner_id.id == so.partner_shipping_id.id
+        ).mapped("partner_id")
+        partner_agency_shipping_addresses = {
+            partner.id: partner.full_address_vi for partner in shipping_partners_agency
+        }
+
+        shipping_partners = sale_orders.filtered(
+            lambda so: so.partner_id.id != so.partner_shipping_id.id
+        ).mapped("partner_shipping_id")
+        partner_shipping_addresses = {
             partner.id: partner.full_address_vi for partner in shipping_partners
         }
 
         for record in self:
             order = record.sale_id
-            if order and order.partner_shipping_id:
-                record.delivery_address = shipping_addresses.get(
+            if (
+                order
+                and order.partner_shipping_id
+                and order.partner_id.id == order.partner_shipping_id.id
+            ):
+                record.delivery_address = partner_agency_shipping_addresses.get(
+                    order.partner_shipping_id.id, ""
+                )
+            else:
+                record.delivery_address = partner_shipping_addresses.get(
                     order.partner_shipping_id.id, ""
                 )
 
@@ -234,27 +251,22 @@ class SalesDataReport(models.Model):
     def _select_partners(self):
         query = """
             SELECT p.id,
-                        p_ship.id               AS partner_shipping_id,
                         p.short_name            AS partner_nickname,
                         p.company_registry      AS company_registry,
                         p.commercial_partner_id AS commercial_partner_id,
-                        p_ship.street           AS street,
-                        p_ship.wards_id         AS wards_id,
-                        p_ship.district_id      AS district_id,
-                        p_ship.state_id         AS state_id,
-                        p_ship.country_id       AS country_id
+                        p.street,
+                        p.street2,
+                        p.wards_id,
+                        p.district_id,
+                        p.state_id,
+                        p.country_id
             FROM res_partner p
-                    JOIN res_partner p_ship ON p_ship.parent_id = p.id
             WHERE p.active 
-                    AND p.is_agency
-                    AND EXISTS (SELECT 1
-                            FROM sale_order s
-                            WHERE s.partner_id = p.id AND s.id != 0)
-                    AND p_ship.type = 'delivery'
-                    AND p_ship.wards_id IS NOT NULL
-                    AND p_ship.district_id IS NOT NULL
-                    AND p_ship.state_id IS NOT NULL
-                    AND p_ship.country_id IS NOT NULL
+                AND p.is_agency
+                AND p.use_for_report IS DISTINCT FROM TRUE
+                AND EXISTS (SELECT 1
+                                     FROM sale_order s
+                                     WHERE s.partner_id = p.id)
         """
         return query
 
@@ -432,7 +444,7 @@ class SalesDataReport(models.Model):
                              s.id,
                              l.id,
                              s.name,
-                             CONCAT('sale.order', ',', s.id),
+                             order_reference,
                              s.date_order,
                              EXTRACT(DAY FROM s.date_order),
                              EXTRACT(MONTH FROM s.date_order),
@@ -532,11 +544,21 @@ class SalesDataReport(models.Model):
                         partner.partner_nickname,
                         partner.company_registry,
                         partner.commercial_partner_id,
-                        partner.street,
-                        partner.wards_id,
-                        partner.district_id,
-                        partner.state_id,
-                        partner.country_id,
+                        CASE
+                           WHEN so.partner_shipping_id = partner.id THEN partner.street
+                           ELSE partner_ship.street END      AS street,
+                        CASE
+                           WHEN so.partner_shipping_id = partner.id THEN partner.wards_id
+                           ELSE partner_ship.wards_id END    AS wards_id,
+                        CASE
+                           WHEN so.partner_shipping_id = partner.id THEN partner.district_id
+                           ELSE partner_ship.district_id END AS district_id,
+                        CASE
+                           WHEN so.partner_shipping_id = partner.id THEN partner.state_id
+                           ELSE partner_ship.state_id END    AS state_id,
+                        CASE
+                           WHEN so.partner_shipping_id = partner.id THEN partner.country_id
+                           ELSE partner_ship.country_id END  AS country_id,
                         so.sale_company_id,
                         so.product_category_id,
                         so.sale_pricelist_id,
@@ -566,13 +588,14 @@ class SalesDataReport(models.Model):
                 JOIN orders so 
                         ON so.sale_order_line_id = sm.sale_line_id 
                             AND so.product_id = sm.product_id
-                JOIN partners partner 
-                        ON partner.id = so.partner_id 
-                            AND partner.partner_shipping_id = so.partner_shipping_id
+                JOIN partners partner ON partner.id = so.partner_id
                 JOIN stock_picking picking_out
                         ON picking_out.id = sml.picking_id 
                             AND picking_out.state = 'done' 
                             AND picking_out.return_id ISNULL
+                LEFT JOIN res_partner partner_ship
+                        ON partner_ship.type = 'delivery'
+                            AND partner_ship.id = picking_out.partner_id
         """
 
     def _where_clause(self):
