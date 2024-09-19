@@ -10,7 +10,7 @@ The kernel of Moveo Plus, needed for all installation.
     """,
     "website": "https://moveoplus.com/cau-chuyen-moveo/",
     "author": "MOVEOPLUS system development team",
-    "depends": ["base", "base_setup", "mail"],
+    "depends": ["base", "base_setup", "mail", "base_automation", "sales_team"],
     "data": [
         # SECURITY
         "security/mv_base_groups.xml",
@@ -22,4 +22,10 @@ The kernel of Moveo Plus, needed for all installation.
     "license": "LGPL-3",
     "application": False,
     "auto_install": True,
+    'assets': {
+		'web.assets_backend': [
+            'mv_base/static/src/js/sale_crm_kanban_header.js',
+            ],
+        },
+
 }
