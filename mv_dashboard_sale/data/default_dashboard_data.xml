@@ -9,6 +9,10 @@
 		}"/>
 	</function>
 
+	<!-- Dashboard Template: Sales - Báo cáo tổng hợp -->
+
+	<!-- Dashboard Items: Sales - Báo cáo tổng hợp -->
+
 	<data noupdate="1">
 		<!-- Dashboard: Sales Reports -->
 		<record id="mv_dashboard_sale_dashboard_comprehensive_reports" model="ks_dashboard_ninja.board">
