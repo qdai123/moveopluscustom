@@ -12,9 +12,9 @@
 		<record id="mv_dashboard_sale_dashboard_comprehensive_reports" model="ks_dashboard_ninja.board">
 			<field name="name">Báo cáo tổng hợp</field>
 			<field name="ks_dashboard_menu_name">Báo cáo tổng hợp</field>
+			<field name="ks_dashboard_state">Locked</field>
 			<field name="ks_dashboard_default_template" ref="ks_dashboard_ninja.ks_blank"/>
 			<field name="ks_dashboard_active">1</field>
-			<field name="ks_dashboard_state">Locked</field>
 			<field name="ks_dashboard_top_menu_id" eval="ref('ks_dashboard_ninja.board_menu_root')"/>
 			<field name="ks_dashboard_menu_sequence">1</field>
 		</record>

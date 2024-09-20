@@ -17,7 +17,7 @@
 		<field name="ks_background_color">#337ab7,0.99</field>
 		<field name="ks_font_color">#ffffff,0.99</field>
 		<field name="ks_default_icon_color">#ffffff,0.99</field>
-		<field name="ks_layout">layout1</field>
+		<field name="ks_layout">layout5</field>
 		<field name="ks_company_id" eval="0"/>
 	</record>
 
