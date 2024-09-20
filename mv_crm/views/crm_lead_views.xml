@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <record id="mv_crm_case_form_view_leads" model="ir.ui.view">
+            <field name="name">mv.crm.case.form.view.leads</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//label[@for='email_from']" position="before">
+                    <field name="company_registry"/>
+                </xpath>
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <button name="redirect_mv_dms_view"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-list-alt"
+                            invisible="not id or type == 'lead'">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Surveys</span>
+                            <span class="o_stat_value">
+                                <field name="partner_survey_count"/>
+                            </span>
+                        </div>
+                    </button>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="crm_case_kanban_view_leads" model="ir.ui.view">
+            <field name="name">crm.lead.kanban.lead</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="crm.crm_case_kanban_view_leads"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div/span[@class='o_text_overflow']" position="replace">
+                    <t t-if="record.company_registry.raw_value">
+                        <field name="company_registry"/>
+                    </t>
+                    <t t-else="">
+                        <span class="o_text_overflow" t-if="record.partner_id.raw_value"
+                              t-esc="record.partner_id.value"/>
+                    </t>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
