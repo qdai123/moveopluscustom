@@ -186,7 +186,6 @@ class SalesDataReport(models.Model):
             "sale_day_invoice",
             "currency_id",
             "discount_amount",
-            "price_subtotal",
             "price_total",
             "product_uom",
             "delivery_address",
