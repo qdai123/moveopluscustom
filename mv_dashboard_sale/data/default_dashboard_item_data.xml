@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<!-- Dashboard Items: Sales - Báo cáo tổng hợp ======== START -->
+	<!--
+	    ## Board Type: "Tile"
+		## TỐNG SỐ LƯỢNG LỐP ĐÃ BÁN RA (ks_tile) ##
+	-->
+	<record id="ks_default_item_1" model="ks_dashboard_ninja.item">
+		<field name="name">Tổng số lượng lốp</field>
+		<field name="ks_dashboard_item_type">ks_tile</field>
+		<field name="ks_record_count_type">count</field>
+		<field name="ks_model_id" eval="ref('mv_sale.model_sales_data_report')"/>
+		<field name="ks_domain">[]</field>
+		<field name="ks_default_icon">bar-chart</field>
+		<field name="ks_dashboard_item_theme">blue</field>
+		<field name="ks_background_color">#337ab7,0.99</field>
+		<field name="ks_font_color">#ffffff,0.99</field>
+		<field name="ks_default_icon_color">#ffffff,0.99</field>
+		<field name="ks_layout">layout1</field>
+		<field name="ks_company_id" eval="0"/>
+	</record>
+
+	<!-- Dashboard Items: Sales - Báo cáo tổng hợp ======== END -->
+
+</odoo>

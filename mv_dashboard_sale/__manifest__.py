@@ -13,6 +13,8 @@
         "security/ir.model.access.csv",
         # DATA
         "data/default_dashboard_data.xml",
+        # "data/default_dashboard_item_data.xml",
+        # "data/default_dashboard_template_data.xml",
         # "data/dashboard.xml",
         # VIEWS
         "views/dashboard_sale_views.xml",
