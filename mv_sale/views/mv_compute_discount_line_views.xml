@@ -35,6 +35,7 @@
                     <group>
                         <group name="group_information_1">
                             <field name="partner_id"/>
+                            <field name="partner_company_ref" class="fw-bold"/>
                             <field name="level"/>
                             <field name="basic" invisible="1"/>
                             <field name="currency_id" invisible="1"/>
@@ -161,7 +162,8 @@
                        decoration-warning="partner_sales_state == 'imqualified'"
                        widget="badge"/>
                 <field name="name" string="Tháng/Năm" optional="hidden"/>
-                <field name="partner_id"/>
+                <field column_invisible="1" name="partner_id"/>
+                <field name="partner_company_ref" string="Đại lý" class="fw-bold"/>
                 <field name="level" optional="show"/>
                 <field name="quantity" sum="Quantity" optional="show"/>
                 <field name="quantity_discount" sum="Quantity" optional="hidden"/>

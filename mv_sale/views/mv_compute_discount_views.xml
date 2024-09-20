@@ -76,7 +76,8 @@
 								<tree default_order="level">
 									<field column_invisible="1" name="currency_id"/>
 									<field column_invisible="1" name="month_parent"/>
-									<field name="partner_id"/>
+									<field name="partner_id" string="Đại lý (Fullname)" options="{'no_open': True}" optional="hidden"/>
+									<field name="partner_company_ref" string="Đại lý" class="fw-bold"/>
 									<field name="level" optional="show"/>
 									<field name="quantity_from" optional="hidden"/>
 									<field column_invisible="1" name="quantity_to"/>
