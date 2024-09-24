@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="stock.menu_warehouse_report" model="ir.ui.menu">
+            <field name="groups_id" eval="[(4, ref('mv_stock.mv_show_inventory_report_group'))]"/>
+        </record>
+
+        <record id="stock.menu_valuation" model="ir.ui.menu">
+            <field name="groups_id" eval="[(4, ref('mv_stock.mv_show_inventory_report_group'))]"/>
+        </record>
+
+        <menuitem id="menu_mv_history_stock_wizard" name="Xuất/Nhập Tồn Kho" action="mv_history_stock_wizard_action_view" parent="stock.menu_warehouse_report" sequence="500"/>
+    </data>
+</odoo>

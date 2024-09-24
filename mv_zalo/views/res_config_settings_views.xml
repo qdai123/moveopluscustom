@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="mv_zalo_inherit_res_config_settings_account_view_form" model="ir.ui.view">
+		<field name="name">mv_zalo.inherit.res.config.settings.account.form</field>
+		<field name="model">res.config.settings</field>
+		<field name="inherit_id" ref="account.res_config_settings_view_form"/>
+		<field name="priority">100</field>
+		<field name="arch" type="xml">
+			<xpath expr="//block[@id='pay_invoice_online_setting_container']" position="inside">
+				<setting string="ZNS Payment Notification Template"
+				         help="Automatically send notifications to Customers before the Due Date"
+				         documentation="https://developers.zalo.me/docs/zalo-notification-service/bat-dau/gioi-thieu-zalo-notification-service-api">
+					<div class="content-group">
+						<div class="row mt8">
+							<label for="zns_payment_notification_template_id" class="col-lg-5 o_light_label" string="(ZNS) Template"/>
+							<field name="zns_payment_notification_template_id"/>
+						</div>
+					</div>
+				</setting>
+			</xpath>
+		</field>
+	</record>
+</odoo>

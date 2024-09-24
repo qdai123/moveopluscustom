@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+
+    <!-- ZALO ZNS Template Notification: Compute Discount Policy for Partner Agency (CKT) -->
+    <record id="mv_zalo_zns_template_notification_compute_discount_ckt" model="ir.config_parameter">
+        <field name="key">mv_zalo.zns_compute_discount_ckt_notification_template_id</field>
+        <field name="value">0</field>
+    </record>
+
+    <!-- ZALO ZNS Template Notification: Compute Warranty Discount Policy for Partner Agency -->
+    <record id="mv_zalo_zns_template_notification_compute_warranty_discount_policy" model="ir.config_parameter">
+        <field name="key">mv_zalo.zns_compute_discount_warranty_notification_template_id</field>
+        <field name="value">0</field>
+    </record>
+
+</odoo>

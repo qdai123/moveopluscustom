@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- Model: MOVEO PLUS Compute Warranty Discount Policy (Configuration) -->
+
+	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_tree_view">
+		<field name="name">mv.compute.warranty.discount.policy.tree</field>
+		<field name="model">mv.compute.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<tree string="MOVEO PLUS Compute Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" default_order="compute_date desc">
+				<field name="name" string="Tháng/Năm"/>
+				<field name="state"
+				       string="Trạng thái"
+				       widget="badge"
+				       decoration-success="state == 'done'"
+				       decoration-info="state == 'confirm'"
+				       decoration-muted="state == 'draft'"/>
+				<field name="approved_date" string="Duyệt ngày" optional="hidden"/>
+			</tree>
+		</field>
+	</record>
+
+	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_form_view">
+		<field name="name">mv.compute.warranty.discount.policy.form</field>
+		<field name="model">mv.compute.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<form string="MOVEO PLUS Compute Warranty Discount Policy FORM" duplicate="false">
+				<header>
+					<field name="do_readonly" invisible="True"/>
+					<button class="btn btn-info" name="print_report" string="Xuất báo cáo Excel" type="object" invisible="state not in ['confirm', 'done']"/>
+					<button class="btn btn-primary" name="action_calculate_discount_line" type="object" string="Tính chiết khấu" invisible="state != 'draft'"/>
+					<button class="btn btn-primary" name="action_done" type="object" string="Duyệt" invisible="not id or state in ['draft', 'done']"/>
+					<button class="btn btn-secondary" name="action_reset" type="object" string="Hủy" invisible="not id or state != 'confirm'"/>
+					<field name="state" widget="statusbar" statusbar_visible="draft,confirm"/>
+				</header>
+				<sheet>
+					<group class="col-8">
+						<label for="warranty_discount_policy_id" string="Chính sách áp dụng"/>
+						<div class="o_row">
+							<field name="warranty_discount_policy_id" required="1" readonly="do_readonly" options="{'no_open': True, 'no_create': True}"/>
+						</div>
+					</group>
+					<group/>
+					<group>
+						<group>
+							<label for="month" string="Tháng"/>
+							<div class="o_row flex-grow-0">
+								<field name="month" required="warranty_discount_policy_id" readonly="not warranty_discount_policy_id or do_readonly"/>
+								/
+								<field name="year" required="warranty_discount_policy_id" readonly="not warranty_discount_policy_id or do_readonly"/>
+							</div>
+							<field name="compute_date" invisible="True"/>
+						</group>
+						<group>
+							<field name="approved_date" string="Duyệt ngày"/>
+						</group>
+					</group>
+					<notebook>
+						<page string="Chi tiết">
+							<field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': active_id, 'first_policy_code': 'rim_lower_and_equal_16', 'second_policy_code': 'rim_greater_and_equal_17'}">
+								<tree default_order="parent_compute_date">
+									<field name="currency_id" column_invisible="True"/>
+									<field name="parent_compute_date" column_invisible="True"/>
+									<field name="partner_id" string="Đại lý"/>
+									<field name="product_activation_count" string="Số lượng lốp đã kích hoạt"/>
+									<field name="first_warranty_policy_requirement_id" string="Điều kiện 1" widget="badge" decoration-success="first_count > 0" decoration-muted="first_count == 0"/>
+									<field name="first_quantity_from" column_invisible="True"/>
+									<field name="first_count" string="Số lượng"/>
+									<field name="first_quantity_to" column_invisible="True"/>
+									<field name="first_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 1)" optional="hidden"/>
+									<field name="first_warranty_policy_total_money" string="Thành tiền"/>
+									<field name="second_warranty_policy_requirement_id" string="Điều kiện 2" widget="badge" decoration-success="second_count > 0" decoration-muted="second_count == 0"/>
+									<field name="second_quantity_from" column_invisible="True"/>
+									<field name="second_count" string="Số lượng"/>
+									<field name="second_quantity_to" column_invisible="True"/>
+									<field name="second_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 2)" optional="hidden"/>
+									<field name="second_warranty_policy_total_money" string="Thành tiền"/>
+									<field name="third_warranty_policy_requirement_id" string="Điều kiện 3" column_invisible="True"/>
+									<field name="third_count" string="Số lượng" column_invisible="True"/>
+									<field name="third_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 3)" column_invisible="True"/>
+									<field name="third_warranty_policy_total_money" string="Thành tiền" column_invisible="True"/>
+									<field name="total_amount_currency" string="Tổng số tiền" widget="monetary"/>
+								</tree>
+							</field>
+						</page>
+					</notebook>
+				</sheet>
+				<div class="oe_chatter">
+					<field name="message_follower_ids"/>
+					<field name="message_ids"/>
+				</div>
+			</form>
+		</field>
+	</record>
+
+	<record id="mv_compute_warranty_discount_policy_action_view" model="ir.actions.act_window">
+		<field name="name">Tính chiết khấu kích hoạt</field>
+		<field name="res_model">mv.compute.warranty.discount.policy</field>
+		<field name="view_mode">tree,form</field>
+		<field name="view_id" ref="mv_compute_warranty_discount_policy_tree_view"/>
+	</record>
+
+	<!-- Model: MOVEO PLUS Compute Warranty Discount Policy Line (Configuration) -->
+
+	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_line_form_view">
+		<field name="name">mv.compute.warranty.discount.policy.line.form</field>
+		<field name="model">mv.compute.warranty.discount.policy.line</field>
+		<field name="arch" type="xml">
+			<form duplicate="false">
+				<sheet>
+					<field name="currency_id" invisible="True"/>
+					<field name="parent_id" invisible="True"/>
+					<field name="parent_compute_date" invisible="True"/>
+					<div class="oe_title pe-0">
+                        <h2 class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100">
+                                <field name="partner_id" class="text-truncate" options="{'line_breaks': True, 'no_open': True}"/>
+                            </div>
+                        </h2>
+                    </div>
+					<group>
+						<field name="product_activation_count" string="Số lượng lốp kích hoạt" readonly="True"/>
+						<field name="total_amount_currency" string="Tổng tiền chiết khấu" widget="monetary"/>
+					</group>
+					<group>
+						<group string="Điều kiện 1">
+							<field name="first_warranty_policy_requirement_id" string="Yêu cầu" widget="badge" decoration-success="first_count > 0" options="{'no_open': True}"/>
+							<field name="first_count" invisible="True"/>
+							<field name="first_quantity_from" invisible="True"/>
+							<field name="first_quantity_to" invisible="True"/>
+							<field name="first_warranty_policy_money" string="Tiền chiết khấu/lốp" widget="monetary"/>
+							<field name="first_warranty_policy_total_money" string="Thành tiền" widget="monetary" readonly="True"/>
+						</group>
+						<group string="Điều kiện 2">
+							<field name="second_warranty_policy_requirement_id" string="Yêu cầu" widget="badge" decoration-success="second_count > 0" options="{'no_open': True}"/>
+							<field name="second_count" invisible="True"/>
+							<field name="second_quantity_from" invisible="True"/>
+							<field name="second_quantity_to" invisible="True"/>
+							<field name="second_warranty_policy_money" string="Tiền chiết khấu/lốp" widget="monetary"/>
+							<field name="second_warranty_policy_total_money" string="Thành tiền" widget="monetary" readonly="True"/>
+						</group>
+					</group>
+					<notebook>
+						<page string="Phiếu" name="page_tickets">
+							<field name="helpdesk_ticket_product_moves_ids" nolabel="1" context="{'form_view_ref': 'mv_helpdesk.mv_helpdesk_ticket_product_moves_simple_form_view'}" options="{'no_open': True}">
+								<tree default_order="helpdesk_ticket_ref, lot_name, qr_code" create="false" edit="false" delete="false">
+									<field name="product_activate_twice" column_invisible="True"/>
+									<field name="partner_id" string="Đại lý" options="{'no_open': True}" optional="show"/>
+									<field name="product_id" string="Sản phẩm" options="{'no_open': True}" optional="hidden"/>
+									<field name="helpdesk_ticket_ref" string="Mã phiếu" optional="hidden"/>
+									<field name="helpdesk_ticket_type_id" string="Loại phiếu" options="{'no_open': True}" optional="hidden"/>
+									<field name="lot_name" string="Mã vạch" widget="badge" decoration-info="lot_name and not product_activate_twice" decoration-warning="product_activate_twice"/>
+									<field name="qr_code" string="Mã QR-Code" widget="badge" decoration-info="qr_code and not product_activate_twice" decoration-warning="product_activate_twice"/>
+									<field name="customer_date_activation" string="Ngày kích hoạt" optional="hidden"/>
+									<field name="customer_phone_activation" string="Điện thoại" optional="hidden"/>
+									<field name="customer_license_plates_activation" string="Biển số xe" optional="hidden"/>
+									<field name="customer_mileage_activation" string="Số Km" optional="hidden"/>
+								</tree>
+							</field>
+						</page>
+					</notebook>
+				</sheet>
+			</form>
+		</field>
+	</record>
+</odoo>

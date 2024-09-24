@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="mv_discount_partner_form_view" model="ir.ui.view">
+		<field name="name">mv.discount.partner.form</field>
+		<field name="model">mv.discount.partner</field>
+		<field name="arch" type="xml">
+			<form string="MOVEO PLUS Discount Partner FORM">
+				<field name="needs_update" invisible="True"/>
+				<sheet>
+					<group>
+						<group>
+							<field name="partner_id" options="{'no_open': True}"/>
+							<field name="partner_agency" invisible="True"/>
+							<field name="partner_white_agency" invisible="True"/>
+							<field name="level"/>
+						</group>
+						<group>
+							<field name="date"/>
+							<field name="parent_id" string="Chiết khấu Đại lý" readonly="True" options="{'no_open': True}"/>
+							<field name="warranty_discount_policy_ids" string="Chiết khấu kích hoạt" readonly="True" widget="many2many_tags" options="{'no_open': True}"/>
+						</group>
+						<group>
+							<field name="min_debt"/>
+							<field name="max_debt"/>
+							<field name="number_debt"/>
+						</group>
+					</group>
+				</sheet>
+			</form>
+		</field>
+	</record>
+</odoo>

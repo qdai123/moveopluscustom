@@ -1,17 +1,20 @@
 <?xml version="1.0"?>
 <odoo>
-
-    <!-- INHERIT: TREE VIEWS -->
     <record id="mv_helpdesk_inherit_helpdesk_ticket_type_tree_view" model="ir.ui.view">
         <field name="name">mv.helpdesk.inherit.helpdesk.ticket.type.tree</field>
         <field name="model">helpdesk.ticket.type</field>
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_type_view_tree"/>
         <field name="priority">30</field>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="before">
+                <field name="active" readonly="not can_edit" column_invisible="True"/>
+                <field name="can_edit" column_invisible="True"/>
+                <field name="can_delete" column_invisible="True"/>
+            </xpath>
             <xpath expr="//field[@name='name']" position="after">
-                <field name="code" optional="show"/>
+                <field name="code" readonly="not can_edit" optional="show"/>
+                <field name="user_for_warranty_activation" optional="show"/>
             </xpath>
         </field>
     </record>
-
 </odoo>

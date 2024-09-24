@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="mv_zalo_inherit_mv_compute_warranty_discount_policy_line_form_view">
+        <field name="name">mv_zalo.inherit.mv.compute.warranty.discount.policy.line.form</field>
+        <field name="model">mv.compute.warranty.discount.policy.line</field>
+        <field name="inherit_id" ref="mv_sale.mv_compute_warranty_discount_policy_line_form_view"/>
+		<field name="priority">45</field>
+        <field name="arch" type="xml">
+	        <xpath expr="//sheet/*[1]" position="before">
+		        <header>
+			        <button class="btn btn-info" string="Send Message ZNS" type="object" name="action_send_message_zns" groups="mv_zalo.group_mv_zalo_manager"/>
+		        </header>
+	        </xpath>
+	        <xpath expr="//notebook" position="inside">
+		        <page string="ZNS" name="page_zalo_zns" groups="mv_zalo.group_mv_zalo_manager">
+			        <group>
+				        <field name="zns_notification_sent" string="ZNS Sent"/>
+				        <field name="zns_history_id" invisible="1"/>
+				        <field name="zns_history_status"
+				               string="ZNS Status"
+				               decoration-muted="zns_history_status == '-1'"
+				               decoration-info="zns_history_status == '0'"
+				               decoration-success="zns_history_status == '1'"
+				               widget="badge"/>
+			        </group>
+		        </page>
+	        </xpath>
+        </field>
+    </record>
+</odoo>

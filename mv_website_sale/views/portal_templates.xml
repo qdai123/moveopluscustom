@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- MOVEO+ Inherited: Portal Layout (portal.portal_layout) -->
+	<template id="mv_website_sale.portal_layout" name="MOVEO+ Inherited: Portal Layout" inherit_id="portal.portal_layout">
+		<xpath expr="//div[hasclass('o_portal_wrap')]//h3[hasclass('my-3')]" position="replace">
+			<t t-if="user_id.partner_id and user_id.partner_id.is_agency">
+				<h3 class="my-3">Thông tin Đại lý</h3>
+			</t>
+			<t t-else="">
+				<h3 class="my-3">Tài khoản của tôi</h3>
+			</t>
+		</xpath>
+		<xpath expr="//div[hasclass('o_portal_wrap')]//div[hasclass('container')]//div[2]//div[contains(@t-attf-class, 'o_portal_content')]" position="replace">
+			<div t-attf-class="o_portal_content col-12 col-lg-8 mb-5">
+				<t t-set="partner" t-value="user_id.sudo().partner_id"/>
+				<h5>
+					<i class="fa fa-fw fa-money me-1 text-success"/>Tiền chiết khấu có thể áp dụng:
+					<span t-attf-class="{{ 'text-success fw-bold' if partner.amount_currency &gt; 0 else 'text-muted fw-bold' }}">
+						<t class="monetary_field"
+						   t-out="partner.amount_currency"
+						   t-options="{'widget': 'monetary', 'display_currency': partner.property_product_pricelist.currency_id}"/>
+					</span>
+				</h5>
+				<t t-out="0"/>
+			</div>
+		</xpath>
+	</template>
+</odoo>

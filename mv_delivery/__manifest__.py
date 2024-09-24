@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "MV Delivery",
+    "name": "Delivery",
     "version": "17.0.1.0",
-    "category": "Moveoplus/MV Delivery",
+    "countries": ["vi"],
+    "category": "Moveoplus/Delivery",
     "description": "Base on Delivery module to customize new features",
-    "author": "Phat Dang <phat.dangminh@moveoplus.com>",
-    "depends": [
-        # Odoo
-        "delivery",
-        "stock_delivery",
-    ],
+    "website": "https://moveoplus.com/cau-chuyen-moveo/",
+    "author": "MOVEOPLUS system development team",
+    "depends": ["delivery", "stock_delivery"],
     "data": [
         # VIEWS
         "views/sale_order_views.xml",

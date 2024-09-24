@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+
+    <t t-name="ks_dn_filter_section_container_template">
+        <div t-att-data-ks-model-selector="ks_model" class="ks_dn_filter_section_container">
+            <span class="ks_dn_filter_section_container_label">
+                <t t-esc="ks_domain_data.model_name"/>
+            </span>
+            <span>
+                <div class="o_searchview">
+                    <div class="o_searchview_input_container d-flex flex-grow-1 flex-wrap gap-1">
+                        <t t-foreach="ks_domain_data.ks_domain_index_data" t-as="ks_domain_data_new" t-key="ks_domain_data_new_index">
+                            <div class="o_searchview_facet position-relative d-inline-flex align-items-stretch rounded-2 bg-200 text-nowrap opacity-trigger-hover" t-att-ksmodel="ks_model"
+                                 t-att-modelname="ks_domain_data.model_name"
+                                 t-att-kscateg="ks_domain_data_new.categ || '0'">
+                                <span class="o_searchview_facet_label btn btn-primary rounded-end-0 p-1 fa fa-filter"/>
+                                <div class="o_facet_values position-relative d-flex flex-wrap align-items-center ps-2 rounded-end-2 text-wrap">
+                                    <span class="o_facet_value ">
+                                        <t t-esc="ks_domain_data_new.label.join(' or ')"/>
+                                    </span>
+                                </div>
+                                <i role="img" aria-label="Remove" title="Remove"
+                                   class="fa fa-sm fa-remove o_facet_remove ks_dn_filter_remove_event oi oi-close btn btn-link py-1 px-2 text-danger" t-on-click="ksOnRemoveFilterFromSearchPanel"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </span>
+        </div>
+    </t>
+
+    <t t-name="ks_dn_custom_filter_input_container">
+        <div t-att-class="show_remove_option ? 'ks_dn_or_container ks_dn_custom_filter_input_container_section': 'ks_dn_custom_filter_input_container_section'">
+            <t t-if="show_remove_option">
+                <span class="o_or_filter">or</span>
+            </t>
+            <select class="o_input o_generator_menu_field ks_custom_filter_field_selector" t-on-change="(ev) => self.ksOnCustomFilterFieldSelect(ev)">
+                <t t-foreach="ks_dashboard_custom_domain_filter" t-as="custom_domain" t-key="custom_domain_index">
+                    <option t-att-value="custom_domain['id']">
+                        <t t-esc="custom_domain['name']"/>
+                        <span class="ks_dn_pre_model_text">
+                            <t t-esc="'(' + custom_domain['model_name'] + ')'"/>
+                        </span>
+                    </option>
+                </t>
+            </select>
+            <t t-if="show_remove_option">
+                <i role="image" aria-label="Delete" title="Delete"
+                   class="fa fa-trash-o o_generator_menu_delete ks_custom_filter_section_delete" t-on-click="(ev)=>self.ksOnCustomFilterConditionRemove(ev)"/>
+            </t>
+        </div>
+    </t>
+
+    <t t-name="ks_dn_custom_domain_input_operator">
+        <select class="o_input o_generator_menu_operator ks_operator_option_selector" t-on-change="(ev)=> self.ksOnCustomFilterOperatorSelect(ev)">
+            <t t-foreach="operators" t-as="operator" t-key="operator_index">
+                <option t-att-value="operator['symbol']">
+                    <t t-esc="operator['description']"/>
+                </option>
+            </t>
+        </select>
+    </t>
+
+    <t t-name="ks_dn_custom_domain_input_text">
+        <span class="o_generator_menu_value">
+            <input type="text" value="" class="o_input"/>
+        </span>
+    </t>
+
+    <t t-name="ks_dn_custom_domain_input_date">
+        <span class="o_generator_menu_value">
+             <t t-if="field_type == 'date'">
+                <input id="datetimepicker1" type="date" class=" o_datepicker o_input" />
+                <t t-if="operator == 'between'">
+                    <input id="datetimepicker1" type="date" class="o_datepicker o_input" />
+                </t>
+
+            </t>
+            <t t-else="">
+                <input id="datetimepicker1" type="datetime-local" class="o_datepicker o_input"/>
+                <t t-if="operator== 'between'">
+                    <input id="datetimepicker1" type="datetime-local" class=" o_datepicker o_input" />
+                </t>
+            </t>
+        </span>
+    </t>
+
+    <t t-name="ks_dn_custom_domain_input_selection">
+        <select class="o_input o_generator_menu_value">
+            <t t-foreach="selection_input" t-as="selection_data" t-key="selection_data_index">
+                <option t-att-value="selection_data[0]">
+                    <t t-esc="selection_data[1]"/>
+                </option>
+            </t>
+        </select>
+    </t>
+</templates>

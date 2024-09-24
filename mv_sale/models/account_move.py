@@ -1,19 +1,31 @@
 # -*- coding: utf-8 -*-
-
-from odoo import models, api, fields
-from datetime import datetime
+from odoo import fields, models
 
 
 class AccountMove(models.Model):
-    _inherit = 'account.move'
+    _inherit = "account.move"
 
     def action_post(self):
-        for record in self:
-            if record.invoice_origin not in ('', False):
-                sale_id = self.env['sale.order'].search([('name', '=', record.invoice_origin)])
-                if len(sale_id) > 0:
-                    if not sale_id.date_invoice:
-                        sale_id.write({
-                            'date_invoice': datetime.now()
-                        })
-        return super().action_post()
+        super().action_post()
+
+        # Gather all unique invoice origins
+        invoice_origins = {move.invoice_origin for move in self if move.invoice_origin}
+
+        if invoice_origins:
+            # Search for orders with those invoice origins
+            orders = self.env["sale.order"].search(
+                [("name", "in", list(invoice_origins))]
+            )
+
+            for invoice_origin in invoice_origins:
+                # Filter orders by invoice origin and lack of date_invoice
+                orders_to_update = orders.filtered(
+                    lambda so: so.name == invoice_origin and not so.date_invoice
+                )
+                if orders_to_update:
+                    invoice_date = self.filtered(
+                        lambda m: m.invoice_origin == invoice_origin
+                    ).mapped("invoice_date")
+                    # Assuming all moves with the same invoice_origin have the same date_invoice
+                    if invoice_date:
+                        orders_to_update.write({"date_invoice": invoice_date[0]})

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 
 
-class MvDiscountLine(models.Model):
+class MvDiscountPolicyLine(models.Model):
     _name = "mv.discount.line"
-    _description = _("Moveo PLus Discount Line (%)")
+    _description = _("MOVEO PLUS Discount Policy Line (%)")
 
     parent_id = fields.Many2one("mv.discount")
     level = fields.Integer(string="Bậc")

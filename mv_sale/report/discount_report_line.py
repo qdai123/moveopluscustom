@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-
-from odoo import models, api, fields
+from odoo import fields, models
 
 
 class DiscountReportLine(models.Model):
-    _name = 'discount.report.line'
+    _name = _description = "discount.report.line"
 
     parent_id = fields.Many2one("discount.report")
     partner_id = fields.Many2one("res.partner", related="parent_id.partner_id")

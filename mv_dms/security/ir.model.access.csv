@@ -1,0 +1,56 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mv_brand_system_user,mv.brand System User,model_mv_brand,base.group_system,1,1,1,1
+access_mv_brand_category_system_user,mv.brand.category System User,model_mv_brand_category,base.group_system,1,1,1,1
+access_mv_brand_proportion_system_user,mv.brand.proportion System User,model_mv_brand_proportion,base.group_system,1,1,1,1
+access_mv_region_system_user,mv.region System User,model_mv_region,base.group_system,1,1,1,1
+access_mv_product_attribute_system_user,mv.product.attribute System User,model_mv_product_attribute,base.group_system,1,1,1,1
+access_mv_product_product_system_user,mv.product.product System User,model_mv_product_product,base.group_system,1,1,1,1
+access_mv_service_system_user,mv.service System User,model_mv_service,base.group_system,1,1,1,1
+access_mv_service_detail_system_user,mv.service.detail System User,model_mv_service_detail,base.group_system,1,1,1,1
+access_mv_shop_system_user,mv.shop System User,model_mv_shop,base.group_system,1,1,1,1
+access_mv_shop_category_system_user,mv.shop.category System User,model_mv_shop_category,base.group_system,1,1,1,1
+access_mv_partner_survey_system_user,mv.partner.survey System User,model_mv_partner_survey,base.group_system,1,1,1,1
+
+access_mv_brand_sale_manager,mv.brand Sale Manager,model_mv_brand,sales_team.group_sale_manager,1,1,1,1
+access_mv_brand_sale_all_leads,mv.brand Sale All Leads,model_mv_brand,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_brand_salesman,mv.brand Salesman,model_mv_brand,sales_team.group_sale_salesman,1,0,0,0
+
+access_mv_brand_category_sale_manager,mv.brand.category Sale Manager,model_mv_brand_category,sales_team.group_sale_manager,1,1,1,1
+access_mv_brand_category_sale_all_leads,mv.brand.category Sale All Leads,model_mv_brand_category,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_brand_category_salesman,mv.brand.category Salesman,model_mv_brand_category,sales_team.group_sale_salesman,1,0,0,0
+
+access_mv_brand_proportion_manager,mv.brand.proportion Sale Manager,model_mv_brand_proportion,sales_team.group_sale_manager,1,1,1,1
+access_mv_brand_proportion_sale_all_leads,mv.brand.proportion Sale All Leads,model_mv_brand,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_brand_proportion_salesman,mv.brand.proportion Salesman,model_mv_brand_proportion,sales_team.group_sale_salesman,1,1,1,1
+
+access_mv_region_sale_manager,mv.region Sale Manager,model_mv_region,sales_team.group_sale_manager,1,1,1,1
+access_mv_region_sale_all_leads,mv.region Sale All Leads,model_mv_region,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_region_salesman,mv.region Salesman,model_mv_region,sales_team.group_sale_salesman,1,0,0,0
+
+access_mv_partner_survey_sale_manager,mv.partner.survey Sale Manager,model_mv_partner_survey,sales_team.group_sale_manager,1,1,1,1
+access_mv_partner_survey_sale_all_leads,mv.partner.survey Sale All Leads,model_mv_partner_survey,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_partner_survey_salesman,mv.partner.survey Salesman,model_mv_partner_survey,sales_team.group_sale_salesman,1,1,1,1
+
+access_mv_product_attribute_sale_manager,mv.product.attribute Sale Manager,model_mv_product_attribute,sales_team.group_sale_manager,1,1,1,1
+access_mv_product_attribute_sale_all_leads,mv.product.attribute Sale All Leads,model_mv_product_attribute,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_product_attribute_salesman,mv.product.attribute Salesman,model_mv_product_attribute,sales_team.group_sale_salesman,1,0,0,0
+
+access_mv_product_product_sale_manager,mv.product.product Sale Manager,model_mv_product_product,sales_team.group_sale_manager,1,1,1,1
+access_mv_product_product_sale_all_leads,mv.product.product Sale All Leads,model_mv_product_product,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_product_product_salesman,mv.product.product Salesman,model_mv_product_product,sales_team.group_sale_salesman,1,0,0,1
+
+access_mv_service_sale_manager,mv.service Sale Manager,model_mv_service,sales_team.group_sale_manager,1,1,1,1
+access_mv_service_sale_all_leads,mv.service Sale All Leads,model_mv_service,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_service_salesman,mv.service Salesman,model_mv_service,sales_team.group_sale_salesman,1,0,0,1
+
+access_mv_service_detail_sale_manager,mv.service.detail Sale Manager,model_mv_service_detail,sales_team.group_sale_manager,1,1,1,1
+access_mv_service_detail_sale_all_leads,mv.service.detail Sale All Leads,model_mv_service_detail,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_service_detail_salesman,mv.service.detail Salesman,model_mv_service_detail,sales_team.group_sale_salesman,1,0,0,1
+
+access_mv_shop_sale_manager,mv.shop Sale Manager,model_mv_shop,sales_team.group_sale_manager,1,1,1,1
+access_mv_shop_sale_all_leads,mv.shop Sale All Leads,model_mv_shop,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_shop_salesman,mv.shop Salesman,model_mv_shop,sales_team.group_sale_salesman,1,1,1,1
+
+access_mv_shop_category_sale_manager,mv.shop.category Sale Manager,model_mv_shop_category,sales_team.group_sale_manager,1,1,1,1
+access_mv_shop_category_sale_all_leads,mv.shop.category Sale All Leads,model_mv_shop_category,sales_team.group_sale_salesman_all_leads,1,0,0,0
+access_mv_shop_category_salesman,mv.shop.category Salesman,model_mv_shop_category,sales_team.group_sale_salesman,1,1,1,1

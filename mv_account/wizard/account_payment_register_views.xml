@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="mv_account_inherit_view_account_payment_register_form_view" model="ir.ui.view">
+		<field name="name">mv_account.inherit.view.account.payment.register.form</field>
+		<field name="model">account.payment.register</field>
+		<field name="inherit_id" ref="account.view_account_payment_register_form"/>
+		<field name="priority">30</field>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='payment_difference']" position="before">
+				<field name="keep_apply_discount_early" string="Giữ C/K cho TT 1 Phần" invisible="1"/>
+			</xpath>
+		</field>
+	</record>
+</odoo>

@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-
-        <!-- MOVEOPLUS Stage Default: Kích Hoạt Bảo Hành Lốp Xe Continental (Sub) -->
-        <record id="type_guarantee_activation_for_sub_dealer" model="helpdesk.ticket.type">
-            <field name="name">Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)</field>
-            <field name="code">BH</field>  <!-- BH: Bảo Hành -->
+        <!-- MOVEOPLUS Ticket Type Default: "Kích Hoạt Bảo Hành Lốp Xe Continental (Sub)" -->
+        <record model="helpdesk.ticket.type" id="type_guarantee_activation_for_sub_dealer">
+            <field name="name">Kích Hoạt Bảo Hành Lốp Xe Continental (Đại lý)</field>
+            <field name="code">kich_hoat_bao_hanh_dai_ly</field>
+            <field name="user_for_warranty_activation" eval="True"/>
+            <field name="active" eval="True"/>
         </record>
 
-        <!-- MOVEOPLUS Stage Default: Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối) -->
-        <record id="type_guarantee_activation_for_end_user" model="helpdesk.ticket.type">
+        <!-- MOVEOPLUS Ticket Type Default: "Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)" -->
+        <record model="helpdesk.ticket.type" id="type_guarantee_activation_for_end_user">
             <field name="name">Kích Hoạt Bảo Hành Lốp Xe Continental (Người dùng cuối)</field>
-            <field name="code">BH</field>  <!-- BH: Bảo Hành -->
+            <field name="code">kich_hoat_bao_hanh_nguoi_dung_cuoi</field>
+            <field name="user_for_warranty_activation" eval="True"/>
+            <field name="active" eval="True"/>
         </record>
-
     </data>
 </odoo>

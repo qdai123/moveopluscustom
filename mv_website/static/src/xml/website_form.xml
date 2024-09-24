@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- Success status -->
+    <t t-name="mv_website.s_mv_website_form_status_success">
+        <span id="s_website_form_result" class="text-success ml8">
+            <i class="fa fa-check mr4" role="img" aria-label="Success" title="Success"/>
+            Biểu mẫu đã được gửi thành công.
+        </span>
+    </t>
+
+    <!-- Error status -->
+    <t t-name="mv_website.s_mv_website_form_status_error">
+        <span id="s_website_form_result" class="text-danger ml8">
+            <i class="fa fa-close mr4" role="img" aria-label="Error" title="Error"/>
+            <t t-if="message"><t t-esc="message"/></t>
+            <t t-if="not message">Có lỗi xảy ra khi gửi biểu mẫu.</t>
+        </span>
+    </t>
+</templates>

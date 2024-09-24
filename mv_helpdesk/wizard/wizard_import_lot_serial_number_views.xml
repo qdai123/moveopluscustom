@@ -12,13 +12,13 @@
                             <field name="helpdesk_ticket_id" string="Ticket" readonly="True"/>
                         </group>
                         <group>
-                            <field name="portal_lot_serial_number"/>
+                            <field name="portal_lot_serial_number" string="Input Lot/Serial Number or QR-Code" required="True"/>
                         </group>
                     </group>
                 </sheet>
                 <footer>
-                    <button name="action_import" string="Import Data" type="object" class="btn-primary"/>
-                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    <button name="action_import" string="Save" type="object" class="btn-primary"/>
+                    <button string="Discard" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<!-- MO+ App Menu: DMS - Dealer Management System -->
+	<menuitem id="mv_dms_menu_app_dms" name="DMS" web_icon="mv_dms,static/src/img/dms.png" sequence="40"/>
+
+	<!-- MO+ Menu: Partner Surveys -->
+	<menuitem id="mv_dms_menu_partner_surveys" name="Khảo sát Đại lý" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_salesman" sequence="1"/>
+	<menuitem id="mv_dms_submenu_my_surveys" name="Phiếu khảo sát của tôi" action="mv_dms_action_view_my_surveys" parent="mv_dms_menu_partner_surveys" sequence="1"/>
+	<menuitem id="mv_dms_submenu_all_surveys" name="Tất cả phiếu khảo sát" action="mv_dms_action_view_all_surveys" parent="mv_dms_menu_partner_surveys" groups="sales_team.group_sale_salesman_all_leads" sequence="2"/>
+
+	<!-- MO+ Menu: Reporting -->
+	<menuitem id="mv_dms_menu_reporting" name="Báo cáo" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_salesman" sequence="3"/>
+
+	<!-- MO+ Menu: Configuration -->
+	<menuitem id="mv_dms_menu_configuration" name="Cấu hình chung" parent="mv_dms_menu_app_dms" groups="sales_team.group_sale_manager" sequence="10"/>
+	<menuitem id="mv_dms_submenu_configuration_region" name="Vùng địa lý" action="action_view_mv_region" parent="mv_dms_menu_configuration" groups="base.group_system" sequence="1"/>
+	<menuitem id="mv_dms_submenu_configuration_brands" name="Hãng/Thương hiệu" parent="mv_dms_menu_configuration" sequence="2"/>
+	<menuitem id="mv_dms_submenu_configuration_brand_category" name="Loại thương hiệu" action="mv_brand_category_action_view" parent="mv_dms_submenu_configuration_brands" groups="base.group_system" sequence="1"/>
+	<menuitem id="mv_dms_submenu_configuration_brand" name="Thương hiệu" action="action_view_mv_brand" parent="mv_dms_submenu_configuration_brands" sequence="2"/>
+	<menuitem id="mv_dms_submenu_configuration_shops" name="Cửa hàng" parent="mv_dms_menu_configuration" sequence="3"/>
+	<menuitem id="mv_dms_submenu_configuration_shop_category" name="Thương hiệu cửa hàng" action="mv_shop_category_action_view" parent="mv_dms_submenu_configuration_shops" sequence="1"/>
+	<menuitem id="mv_dms_submenu_configuration_products" name="Sản phẩm" parent="mv_dms_menu_configuration" sequence="4"/>
+	<record id="mv_dms_submenu_configuration_products" model="ir.ui.menu">
+		<!-- Handle to change the Group on Product Menu Configuration -->
+		<field name="groups_id" eval="[(6, 0, [ref('sales_team.group_sale_manager')])]"/>
+	</record>
+	<menuitem id="mv_dms_submenu_configuration_submenu_product_attributes" name="Thuộc tính" action="mv_dms_action_view_product_attributes" parent="mv_dms_submenu_configuration_products" sequence="1"/>
+	<menuitem id="mv_dms_menu_mv_service_detail" name="Dịch vụ" action="mv_dms_action_view_all_services" parent="mv_dms_submenu_configuration_products" sequence="2"/>
+</odoo>

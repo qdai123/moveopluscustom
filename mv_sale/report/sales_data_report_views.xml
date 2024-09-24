@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="sales_data_report_view_form" model="ir.ui.view">
+		<field name="name">sales.data.report.form</field>
+		<field name="model">sales.data.report</field>
+		<field name="arch" type="xml">
+			<form string="Sales Data Analysis">
+                <sheet>
+	                <div class="oe_title pe-0">
+                        <h1 class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100">
+	                            <field name="sale_reference"/>
+	                            <field name="sale_status" widget="state_selection"/>
+                            </div>
+                        </h1>
+		                <h2 class="o_row">
+			                <label for="product_id" class="oe_read_only">Sản phẩm:</label>
+			                <field name="product_id" class="fw-bolder text-uppercase"/>
+			                <label for="serial_number" class="oe_read_only">Mã vạch:</label>
+			                <field name="serial_number" class="fw-normal text-muted"/>
+			                <label for="qrcode" class="oe_read_only">Mã QR Code:</label>
+			                <field name="qrcode" class="fw-normal text-muted"/>
+		                </h2>
+                    </div>
+                    <field string="Đơn giá" name="price_unit"/>
+                    <field string="Đơn giá sau C/K" name="price_subtotal"/>
+                    <group>
+	                    <group name="group_product_info_left_side">
+		                    <field string="Danh mục" name="product_category_id" options="{'no_open': True}"/>
+                            <field string="Nguồn gốc" name="product_country_of_origin" options="{'no_open': True}"/>
+	                    </group>
+	                    <group name="group_product_info_right_side">
+                            <field string="Size (lốp)" name="product_att_size_lop"/>
+							<field string="Dòng (lốp)" name="product_att_dong_lop"/>
+                            <field string="Mã gai" name="product_att_ma_gai"/>
+                            <field string="Đường kính mâm" name="product_att_rim_diameter_inch"/>
+	                    </group>
+                        <group string="Thông tin bán hàng" name="group_sale_order_info">
+	                        <field string="Nhân viên bán hàng" name="sale_user_id" options="{'no_open': True}"/>
+	                        <field string="Ngày đặt hàng" name="sale_date_order"/>
+	                        <field string="Ngày vào sổ" name="sale_date_invoice"/>
+                        </group>
+                        <group string="Thông tin Khách hàng/Đại lý" name="group_customer_info">
+	                        <field string="Công ty" name="sale_company_id" groups="base.group_multi_company" options="{'no_open': True}"/>
+	                        <field name="currency_id" invisible="1"/>
+                            <field string="Đại lý" name="sale_partner_id" options="{'no_open': True}"/>
+	                        <field string="Mã Đại lý" name="company_registry"/>
+                            <field string="Địa chỉ giao hàng" name="delivery_address"/>
+	                        <field string="Nhân viên bán hàng" name="sale_user_id" options="{'no_open': True}" optional="show"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+		</field>
+	</record>
+
+	<record id="sales_data_report_view_pivot" model="ir.ui.view">
+		<field name="name">sale.report.pivot</field>
+		<field name="model">sales.data.report</field>
+		<field name="arch" type="xml">
+			<pivot string="Sales Data Analysis" sample="1">
+				<field name="sale_date_invoice" interval="month" type="col"/>
+				<field name="sale_partner_id" type="row"/>
+				<field name="price_subtotal" type="measure"/>
+			</pivot>
+		</field>
+	</record>
+
+	<record id="sales_data_report_view_graph" model="ir.ui.view">
+		<field name="name">sales.data.report.graph</field>
+		<field name="model">sales.data.report</field>
+		<field name="arch" type="xml">
+			<graph string="Sales Data Analysis" type="line" sample="1">
+				<field name="sale_date_invoice" interval="day"/>
+				<field name="price_subtotal" type="measure"/>
+			</graph>
+		</field>
+	</record>
+
+	<record id="sales_data_report_graph_pie" model="ir.ui.view">
+		<field name="name">sales.data.report.graph.pie</field>
+		<field name="model">sales.data.report</field>
+		<field name="mode">primary</field>
+		<field name="inherit_id" ref="sales_data_report_view_graph"/>
+		<field name="arch" type="xml">
+			<graph position="attributes">
+				<attribute name="type">pie</attribute>
+			</graph>
+		</field>
+	</record>
+
+	<record id="sales_data_report_graph_bar" model="ir.ui.view">
+		<field name="name">sale.report.graph.bar</field>
+		<field name="model">sales.data.report</field>
+		<field name="mode">primary</field>
+		<field name="inherit_id" ref="sales_data_report_view_graph"/>
+		<field name="arch" type="xml">
+			<graph position="attributes">
+				<attribute name="type">bar</attribute>
+				<attribute name="order">DESC</attribute>
+			</graph>
+		</field>
+	</record>
+
+	<record id="sales_data_report_view_tree" model="ir.ui.view">
+		<field name="name">sales.data.report.tree</field>
+		<field name="model">sales.data.report</field>
+		<field name="arch" type="xml">
+			<tree string="Sales Data Analysis">
+				<field column_invisible="1" name="product_id"/>
+				<field string="Ngày đặt hàng" name="sale_date_order" widget="date"/>
+				<field string="Ngày" name="sale_day_order" optional="hidden"/>
+				<field string="Tháng" name="sale_month_order" optional="hidden"/>
+				<field string="Năm" name="sale_year_order" optional="hidden"/>
+				<field column_invisible="1" name="sale_weekday_order"/>
+				<field column_invisible="1" name="sale_week_number"/>
+				<field string="Tuần" name="sale_week_name" optional="hidden"/>
+				<field string="Ngày vào sổ" name="sale_date_invoice" widget="date" optional="hidden"/>
+				<field string="Ngày" name="sale_day_invoice" optional="hidden"/>
+				<field string="Tháng" name="sale_month_invoice" optional="hidden"/>
+				<field string="Năm" name="sale_year_invoice" optional="hidden"/>
+				<field column_invisible="1" name="sale_id"/>
+				<field string="Đơn hàng" name="sale_reference" class="fw-bold"/>
+				<field string="Danh mục" name="product_category_id" options="{'no_open': True}" optional="hidden"/>
+				<field string="Sản phẩm" name="product_template_id" options="{'no_open': True}"/>
+				<field string="Nguồn gốc" name="product_country_of_origin" options="{'no_open': True}" optional="hidden"/>
+				<field string="Mã vạch" name="serial_number"/>
+				<field string="Mã QR Code" name="qrcode" optional="show"/>
+				<field string="Size (lốp)" name="product_att_size_lop" optional="hidden"/>
+				<field string="Dòng (lốp)" name="product_att_dong_lop" optional="hidden"/>
+				<field string="Mã gai" name="product_att_ma_gai" optional="hidden"/>
+				<field string="Đường kính Mâm" name="product_att_rim_diameter_inch" optional="hidden"/>
+				<field string="Ngày kích họat" name="warranty_activation_date" optional="hidden"/>
+				<field string="Ngày bảo hành" name="warranty_claimed_date" optional="hidden"/>
+				<field string="Được đồng ý bảo hành?" name="is_warranty_product_accepted" optional="hidden"/>
+				<field string="Đã duyệt bảo hành?" name="is_warranty_claimed_approved" optional="hidden"/>
+				<field string="Đơn giá" name="price_unit" class="fw-bold" optional="show"/>
+				<field string="Đơn giá (Sau C/K)" name="price_subtotal" class="fw-bold" sum="Sum of Untaxed Total" optional="hidden"/>
+				<field string="Tổng" name="price_total" class="fw-bold" sum="Sum of Total" groups="sales_team.group_sale_manager" optional="hidden"/>
+				<field column_invisible="1" string="Trạng thái đơn hàng" name="sale_status" widget='badge' decoration-success="sale_status == 'sale'" decoration-info="sale_status in ['draft', 'sent']" optional="hidden"/>
+                <field column_invisible="1" string="Trạng thái hóa đơn" name="sale_invoice_status" widget="badge" decoration-success="sale_invoice_status == 'invoiced'" decoration-info="sale_invoice_status == 'to invoice'" optional="hidden"/>
+				<field string="Nhân viên bán hàng" name="sale_user_id" options="{'no_open': True}" widget="many2one_avatar_user" optional="hidden"/>
+				<field column_invisible="1" name="sale_pic_name"/>
+				<field string="Đại lý" name="sale_partner_id" options="{'no_open': True}"/>
+				<field string="Đại lý (Nickname)" name="partner_nickname" options="{'no_open': True}" optional="hidden"/>
+				<field string="Mã Đại lý" name="company_registry"/>
+				<field string="Địa chỉ giao hàng" name="delivery_address" optional="hidden"/>
+				<field string="Đường" name="street" optional="hidden"/>
+				<field string="Phường" name="wards_id" options="{'no_open': True}" optional="hidden"/>
+				<field string="Quận" name="district_id" options="{'no_open': True}" optional="hidden"/>
+				<field string="Thành phố" name="state_id" options="{'no_open': True}" optional="show"/>
+				<field string="Quốc gia" name="country_id" options="{'no_open': True}" optional="show"/>
+				<field string="Công ty" name="sale_company_id" groups="base.group_multi_company" optional="show"/>
+				<field column_invisible="1" name="currency_id" groups="base.group_multi_currency"/>
+			</tree>
+		</field>
+	</record>
+
+	<record id="sales_data_report_view_search" model="ir.ui.view">
+		<field name="name">sales.data.report.search</field>
+		<field name="model">sales.data.report</field>
+		<field name="arch" type="xml">
+			<search string="Sales Data Analysis">
+				<field string="Mã đơn" name="sale_reference" />
+				<field string="Sản phẩm" name="product_template_id"/>
+				<field string="Mã vạch" name="serial_number"/>
+				<field string="Mã QR-Code" name="qrcode"/>
+				<field string="Đại lý" name="sale_partner_id"/>
+				<filter string="Current Year" name="filter_current_year" domain="[('sale_date_order', '&gt;=', (context_today()).strftime('%Y-01-01')), ('sale_date_order', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
+				<separator/>
+				<filter string="Current Month" name="filter_current_month" domain="[('sale_date_order', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('sale_date_order', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
+                <filter string="Previous Month" name="filter_previous_month" domain="[('sale_date_order', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')), ('sale_date_order', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
+				<separator/>
+				<filter string="Đơn hàng của tôi" name="filter_my_sale_order" domain="[('sale_user_id', '=', uid)]" groups="sales_team.group_sale_salesman_all_leads"/>
+				<separator/>
+				<filter string="Cần xuất hoá đơn" name="filter_to_invoice" domain="[('sale_invoice_status', '=', 'to invoice')]"/>
+                <filter string="Đã xuất hoá đơn hết" name="filter_fully_invoiced" domain="[('sale_invoice_status', '=', 'invoiced')]"/>
+				<separator/>
+				<filter string="Bán hàng" name="filter_product_sale_confirmed" domain="[('sale_status', '=', 'sale'), ('price_subtotal', '>', 0)]"/>
+				<filter string="Khuyến mãi" name="filter_product_promo" domain="['|', ('discount', '=', 100), ('price_unit', '=', 0)]"/>
+				<separator/>
+				<filter string="Có kích hoạt bảo hành" name="filter_has_warranty_activation" domain="[('warranty_activation_date', '!=', False)]"/>
+				<filter string="Được bảo hành" name="filter_warranty_claim_accepted" domain="[('is_warranty_product_accepted', '=', True)]"/>
+				<filter string="Đã duyệt bảo hành" name="filter_warranty_claim_approved" domain="[('is_warranty_claimed_approved', '=', True)]"/>
+				<group expand="0" string="Extended Filters">
+                    <field string="Danh mục sản phẩm" name="product_category_id" filter_domain="[('product_category_id', 'child_of', self)]"/>
+                    <field string="Công ty" name="sale_company_id" groups="base.group_multi_company"/>
+                </group>
+				<group expand="1" string="Group By">
+					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'sale_partner_id'}"/>
+					<separator/>
+					<filter string="Nhân viên kinh doanh" name="groupby_sale_user" context="{'group_by':'sale_user_id'}" groups="sales_team.group_sale_salesman_all_leads"/>
+					<separator/>
+					<filter string="Mã đơn hàng" name="groupby_sale_order" context="{'group_by':'sale_reference'}"/>
+					<filter string="Mã vạch" name="groupby_serial_number" context="{'group_by':'serial_number'}"/>
+					<filter string="Mã QR code" name="groupby_qrcode" context="{'group_by':'qrcode'}"/>
+					<separator/>
+					<filter string="Sản phẩm" name="groupby_product" context="{'group_by':'product_template_id'}"/>
+					<filter string="Danh mục sản phẩm" name="groupby_product_category" context="{'group_by':'product_category_id'}"/>
+					<filter string="Quốc Gia (Sản phẩm)" name="groupby_product_country" context="{'group_by':'product_country_of_origin'}"/>
+					<separator/>
+					<filter string="Size (lốp)" name="groupby_product_att_size_lop" context="{'group_by':'product_att_size_lop'}"/>
+					<filter string="Mã gai" name="groupby_product_att_ma_gai" context="{'group_by':'product_att_ma_gai'}"/>
+					<filter string="Đường kính Mâm" name="groupby_product_att_rim_diameter_inch" context="{'group_by':'product_att_rim_diameter_inch'}"/>
+					<separator/>
+                    <filter string="Ngày đặt hàng" name="groupby_sale_date_order" context="{'group_by':'sale_date_order'}"/>
+					<separator/>
+					<filter string="Ngày vào sổ" name="groupby_sale_date_invoice" context="{'group_by':'sale_date_invoice'}"/>
+				</group>
+			</search>
+		</field>
+	</record>
+
+	<record id="sales_data_report_action_view_all" model="ir.actions.act_window">
+		<field name="name">Sales Data Analysis</field>
+		<field name="res_model">sales.data.report</field>
+		<field name="view_mode">tree,pivot,graph</field>
+		<field name="search_view_id" ref="sales_data_report_view_search"/>
+		<field name="view_id" ></field>  <!-- force empty -->
+		<field name="domain">[]</field>
+		<field name="context">{
+			'attribute_size_lop': 'size_lop',
+			'attribute_dong_lop': 'dong_lop',
+			'attribute_ma_gai': 'ma_gai',
+			'attribute_rim_diameter_inch': 'rim_diameter_inch',
+			'search_default_filter_current_year': 1,
+			'search_default_filter_current_month': 1,
+			'group_by': [],
+		}</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_empty_folder">
+				No data yet, please validate and update data!
+			</p>
+		</field>
+	</record>
+
+	<record id="sales_data_report_action_view_salesman_only" model="ir.actions.act_window" >
+		<field name="name">Sales Data Analysis</field>
+		<field name="res_model">sales.data.report</field>
+		<field name="view_mode">tree,pivot,graph</field>
+		<field name="search_view_id" ref="sales_data_report_view_search"/>
+		<field name="view_id" ></field>  <!-- force empty -->
+		<field name="domain">[('sale_user_id', '=', uid)]</field>
+		<field name="context">{
+			'attribute_size_lop': 'size_lop',
+			'attribute_dong_lop': 'dong_lop',
+			'attribute_ma_gai': 'ma_gai',
+			'attribute_rim_diameter_inch': 'rim_diameter_inch',
+			'group_by': [],
+		}</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_empty_folder">
+				No data yet, please validate and update data!
+			</p>
+		</field>
+	</record>
+</odoo>
