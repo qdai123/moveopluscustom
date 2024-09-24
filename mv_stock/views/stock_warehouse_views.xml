@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+	<record id="mv_stock_inherit_warehouse_view_form" model="ir.ui.view">
+		<field name="name">mv_stock.inherit.warehouse.form</field>
+		<field name="model">stock.warehouse</field>
+		<field name="inherit_id" ref="stock.view_warehouse"/>
+		<field name="priority" eval="30"/>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='partner_id']" position="after">
+				<label for="allow_stock_users_access" string="Mở quyền hạn"/>
+				<div class="row">
+					<field name="allow_stock_users_access"/>
+					<button
+							class="oe_inline btn-link load-stock-users"
+							type="object"
+							name="load_stock_users_access" context="{'trigger_load_default_stock_users': True}"
+							invisible="not allow_stock_users_access or stock_users_access_ids">
+						<i title="Load Users" role="img" aria-label="Load Users" class="fa fa-fw fa-refresh"/>
+					</button>
+				</div>
+				<field name="stock_users_access_ids" string="Người dùng (s)" widget="many2many_tags" invisible="not allow_stock_users_access"/>
+			</xpath>
+		</field>
+	</record>
+
+</odoo>
