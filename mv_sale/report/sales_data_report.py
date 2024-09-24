@@ -25,6 +25,19 @@ class SalesDataReport(models.Model):
     def _get_done_states(self):
         return ["sale"]
 
+    # % of Quantity
+    percent_of_quantity = fields.Float(
+        "% of Quantity",
+        digits=(16, 1),
+        readonly=True,
+    )
+    # % of Revenue
+    percent_of_revenue = fields.Float(
+        "% of Revenue",
+        digits=(16, 1),
+        readonly=True,
+    )
+
     # [sale.order] fields
     sale_id = fields.Many2one(
         "sale.order",
@@ -32,11 +45,7 @@ class SalesDataReport(models.Model):
         readonly=True,
         index=True,
     )
-    sale_reference = fields.Char(
-        "Order Reference",
-        readonly=True,
-        index=True,
-    )
+    sale_reference = fields.Char("Order Reference", readonly=True, index=True)
     sale_date_order = fields.Date("Order Date", readonly=True)
     sale_weekday_order = fields.Char("Weekday (Order)", readonly=True)
     sale_week_number = fields.Char("Week Number (Order)", readonly=True)
@@ -123,6 +132,11 @@ class SalesDataReport(models.Model):
         string="Related Order",
         selection=[("sale.order", "Sales Order")],
         group_operator="count_distinct",
+    )
+    is_product_promotion = fields.Boolean(
+        "Is Promotion",
+        readonly=True,
+        help="Product is 100% off!",
     )
     product_category_id = fields.Many2one(
         "product.category",
@@ -248,24 +262,25 @@ class SalesDataReport(models.Model):
     # ==================================
 
     def _select_partners(self):
+        """Return the SQL query to fetch partners has sales orders."""
         query = """
             SELECT p.id,
-                        p.short_name            AS partner_nickname,
-                        p.company_registry      AS company_registry,
-                        p.commercial_partner_id AS commercial_partner_id,
+                        p.commercial_partner_id,
+                        p.company_registry       AS company_registry,
+                        p.short_name                AS partner_nickname,
                         p.street,
-                        p.street2,
                         p.wards_id,
                         p.district_id,
                         p.state_id,
                         p.country_id
             FROM res_partner p
-            WHERE p.active 
+            WHERE p.active
                 AND p.is_agency
-                AND p.use_for_report IS DISTINCT FROM TRUE
+                AND p.use_for_report
                 AND EXISTS (SELECT 1
                                      FROM sale_order s
                                      WHERE s.partner_id = p.id)
+            ORDER BY p.id
         """
         return query
 
@@ -317,10 +332,6 @@ class SalesDataReport(models.Model):
                            WHEN l.product_id IS NOT NULL AND SUM(l.product_uom_qty) > 0
                                THEN 1.0
                            ELSE 0 END                   AS product_uom_qty,
-                       CASE
-                           WHEN l.product_id IS NOT NULL AND SUM(l.qty_delivered) > 0
-                               THEN 1.0
-                           ELSE 0 END                   AS qty_delivered,
                        CASE
                            WHEN l.product_id IS NOT NULL AND SUM(l.qty_invoiced) > 0
                                THEN 1.0
@@ -516,11 +527,13 @@ class SalesDataReport(models.Model):
                         lot.ref              AS qrcode,
                         so.product_uom,
                         so.product_uom_qty,
-                        so.qty_delivered,
+                        sml.quantity                          AS qty_delivered,
+                        0                          AS percent_of_quantity,
                         so.qty_invoiced,
                         so.price_unit,
                         so.price_total,
                         so.price_subtotal,
+                        0                          AS percent_of_revenue,
                         so.sale_id,
                         so.sale_reference,
                         so.order_reference,
