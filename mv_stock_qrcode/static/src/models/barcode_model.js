@@ -21,41 +21,74 @@ patch(BarcodeModel.prototype, {
     // ACTIONS
 
     async processBarcode(barcode) {
-        const codeScanning = barcode;
         let scanningQRCode = false;
         let scanningBarcode = false;
+        const codeScanning = barcode;
+        const stockOperationType = this.config.operation_type || '';
 
-        let moveLinesObj = Object.values(this.cache.dbIdCache['stock.move.line']);
-        if (moveLinesObj) {
-            let listQRCodeToCompare = moveLinesObj.map(rec => rec.qr_code);
-            if (listQRCodeToCompare.includes(codeScanning)) {
-                scanningQRCode = true;
-            } else {
+        if (stockOperationType && ["incoming", "outgoing"].includes(stockOperationType)) {
+            let modelMoveLineEnv = Object.values(this.cache.dbIdCache['stock.move.line']);
+            if (!modelMoveLineEnv) {
                 scanningBarcode = true;
+            } else {
+                if (modelMoveLineEnv.map(rec => rec.qr_code).includes(codeScanning)) {
+                    scanningQRCode = true;
+                } else {
+                    scanningBarcode = true;
+                }
             }
-        } else {
-            scanningBarcode = true;
-        }
 
-        // Validate: Picking DONE
-        if (this.isDone && !this.commands[codeScanning]) {
-            return this.notification(_t("Picking is already DONE!"), { type: "danger" });
-        }
+            // Validate: Picking DONE
+            if (this.isDone && !this.commands[codeScanning]) {
+                return this.notification(
+                    _t("Picking is already DONE!"),
+                    { type: "danger" }
+                );
+            }
 
-        if (scanningQRCode) {
             const moveLineObj = await this.orm.searchRead(
                 "stock.move.line",
                 [["picking_id", "in", this.recordIds], ["qr_code", "=", codeScanning]],
                 ["id", "product_id", "lot_name", "inventory_period_name", "qr_code", "quantity"]
             );
-            this.actionMutex.exec(() => this._processQRCode(codeScanning, moveLineObj));
-        } else {
-            this.actionMutex.exec(() => this._processBarcode(codeScanning));
+            if (scanningBarcode) {
+                if (stockOperationType == "incoming") {
+                    let productBarcodeExistInPageLines = this._checkProductBarcodeExistInPageLines(codeScanning);
+                    let qrcodeExistInPageLines = this._checkQRCodeExistInPageLines(codeScanning);
+                    let lotNameExistInPageLines = this._checkLotNameExistInPageLines(codeScanning);
+                    if (!qrcodeExistInPageLines && (lotNameExistInPageLines || productBarcodeExistInPageLines)) {
+                        this.actionMutex.exec(() => this._processBarcode(codeScanning));
+                    } else {
+                        this.actionMutex.exec(() => this._processQRCode(codeScanning, "incoming", moveLineObj));
+                    }
+                } else if (stockOperationType == "outgoing") {
+                    this.actionMutex.exec(() => this._processQRCode(codeScanning, "outgoing", moveLineObj));
+                }
+            } else if (scanningQRCode) {
+                this.actionMutex.exec(() => this._processQRCode(codeScanning, stockOperationType, moveLineObj));
+            } else {
+                return this.notification(
+                    _t("The scanned code does not exist in the receipt list!"),
+                    { type: "danger" }
+                );
+            }
         }
     },
 
     // --------------------------------------------------------------------------
     // Private
     // --------------------------------------------------------------------------
+
+    _checkProductBarcodeExistInPageLines(code) {
+        return this.pageLines.some(line => line.product_barcode === code);
+    },
+
+    _checkQRCodeExistInPageLines(code) {
+        return this.pageLines.some(line => line.qr_code === code);
+    },
+
+    _checkLotNameExistInPageLines(code) {
+        return this.pageLines.some(line => line.lot_name === code);
+    }
 
 });
