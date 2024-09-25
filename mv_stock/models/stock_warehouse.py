@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import fields, models
 
 
 class Warehouse(models.Model):
@@ -32,3 +32,17 @@ class Warehouse(models.Model):
     def refresh_stock_users_access(self):
         self.mapped("stock_users_access_ids").invalidate_cache()
         return True
+
+    def get_current_warehouses_by_user_access(self):
+        user = self.env.user
+        domain = []
+
+        if not user.has_group("stock.group_stock_manager"):
+            domain = [
+                ("allow_stock_users_access", "=", True),
+                ("stock_users_access_ids", "in", user.id),
+            ]
+
+        return self.env["stock.warehouse"].search_read(
+            domain=domain, fields=["id", "name", "code"], order="name"
+        )
