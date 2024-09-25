@@ -28,6 +28,11 @@ class MvComputeDiscountLine(models.Model):
         store=True,
     )
     partner_id = fields.Many2one("res.partner", "Đại lý")
+    partner_company_ref = fields.Char(
+        related="partner_id.company_registry",
+        string="Mã đại lý",
+        store=True,
+    )
     partner_sales_state = fields.Selection(
         [
             ("qualified", "Đạt"),

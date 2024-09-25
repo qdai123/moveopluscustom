@@ -119,7 +119,8 @@
 				<field string="Ngày" name="sale_day_invoice" optional="hidden"/>
 				<field string="Tháng" name="sale_month_invoice" optional="hidden"/>
 				<field string="Năm" name="sale_year_invoice" optional="hidden"/>
-				<field string="Đơn hàng" name="sale_id" class="fw-bold" options="{'no_open': True}"/>
+				<field column_invisible="1" name="sale_id"/>
+				<field string="Đơn hàng" name="sale_reference" class="fw-bold"/>
 				<field string="Danh mục" name="product_category_id" options="{'no_open': True}" optional="hidden"/>
 				<field string="Sản phẩm" name="product_template_id" options="{'no_open': True}"/>
 				<field string="Nguồn gốc" name="product_country_of_origin" options="{'no_open': True}" optional="hidden"/>
@@ -129,6 +130,10 @@
 				<field string="Dòng (lốp)" name="product_att_dong_lop" optional="hidden"/>
 				<field string="Mã gai" name="product_att_ma_gai" optional="hidden"/>
 				<field string="Đường kính Mâm" name="product_att_rim_diameter_inch" optional="hidden"/>
+				<field string="Ngày kích họat" name="warranty_activation_date" optional="hidden"/>
+				<field string="Ngày bảo hành" name="warranty_claimed_date" optional="hidden"/>
+				<field string="Được đồng ý bảo hành?" name="is_warranty_product_accepted" optional="hidden"/>
+				<field string="Đã duyệt bảo hành?" name="is_warranty_claimed_approved" optional="hidden"/>
 				<field string="Đơn giá" name="price_unit" class="fw-bold" optional="show"/>
 				<field string="Đơn giá (Sau C/K)" name="price_subtotal" class="fw-bold" sum="Sum of Untaxed Total" optional="hidden"/>
 				<field string="Tổng" name="price_total" class="fw-bold" sum="Sum of Total" groups="sales_team.group_sale_manager" optional="hidden"/>
@@ -161,12 +166,22 @@
 				<field string="Mã vạch" name="serial_number"/>
 				<field string="Mã QR-Code" name="qrcode"/>
 				<field string="Đại lý" name="sale_partner_id"/>
+				<filter string="Current Year" name="filter_current_year" domain="[('sale_date_order', '&gt;=', (context_today()).strftime('%Y-01-01')), ('sale_date_order', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
+				<separator/>
+				<filter string="Current Month" name="filter_current_month" domain="[('sale_date_order', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('sale_date_order', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
+                <filter string="Previous Month" name="filter_previous_month" domain="[('sale_date_order', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')), ('sale_date_order', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
+				<separator/>
 				<filter string="Đơn hàng của tôi" name="filter_my_sale_order" domain="[('sale_user_id', '=', uid)]" groups="sales_team.group_sale_salesman_all_leads"/>
 				<separator/>
 				<filter string="Cần xuất hoá đơn" name="filter_to_invoice" domain="[('sale_invoice_status', '=', 'to invoice')]"/>
                 <filter string="Đã xuất hoá đơn hết" name="filter_fully_invoiced" domain="[('sale_invoice_status', '=', 'invoiced')]"/>
 				<separator/>
-				<filter string="Khuyến mãi" name="filter_order_promo" domain="['|', ('discount', '=', 100), ('price_unit', '=', 0)]"/>
+				<filter string="Bán hàng" name="filter_product_sale_confirmed" domain="[('sale_status', '=', 'sale'), ('price_subtotal', '>', 0)]"/>
+				<filter string="Khuyến mãi" name="filter_product_promo" domain="['|', ('discount', '=', 100), ('price_unit', '=', 0)]"/>
+				<separator/>
+				<filter string="Có kích hoạt bảo hành" name="filter_has_warranty_activation" domain="[('warranty_activation_date', '!=', False)]"/>
+				<filter string="Được bảo hành" name="filter_warranty_claim_accepted" domain="[('is_warranty_product_accepted', '=', True)]"/>
+				<filter string="Đã duyệt bảo hành" name="filter_warranty_claim_approved" domain="[('is_warranty_claimed_approved', '=', True)]"/>
 				<group expand="0" string="Extended Filters">
                     <field string="Danh mục sản phẩm" name="product_category_id" filter_domain="[('product_category_id', 'child_of', self)]"/>
                     <field string="Công ty" name="sale_company_id" groups="base.group_multi_company"/>
@@ -208,7 +223,8 @@
 			'attribute_dong_lop': 'dong_lop',
 			'attribute_ma_gai': 'ma_gai',
 			'attribute_rim_diameter_inch': 'rim_diameter_inch',
-			'search_default_filter_fully_invoiced': 1,
+			'search_default_filter_current_year': 1,
+			'search_default_filter_current_month': 1,
 			'group_by': [],
 		}</field>
 		<field name="help" type="html">
@@ -218,7 +234,7 @@
 		</field>
 	</record>
 
-	<record id="sales_data_report_action_view_salesman_only" model="ir.actions.act_window">
+	<record id="sales_data_report_action_view_salesman_only" model="ir.actions.act_window" >
 		<field name="name">Sales Data Analysis</field>
 		<field name="res_model">sales.data.report</field>
 		<field name="view_mode">tree,pivot,graph</field>
@@ -230,7 +246,6 @@
 			'attribute_dong_lop': 'dong_lop',
 			'attribute_ma_gai': 'ma_gai',
 			'attribute_rim_diameter_inch': 'rim_diameter_inch',
-			'search_default_filter_fully_invoiced': 1,
 			'group_by': [],
 		}</field>
 		<field name="help" type="html">

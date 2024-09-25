@@ -8,10 +8,10 @@
                 <form>
                     <group>
                         <group>
-                            <field name="date_from" />
+                            <field name="date_from" widget="date"/>
                         </group>
                         <group>
-                            <field name="date_to" />
+                            <field name="date_to" widget="date"/>
                         </group>
                     </group>
                     <footer>
