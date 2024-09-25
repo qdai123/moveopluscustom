@@ -40,7 +40,7 @@ class Warehouse(models.Model):
         if not user.has_group("stock.group_stock_manager"):
             domain = [
                 ("allow_stock_users_access", "=", True),
-                ("stock_users_access_ids", "in", user.id),
+                ("stock_users_access_ids", "in", [user.id]),
             ]
 
         return self.env["stock.warehouse"].search_read(
