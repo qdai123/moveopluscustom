@@ -29,8 +29,7 @@
                         </h1>
                         <field name="company_ids" widget="many2many_tags"
                                options="{'no_create': True, 'no_create_edit': True}"
-                               required="true"
-                               groups="base.group_multi_company"/>
+                        />
                     </div>
                     <notebook>
                         <page string="Dự toán Doanh Nghiệp">
@@ -48,31 +47,31 @@
                             </group>
 
 
-                                <group>
-                                    <group string="Dữ liệu quý I(Triệu đồng)">
-                                        <field name="january"/>
-                                        <field name="february"/>
-                                        <field name="march"/>
-                                    </group>
-                                    <group string="Dữ liệu quý II(Triệu đồng)">
-                                        <field name="april"/>
-                                        <field name="may"/>
-                                        <field name="june"/>
-                                    </group>
+                            <group>
+                                <group string="Dữ liệu quý I(Triệu đồng)">
+                                    <field name="january"/>
+                                    <field name="february"/>
+                                    <field name="march"/>
+                                </group>
+                                <group string="Dữ liệu quý II(Triệu đồng)">
+                                    <field name="april"/>
+                                    <field name="may"/>
+                                    <field name="june"/>
+                                </group>
 
+                            </group>
+                            <group>
+                                <group string="Dữ liệu quý III(Triệu đồng)">
+                                    <field name="july"/>
+                                    <field name="august"/>
+                                    <field name="september"/>
                                 </group>
-                                <group>
-                                    <group string="Dữ liệu quý III(Triệu đồng)">
-                                        <field name="july"/>
-                                        <field name="august"/>
-                                        <field name="september"/>
-                                    </group>
-                                    <group string="Dữ liệu quý IV(Triệu đồng)">
-                                        <field name="october"/>
-                                        <field name="november"/>
-                                        <field name="december"/>
-                                    </group>
+                                <group string="Dữ liệu quý IV(Triệu đồng)">
+                                    <field name="october"/>
+                                    <field name="november"/>
+                                    <field name="december"/>
                                 </group>
+                            </group>
                         </page>
                         <page string="Cấu hình chính sách">
                             <field name="line_ids" nolabel="1">

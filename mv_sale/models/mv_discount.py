@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+from datetime import datetime
+def year_selection():
+    return [(str(year), str(year)) for year in range(2000, datetime.now().year + 1)]
 
 
 class MvDiscountPolicy(models.Model):
@@ -35,9 +38,10 @@ class MvDiscountPolicy(models.Model):
     )
     # =================================
     in_year = fields.Selection(
-        selection=[(str(year), str(year)) for year in range(2000, fields.Date.today().year + 1)],
+        selection=year_selection(),
         string='Năm (Áp dụng)',
-        required=True
+        required=True,
+        default=lambda self: str(fields.Date.today().year)
     )
 
     january = fields.Float(string='Tháng 1', default=0.0)
@@ -87,27 +91,32 @@ class MvDiscountPolicy(models.Model):
     forecasted_sales_first_quarterly = fields.Float(
         string='Doanh số Quý I',
         compute='_compute_first_quarter',
-        readonly=True
+        readonly=True,
+        store=True
     )
     forecasted_sales_second_quarterly = fields.Float(
         string='Doanh số Quý II',
         compute='_compute_second_quarter',
-        readonly=True
+        readonly=True,
+        store=True
     )
     forecasted_sales_third_quarterly = fields.Float(
         string='Doanh số Quý III',
         compute='_compute_third_quarter',
-        readonly=True
+        readonly=True,
+        store=True
     )
     forecasted_sales_fourth_quarterly = fields.Float(
         string='Doanh số Quý IV',
         compute='_compute_fourth_quarter',
-        readonly=True
+        readonly=True,
+        store=True
     )
     forecasted_yearly_sales = fields.Float(
         string='Doanh số Năm',
         compute='_compute_yearly_sales',
-        readonly=True
+        readonly=True,
+        store=True
     )
 
     @api.onchange('in_year')
@@ -125,6 +134,7 @@ class MvDiscountPolicy(models.Model):
             self.october = 0.0
             self.november = 0.0
             self.december = 0.0
+
     # =================================
     # CONSTRAINS Methods
     # =================================
