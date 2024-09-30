@@ -1,127 +1,175 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- Model: MOVEO PLUS Discount Policy (Configuration) -->
-	<record model="ir.ui.view" id="mv_discount_tree">
-		<field name="name">mv.discount.policy.tree</field>
-		<field name="model">mv.discount</field>
-		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Discount LIST">
-				<field name="name"/>
-			</tree>
-		</field>
-	</record>
+    <!-- Model: MOVEO PLUS Discount Policy (Configuration) -->
+    <record model="ir.ui.view" id="mv_discount_tree">
+        <field name="name">mv.discount.policy.tree</field>
+        <field name="model">mv.discount</field>
+        <field name="arch" type="xml">
+            <tree string="MOVEO PLUS Discount LIST">
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
 
-	<record model="ir.ui.view" id="mv_discount_form">
-		<field name="name">mv_discount_form</field>
-		<field name="model">mv.discount</field>
-		<field name="arch" type="xml">
-			<form string="MV Discount FORM">
-				<sheet string="Discount">
-					<field name="active" invisible="True"/>
-					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
-					<div class="oe_title pe-0">
+    <record model="ir.ui.view" id="mv_discount_form">
+        <field name="name">mv_discount_form</field>
+        <field name="model">mv.discount</field>
+        <field name="arch" type="xml">
+            <form string="MV Discount FORM">
+                <sheet string="Discount">
+                    <field name="active" invisible="True"/>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title pe-0">
                         <h1 class="d-flex justify-content-between align-items-center">
                             <div class="d-flex w-100">
-                                <field name="name" options="{'line_breaks': False}" widget="text" class="o_task_name text-truncate w-md-75 w-100 pe-2" placeholder="Task Title..."/>
+                                <field name="name" options="{'line_breaks': False}" widget="text"
+                                       class="o_task_name text-truncate w-md-75 w-100 pe-2"
+                                       placeholder="Task Title..."/>
                             </div>
                         </h1>
+                        <field name="company_ids" widget="many2many_tags"
+                               options="{'no_create': True, 'no_create_edit': True}"
+                               required="true"
+                               groups="base.group_multi_company"/>
                     </div>
-					<notebook>
-						<page string="Cấu hình chính sách">
-							<field name="line_ids" nolabel="1">
-								<tree default_order="level" editable="bottom">
-									<field name="level" string="Cấp bậc"/>
-									<field name="pricelist_id" column_invisible="True"/>
-									<field name="quantity_from" string="Số lượng Min"/>
-									<field name="quantity_to" string="Số lượng Max"/>
-									<field name="basic" string="CK Cơ bản" readonly="1" force_save="1"/>
-									<field name="month" string="CK Tháng"/>
-									<field name="two_month" string="CK 2 Tháng"/>
-									<field name="quarter" string="CK Quý"/>
-									<field name="year" string="CK Năm"/>
-								</tree>
-							</field>
-						</page>
-						<page string="Cấu hình chính sách Khuyến Khích">
-							<group>
-								<group>
-									<field name="level_promote_apply" string="Cấp bậc áp dụng"/>
-								</group>
-								<group/>
-							</group>
-							<field name="line_promote_ids" nolabel="1" context="{'default_parent_id': id, 'level_apply': level_promote_apply}">
-								<tree editable="bottom">
-									<field name="parent_id" column_invisible="True"/>
-									<field name="pricelist_id" column_invisible="True"/>
-									<field name="quantity_minimum"/>
-									<field name="quantity_maximum"/>
-									<field name="promote_discount"/>
-								</tree>
-							</field>
-						</page>
-						<page string="Cấu hình chính sách Khuyến Khích Vùng Trắng">
-							<field name="line_white_place_ids" nolabel="1" context="{'default_parent_id': id}">
-								<tree editable="bottom">
-									<field name="parent_id" column_invisible="True"/>
-									<field name="pricelist_id" column_invisible="True"/>
-									<field name="quantity"/>
-									<field name="discount"/>
-								</tree>
-							</field>
-						</page>
-						<page string="Khách hàng / Đại lý">
-							<field name="partner_ids" nolabel="1">
-								<tree default_order="level" editable="bottom">
-									<field name="partner_id" string="Khách hàng / Đại lý"/>
-									<field name="date" string="Ngày hiệu lực"/>
-									<field name="level" string="Cấp bậc"/>
-									<field name="min_debt"/>
-									<field name="max_debt"/>
-									<field name="number_debt"/>
-								</tree>
-							</field>
-						</page>
-					</notebook>
-				</sheet>
-			</form>
-		</field>
-	</record>
+                    <notebook>
+                        <page string="Dự toán Doanh Nghiệp">
+                            <group>
+                                <group>
+                                    <field name="in_year"/>
+                                    <field name="forecasted_yearly_sales"/>
+                                </group>
+                                <group>
+                                    <field name="forecasted_sales_first_quarterly"/>
+                                    <field name="forecasted_sales_second_quarterly"/>
+                                    <field name="forecasted_sales_third_quarterly"/>
+                                    <field name="forecasted_sales_fourth_quarterly"/>
+                                </group>
+                            </group>
 
-	<record id="mv_discount_action" model="ir.actions.act_window">
-		<field name="name">Cấu hình chiết khấu Đại lý</field>
-		<field name="res_model">mv.discount</field>
-		<field name="view_mode">tree,form</field>
-	</record>
 
-	<!-- Model: MOVEO PLUS Discount Policy Line (Configuration) -->
-	<record model="ir.ui.view" id="mv_discount_line_tree">
-		<field name="name">mv.discount.policy.line.tree</field>
-		<field name="model">mv.discount.line</field>
-		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Discount Line LIST">
-				<field name="level"/>
-				<field name="quantity_from"/>
-				<field name="quantity_to"/>
-				<field name="basic"/>
-				<field name="money"/>
-				<field name="month"/>
-				<field name="month_money"/>
-				<field name="two_month"/>
-				<field name="two_money"/>
-				<field name="quarter"/>
-				<field name="quarter_money"/>
-				<field name="year"/>
-				<field name="year_money"/>
-				<field name="total_discount"/>
-				<field name="total_money"/>
-				<field name="average"/>
-				<field name="min_debt"/>
-				<field name="max_debt"/>
-				<field name="number_debt"/>
-				<field name="discount_payment"/>
-				<field name="discount_guarantee"/>
-				<field name="total_all"/>
-			</tree>
-		</field>
-	</record>
+                                <group>
+                                    <group string="Dữ liệu quý I(Triệu đồng)">
+                                        <field name="january"/>
+                                        <field name="february"/>
+                                        <field name="march"/>
+                                    </group>
+                                    <group string="Dữ liệu quý II(Triệu đồng)">
+                                        <field name="april"/>
+                                        <field name="may"/>
+                                        <field name="june"/>
+                                    </group>
+
+                                </group>
+                                <group>
+                                    <group string="Dữ liệu quý III(Triệu đồng)">
+                                        <field name="july"/>
+                                        <field name="august"/>
+                                        <field name="september"/>
+                                    </group>
+                                    <group string="Dữ liệu quý IV(Triệu đồng)">
+                                        <field name="october"/>
+                                        <field name="november"/>
+                                        <field name="december"/>
+                                    </group>
+                                </group>
+                        </page>
+                        <page string="Cấu hình chính sách">
+                            <field name="line_ids" nolabel="1">
+                                <tree default_order="level" editable="bottom">
+                                    <field name="level" string="Cấp bậc"/>
+                                    <field name="pricelist_id" column_invisible="True"/>
+                                    <field name="quantity_from" string="Số lượng Min"/>
+                                    <field name="quantity_to" string="Số lượng Max"/>
+                                    <field name="basic" string="CK Cơ bản" readonly="1" force_save="1"/>
+                                    <field name="month" string="CK Tháng"/>
+                                    <field name="two_month" string="CK 2 Tháng"/>
+                                    <field name="quarter" string="CK Quý"/>
+                                    <field name="year" string="CK Năm"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Cấu hình chính sách Khuyến Khích">
+                            <group>
+                                <group>
+                                    <field name="level_promote_apply" string="Cấp bậc áp dụng"/>
+                                </group>
+                                <group/>
+                            </group>
+                            <field name="line_promote_ids" nolabel="1"
+                                   context="{'default_parent_id': id, 'level_apply': level_promote_apply}">
+                                <tree editable="bottom">
+                                    <field name="parent_id" column_invisible="True"/>
+                                    <field name="pricelist_id" column_invisible="True"/>
+                                    <field name="quantity_minimum"/>
+                                    <field name="quantity_maximum"/>
+                                    <field name="promote_discount"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Cấu hình chính sách Khuyến Khích Vùng Trắng">
+                            <field name="line_white_place_ids" nolabel="1" context="{'default_parent_id': id}">
+                                <tree editable="bottom">
+                                    <field name="parent_id" column_invisible="True"/>
+                                    <field name="pricelist_id" column_invisible="True"/>
+                                    <field name="quantity"/>
+                                    <field name="discount"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Khách hàng / Đại lý">
+                            <field name="partner_ids" nolabel="1">
+                                <tree default_order="level" editable="bottom">
+                                    <field name="partner_id" string="Khách hàng / Đại lý"/>
+                                    <field name="date" string="Ngày hiệu lực"/>
+                                    <field name="level" string="Cấp bậc"/>
+                                    <field name="min_debt"/>
+                                    <field name="max_debt"/>
+                                    <field name="number_debt"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="mv_discount_action" model="ir.actions.act_window">
+        <field name="name">Cấu hình chiết khấu Đại lý</field>
+        <field name="res_model">mv.discount</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Model: MOVEO PLUS Discount Policy Line (Configuration) -->
+    <record model="ir.ui.view" id="mv_discount_line_tree">
+        <field name="name">mv.discount.policy.line.tree</field>
+        <field name="model">mv.discount.line</field>
+        <field name="arch" type="xml">
+            <tree string="MOVEO PLUS Discount Line LIST">
+                <field name="level"/>
+                <field name="quantity_from"/>
+                <field name="quantity_to"/>
+                <field name="basic"/>
+                <field name="money"/>
+                <field name="month"/>
+                <field name="month_money"/>
+                <field name="two_month"/>
+                <field name="two_money"/>
+                <field name="quarter"/>
+                <field name="quarter_money"/>
+                <field name="year"/>
+                <field name="year_money"/>
+                <field name="total_discount"/>
+                <field name="total_money"/>
+                <field name="average"/>
+                <field name="min_debt"/>
+                <field name="max_debt"/>
+                <field name="number_debt"/>
+                <field name="discount_payment"/>
+                <field name="discount_guarantee"/>
+                <field name="total_all"/>
+            </tree>
+        </field>
+    </record>
 </odoo>
