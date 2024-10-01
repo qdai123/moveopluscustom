@@ -38,22 +38,20 @@
                                     <field name="in_year"/>
                                     <field name="forecasted_yearly_sales"/>
                                 </group>
-                                <group>
+                                <group invisible="1">
                                     <field name="forecasted_sales_first_quarterly"/>
                                     <field name="forecasted_sales_second_quarterly"/>
                                     <field name="forecasted_sales_third_quarterly"/>
                                     <field name="forecasted_sales_fourth_quarterly"/>
                                 </group>
                             </group>
-
-
                             <group>
-                                <group string="Dữ liệu quý I(Triệu đồng)">
+                                <group string="Dữ liệu quý I (Số lượng)">
                                     <field name="january"/>
                                     <field name="february"/>
                                     <field name="march"/>
                                 </group>
-                                <group string="Dữ liệu quý II(Triệu đồng)">
+                                <group string="Dữ liệu quý II (Số lượng)">
                                     <field name="april"/>
                                     <field name="may"/>
                                     <field name="june"/>
@@ -61,12 +59,12 @@
 
                             </group>
                             <group>
-                                <group string="Dữ liệu quý III(Triệu đồng)">
+                                <group string="Dữ liệu quý III (Số lượng)">
                                     <field name="july"/>
                                     <field name="august"/>
                                     <field name="september"/>
                                 </group>
-                                <group string="Dữ liệu quý IV(Triệu đồng)">
+                                <group string="Dữ liệu quý IV (Số lượng)">
                                     <field name="october"/>
                                     <field name="november"/>
                                     <field name="december"/>
