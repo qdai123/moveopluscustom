@@ -1,10 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
-        <record id="mv_show_inventory_report_group" model="res.groups">
-            <field name="name">Hiện báo cáo tồn kho</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
-            <field name="implied_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
-        </record>
-    </data>
+	<record id="mv_show_inventory_report_group" model="res.groups">
+		<field name="name">Hiện báo cáo tồn kho</field>
+		<field name="category_id" ref="base.module_category_hidden"/>
+		<field name="implied_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+	</record>
+
+	<data noupdate="1">
+
+		<!-- Picking Type: User -->
+		<record id="mv_stock_picking_type_users_only_read_on_their_warehouse_rule" model="ir.rule">
+			<field name="name">Stock Picking Type: Users have read-only access to their warehouses</field>
+			<field name="model_id" ref="stock.model_stock_picking_type"/>
+			<field name="domain_force">[
+				'|',
+				('warehouse_id.stock_users_access_ids', '=', user.id),
+				('warehouse_id.stock_users_access_ids', '=', False)
+			]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
+			<field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="perm_write" eval="False"/>
+		</record>
+
+		<!-- Picking Type: Manager -->
+		<record id="mv_stock_picking_type_manager_full_access_rule" model="ir.rule">
+			<field name="name">Stock Picking Type: Manager have full-access</field>
+			<field name="model_id" ref="stock.model_stock_picking_type"/>
+			<field name="domain_force">[(1, '=', 1)]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_manager'))]"/>
+		</record>
+
+		<!-- Picking: User -->
+		<record id="mv_stock_picking_users_cru_their_warehouse_rule" model="ir.rule">
+			<field name="name">Stock Picking: Create/Read/Update only to their warehouses</field>
+			<field name="model_id" ref="stock.model_stock_picking"/>
+			<field name="domain_force">[
+				'|',
+				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
+				('location_id.warehouse_id.stock_users_access_ids', '=', False)
+			]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
+			<field name="perm_unlink" eval="False"/>
+		</record>
+
+		<!-- Picking: Manager -->
+		<record id="mv_stock_picking_manager_full_access_rule" model="ir.rule">
+			<field name="name">Stock Picking: Manager have full-access</field>
+			<field name="model_id" ref="stock.model_stock_picking"/>
+			<field name="domain_force">[(1, '=', 1)]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_manager'))]"/>
+		</record>
+
+		<!-- Quant: User -->
+		<record id="mv_stock_quant_users_cru_their_warehouse_rule" model="ir.rule">
+			<field name="name">Stock Quant: Create/Read/Update only to their warehouses</field>
+			<field name="model_id" ref="stock.model_stock_quant"/>
+			<field name="domain_force">[
+				'|',
+				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
+				('location_id.warehouse_id.stock_users_access_ids', '=', False)
+			]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
+			<field name="perm_unlink" eval="False"/>
+		</record>
+
+		<!-- Quant: Manager -->
+		<record id="mv_stock_quant_manager_full_access_rule" model="ir.rule">
+			<field name="name">Stock Quant: Manager have full-access</field>
+			<field name="model_id" ref="stock.model_stock_quant"/>
+			<field name="domain_force">[(1, '=', 1)]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_manager'))]"/>
+		</record>
+
+		<!-- Lot: User -->
+		<record id="mv_stock_lot_users_crud_their_warehouse_rule" model="ir.rule">
+			<field name="name">Stock Lot: Create/Read/Update/Delete only to their warehouses</field>
+			<field name="model_id" ref="stock.model_stock_lot"/>
+			<field name="domain_force">[
+				'|',
+				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
+				('location_id.warehouse_id.stock_users_access_ids', '=', False)
+			]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
+		</record>
+
+		<!-- Lot: Manager -->
+		<record id="mv_stock_lot_manager_full_access_rule" model="ir.rule">
+			<field name="name">Stock Lot: Manager have full-access</field>
+			<field name="model_id" ref="stock.model_stock_lot"/>
+			<field name="domain_force">[(1, '=', 1)]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_manager'))]"/>
+		</record>
+
+		<!-- Scrap: User -->
+		<record id="mv_stock_scrap_users_cru_their_warehouse_rule" model="ir.rule">
+			<field name="name">Stock Scrap: Create/Read/Update only to their warehouses</field>
+			<field name="model_id" ref="stock.model_stock_scrap"/>
+			<field name="domain_force">[
+				'|',
+				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
+				('location_id.warehouse_id.stock_users_access_ids', '=', False)
+			]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
+			<field name="perm_unlink" eval="False"/>
+		</record>
+
+		<!-- Scrap: Manager -->
+		<record id="mv_stock_scrap_manager_full_access_rule" model="ir.rule">
+			<field name="name">Stock Scrap: Manager have full-access</field>
+			<field name="model_id" ref="stock.model_stock_scrap"/>
+			<field name="domain_force">[(1, '=', 1)]</field>
+			<field name="groups" eval="[(4, ref('stock.group_stock_manager'))]"/>
+		</record>
+
+	</data>
 </odoo>

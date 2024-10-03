@@ -20,7 +20,7 @@ class MvBrandProportion(models.Model):
         ondelete="restrict",
     )
     brand_id = fields.Many2one("mv.brand", index=True)
-    year_participation = fields.Char("Năm tham gia", required=True, size=10)
+    year_participation = fields.Char("Năm tham gia", size=10)
     proportion = fields.Float("Tỷ trọng", compute="_compute_proportion", store=True)
     quantity_per_month = fields.Integer("Số lượng/tháng", default=0)
 
@@ -45,18 +45,18 @@ class MvBrandProportion(models.Model):
             if has_partner_survey.total_quantity_brand_proportion_of_tire:
                 if has_partner_survey:
                     record.proportion = (
-                        record.quantity_per_month
-                        / record.partner_survey_id.total_quantity_brand_proportion_of_tire
-                    ) * 1
+                                                record.quantity_per_month
+                                                / record.partner_survey_id.total_quantity_brand_proportion_of_tire
+                                        ) * 1
                 elif has_partner_survey.total_quantity_brand_proportion_of_lubricant:
                     record.proportion = (
-                        record.quantity_per_month
-                        / record.partner_survey_id.total_quantity_brand_proportion_of_lubricant
-                    ) * 1
+                                                record.quantity_per_month
+                                                / record.partner_survey_id.total_quantity_brand_proportion_of_lubricant
+                                        ) * 1
                 elif has_partner_survey.total_quantity_brand_proportion_battery:
                     record.proportion = (
-                        record.quantity_per_month
-                        / record.partner_survey_id.total_quantity_brand_proportion_battery
-                    ) * 1
+                                                record.quantity_per_month
+                                                / record.partner_survey_id.total_quantity_brand_proportion_battery
+                                        ) * 1
             else:
                 record.proportion = 0
