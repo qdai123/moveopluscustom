@@ -48,7 +48,7 @@ class MvDiscountPolicyPartner(models.Model):
     @api.depends("partner_id")
     def _compute_partner_agency(self):
         for mv_partner in self:
-            mv_partner.partner_agency = mv_parner.partner_id.is_agency or False
+            mv_partner.partner_agency = mv_partner.partner_id.is_agency or False
             mv_partner.partner_white_agency = (
                 mv_parner.partner_id.is_white_agency or False
             )
