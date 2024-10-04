@@ -119,7 +119,7 @@ class HelpdeskStockReport(models.Model):
                         t.ticket_update_date                    AS ticket_write_date
                 FROM helpdesk_ticket AS t
                     JOIN res_partner AS p ON (p.id = t.partner_id)
-                    LEFT JOIN mv_helpdesk_ticket_product_moves AS tp ON (tp.helpdesk_ticket_id = t.id)
+                    JOIN mv_helpdesk_ticket_product_moves AS tp ON (tp.helpdesk_ticket_id = t.id)
                 WHERE t.team_id = {warranty_team_id}  AND t.stage_id IN ({ticket_stage_new}, {ticket_stage_done})
                 ORDER BY t.create_date DESC
         """
