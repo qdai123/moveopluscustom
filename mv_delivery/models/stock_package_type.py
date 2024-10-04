@@ -2,7 +2,7 @@
 from odoo import fields, models
 
 
-class StockQuantPackage(models.Model):
-    _inherit = "stock.quant.package"
+class PackageType(models.Model):
+    _inherit = "stock.package.type"
 
     base_volume = fields.Float(string="Volume", help="Volume of the package type")
