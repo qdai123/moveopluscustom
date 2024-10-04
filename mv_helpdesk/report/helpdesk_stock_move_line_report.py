@@ -58,7 +58,13 @@ class HelpdeskStockReport(models.Model):
     ticket_ref = fields.Char(readonly=True)
     ticket_type_id = fields.Many2one("helpdesk.ticket.type", readonly=True)
     ticket_stage_id = fields.Many2one("helpdesk.stage", readonly=True)
-
+    sub_dealer_name = fields.Char(readonly=True)
+    tel_activation = fields.Char(readonly=True)
+    license_plates = fields.Char(readonly=True)
+    mileage = fields.Integer(readonly=True)
+    mv_warranty_license_plate = fields.Char(readonly=True)
+    mv_num_of_km = fields.Float(readonly=True)
+    mv_customer_warranty_date = fields.Date(readonly=True)
     # ==== Partner fields ====
     parent_partner_id = fields.Many2one("res.partner", readonly=True)
     partner_id = fields.Many2one("res.partner", readonly=True)
@@ -94,6 +100,10 @@ class HelpdeskStockReport(models.Model):
                         t.ticket_ref                            AS ticket_ref,
                         t.ticket_type_id                        AS ticket_type_id,
                         t.stage_id                              AS ticket_stage_id,
+                        t.sub_dealer_name                       AS sub_dealer_name,
+                        t.tel_activation                        AS tel_activation,
+                        t.license_plates                        AS license_plates,
+                        t.mileage                               AS mileage,
                         p.parent_id                             AS parent_partner_id,
                         t.partner_id,
                         p.company_registry                      AS partner_company_registry,
@@ -128,7 +138,10 @@ class HelpdeskStockReport(models.Model):
                                                                  sl.name                AS serial_number,
                                                                  sl.ref                 AS qrcode,
                                                                  sl.inventory_period_id AS week_number,
-                                                                 sl.product_id          AS product_id
+                                                                 sl.product_id          AS product_id,
+                                                                 tp.mv_customer_warranty_date            AS mv_customer_warranty_date,
+                                                                 tp.mv_warranty_license_plate            AS mv_warranty_license_plate,
+                                                                 tp.mv_num_of_km                         AS mv_num_of_km
                                                     FROM mv_helpdesk_ticket_product_moves AS tp
                                                             JOIN tickets AS t ON (t.ticket_id = tp.helpdesk_ticket_id)
                                                             JOIN stock_lot AS sl ON (sl.id = tp.stock_lot_id)
