@@ -84,19 +84,19 @@
 									<field name="quantity" optional="show"/>
 									<field name="amount_total" string="Doanh thu" widget="monetary"/>
 									<field column_invisible="1" name="basic"/>
-									<field name="month" optional="hidden"/>
+									<field name="month" string="% C/K Tháng" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field column_invisible="1" name="is_month"/>
 									<field name="month_money" widget="monetary"/>
-									<field name="two_month" optional="hidden"/>
+									<field name="two_month" string="% C/K 2 Tháng" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field name="two_money" widget="monetary"/>
 									<field column_invisible="1" name="is_quarter"/>
-									<field name="quarter" optional="hidden"/>
+									<field name="quarter" string="% C/K Quý" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field name="quarter_money" widget="monetary"/>
 									<field column_invisible="1" name="is_year"/>
-									<field name="year" optional="hidden"/>
+									<field name="year" string="% C/K Năm" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field name="year_money" widget="monetary"/>
 									<field column_invisible="1" name="is_promote_discount"/>
-									<field name="promote_discount_percentage" optional="hidden"/>
+									<field name="promote_discount_percentage" string="% C/K Khuyến Khích" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field name="promote_discount_money" widget="monetary"/>
 									<field name="total_money" string="Tổng số tiền" widget="monetary"/>
 									<button name="action_approve_for_month"

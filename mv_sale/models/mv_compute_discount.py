@@ -251,6 +251,8 @@ class MvComputeDiscount(models.Model):
         partners = self._get_discount_eligible_partners(order_lines)
         for partner_id in partners:
             total_quantity_minimum = 0
+            total_quantity_minimum_in_two_months = 0
+            total_quantity_minimum_in_quarter = 0
             total_quantity_maximum = 0
             total_quantity_delivered = 0
             total_sales = 0
@@ -428,6 +430,7 @@ class MvComputeDiscount(models.Model):
                     vals["discount_line_id"] = discount_line_id.id
 
                     model_load_data = self.env["mv.compute.discount.line"].sudo()
+
                     # [>] Get Sale Promote
                     sale_promote_ids = self.env["sale.order"].browse(
                         model_load_data._sql_get_sale_promote_ids(

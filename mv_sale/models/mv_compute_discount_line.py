@@ -93,8 +93,8 @@ class MvComputeDiscountLine(models.Model):
     )
 
     # TOTAL Fields:
-    opening_balance = fields.Monetary("Số dư đầu kỳ")
-    closing_balance = fields.Monetary("Số dư cuối kỳ")
+    opening_balance = fields.Monetary("Số dư đầu kỳ")  # TODO: Function this field
+    closing_balance = fields.Monetary("Số dư cuối kỳ")  # TODO: Function this field
     amount_total = fields.Float("Doanh thu tháng")
     total_discount = fields.Float("Total % Discount")
     total_money = fields.Integer(
