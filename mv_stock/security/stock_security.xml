@@ -36,8 +36,9 @@
 			<field name="name">Stock Picking: Create/Read/Update only to their warehouses</field>
 			<field name="model_id" ref="stock.model_stock_picking"/>
 			<field name="domain_force">[
-				'|',
-				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
+				'|', '|',
+				('location_id.warehouse_id.stock_users_access_ids', 'in', [user.id]),
+				('location_dest_id.warehouse_id.stock_users_access_ids', 'in', [user.id]),
 				('location_id.warehouse_id.stock_users_access_ids', '=', False)
 			]</field>
 			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
@@ -58,8 +59,8 @@
 			<field name="model_id" ref="stock.model_stock_quant"/>
 			<field name="domain_force">[
 				'|',
-				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
-				('location_id.warehouse_id.stock_users_access_ids', '=', False)
+				('warehouse_id.stock_users_access_ids', '=', user.id),
+				('warehouse_id.stock_users_access_ids', '=', False)
 			]</field>
 			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
 			<field name="perm_unlink" eval="False"/>
@@ -98,8 +99,9 @@
 			<field name="name">Stock Scrap: Create/Read/Update only to their warehouses</field>
 			<field name="model_id" ref="stock.model_stock_scrap"/>
 			<field name="domain_force">[
-				'|',
-				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
+				'|', '|',
+				('location_id.warehouse_id.stock_users_access_ids', 'in', [user.id]),
+				('scrap_location_id.warehouse_id.stock_users_access_ids', 'in', [user.id]),
 				('location_id.warehouse_id.stock_users_access_ids', '=', False)
 			]</field>
 			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>

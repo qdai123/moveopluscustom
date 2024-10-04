@@ -29,6 +29,13 @@
 				       decoration-muted="ticket_stage_id.name == 'Canceled'"
 				       widget="badge"
 				       optional="show"/>
+				<field string="Tên đại lý con kích hoạt" name="sub_dealer_name" optional="show"/>
+				<field string="Số điện thoại kích hoạt" name="tel_activation" optional="hidden"/>
+				<field string="Biển số xe kích hoạt" name="license_plates" optional="hidden"/>
+				<field string="Số Km kích hoạt" name="mileage" optional="hidden"/>
+				<field string="Ngày bảo hành" name="mv_customer_warranty_date" optional="hidden"/>
+				<field string="Biển số xe bảo hành" name="mv_warranty_license_plate" optional="hidden"/>
+				<field string="Số Km bảo hành" name="mv_num_of_km" optional="hidden"/>
 			</tree>
 		</field>
 	</record>
@@ -54,6 +61,9 @@
                         ('partner_id', 'ilike', self),
                         ('partner_name', 'ilike', self),
                         ('partner_email', 'ilike', self)]"/>
+				<field string="Tên đại lý con kích hoạt" name="sub_dealer_name" filter_domain="[('sub_dealer_name', 'ilike', self)]"/>
+				<field string="Số điện thoại kích hoạt" name="tel_activation" filter_domain="[('tel_activation', 'ilike', self)]"/>
+				<field string="Biển số xe kích hoạt" name="license_plates" filter_domain="[('license_plates', 'ilike', self)]"/>
 				<filter string="Giai đoạn" name="filter_ticket_create_date" date="ticket_create_date" default_period="this_year"/>
 				<group expand="0" string="Group By" colspan="16">
 					<filter string="Đại lý" name="groupby_partner" context="{'group_by':'partner_id'}"/>
