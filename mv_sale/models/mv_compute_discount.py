@@ -42,6 +42,13 @@ class MvComputeDiscount(models.Model):
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _name = "mv.compute.discount"
     _description = _("Compute Discount (%) for Partner")
+    _sql_constraints = [
+        (
+            "month_year_uniq",
+            "unique (month, year)",
+            "Tháng và năm này đã tồn tại không được tạo nữa!",
+        )
+    ]
 
     @api.model
     def default_get(self, fields_list):
@@ -61,21 +68,6 @@ class MvComputeDiscount(models.Model):
             .search([("level_promote_apply", "!=", False)], limit=1)
             .level_promote_apply
         )
-
-    # RULE Fields:
-    do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
-
-    def _do_readonly(self):
-        """
-        Set the `do_readonly` field based on the state of the record.
-
-        This method iterates over each record and sets the `do_readonly` field to `True`
-        if the state is "done", otherwise sets it to `False`.
-
-        :return: False
-        """
-        for rec in self:
-            rec.do_readonly = rec.state == "done"
 
     # BASE Fields:
     name = fields.Char(compute="_compute_name", default="New", store=True)
@@ -104,13 +96,20 @@ class MvComputeDiscount(models.Model):
         "Bậc áp dụng (Khuyến khích)", compute="_get_promote_discount_level"
     )
 
-    _sql_constraints = [
-        (
-            "month_year_uniq",
-            "unique (month, year)",
-            "Tháng và năm này đã tồn tại không được tạo nữa!",
-        )
-    ]
+    # RULE Fields:
+    do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
+
+    def _do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+
+        :return: False
+        """
+        for rec in self:
+            rec.do_readonly = rec.state == "done"
 
     def _get_promote_discount_level(self):
         for record in self:
@@ -164,68 +163,92 @@ class MvComputeDiscount(models.Model):
             _logger.error("Failed to reset to draft: %s", e)
             pass
 
+    def action_done(self):
+        if not self._access_approve():
+            raise AccessError("Bạn không có quyền duyệt!")
+
+        base_total_detail_histories_of_partner = self.env[
+            "mv.partner.total.discount.detail.history"
+        ].search([("partner_id", "in", self.line_ids.mapped("partner_id").ids)])
+
+        for record in self.filtered(lambda r: len(r.line_ids) > 0):
+            partners_updates = {}
+            for discount_line in record.line_ids:
+                partner_id = discount_line.partner_id.id
+                total_money = discount_line.total_money
+                partners_updates[partner_id] = (
+                    partners_updates.get(partner_id, 0) + total_money
+                )
+
+            for partner_id, total_money in partners_updates.items():
+                partner = self.env["res.partner"].sudo().browse(partner_id)
+                partner.write({"amount": partner.amount + total_money})
+
+            # Create history line for discount
+            for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                record.create_history_line(
+                    line,
+                    "done",
+                    "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
+                )
+
+            # Create total detail discount history
+            if (
+                record.id
+                not in base_total_detail_histories_of_partner.mapped("parent_id").ids
+            ):
+                record.create_total_discount_detail_history()
+
+            record.write({"state": "done", "approved_date": fields.Datetime.now()})
+
+    def action_undo(self):
+        # Create history line for discount
+        for record in self:
+            if record.line_ids:
+                for line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                    self.create_history_line(
+                        line,
+                        "cancel",
+                        "Chiết khấu sản lượng tháng %s đã bị từ chối và đang chờ xem xét."
+                        % line.name,
+                    )
+
+            record.write({"state": "draft", "approved_date": False, "line_ids": False})
+
     def action_confirm(self):
         """
-        Confirms the computation of discounts for partners. It performs several operations including filtering and searching for records,
-        and updating the state of the record.
+        Confirms the action by ensuring necessary conditions are met,
+        calculating discounts and totals, and handling sales orders and partners' information.
 
-        Returns:
-            None
+        :return: None
         """
         self.ensure_one()
 
-        date_from, date_to = self._get_dates(self.report_date, self.month, self.year)
+        date_from, date_to = self.calculate_start_and_end_dates(
+            self.report_date, self.month, self.year
+        )
         self.line_ids = False
         list_line_ids = []
 
-        # Fetch all sale orders at once
-        sale_orders = self.env["sale.order"].search(
-            [
-                ("is_order_returns", "=", False),
-                ("is_claim_warranty", "=", False),
-                ("state", "=", "sale"),
-                ("date_invoice", ">=", date_from),
-                ("date_invoice", "<", date_to),
-            ]
+        # [>] Fetch all sale orders at once
+        # Add: Filter orders that are not `returns` or `warranty claims`
+        sale_orders = self._get_sale_orders(
+            [date_from, date_to],
+            [("is_order_returns", "=", False), ("is_claim_warranty", "=", False)],
         )
-
         if not sale_orders:
-            raise UserError(
-                "Hiện tại không có đơn hàng nào đã thanh toán trong tháng %s"
-                % self.month
-            )
+            self._raise_no_orders_error(self.month, no_orders=True)
 
-        # Filter order lines at once with the following conditions:
-        # - Partner is an agency
+        # [>] Filter order lines at once with the following required conditions:
+        # - Partner must be an Agency
         # - Product category is eligible for discount
         # - Product type is 'product'
         # - Quantity delivered is greater than 0
         # - Quantity invoiced is greater than 0
-        order_lines = sale_orders.order_line.filtered(
-            lambda order: order.order_id.partner_id.is_agency
-            and order.order_id.check_category_product(order.product_id.categ_id)
-            and order.product_id.detailed_type == "product"
-            and order.qty_delivered > 0
-            and order.qty_invoiced > 0
-            and order.discount != 100
-        )
+        order_lines = self._filter_order_lines(sale_orders)
 
         # Fetch partners at once
-        partners_use_for_discount = self._get_partner_for_discount_only(
-            self.month, self.year
-        )
-        partners = order_lines.order_id.mapped("partner_id").filtered(
-            lambda rec: (
-                rec.id
-                in self.env["res.partner"]
-                .sudo()
-                .browse(partners_use_for_discount.ids)
-                .ids
-                if partners_use_for_discount
-                else []
-            )
-        )
-
+        partners = self._get_discount_eligible_partners(order_lines)
         for partner_id in partners:
             total_quantity_minimum = 0
             total_quantity_maximum = 0
@@ -475,57 +498,176 @@ class MvComputeDiscount(models.Model):
                     "Chiết khấu sản lượng tháng %s đang chờ duyệt." % line.name,
                 )
 
-    def action_done(self):
-        if not self._access_approve():
-            raise AccessError("Bạn không có quyền duyệt!")
+    def _raise_no_orders_error(self, month, no_orders=False):
+        if no_orders:
+            error_message = "Không có đơn hàng nào đã thanh toán trong tháng %s" % month
+        else:
+            error_message = "Không có dữ liệu để tính chiết khấu cho tháng %s" % month
 
-        base_total_detail_histories_of_partner = self.env[
-            "mv.partner.total.discount.detail.history"
-        ].search([("partner_id", "in", self.line_ids.mapped("partner_id").ids)])
+        raise UserError(error_message)
 
-        for record in self.filtered(lambda r: len(r.line_ids) > 0):
-            partners_updates = {}
-            for discount_line in record.line_ids:
-                partner_id = discount_line.partner_id.id
-                total_money = discount_line.total_money
-                partners_updates[partner_id] = (
-                    partners_updates.get(partner_id, 0) + total_money
+    def _prepare_values_for_confirmation(self, partner, report_date):
+        """Gets the data and returns it the right format for render."""
+        self.ensure_one()
+
+        return {
+            "month_parent": int(report_date.month),
+            "partner_id": partner.id,
+            "discount_line_id": False,
+            "currency_id": False,
+            "level": 0,
+            "sale_ids": [],
+            "order_line_ids": [],
+            "sale_promote_ids": [],
+            "sale_return_ids": [],
+            "sale_claim_warranty_ids": [],
+            "quantity": 0,
+            "quantity_discount": 0,
+            "quantity_returns": 0,
+            "quantity_claim_warranty": 0,
+            "quantity_from": 0,
+            "quantity_to": 0,
+            "amount_total": 0,
+            # Compute for a month
+            "is_month": False,
+            "month": 0.0,  # % chiết khấu tháng
+            "month_money": 0.0,
+            # Compute for 2 months
+            "is_two_month": False,
+            "two_months_quantity_accepted": False,
+            "amount_two_month": 0.0,
+            "two_month": 0.0,  # % chiết khấu 2 tháng
+            "two_money": 0,
+            # Compute for quarter
+            "is_quarter": False,
+            "quarter_quantity_accepted": False,
+            "quarter": 0.0,  # % chiết khấu quý
+            "quarter_money": 0,
+            # Compute for year
+            "is_year": False,
+            "year": 0.0,  # % chiết khấu năm
+            "year_money": 0,
+        }
+
+    def _get_sale_orders(self, date_range, additional_domain=[]):
+        base_sale_domain = [("state", "=", "sale")] + additional_domain
+
+        if date_range:
+            base_sale_domain += [
+                ("date_invoice", ">=", date_range[0]),
+                ("date_invoice", "<", date_range[1]),
+            ]
+
+        return self.env["sale.order"].search(base_sale_domain)
+
+    def _filter_order_lines(self, orders):
+        return orders.order_line.filtered(
+            lambda order: order.order_id.partner_id.is_agency
+            and order.order_id.check_category_product(order.product_id.categ_id)
+            and order.product_id.detailed_type == "product"
+            and order.qty_delivered > 0
+            and order.qty_invoiced > 0
+            and order.discount != 100
+        )
+
+    def calculate_start_and_end_dates(self, report_date, target_month, target_year):
+        """
+        Computes the start and end dates of a given month and year.
+        Args:
+            target_month (str): The target month.
+            target_year (str): The target year.
+        Returns:
+            tuple: A tuple containing the start and end dates of the given month and year.
+        """
+
+        DAY_START = 1
+        HOUR_START = 0
+        MINUTE_START = 0
+        SECOND_START = 0
+        MICROSECOND_START = 0
+
+        try:
+            date_from, date_to = self._get_date_from_to(
+                report_date,
+                int(target_month),
+                int(target_year),
+                DAY_START,
+                HOUR_START,
+                MINUTE_START,
+                SECOND_START,
+                MICROSECOND_START,
+            )
+            return date_from, date_to
+        except Exception as e:
+            _logger.error("Failed to compute dates: %s", e)
+            return None, None
+
+    def _get_date_from_to(
+        self, report_date, month, year, day, hour, minute, second, microsecond
+    ):
+        date_from = report_date.replace(
+            day=day,
+            month=month,
+            year=year,
+            hour=hour,
+            minute=minute,
+            second=second,
+            microsecond=microsecond,
+        )
+        date_to = date_from + relativedelta(months=1)
+        return date_from, date_to
+
+    def _get_discount_eligible_partners(self, order_lines):
+        try:
+            partners = self._fetch_discount_partners(self.month, self.year)
+            return order_lines.order_id.mapped("partner_id").filtered(
+                lambda rec: (
+                    rec.id in self.env["res.partner"].sudo().browse(partners.ids).ids
+                    if partners
+                    else []
                 )
+            )
+        except Exception as error:
+            _logger.error("Error in fetching discount eligible partners: %s", error)
+            return self.env["res.partner"]
 
-            for partner_id, total_money in partners_updates.items():
-                partner = self.env["res.partner"].sudo().browse(partner_id)
-                partner.write({"amount": partner.amount + total_money})
+    def _fetch_discount_partners(self, month, year):
+        """
+        Fetches the partners who are eligible for discounts in a given month and year.
 
-            # Create history line for discount
-            for line in record.line_ids.filtered(lambda rec: rec.parent_id):
-                record.create_history_line(
-                    line,
-                    "done",
-                    "Chiết khấu sản lượng tháng %s đã được duyệt." % line.name,
-                )
+        Args:
+            month (str): The target month.
+            year (str): The target year.
 
-            # Create total detail discount history
-            if (
-                record.id
-                not in base_total_detail_histories_of_partner.mapped("parent_id").ids
-            ):
-                record.create_total_discount_detail_history()
+        Returns:
+            recordset: A recordset of partners who are eligible for discounts.
+        """
+        try:
+            self.env["mv.discount.partner"].flush_model()
+            query = self._build_discount_partners_query()
+            self.env.cr.execute(query, [year, month])
 
-            record.write({"state": "done", "approved_date": fields.Datetime.now()})
+            partner_ids = [result[1] for result in self.env.cr.fetchall()]
+            return self.env["res.partner"].browse(partner_ids)
+        except Exception as error:
+            _logger.error("Failed to fetch partners for discount: %s", error)
+            return self.env["res.partner"]
 
-    def action_undo(self):
-        # Create history line for discount
-        for record in self:
-            if record.line_ids:
-                for line in record.line_ids.filtered(lambda rec: rec.parent_id):
-                    self.create_history_line(
-                        line,
-                        "cancel",
-                        "Chiết khấu sản lượng tháng %s đã bị từ chối và đang chờ xem xét."
-                        % line.name,
-                    )
+    def _build_discount_partners_query(self):
+        """
+        Builds the SQL query to fetch discount eligible partners.
 
-            record.write({"state": "draft", "approved_date": False, "line_ids": False})
+        Returns:
+            str: The SQL query string.
+        """
+        return """
+            WITH date_params AS (SELECT %s::INT AS target_year, %s::INT AS target_month)
+            SELECT dp.parent_id AS mv_discount_id, dp.partner_id, dp.level
+            FROM mv_discount_partner dp
+                JOIN date_params AS d ON (EXTRACT(YEAR FROM dp.date) = d.target_year)
+            GROUP BY 1, dp.partner_id, dp.level
+            ORDER BY dp.partner_id, dp.level;
+        """
 
     def create_history_line(self, record, state, description):
         total_money = record.total_money
@@ -558,47 +700,6 @@ class MvComputeDiscount(models.Model):
             self.env[
                 "mv.partner.total.discount.detail.history"
             ]._create_total_discount_detail_history_line(parent_id=self, policy_id=line)
-
-    def _prepare_values_for_confirmation(self, partner_id, report_date):
-        """Gets the data and returns it the right format for render."""
-        self.ensure_one()
-
-        return {
-            "month_parent": int(report_date.month),
-            "partner_id": partner_id.id,
-            "discount_line_id": False,
-            "currency_id": False,
-            "level": 0,
-            "sale_ids": [],
-            "order_line_ids": [],
-            "sale_promote_ids": [],
-            "sale_return_ids": [],
-            "sale_claim_warranty_ids": [],
-            "quantity": 0,
-            "quantity_discount": 0,
-            "quantity_returns": 0,
-            "quantity_claim_warranty": 0,
-            "quantity_from": 0,
-            "quantity_to": 0,
-            "amount_total": 0,
-            # Compute for a month
-            "is_month": False,
-            "month": 0.0,  # % chiết khấu tháng
-            "month_money": 0.0,
-            # Compute for 2 months
-            "is_two_month": False,
-            "amount_two_month": 0.0,
-            "two_month": 0.0,  # % chiết khấu 2 tháng
-            "two_money": 0,
-            # Compute for quarter
-            "is_quarter": False,
-            "quarter": 0.0,  # % chiết khấu quý
-            "quarter_money": 0,
-            # Compute for year
-            "is_year": False,
-            "year": 0.0,  # % chiết khấu năm
-            "year_money": 0,
-        }
 
     # =================================
     # ACTION Methods
@@ -734,65 +835,6 @@ class MvComputeDiscount(models.Model):
         line._compute_total_money()
 
     # TODO: End of implementation - Phat Dang
-
-    def _get_dates(self, report_date, month, year):
-        """
-        Computes the start and end dates of a given month and year.
-
-        Args:
-            month (str): The target month.
-            year (str): The target year.
-
-        Returns:
-            tuple: A tuple containing the start and end dates of the given month and year.
-        """
-        try:
-            # Compute date_from
-            date_from = report_date.replace(
-                day=1,
-                month=int(month),
-                year=int(year),
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0,
-            )
-
-            # Compute date_to by adding one month and then subtracting one day
-            date_to = date_from + relativedelta(months=1)
-
-            return date_from, date_to
-        except Exception as e:
-            _logger.error("Failed to compute dates: %s", e)
-            return None, None
-
-    def _get_partner_for_discount_only(self, month, year):
-        """
-            Fetches the partners who are eligible for discounts in a given month and year.
-
-        Args:
-            month (str): The target month.
-            year (str): The target year.
-
-        Returns:
-            recordset: A recordset of partners who are eligible for discounts.
-        """
-        try:
-            self.env["mv.discount.partner"].flush_model()
-            query = """
-                WITH date_params AS (SELECT %s::INT AS target_year, %s::INT AS target_month)
-                SELECT dp.parent_id AS mv_discount_id, dp.partner_id, dp.level
-                FROM mv_discount_partner dp
-                    JOIN date_params AS d ON (EXTRACT(YEAR FROM dp.date) = d.target_year)
-                GROUP BY 1, dp.partner_id, dp.level
-                ORDER BY dp.partner_id, dp.level;
-            """
-            self.env.cr.execute(query, [year, month])
-            partner_ids = [r[1] for r in self.env.cr.fetchall()]
-            return self.env["res.partner"].browse(partner_ids)
-        except Exception as e:
-            _logger.error("Failed to fetch partners for discount: %s", e)
-            return self.env["res.partner"]
 
     def _access_approve(self):
         """

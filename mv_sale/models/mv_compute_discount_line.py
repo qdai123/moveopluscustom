@@ -45,7 +45,9 @@ class MvComputeDiscountLine(models.Model):
     )
     level = fields.Integer("Bậc")
     basic = fields.Float("Cơ bản (%)")
-    quantity = fields.Integer("Số lượng lốp đã bán")
+    quantity = fields.Integer("Số lượng lốp đã bán (Tháng)")
+    quantity_for_two_months = fields.Integer("Số lượng lốp đã bán (2 Tháng)")
+    quantity_for_quarter = fields.Integer("Số lượng lốp đã bán (Quý)")
     quantity_discount = fields.Integer("Số lượng lốp khuyến mãi")
     quantity_returns = fields.Integer("Số lượng lốp đổi trả")
     quantity_claim_warranty = fields.Integer("Số lượng lốp bảo hành")
@@ -108,12 +110,14 @@ class MvComputeDiscountLine(models.Model):
 
     # Chiết Khấu 2 Tháng
     is_two_month = fields.Boolean()
+    two_months_quantity_accepted = fields.Boolean()
     amount_two_month = fields.Float("Số tiền 2 Tháng")
     two_month = fields.Float("% chiết khấu 2 tháng", digits=(16, 2))
     two_money = fields.Integer("Số tiền chiết khấu 2 tháng")
 
     # Chiết Khấu Quý
     is_quarter = fields.Boolean()
+    quarter_quantity_accepted = fields.Boolean()
     quarter = fields.Float("% chiết khấu quý", digits=(16, 2))
     quarter_money = fields.Integer("Số tiền chiết khấu quý")
 
@@ -486,16 +490,15 @@ class MvComputeDiscountLine(models.Model):
     # =================================
 
     def action_view_two_month(self):
-        month = self.parent_id.month
-        year = self.parent_id.year
-        if month == "1":
-            name_last = "12" + "/" + str(int(year) - 1)
-        else:
-            name_last = str(int(month) - 1) + "/" + year
-        list_name = [self.name, name_last]
+        current_month = self.parent_id.month
+        current_year = self.parent_id.year
+        previous_month_name = _get_previous_month_name(current_month, current_year)
+        list_name = [self.name, previous_month_name]
+
         domain = [("partner_id", "=", self.partner_id.id), ("name", "=", list_name)]
         line_ids = self.search(domain)
-        return {
+
+        action = {
             "name": "Chiết khấu 2 tháng đạt chỉ tiêu",
             "view_mode": "tree,form",
             "res_model": "mv.compute.discount.line",
@@ -508,20 +511,31 @@ class MvComputeDiscountLine(models.Model):
                 "form_view_ref": "mv_sale.mv_compute_discount_line_form",
             },
         }
+        return action
 
     def action_view_quarter(self):
-        month = self.parent_id.month
-        year = self.parent_id.year
-        if month == "1":
-            name_last = "12" + "/" + str(int(year) - 1)
-        else:
-            name_last = str(int(month) - 1) + "/" + year
-        name_last_last = str(int(month) - 2) + "/" + year
-        list_name = [self.name, name_last, name_last_last]
-        domain = [("partner_id", "=", self.partner_id.id), ("name", "=", list_name)]
-        line_ids = self.search(domain)
+        def get_previous_month_name(month, year, offset):
+            previous_month = (int(month) - offset) % 12
+            previous_year = int(year) - 1 if previous_month > int(month) else year
+            return f"{previous_month:02d}/{previous_year}"
+
+        def get_previous_month_names(month, year):
+            return [
+                self.name,
+                get_previous_month_name(month, year, 1),
+                get_previous_month_name(month, year, 2),
+            ]
+
+        month, year = self.parent_id.month, self.parent_id.year
+        line_ids = self.search(
+            [
+                ("partner_id", "=", self.partner_id.id),
+                ("name", "in", get_previous_month_names(month, year)),
+            ]
+        )
+
         return {
-            "name": "Chiết khấu theo quý %s đạt chỉ tiêu" % str(int(month) / 3),
+            "name": f"Chiết khấu theo quý {int(month) // 3} đạt chỉ tiêu",
             "view_mode": "tree,form",
             "res_model": "mv.compute.discount.line",
             "type": "ir.actions.act_window",
@@ -536,27 +550,17 @@ class MvComputeDiscountLine(models.Model):
 
     def action_view_year(self):
         year = self.parent_id.year
-        list_name = [
-            "1" + "/" + year,
-            "2" + "/" + year,
-            "3" + "/" + year,
-            "4" + "/" + year,
-            "5" + "/" + year,
-            "6" + "7" + year,
-            "8" + "/" + year,
-            "9" + "/" + year,
-            "10" + "/" + year,
-            "11" + "/" + year,
-            "12" + "/" + year,
-        ]
-        domain = [("partner_id", "=", self.partner_id.id), ("name", "=", list_name)]
+        month_names = self._generate_month_names(year)
+
+        domain = [("partner_id", "=", self.partner_id.id), ("name", "in", month_names)]
         line_ids = self.search(domain)
+
         return {
-            "name": "Chiết khấu theo theo năm %s" % year,
+            "name": f"Chiết khấu theo theo năm {year}",
             "view_mode": "tree,form",
             "res_model": "mv.compute.discount.line",
             "type": "ir.actions.act_window",
-            "domain": [("id", "=", line_ids.ids)],
+            "domain": [("id", "in", line_ids.ids)],
             "context": {
                 "create": False,
                 "edit": False,
@@ -568,6 +572,21 @@ class MvComputeDiscountLine(models.Model):
     # =================================
     # HELPER/PRIVATE Methods
     # =================================
+
+    def _get_previous_month_name(self, month, year):
+        if month == "1":
+            return "12/" + str(int(year) - 1)
+        return str(int(month) - 1) + "/" + year
+
+    def _generate_month_names(self, year):
+        return [f"{month}/{year}" for month in range(1, 13)]
+
+    def _access_approve(self):
+        """
+            Helps check user security for access to Discount Line approval
+        :return: True/False
+        """
+        return self.env.user.has_group(GROUP_APPROVER)
 
     @api.model
     def format_value(self, amount, currency=False, blank_if_zero=False):
@@ -590,10 +609,3 @@ class MvComputeDiscountLine(models.Model):
         if self.env.context.get("no_format"):
             return amount
         return formatLang(self.env, amount, currency_obj=currency_id)
-
-    def _access_approve(self):
-        """
-            Helps check user security for access to Discount Line approval
-        :return: True/False
-        """
-        return self.env.user.has_group(GROUP_APPROVER)
