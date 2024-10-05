@@ -74,26 +74,6 @@
 			<field name="groups" eval="[(4, ref('stock.group_stock_manager'))]"/>
 		</record>
 
-		<!-- Lot: User -->
-		<record id="mv_stock_lot_users_crud_their_warehouse_rule" model="ir.rule">
-			<field name="name">Stock Lot: Create/Read/Update/Delete only to their warehouses</field>
-			<field name="model_id" ref="stock.model_stock_lot"/>
-			<field name="domain_force">[
-				'|',
-				('location_id.warehouse_id.stock_users_access_ids', '=', user.id),
-				('location_id.warehouse_id.stock_users_access_ids', '=', False)
-			]</field>
-			<field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
-		</record>
-
-		<!-- Lot: Manager -->
-		<record id="mv_stock_lot_manager_full_access_rule" model="ir.rule">
-			<field name="name">Stock Lot: Manager have full-access</field>
-			<field name="model_id" ref="stock.model_stock_lot"/>
-			<field name="domain_force">[(1, '=', 1)]</field>
-			<field name="groups" eval="[(4, ref('stock.group_stock_manager'))]"/>
-		</record>
-
 		<!-- Scrap: User -->
 		<record id="mv_stock_scrap_users_cru_their_warehouse_rule" model="ir.rule">
 			<field name="name">Stock Scrap: Create/Read/Update only to their warehouses</field>
