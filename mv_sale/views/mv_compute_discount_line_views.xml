@@ -35,7 +35,7 @@
                     <group>
                         <group name="group_information_1">
                             <field name="partner_id"/>
-                            <field name="partner_company_ref" class="fw-bold"/>
+                            <field name="partner_company_ref"/>
                             <field name="level"/>
                             <field name="basic" invisible="1"/>
                             <field name="currency_id" invisible="1"/>

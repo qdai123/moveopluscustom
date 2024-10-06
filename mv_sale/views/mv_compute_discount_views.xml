@@ -6,7 +6,6 @@
 		<field name="arch" type="xml">
 			<form duplicate="false">
 				<header>
-					<field name="do_readonly" invisible="1"/>
 					<button name="action_reload_discount_line"
 					        type="object"
 					        class="oe_stat_button"
@@ -32,28 +31,22 @@
 					        class="btn btn-secondary"
 					        invisible="not line_ids"
 					/>
-					<button name="action_done"
+					<button name="action_approve"
 					        type="object"
 					        string="Duyệt"
 					        class="btn btn-primary"
 					        invisible="state != 'confirm'"
 					/>
-					<button name="action_undo"
+					<button name="action_cancel"
 					        type="object"
 					        string="Hủy"
 					        class="btn btn-secondary"
 					        invisible="state != 'confirm'"
 					        confirm="Tất cả dữ liệu ở chiết khấu tháng này sẽ bị xóa, bạn có chắc là muốn hủy?"
 					/>
-					<button name="action_reset_to_draft"
-					        type="object"
-					        string="Trả về nháp"
-					        class="btn btn-secondary"
-					        groups="base.group_system"
-					        invisible="1"
-					/>
 					<field name="state" widget="statusbar" statusbar_visible="draft,confirm,done"/>
 				</header>
+				<field name="do_readonly" invisible="1"/>
 				<sheet>
 					<group>
 						<group>
@@ -174,7 +167,7 @@
 	</record>
 
 	<record model="ir.actions.server" id="action_generate_total_discount_history_details">
-		<field name="name">GENERATE HISTORY TOTAL</field>
+		<field name="name">GENERATE HISTORY TOTAL DETAIL</field>
 		<field name="model_id" ref="model_mv_compute_discount"/>
 		<field name="binding_model_id" ref="model_mv_compute_discount"/>
 		<field name="binding_view_types">form</field>
