@@ -1186,10 +1186,11 @@ class SaleOrder(models.Model):
             raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
 
     def _check_not_free_qty_in_stock(self):
+        # This check is only applicable if the state is either 'draft' or 'sent'
         if self.state not in ["draft", "sent"]:
             return
 
-        # Use list comprehension instead of filtered method
+        # Filter order lines that are of type 'product'
         product_order_lines = [
             line
             for line in self.order_line
@@ -1197,14 +1198,16 @@ class SaleOrder(models.Model):
         ]
 
         error_products = []
-        if product_order_lines:
-            for so_line in product_order_lines:
-                if so_line.product_uom_qty > so_line.free_qty_today:
-                    error_products.append(
-                        f"\n- {so_line.product_template_id.name}. [ Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái) ]"
-                    )
 
-        # Raise all errors at once
+        # Check the stock availability for each product order line
+        for so_line in product_order_lines:
+            if so_line.product_uom_qty > so_line.free_qty_today:
+                error_products.append(
+                    f"\n- {so_line.product_template_id.name}: "
+                    f"Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái)"
+                )
+
+        # If there are any errors, raise them all at once
         if error_products:
             error_message = (
                 "Bạn không được phép đặt quá số lượng hiện tại:"

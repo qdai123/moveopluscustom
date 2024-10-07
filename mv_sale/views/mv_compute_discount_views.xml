@@ -75,7 +75,7 @@
 									<field name="quantity_from" optional="hidden"/>
 									<field column_invisible="1" name="quantity_to"/>
 									<field name="quantity" optional="show"/>
-									<field name="amount_total" string="Doanh thu" widget="monetary"/>
+									<field name="amount_total" string="Doanh thu" widget="monetary" class="fw-bold"/>
 									<field column_invisible="1" name="basic"/>
 									<field name="month" string="% C/K Tháng" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field column_invisible="1" name="is_month"/>
@@ -91,7 +91,7 @@
 									<field column_invisible="1" name="is_promote_discount"/>
 									<field name="promote_discount_percentage" string="% C/K Khuyến Khích" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field name="promote_discount_money" widget="monetary"/>
-									<field name="total_money" string="Tổng số tiền" widget="monetary"/>
+									<field name="total_money" string="Tổng số tiền" widget="monetary" class="fw-bold"/>
 									<button name="action_approve_for_month"
 									        class="btn btn-success"
 									        type="object"

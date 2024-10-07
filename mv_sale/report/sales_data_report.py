@@ -262,7 +262,7 @@ class SalesDataReport(models.Model):
             FROM res_partner p
             WHERE p.active 
                 AND p.is_agency
-                AND p.use_for_report IS DISTINCT FROM TRUE
+                AND p.use_for_report
                 AND EXISTS (SELECT 1
                                      FROM sale_order s
                                      WHERE s.partner_id = p.id)

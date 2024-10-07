@@ -116,7 +116,7 @@
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
                                     <field name="partner_id" string="Customer"/>
-                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                    <field name="amount_total" sum="Price" widget="monetary" optional="hidden"/>
                                 </tree>
                             </field>
                         </page>
@@ -126,7 +126,7 @@
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
                                     <field name="partner_id" string="Customer"/>
-                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                    <field name="amount_total" sum="Price" widget="monetary" optional="hidden"/>
                                 </tree>
                             </field>
                         </page>
@@ -136,7 +136,7 @@
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
                                     <field name="partner_id" string="Customer"/>
-                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                    <field name="amount_total" sum="Price" widget="monetary" optional="hidden"/>
                                 </tree>
                             </field>
                         </page>

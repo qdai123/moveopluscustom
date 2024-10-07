@@ -383,8 +383,9 @@ class MvComputeDiscount(models.Model):
     def _process_partners(self, partners, order_lines, sale_orders, date_from, date_to):
         """Process partners to compute discount and total sales information."""
         list_line_ids = []
-        for partner in partners:
-            vals = self._prepare_values_for_confirmation(partner, self.report_date)
+        report_date = self.report_date
+        for partner in partners.filtered(lambda p: p.id in [111, 128]):
+            vals = self._prepare_values_for_confirmation(partner, report_date)
 
             OrderLines = self._get_orders_by_partner(order_lines, partner)
             vals["currency_id"] = (
@@ -395,14 +396,19 @@ class MvComputeDiscount(models.Model):
             if OrderLines_child:
                 OrderLines += OrderLines_child
 
-            total_quantity_delivered = self._compute_quantity_delivered(
-                partner, OrderLines
-            )
-            vals["quantity"] = total_quantity_delivered
+            sql_qty_delivered = self._compute_qty_delivered(partner, report_date)
+            # Số lượng lốp đã bán (Tháng)
+            vals["quantity"] = sql_qty_delivered[0]["current_month_delivered"]
+            # Số lượng lốp đã bán (2 Tháng)
+            vals["quantity_for_two_months"] = sql_qty_delivered[0][
+                "two_months_delivered"
+            ]
+            # Số lượng lốp đã bán (Quý)
+            vals["quantity_for_quarter"] = sql_qty_delivered[0]["quarter_delivered"]
 
             # [Compute Sales and Discount Levels]
             self._compute_sales_and_discounts(
-                partner, total_quantity_delivered, OrderLines, vals
+                partner, OrderLines, date_from, date_to, vals
             )
 
             list_line_ids.append((0, 0, vals))
@@ -473,42 +479,90 @@ class MvComputeDiscount(models.Model):
             )
         )
 
-    def _compute_quantity_delivered(self, partner, order_lines):
+    def _compute_qty_delivered(self, partner, report_date=None):
         """Compute the total quantity delivered."""
-        query = """
-            -- CTE to fetch sale orders details for a specific sale order (IDs) or sale order line (IDs)
-            WITH sale_orders AS (SELECT so.id, sol.id AS sale_line_id
-                     FROM sale_order_line sol
-                              JOIN sale_order so
-                                   ON so.id = sol.order_id
-                                       AND so.state = 'sale'
-                     WHERE sol.order_partner_id = %s %s),
+        query = f"""
+            WITH date_params AS (
+    -- Calculate start dates for previous month, current month, current quarter, and current year
+    SELECT (DATE_TRUNC('month', '{report_date}'::DATE) - INTERVAL '1 month')::DATE AS previous_month_start,
+           DATE_TRUNC('month', '{report_date}'::DATE)::DATE                        AS current_month_start,
+           DATE_TRUNC('quarter', '{report_date}'::DATE)::DATE                      AS current_quarter_start,
+           DATE_TRUNC('year', '{report_date}'::DATE)::DATE                         AS current_year_start),
 
-            -- CTE to calculate delivered stock quantities based on sale orders
-                 delivered_stock AS (SELECT sm.product_qty
-                                     FROM sale_orders so
-                                              JOIN stock_move sm ON sm.sale_line_id = so.sale_line_id
-                                              LEFT JOIN stock_picking sp
-                                                        ON sp.sale_id = so.id AND sp.id = sm.picking_id AND sp.state = 'done'
-                                              LEFT JOIN stock_picking_type spt
-                                                        ON spt.id = sp.picking_type_id AND spt.code = 'outgoing')
-            
-            -- Final query to sum delivered product quantities
-            SELECT COALESCE(SUM(product_qty), 0) AS delivered_quantity
-            FROM delivered_stock
-        """ % (
-            partner.id,
-            (
-                f"AND sol.id IN {tuple(order_lines.ids)}"
-                if len(order_lines) > 0
-                else f"AND sol.id = {order_lines[0].id}"
-            ),
-        )
+     sale_orders AS (
+         -- Select sale orders and sale order line IDs with various filters
+         SELECT so.id,
+                sol.id AS sale_line_id
+         FROM sale_order_line sol
+                  JOIN sale_order so ON so.id = sol.order_id
+         WHERE so.state = 'sale'
+           AND so.is_order_returns IS DISTINCT FROM TRUE
+           AND so.is_claim_warranty IS DISTINCT FROM TRUE
+           AND sol.is_service IS DISTINCT FROM TRUE
+           AND sol.display_type IS NULL
+           AND sol.qty_invoiced > 0
+           AND sol.price_subtotal > 0
+           AND sol.discount != 100
+           AND sol.order_partner_id = {partner.id}),
+
+     delivered_stock AS (
+         -- Select delivered stock quantities with associated picking and move details
+         SELECT sm.product_qty,
+                picking_out.date_done::DATE
+         FROM sale_orders so
+                  JOIN stock_picking picking_out ON picking_out.sale_id = so.id
+             AND picking_out.state = 'done'
+                  JOIN stock_move sm ON sm.picking_id = picking_out.id
+             AND sm.sale_line_id = so.sale_line_id
+                  JOIN stock_picking_type spt ON spt.id = picking_out.picking_type_id
+             AND spt.code = 'outgoing'),
+
+     delivered_previous_month AS (
+         -- Calculate sum of product quantities delivered in the previous month
+         SELECT COALESCE(SUM(product_qty), 0) AS delivered_quantity
+         FROM delivered_stock ds
+                  JOIN date_params dp ON ds.date_done::DATE BETWEEN dp.previous_month_start AND dp.current_month_start),
+
+     delivered_current_month AS (
+         -- Calculate sum of product quantities delivered in the current month
+         SELECT COALESCE(SUM(product_qty), 0) AS delivered_quantity
+         FROM delivered_stock ds
+                  JOIN date_params dp ON ds.date_done::DATE BETWEEN dp.current_month_start
+             AND dp.current_month_start + INTERVAL '1 month - 1 day'),
+
+     delivered_two_months AS (
+         -- Calculate sum of product quantities delivered in the last two months
+         SELECT COALESCE(SUM(product_qty), 0) AS delivered_quantity
+         FROM delivered_stock ds
+                  JOIN date_params dp ON ds.date_done::DATE BETWEEN dp.previous_month_start
+             AND dp.current_month_start + INTERVAL '1 month - 1 day'),
+
+     delivered_quarter AS (
+         -- Calculate sum of product quantities delivered in the current quarter
+         SELECT COALESCE(SUM(product_qty), 0) AS delivered_quantity
+         FROM delivered_stock ds
+                  JOIN date_params dp ON ds.date_done::DATE BETWEEN dp.current_quarter_start
+             AND dp.current_quarter_start + INTERVAL '3 month - 1 day'),
+
+     delivered_current_year AS (
+         -- Calculate sum of product quantities delivered in the current year
+         SELECT COALESCE(SUM(product_qty), 0) AS delivered_quantity
+         FROM delivered_stock ds
+                  JOIN date_params dp ON ds.date_done::DATE BETWEEN dp.current_year_start
+             AND dp.current_year_start + INTERVAL '1 year - 1 day')
+
+-- Select final delivered quantities breakdown by time periods
+SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_month_delivered,
+       (SELECT delivered_quantity FROM delivered_current_month)  AS current_month_delivered,
+       (SELECT delivered_quantity FROM delivered_two_months)     AS two_months_delivered,
+       (SELECT delivered_quantity FROM delivered_quarter)        AS quarter_delivered,
+       (SELECT delivered_quantity FROM delivered_current_year)   AS year_delivered
+        """
         self.env.cr.execute(query)
-        return self.env.cr.dictfetchone().get("delivered_quantity")
+        return self.env.cr.dictfetchall()
 
     def _compute_sales_and_discounts(
-        self, partner, quantity_delivered, order_lines, vals
+        self, partner, order_lines, date_from, date_to, vals
     ):
         """Compute sales and applicable discounts for the partner."""
         total_sales = sum(order_lines.mapped("price_subtotal_before_discount"))
@@ -531,29 +585,25 @@ class MvComputeDiscount(models.Model):
             vals["quantity_from"] = discount_line_id.quantity_from
             vals["quantity_to"] = discount_line_id.quantity_to
 
-            if quantity_delivered >= discount_line_id.quantity_from:
-                # [>] === Để đạt được chỉ tiêu 1 tháng ===
-                # => Chỉ cần thỏa số lượng trong tháng
-                self._compute_monthly_discount(discount_line_id, total_sales, vals)
+            # [>] === Để đạt được chỉ tiêu 1 tháng ===
+            # => Chỉ cần thỏa số lượng trong tháng
+            self._compute_monthly_discount(discount_line_id, total_sales, vals)
 
-                # [>] === Để đạt kết quả 2 tháng ===
-                # 1 - tháng này phải đạt chỉ tiêu tháng
-                # 2 - tháng trước phải đạt chỉ tiêu tháng và chưa đạt chỉ tiêu 2 tháng
-                self._compute_two_month_discount(
-                    partner, discount_line_id, total_sales, vals
-                )
+            # [>] === Để đạt kết quả 2 tháng ===
+            # =>Tháng này phải đạt chỉ tiêu tháng & tháng trước phải đạt chỉ tiêu tháng và chưa đạt chỉ tiêu 2 tháng
+            self._compute_two_month_discount(
+                partner, discount_line_id, total_sales, vals
+            )
 
-                # [>] === Để đạt kết quả quý [1, 2, 3] [4, 5, 6] [7, 8, 9] [10, 11, 12] ===
-                # [>] Chỉ xét quý vào các tháng 3 6 9 12, chỉ cần kiểm tra 2 tháng trước đó có đạt chỉ tiêu tháng ko
-                self._compute_quarterly_discount(
-                    partner, discount_line_id, total_sales, vals
-                )
+            # [>] === Để đạt kết quả quý [1, 2, 3] [4, 5, 6] [7, 8, 9] [10, 11, 12] ===
+            # => Chỉ xét quý vào các tháng 3 6 9 12, chỉ cần kiểm tra 2 tháng trước đó có đạt chỉ tiêu tháng ko
+            self._compute_quarterly_discount(
+                partner, discount_line_id, total_sales, vals
+            )
 
-                # [>] === Để đạt kết quả năm thì tháng đang xét phải là 12 ===
-                # [>] Kiểm tra 11 tháng trước đó đã được chỉ tiêu tháng chưa
-                self._compute_yearly_discount(
-                    partner, discount_line_id, total_sales, vals
-                )
+            # [>] === Để đạt kết quả năm thì tháng đang xét phải là 12 ===
+            # => Kiểm tra 11 tháng trước đó đã được chỉ tiêu tháng chưa
+            self._compute_yearly_discount(partner, discount_line_id, total_sales, vals)
 
             sale_ids = order_lines.mapped("order_id").ids
             vals["sale_ids"] = sale_ids
@@ -571,21 +621,27 @@ class MvComputeDiscount(models.Model):
 
     def _compute_two_month_discount(self, partner, discount_line_id, total_sales, vals):
         """Compute two-month discount details."""
-        previous_month = (
-            str(int(self.month) - 1) + "/" + self.year
-            if self.month != "1"
-            else "12/" + str(int(self.year) - 1)
-        )
-        previous_discount_line = self.env["mv.compute.discount.line"].search(
+        if self.month == "1":
+            previous_month = "12"
+            previous_year = str(int(self.year) - 1)
+        else:
+            previous_month = str(int(self.month) - 1)
+            previous_year = self.year
+
+        qty_min_by_lv = discount_line_id.quantity_from or vals["quantity_from"]
+        quantity_for_two_months = vals["quantity_for_two_months"]
+        previous_discount = self.env["mv.compute.discount.line"].search(
             [
                 ("partner_id", "=", partner.id),
                 ("name", "=", previous_month),
                 ("is_month", "=", True),
-                ("is_two_month", "=", False),
             ]
         )
-
-        if previous_discount_line:
+        if (
+            previous_discount
+            and not previous_discount.is_two_month
+            and quantity_for_two_months > int(qty_min_by_lv) * 2
+        ):
             vals["is_two_month"] = True
             vals["two_month"] = discount_line_id.two_month
             vals["amount_two_month"] = previous_discount_line.amount_total + total_sales
@@ -595,34 +651,40 @@ class MvComputeDiscount(models.Model):
 
     def _compute_quarterly_discount(self, partner, discount_line_id, total_sales, vals):
         """Compute quarterly discount details."""
-        if self.month in {"3", "6", "9", "12"}:
-            previous_months = [
-                str(int(self.month) - i) + "/" + self.year for i in range(1, 3)
-            ]
-            previous_lines = self.env["mv.compute.discount.line"].search(
-                [
-                    ("partner_id", "=", partner.id),
-                    ("name", "in", previous_months),
-                    ("is_month", "=", True),
-                ]
-            )
+        qty_min_by_lv = discount_line_id.quantity_from or vals["quantity_from"]
+        quantity_for_quarter = vals["quantity_for_quarter"]
 
-            if len(previous_lines) == 2:
-                vals["is_quarter"] = True
-                vals["quarter"] = discount_line_id.quarter
-                vals["quarter_money"] = (
-                    (
-                        total_sales
-                        + previous_lines[0].amount_total
-                        + previous_lines[1].amount_total
-                    )
-                    * discount_line_id.quarter
-                    / 100
+        previous_months = [
+            str(int(self.month) - i) + "/" + self.year for i in range(1, 3)
+        ]
+        previous_months_discount = self.env["mv.compute.discount.line"].search(
+            [
+                ("partner_id", "=", partner.id),
+                ("name", "in", previous_months),
+                ("is_month", "=", True),
+            ]
+        )
+
+        if (
+            self.month in QUARTER_OF_YEAR
+            and not previous_months_discount
+            and quantity_for_quarter > int(qty_min_by_lv) * 3
+        ):
+            vals["is_quarter"] = True
+            vals["quarter"] = discount_line_id.quarter
+            vals["quarter_money"] = (
+                (
+                    total_sales
+                    + previous_months_discount[0].amount_total
+                    + previous_months_discount[1].amount_total
                 )
+                * discount_line_id.quarter
+                / 100
+            )
 
     def _compute_yearly_discount(self, partner, discount_line_id, total_sales, vals):
         """Compute yearly discount details."""
-        if self.month == "12":
+        if self.month == DECEMBER:
             yearly_flag = True
             yearly_total = 0
             for i in range(1, 13):
@@ -672,7 +734,10 @@ class MvComputeDiscount(models.Model):
         sale_promote_quantity = model_load_data._sql_get_sale_promote_ids(
             partner_id=partner, date_from=date_from.date(), date_to=date_to.date()
         )[1]
-        return [(6, 0, sale_promote_ids.ids)], sale_promote_quantity
+        return (
+            [(6, 0, self.env["sale.order"].browse(sale_promote_ids.ids))],
+            sale_promote_quantity,
+        )
 
     def _fetch_sale_return_data(self, partner, date_from, date_to, model_load_data):
         """Fetch sales return data."""
@@ -684,7 +749,10 @@ class MvComputeDiscount(models.Model):
         sale_returns_quantity = model_load_data._sql_get_sale_return_ids(
             partner_id=partner, date_from=date_from.date(), date_to=date_to.date()
         )[1]
-        return [(6, 0, sale_returns_ids.ids)], sale_returns_quantity
+        return (
+            [(6, 0, self.env["sale.order"].browse(sale_returns_ids.ids))],
+            sale_returns_quantity,
+        )
 
     def _fetch_sale_claim_data(self, partner, date_from, date_to, model_load_data):
         """Fetch sales claim warranty data."""
@@ -696,7 +764,10 @@ class MvComputeDiscount(models.Model):
         sale_claim_warranty_quantity = model_load_data._sql_get_sale_claim_warranty_ids(
             partner_id=partner, date_from=date_from.date(), date_to=date_to.date()
         )[1]
-        return [(6, 0, sale_claim_warranty_ids.ids)], sale_claim_warranty_quantity
+        return (
+            [(6, 0, self.env["sale.order"].browse(sale_claim_warranty_ids.ids))],
+            sale_claim_warranty_quantity,
+        )
 
     def _generate_history_lines(self):
         """Generate history lines based on confirmed records."""
