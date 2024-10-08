@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_db_backup_configure_form" model="ir.ui.view">
+        <field name="name">Database Backup.form</field>
+        <field name="model">doyenhub.database.backup</field>
+        <field name="arch" type="xml">
+            
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="db_name"/>
+                            <field name="master_pwd" password="True"/>
+                            <field name="backup_format"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="backup_destination" required="1"/>
+                            <field name="backup_path" invisible="backup_destination != 'local'" required="backup_destination == 'local'" />
+                            <field name="auto_remove"/>
+                            <label for="days_to_remove" class="oe_inline" invisible="not auto_remove" />
+                            <div invisible="not auto_remove">
+                                <field name="days_to_remove" class="oe_inline" required="auto_remove" /> Days
+                            </div>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_db_backup_configure_list" model="ir.ui.view">
+        <field name="name">Database Backup.list</field>
+        <field name="model">doyenhub.database.backup</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="(not active)">
+                <field name="name"/>
+                <field name="db_name"/>
+                <field name="backup_destination"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_database_backup" model="ir.actions.act_window">
+        <field name="name">Database Backup</field>
+        <field name="res_model">doyenhub.database.backup</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Nothing is set up in the Database backup !!
+            </p>
+        </field>
+        <field name="context">{'search_default_all': 1}</field>
+    </record>
+
+    <menuitem
+        id="menu_database_backup_root"
+        name="Database Backup"
+        web_icon="doyenhub_auto_database_backup,static/description/icon.png"
+        action="action_database_backup"
+        sequence="0"/>
+
+</odoo>
