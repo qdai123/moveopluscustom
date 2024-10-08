@@ -226,6 +226,52 @@ class MoveoplusWebsiteSale(WebsiteSale):
 
     # === MOVEOPLUS METHODS ===#
 
+    def _create_context(self):
+        context = dict(request.env.context)
+        context.update({"applying_partner_discount": True})
+        return context
+
+    def _update_programs_and_rewards(self, order, context):
+        order.with_context(context)._update_programs_and_rewards()
+        order.with_context(context)._auto_apply_rewards()
+
+    def _compute_discounts(self, order):
+        order.sudo()._compute_partner_bonus()
+        order.sudo()._compute_bonus_order_line()
+
+    def _create_history_line(self, order, discount_amount_apply):
+        if order.partner_id and order.partner_agency:
+            selection_label = None
+            if order.state == "draft":
+                selection_label = "báo giá"
+            elif order.state == "sent":
+                selection_label = "báo giá đã gửi"
+
+            history_description = (
+                f"Đã áp dụng chiết khấu cho đơn {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận."
+                if not order.recompute_discount_agency
+                else f"Đã cập nhật bổ sung chiết khấu cho đơn có {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận."
+            )
+            is_waiting_approval = discount_amount_apply > 0
+            request.env["mv.discount.partner.history"].sudo()._create_history_line(
+                partner_id=order.partner_id.id,
+                history_description=history_description,
+                sale_order_id=order.id,
+                sale_order_state=order.get_selection_label(
+                    order._name, "state", order.id
+                )[1],
+                sale_order_discount_money_apply=discount_amount_apply,
+                total_money=discount_amount_apply,
+                total_money_discount_display=(
+                    -discount_amount_apply
+                    if discount_amount_apply > 0
+                    else discount_amount_apply
+                ),
+                is_waiting_approval=is_waiting_approval,
+                is_positive_money=False,
+                is_negative_money=False,
+            )
+
     @http.route(
         "/shop/apply_discount", type="http", auth="public", website=True, sitemap=False
     )
@@ -247,9 +293,8 @@ class MoveoplusWebsiteSale(WebsiteSale):
             _logger.error("No order found.")
             return request.redirect(redirect_shop_cart)
 
-        # Compute necessary discounts and bonuses
-        order.sudo()._compute_partner_bonus()
-        order.sudo()._compute_bonus_order_line()
+        # [>] Compute necessary Discounts and Bonuses
+        self._compute_discounts(order)
 
         discount_amount_apply = float(discount_amount)
         if discount_amount_apply < 0:
@@ -302,42 +347,11 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 order._compute_partner_bonus()
                 order._compute_bonus_order_line()
 
-        # Update the order's programs and rewards and auto-apply rewards with context
-        context = dict(request.env.context)
-        context.update({"applying_partner_discount": True})
-        order.with_context(context)._update_programs_and_rewards()
-        order.with_context(context)._auto_apply_rewards()
+        # [>] Update the order's programs and rewards and auto-apply rewards with context
+        context = self._create_context()
+        self._update_programs_and_rewards(order, context)
 
-        # Create history line for discount
-        if order.partner_id and order.partner_agency:
-            selection_label = None
-            if order.state == "draft":
-                selection_label = "báo giá"
-            elif order.state == "sent":
-                selection_label = "báo giá đã gửi"
-            history_description = (
-                f"Đã áp dụng chiết khấu cho đơn {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận."
-                if not is_update
-                else f"Đã cập nhật bổ sung chiết khấu cho đơn có {selection_label}, mã đơn là {order.name}. Đang chờ xác nhận."
-            )
-            is_waiting_approval = discount_amount_apply > 0
-            request.env["mv.discount.partner.history"].sudo()._create_history_line(
-                partner_id=order.partner_id.id,
-                history_description=history_description,
-                sale_order_id=order.id,
-                sale_order_state=order.get_selection_label(
-                    order._name, "state", order.id
-                )[1],
-                sale_order_discount_money_apply=discount_amount_apply,
-                total_money=discount_amount_apply,
-                total_money_discount_display=(
-                    "- {:,.2f}".format(discount_amount_apply)
-                    if discount_amount_apply > 0
-                    else "{:,.2f}".format(discount_amount_apply)
-                ),
-                is_waiting_approval=is_waiting_approval,
-                is_positive_money=False,
-                is_negative_money=False,
-            )
+        # [>] Create history line for discount
+        self._create_history_line(order, discount_amount_apply)
 
         return request.redirect(redirect_shop_cart)
