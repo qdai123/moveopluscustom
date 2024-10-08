@@ -12,6 +12,7 @@ _logger = logging.getLogger(__name__)
 
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
+    is_promotion = fields.Boolean(related='product_id.is_promotion', store=True)
 
     def _auto_init(self):
         # MOVEO+ OVERRIDE: Create column to stop ORM from computing it himself (too slow)

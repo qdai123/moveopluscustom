@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from odoo import api, models
+from odoo import api, models, fields
 
 
 class ProductTemplate(models.Model):
     _inherit = "product.template"
+    is_promotion = fields.Boolean(string="Is Promotion")
 
     @api.model
     def name_search(self, name, args=None, operator="ilike", limit=100):
