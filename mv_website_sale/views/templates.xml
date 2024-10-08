@@ -20,6 +20,25 @@
 
 	<!-- ======================================================= -->
 
+	<!--
+		MOVEO+ Inherited: Shopping Cart Lines (website_sale.cart_lines)
+		- Filter out the service lines from the shopping cart.
+		- Replace the "Remove" button with "Xóa" text.
+	-->
+	<template id="mv_website_sale.cart_lines_mv_sale" name="MOVEO+ Inherited: Shopping Cart Lines" inherit_id="website_sale.cart_lines">
+		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']" position="attributes">
+			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line.is_service)</attribute>
+		</xpath>
+		<xpath expr="//div[@name='website_sale_cart_line_quantity']/t[@t-if='not line._is_not_sellable_line()']" position="attributes">
+			<attribute name="t-if">not line._is_not_sellable_line() and not line.is_service</attribute>
+		</xpath>
+		<xpath expr="//a[hasclass('js_delete_product')]" position="replace">
+			<t t-if="not line.is_reward_line">
+				<a href="#" class="js_delete_product d-inline-block d-md-none small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
+			</t>
+		</xpath>
+	</template>
+
 	<!-- MOVEO+ Inherited: Total (website_sale.total) -->
 	<template id="mv_website_sale.total" name="MOVEO+ Inherited: Total" inherit_id="website_sale.total">
 		<xpath expr="//div[@id='cart_total']/table" position="before">
@@ -62,10 +81,10 @@
 				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.reward_id)" t-as="so_line">
 					<tr id="order_total_reward_line">
 						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
-							<t t-out="so_line.name_short"/>
+							Chiết khấu (Sản phẩm) <t t-out="'({}%)'.format(int(so_line.discount))"/>
 						</td>
 						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-							<span t-out="so_line.price_unit"
+							<span t-out="-(so_line.price_unit*so_line.product_uom_qty)"
 							      class="monetary_field"
 							      style="white-space: nowrap;"
 							      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
@@ -142,6 +161,7 @@
 								<b>
 									<t t-out="float(website_sale_order.bonus_max)"
 									   class="monetary_field"
+									   style="white-space: nowrap;"
 									   t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
 								</b>
 							</small>
@@ -167,13 +187,33 @@
 			</tr>
 		</xpath>
 		<xpath expr="//tr[hasclass('oe_website_sale_gift_card')]" position="replace"/>
+		<xpath expr="//tr[@id='order_delivery']/td[1]" position="replace">
+			<td colspan="2"
+			    class="ps-0 pt-0 pb-2 border-0 text-muted"
+			    title="Delivery will be updated after choosing a new delivery method">
+				Phí vận chuyển
+			</td>
+		</xpath>
+	</template>
+
+	<!-- MOVEO+ Inherited: Shopping Checkout Layout (website_sale.checkout_layout) -->
+	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">
+		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="attributes">
+			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line.is_service and not line.is_reward_line)</attribute>
+		</xpath>
+		<xpath expr="//span[@id='amount_total_summary']" position="replace">
+			<span id="amount_total_summary"
+			      class="monetary_field ms-1"
+			      t-out="website_sale_order.amount_untaxed"
+			      t-options='{"widget": "monetary", "display_currency": website_sale_order.currency_id}'/>
+		</xpath>
 	</template>
 
 	<!-- MOVEO+ Inherited: Navigation's Buttons (website_sale.navigation_buttons) -->
 	<template id="mv_website_sale.navigation_buttons" name="MOVEO+ Inherited: Navigation's Buttons" inherit_id="website_sale.navigation_buttons">
 		<xpath expr="//a[@name='website_sale_main_button']" position="after">
 			<div class="warning_checkout" style="padding-top: inherit;">
-				<t t-if="request.params.get('show_warning')" name="show_warning">
+				<t t-if="request.params.get('show_warning')">
 					<div class="alert alert-danger text-center" role="alert">
 						Bạn phải đặt từ <t t-esc="request.env.user.partner_id.quantity_threshold_value"/> lốp xe trở lên!
 					</div>
@@ -189,26 +229,6 @@
 	<template id="mv_website_sale.brand_promotion" name="MOVEO+ Inherited: Brand Promotion" inherit_id="website_sale.brand_promotion">
 		<!-- Replace: Remove the brand promotion message -->
 		<xpath expr="//t[@t-call='web.brand_promotion_message']" position="replace"/>
-	</template>
-
-	<!-- MOVEO+ Inherited: Shopping Cart Lines (website_sale.cart_lines) -->
-	<template id="mv_website_sale.cart_lines_mv_sale" name="MOVEO+ Inherited: Shopping Cart Lines" inherit_id="website_sale.cart_lines">
-		<xpath expr="//div[@t-foreach='website_sale_order.website_order_line']" position="attributes">
-			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line.is_service)</attribute>
-		</xpath>
-		<xpath expr="//div[@name='website_sale_cart_line_quantity']/t[@t-if='not line._is_not_sellable_line()']" position="attributes">
-			<attribute name="t-if">not line._is_not_sellable_line() and not line.is_service</attribute>
-		</xpath>
-		<xpath expr="//a[hasclass('js_delete_product')]" position="replace">
-			<a href="#" class="js_delete_product d-none d-md-inline-block small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
-		</xpath>
-	</template>
-
-	<!-- MOVEO+ Inherited: Shopping Checkout Layout (website_sale.checkout_layout) -->
-	<template id="mv_website_sale.checkout_layout_mv_sale" inherit_id="website_sale.checkout_layout">
-		<xpath expr="//tr[@t-foreach='website_sale_order.website_order_line']" position="attributes">
-			<attribute name="t-foreach">website_sale_order.website_order_line.filtered(lambda line: not line.is_service)</attribute>
-		</xpath>
 	</template>
 
 	<!-- MOVEO+ Inherited (website_sale_loyalty.cart_line_product_no_link) -->

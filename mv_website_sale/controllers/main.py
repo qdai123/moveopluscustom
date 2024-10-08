@@ -76,9 +76,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
         values_update = {
             "is_update": order.recompute_discount_agency,
             "delivery_set": any(line.is_delivery for line in order.order_line),
-            "discount_agency_set": order.order_line._filter_discount_agency_lines(
-                order
-            ),
+            "discount_agency_set": order.order_line._filter_agency_lines(order),
             "discount_amount_invalid": discount_amount_invalid,
             "discount_amount_maximum": discount_amount_maximum,
             "discount_amount_remaining": discount_amount_remaining,
@@ -232,8 +230,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
         return context
 
     def _update_programs_and_rewards(self, order, context):
-        order.with_context(context)._update_programs_and_rewards()
-        order.with_context(context)._auto_apply_rewards()
+        order.with_context(context).action_open_reward_wizard()
 
     def _compute_discounts(self, order):
         order.sudo()._compute_partner_bonus()
@@ -319,7 +316,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
         discount_amount_remaining = total_remaining if total_remaining != 0 else 0.0
 
         is_update = order.recompute_discount_agency
-        discount_agency_set = order.order_line._filter_discount_agency_lines(order)
+        discount_agency_set = order.order_line._filter_agency_lines(order)
 
         if not is_update:
             # Create SOline(s) discount according to wizard configuration
@@ -347,7 +344,7 @@ class MoveoplusWebsiteSale(WebsiteSale):
                 order._compute_partner_bonus()
                 order._compute_bonus_order_line()
 
-        # [>] Update the order's programs and rewards and auto-apply rewards with context
+        # [>] Add Reward Programs
         context = self._create_context()
         self._update_programs_and_rewards(order, context)
 
