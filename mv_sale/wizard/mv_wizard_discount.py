@@ -125,7 +125,7 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
         return any(line.is_delivery for line in order.order_line)
 
     def _has_discount_agency_lines(self, order):
-        return order.order_line._filter_discount_agency_lines(order)
+        return order.order_line._filter_agency_lines(order)
 
     def _compute_discount_amounts(self, wizard, order, partner):
         partner_amount_remaining = partner.amount_currency
@@ -269,8 +269,8 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
             """Create SOline(s) discount according to wizard configuration"""
             order.compute_discount_for_partner(wizard.discount_amount_apply)
 
-        order._update_programs_and_rewards()
-        order._auto_apply_rewards()
+        # [>] Add Reward Line
+        order.action_open_reward_wizard()
 
         # Create history line for discount
         if order.partner_id and order.partner_agency:
@@ -325,8 +325,8 @@ class MvWizardDeliveryCarrierAndDiscountPolicyApply(models.TransientModel):
                 order._compute_partner_bonus()
                 order._compute_bonus_order_line()
 
-        order._update_programs_and_rewards()
-        order._auto_apply_rewards()
+        # [>] Add Reward Line
+        order.action_open_reward_wizard()
 
         # [!] Should recompute discount agency
         order.should_recompute_discount_agency = False
