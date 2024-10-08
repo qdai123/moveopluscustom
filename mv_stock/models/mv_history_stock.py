@@ -64,19 +64,20 @@ class MVHistoryStock(models.Model):
     report_date_from = fields.Char("Report date from")
     report_date_to = fields.Char("Report date to")
 
-    # def calculate_all_info_stock(self):
-    #     history_stocks = self.env["mv.history.stock"].search(
-    #         [("create_uid", "=", self.env.user.id)]
-    #     )
-    #     sum_1 = sum(history_stocks.mapped("first_quantity_stock"))
-    #     sum_2 = sum(history_stocks.mapped("amount_first_quantity_stock"))
-    #     sum_3 = sum(history_stocks.mapped("incoming_quantity"))
-    #     sum_4 = sum(history_stocks.mapped("amount_incoming_quantity"))
-    #     sum_5 = sum(history_stocks.mapped("outgoing_quantity"))
-    #     sum_6 = sum(history_stocks.mapped("amount_outgoing_quantity"))
-    #     sum_7 = sum(history_stocks.mapped("last_quantity_stock"))
-    #     sum_8 = sum(history_stocks.mapped("amount_last_quantity_stock"))
-    #     return [sum_1, sum_2, sum_3, sum_4, sum_5, sum_6, sum_7, sum_8]
+    def calculate_all_info_stock(self):
+        # Use for Py3o report - Export/Import stock
+        history_stocks = self.env["mv.history.stock"].search(
+            [("create_uid", "=", self.env.user.id)]
+        )
+        sum_1 = sum(history_stocks.mapped("first_quantity_stock"))
+        sum_2 = sum(history_stocks.mapped("amount_first_quantity_stock"))
+        sum_3 = sum(history_stocks.mapped("incoming_quantity"))
+        sum_4 = sum(history_stocks.mapped("amount_incoming_quantity"))
+        sum_5 = sum(history_stocks.mapped("outgoing_quantity"))
+        sum_6 = sum(history_stocks.mapped("amount_outgoing_quantity"))
+        sum_7 = sum(history_stocks.mapped("last_quantity_stock"))
+        sum_8 = sum(history_stocks.mapped("amount_last_quantity_stock"))
+        return [sum_1, sum_2, sum_3, sum_4, sum_5, sum_6, sum_7, sum_8]
 
     def compute_first_quantity_stock(self, product, date_from, date_to):
         tmp_date_from = date_from
