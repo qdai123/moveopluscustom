@@ -44,6 +44,7 @@
         "views/loyalty_reward_views.xml",
         "views/loyalty_rule_views.xml",
         "views/sale_order_views.xml",
+        "views/product_template_view.xml",
         # TEMPLATES
         "views/sale_portal_templates.xml",
         # REPORT
