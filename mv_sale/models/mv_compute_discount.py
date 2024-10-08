@@ -384,7 +384,7 @@ class MvComputeDiscount(models.Model):
         """Process partners to compute discount and total sales information."""
         list_line_ids = []
         report_date = self.report_date
-        for partner in partners.filtered(lambda p: p.id in [111, 128]):
+        for partner in partners:
             vals = self._prepare_values_for_confirmation(partner, report_date)
 
             OrderLines = self._get_orders_by_partner(order_lines, partner)
@@ -615,9 +615,10 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
 
     def _compute_monthly_discount(self, discount_line_id, total_sales, vals):
         """Compute monthly discount details."""
-        vals["is_month"] = True
-        vals["month"] = discount_line_id.month
-        vals["month_money"] = total_sales * discount_line_id.month / 100
+        vals["is_month"] = vals["quantity"] >= vals["quantity_from"]
+        if vals["is_month"]:
+            vals["month"] = discount_line_id.month
+            vals["month_money"] = total_sales * discount_line_id.month / 100
 
     def _compute_two_month_discount(self, partner, discount_line_id, total_sales, vals):
         """Compute two-month discount details."""
@@ -630,6 +631,9 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
 
         qty_min_by_lv = discount_line_id.quantity_from or vals["quantity_from"]
         quantity_for_two_months = vals["quantity_for_two_months"]
+        vals["two_months_quantity_accepted"] = (
+            quantity_for_two_months > int(qty_min_by_lv) * 2
+        )
         previous_discount = self.env["mv.compute.discount.line"].search(
             [
                 ("partner_id", "=", partner.id),
@@ -640,7 +644,7 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
         if (
             previous_discount
             and not previous_discount.is_two_month
-            and quantity_for_two_months > int(qty_min_by_lv) * 2
+            and vals["two_months_quantity_accepted"]
         ):
             vals["is_two_month"] = True
             vals["two_month"] = discount_line_id.two_month
@@ -653,6 +657,9 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
         """Compute quarterly discount details."""
         qty_min_by_lv = discount_line_id.quantity_from or vals["quantity_from"]
         quantity_for_quarter = vals["quantity_for_quarter"]
+        vals["quarter_quantity_accepted"] = (
+            quantity_for_quarter > int(qty_min_by_lv) * 3
+        )
 
         previous_months = [
             str(int(self.month) - i) + "/" + self.year for i in range(1, 3)
@@ -735,7 +742,7 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
             partner_id=partner, date_from=date_from.date(), date_to=date_to.date()
         )[1]
         return (
-            [(6, 0, self.env["sale.order"].browse(sale_promote_ids.ids))],
+            [(6, 0, self.env["sale.order"].browse(sale_promote_ids.ids).ids or [])],
             sale_promote_quantity,
         )
 
@@ -750,7 +757,7 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
             partner_id=partner, date_from=date_from.date(), date_to=date_to.date()
         )[1]
         return (
-            [(6, 0, self.env["sale.order"].browse(sale_returns_ids.ids))],
+            [(6, 0, self.env["sale.order"].browse(sale_returns_ids.ids).ids or [])],
             sale_returns_quantity,
         )
 
@@ -765,7 +772,14 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
             partner_id=partner, date_from=date_from.date(), date_to=date_to.date()
         )[1]
         return (
-            [(6, 0, self.env["sale.order"].browse(sale_claim_warranty_ids.ids))],
+            [
+                (
+                    6,
+                    0,
+                    self.env["sale.order"].browse(sale_claim_warranty_ids.ids).ids
+                    or [],
+                )
+            ],
             sale_claim_warranty_quantity,
         )
 

@@ -427,7 +427,9 @@ class MvComputeDiscountLine(models.Model):
                 AND (so.is_claim_warranty = FALSE OR so.is_claim_warranty ISNULL)
             GROUP BY so.id
         """
-        self.env.cr.execute(query, [date_from, date_to, partner_id.id])
+
+        params = [date_from, date_to, partner_id.id]
+        self.env.cr.execute(query, params)
         results = self.env.cr.fetchall()
 
         sales_ids = [result[0] for result in results] or []
@@ -441,8 +443,7 @@ class MvComputeDiscountLine(models.Model):
 
         query = """
             SELECT so.id                                            AS sale_id,
-                        SUM(sol.product_uom_qty)         AS quantity,
-                        SUM(sol.qty_delivered)                AS quantity_delivered
+                        SUM(sol.product_uom_qty)         AS quantity
             FROM sale_order so
                     JOIN sale_order_line AS sol ON (sol.order_id = so.id)
                     JOIN product_product AS pp ON (pp.id = sol.product_id)
@@ -453,11 +454,13 @@ class MvComputeDiscountLine(models.Model):
                 AND so.is_order_returns = TRUE
             GROUP BY so.id
         """
-        self.env.cr.execute(query, [date_from, date_to, partner_id.id])
+
+        params = [date_from, date_to, partner_id.id]
+        self.env.cr.execute(query, params)
         results = self.env.cr.fetchall()
 
         sales_ids = [result[0] for result in results] or []
-        total_quantity_delivered = sum(result[2] for result in results) or 0
+        total_quantity_delivered = sum(result[1] for result in results) or 0
 
         return sales_ids, total_quantity_delivered
 
@@ -467,8 +470,7 @@ class MvComputeDiscountLine(models.Model):
 
         query = """
             SELECT so.id                                            AS sale_id,
-                        SUM(sol.product_uom_qty)         AS quantity,
-                        SUM(sol.qty_delivered)                AS quantity_delivered
+                        SUM(sol.product_uom_qty)         AS quantity
             FROM sale_order so
                     JOIN sale_order_line AS sol ON (sol.order_id = so.id)
                     JOIN product_product AS pp ON (pp.id = sol.product_id)
@@ -479,11 +481,13 @@ class MvComputeDiscountLine(models.Model):
                 AND so.is_claim_warranty = TRUE
             GROUP BY so.id
         """
-        self.env.cr.execute(query, [date_from, date_to, partner_id.id])
+
+        params = [date_from, date_to, partner_id.id]
+        self.env.cr.execute(query, params)
         results = self.env.cr.fetchall()
 
         sales_ids = [result[0] for result in results] or []
-        total_quantity_delivered = sum(result[2] for result in results) or 0
+        total_quantity_delivered = sum(result[1] for result in results) or 0
 
         return sales_ids, total_quantity_delivered
 

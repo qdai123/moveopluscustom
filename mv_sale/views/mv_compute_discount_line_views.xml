@@ -165,10 +165,10 @@
                 <field column_invisible="1" name="partner_id"/>
                 <field name="partner_company_ref" string="Đại lý" class="fw-bold"/>
                 <field name="level" optional="show"/>
-                <field name="quantity" sum="Quantity" optional="show"/>
-                <field name="quantity_discount" sum="Quantity" optional="hidden"/>
                 <field name="quantity_from" optional="hidden"/>
+                <field name="quantity" string="S/L lốp bán" sum="Quantity" class="fw-bold" decoration-danger="quantity &lt; quantity_from" optional="show"/>
                 <field name="quantity_to" optional="hidden"/>
+                <field name="quantity_discount" sum="Quantity" optional="hidden"/>
                 <field name="amount_total" string="Doanh thu" class="fw-bold" widget="monetary" sum="Amount month"/>
                 <field name="month" optional="hidden"/>
                 <field name="month_money" widget="monetary" sum="Discount month"/>
