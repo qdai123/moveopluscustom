@@ -140,9 +140,7 @@ class SaleOrder(models.Model):
                 # Check if the user is a Sales Manager
                 order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
                 # Check if the order has discount agency lines
-                order.discount_agency_set = (
-                    order.order_line._filter_discount_agency_lines(order)
-                )
+                order.discount_agency_set = order.order_line._filter_agency_lines(order)
                 _logger.debug(
                     f"Order {order.id}: discount_agency_set = {order.discount_agency_set}"
                 )
@@ -175,7 +173,7 @@ class SaleOrder(models.Model):
                 continue
 
             partner_wallet = order.partner_id.amount_currency
-            bonus_order_line = order.order_line._get_discount_agency_line()
+            bonus_order_line = order.order_line._filter_agency_lines(order=order)
 
             if bonus_order_line:
                 bonus_order = abs(bonus_order_line[0].sudo().price_unit)
@@ -188,7 +186,7 @@ class SaleOrder(models.Model):
     def _compute_bonus_order_line(self):
         for order in self.filtered("partner_agency"):
             if order.state != "cancel" and order.order_line:
-                bonus_order_line = order.order_line._get_discount_agency_line()
+                bonus_order_line = order.order_line._filter_agency_lines(order=order)
                 if bonus_order_line:
                     order.bonus_order = abs(bonus_order_line[0].sudo().price_unit)
                 else:
@@ -315,6 +313,8 @@ class SaleOrder(models.Model):
 
         order_product_lines = order.order_line.filtered(
             lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
+            and not sol.is_reward_line
+            and not sol.is_service
         )
         for line in order_product_lines:
             total_price_no_service += line.price_unit * line.product_uom_qty
@@ -577,7 +577,7 @@ class SaleOrder(models.Model):
 
     def _filter_order_lines(self):
         order = self
-        order_lines_discount = order.order_line._filter_discount_agency_lines(order)
+        order_lines_discount = order.order_line._filter_agency_lines(order)
         order_lines_delivery = order.order_line.filtered("is_delivery")
         return order_lines_discount, order_lines_delivery
 
@@ -705,8 +705,9 @@ class SaleOrder(models.Model):
 
     def action_clear_discount_lines(self):
         # Filter the order lines based on the conditions
-        discount_lines = self.order_line._get_discount_agency_line()
-        discount_lines += self.order_line.filtered(lambda sol: sol.is_reward_line)
+        order = self
+        discount_lines = order.order_line._filter_agency_lines(order=order)
+        discount_lines += order.order_line.filtered(lambda sol: sol.is_reward_line)
 
         # Unlink the discount lines
         if discount_lines:
@@ -822,6 +823,19 @@ class SaleOrder(models.Model):
                 )
             else:
                 order.with_context(action_confirm=True).action_recompute_discount()
+
+    def _recompute_prices(self):
+        lines_to_recompute = self._get_update_prices_lines()
+        lines_to_recompute.invalidate_recordset(["pricelist_item_id"])
+        lines_to_recompute._compute_price_unit()
+        # Special case: we want to overwrite the existing discount on _recompute_prices call
+        # i.e. to make sure the discount is correctly reset
+        # if pricelist discount_policy is different than when the price was first computed.
+        lines_to_recompute.filtered(lambda sol: not sol.is_reward_line).discount = 0.0
+        lines_to_recompute.filtered(
+            lambda sol: not sol.is_reward_line
+        )._compute_discount()
+        self.show_update_pricelist = False
 
     # === MOVEO+ FULL OVERRIDE '_get_program_domain', '_update_programs_and_rewards' ===#
 
@@ -1174,7 +1188,7 @@ class SaleOrder(models.Model):
         delivery_line = order.delivery_set or order.order_line.filtered(
             lambda sol: sol.is_delivery
         )
-        discount_agency_line = self.order_line._filter_discount_agency_lines(order)
+        discount_agency_line = self.order_line._filter_agency_lines(order)
         return delivery_line and discount_agency_line
 
     def _check_delivery_lines(self):
@@ -1186,35 +1200,36 @@ class SaleOrder(models.Model):
             raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
 
     def _check_not_free_qty_in_stock(self):
-        # This check is only applicable if the state is either 'draft' or 'sent'
-        if self.state not in ["draft", "sent"]:
-            return
+        if self.state in ["draft", "sent"]:
+            product_lines = self._get_product_order_lines()
+            error_products = self._get_error_products(product_lines)
 
-        # Filter order lines that are of type 'product'
-        product_order_lines = [
+            if error_products:
+                error_message = self._construct_error_message(error_products)
+                raise ValidationError(error_message)
+
+    def _get_product_order_lines(self):
+        return [
             line
             for line in self.order_line
             if line.product_id.product_tmpl_id.detailed_type == "product"
         ]
 
+    def _get_error_products(self, product_lines):
         error_products = []
-
-        # Check the stock availability for each product order line
-        for so_line in product_order_lines:
-            if so_line.product_uom_qty > so_line.free_qty_today:
+        for line in product_lines:
+            if line.product_uom_qty > line.free_qty_today:
                 error_products.append(
-                    f"\n- {so_line.product_template_id.name}: "
-                    f"Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái)"
+                    f"\n- {line.product_template_id.name}. [ Số lượng có thể đặt: {int(line.free_qty_today)} (Cái) ]"
                 )
+        return error_products
 
-        # If there are any errors, raise them all at once
-        if error_products:
-            error_message = (
-                "Bạn không được phép đặt quá số lượng hiện tại:"
-                + "".join(error_products)
-                + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
-            )
-            raise ValidationError(error_message)
+    def _construct_error_message(self, error_products):
+        return (
+            "Bạn không được phép đặt quá số lượng hiện tại:"
+            + "".join(error_products)
+            + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
+        )
 
     # ==================================
     # TOOLING
