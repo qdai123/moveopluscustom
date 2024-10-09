@@ -796,10 +796,11 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
             partners_updates = self._calculate_partners_updates(record)
             self._update_partner_amounts(partners_updates)
 
-            self._create_history_lines(record, "approve")
-
             if record.id not in base_total_detail_histories.mapped("parent_id").ids:
                 record.create_total_discount_detail_history()
+
+            for record_line in record.line_ids.filtered(lambda rec: rec.parent_id):
+                record._create_history_lines(record_line, "approve")
 
             record.write({"state": "done", "approved_date": fields.Datetime.now()})
 
