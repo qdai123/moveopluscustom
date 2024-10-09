@@ -161,11 +161,11 @@
 		<field name="model">sales.data.report</field>
 		<field name="arch" type="xml">
 			<search string="Sales Data Analysis">
-				<field string="Mã đơn" name="sale_reference" />
 				<field string="Sản phẩm" name="product_template_id"/>
+				<field string="Đại lý" name="sale_partner_id"/>
+				<field string="Mã đơn" name="sale_reference" />
 				<field string="Mã vạch" name="serial_number"/>
 				<field string="Mã QR-Code" name="qrcode"/>
-				<field string="Đại lý" name="sale_partner_id"/>
 				<filter string="Current Year" name="filter_current_year" domain="[('sale_date_order', '&gt;=', (context_today()).strftime('%Y-01-01')), ('sale_date_order', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
 				<separator/>
 				<filter string="Current Month" name="filter_current_month" domain="[('sale_date_order', '&lt;', (context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('sale_date_order', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
