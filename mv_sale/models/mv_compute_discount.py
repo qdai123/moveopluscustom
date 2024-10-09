@@ -384,7 +384,7 @@ class MvComputeDiscount(models.Model):
         """Process partners to compute discount and total sales information."""
         list_line_ids = []
         report_date = self.report_date
-        for partner in partners:
+        for partner in partners.filtered(lambda p: p.id in [140, 128, 111, 173, 212]):
             vals = self._prepare_values_for_confirmation(partner, report_date)
 
             OrderLines = self._get_orders_by_partner(order_lines, partner)
@@ -631,24 +631,18 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
 
         qty_min_by_lv = discount_line_id.quantity_from or vals["quantity_from"]
         quantity_for_two_months = vals["quantity_for_two_months"]
-        vals["two_months_quantity_accepted"] = (
-            quantity_for_two_months > int(qty_min_by_lv) * 2
-        )
         previous_discount = self.env["mv.compute.discount.line"].search(
             [
                 ("partner_id", "=", partner.id),
-                ("name", "=", previous_month),
+                ("name", "=", previous_month + "/" + previous_year),
                 ("is_month", "=", True),
             ]
         )
-        if (
-            previous_discount
-            and not previous_discount.is_two_month
-            and vals["two_months_quantity_accepted"]
-        ):
+        if previous_discount and not previous_discount.is_two_month:
             vals["is_two_month"] = True
+            vals["two_months_quantity_accepted"] = True
             vals["two_month"] = discount_line_id.two_month
-            vals["amount_two_month"] = previous_discount_line.amount_total + total_sales
+            vals["amount_two_month"] = previous_discount.amount_total + total_sales
             vals["two_money"] = (
                 vals["amount_two_month"] * discount_line_id.two_month / 100
             )
@@ -657,10 +651,6 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
         """Compute quarterly discount details."""
         qty_min_by_lv = discount_line_id.quantity_from or vals["quantity_from"]
         quantity_for_quarter = vals["quantity_for_quarter"]
-        vals["quarter_quantity_accepted"] = (
-            quantity_for_quarter > int(qty_min_by_lv) * 3
-        )
-
         previous_months = [
             str(int(self.month) - i) + "/" + self.year for i in range(1, 3)
         ]
@@ -671,13 +661,13 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
                 ("is_month", "=", True),
             ]
         )
-
         if (
             self.month in QUARTER_OF_YEAR
             and not previous_months_discount
             and quantity_for_quarter > int(qty_min_by_lv) * 3
         ):
             vals["is_quarter"] = True
+            vals["quarter_quantity_accepted"] = True
             vals["quarter"] = discount_line_id.quarter
             vals["quarter_money"] = (
                 (
