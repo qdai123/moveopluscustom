@@ -59,8 +59,8 @@
 				<field string="Đại lý" name="partner_id" operator="child_of" filter_domain="[
                         '|', '|',
                         ('partner_id', 'ilike', self),
-                        ('partner_name', 'ilike', self),
-                        ('partner_email', 'ilike', self)]"/>
+                        ('partner_id.name', 'ilike', self),
+                        ('partner_id.email', 'ilike', self)]"/>
 				<field string="Tên đại lý con kích hoạt" name="sub_dealer_name" filter_domain="[('sub_dealer_name', 'ilike', self)]"/>
 				<field string="Số điện thoại kích hoạt" name="tel_activation" filter_domain="[('tel_activation', 'ilike', self)]"/>
 				<field string="Biển số xe kích hoạt" name="license_plates" filter_domain="[('license_plates', 'ilike', self)]"/>
