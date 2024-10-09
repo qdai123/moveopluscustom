@@ -311,20 +311,24 @@ class SalesDataReport(models.Model):
 
     def _select_delivered_stock(self):
         query = """
-        SELECT MAX(picking_out.id) AS id,
-                                picking_out.picking_type_id,
-                                picking_out.sale_id,
-                                picking_out.partner_id,
-                                picking_out.state
-                         FROM stock_picking picking_out
-                                  JOIN stock_picking_type spt
-                                       ON spt.id = picking_out.picking_type_id
-                                           AND spt.code = 'outgoing'
-                         WHERE picking_out.state = 'done'
-                         GROUP BY picking_out.picking_type_id,
-                                  picking_out.sale_id,
-                                  picking_out.partner_id,
-                                  picking_out.state
+        SELECT picking_out.id AS id,
+                    picking_out.picking_type_id,
+                    picking_out.sale_id,
+                    picking_out.partner_id,
+                    picking_out.state
+        FROM stock_picking picking_out
+            JOIN stock_picking_type spt
+                ON spt.id = picking_out.picking_type_id
+                    AND spt.code = 'outgoing'
+            JOIN orders so
+                ON so.sale_id = picking_out.sale_id
+                    AND so.sale_reference = picking_out.origin
+        WHERE picking_out.state = 'done'
+        GROUP BY picking_out.id,
+                         picking_out.picking_type_id,
+                         picking_out.sale_id,
+                         picking_out.partner_id,
+                         picking_out.state
         """
         return query
 
@@ -518,14 +522,14 @@ class SalesDataReport(models.Model):
             partners AS (%s),
             products AS (%s),
             filtered_attributes AS (%s),
-            delivered_stock AS (%s),
-            orders AS (%s)
+            orders AS (%s),
+            delivered_stock AS (%s)
         """ % (
             self._select_partners(),
             self._select_products(),
             self._select_filtered_attributes(),
-            self._select_delivered_stock(),
             self._select_orders(),
+            self._select_delivered_stock(),
         )
         return query
 
