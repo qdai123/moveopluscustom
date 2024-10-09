@@ -63,6 +63,8 @@ class MVHistoryStock(models.Model):
     # Dùng cho báo cáo Xuất/Nhập tồn kho
     report_date_from = fields.Char("Report date from")
     report_date_to = fields.Char("Report date to")
+    user_id = fields.Many2one('res.users', string='User', 
+        default=lambda self: self.env.context.get('user_id', self.env.user.id), readonly=True)
 
     def calculate_all_info_stock(self):
         # Use for Py3o report - Export/Import stock
