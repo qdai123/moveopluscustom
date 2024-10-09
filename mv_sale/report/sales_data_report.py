@@ -311,24 +311,24 @@ class SalesDataReport(models.Model):
 
     def _select_delivered_stock(self):
         query = """
-        SELECT picking_out.id AS id,
-                    picking_out.picking_type_id,
-                    picking_out.sale_id,
-                    picking_out.partner_id,
-                    picking_out.state
-        FROM stock_picking picking_out
-            JOIN stock_picking_type spt
-                ON spt.id = picking_out.picking_type_id
-                    AND spt.code = 'outgoing'
-            JOIN orders so
-                ON so.sale_id = picking_out.sale_id
-                    AND so.sale_reference = picking_out.origin
-        WHERE picking_out.state = 'done'
-        GROUP BY picking_out.id,
-                         picking_out.picking_type_id,
-                         picking_out.sale_id,
-                         picking_out.partner_id,
-                         picking_out.state
+            SELECT picking_out.id AS id,
+                        picking_out.picking_type_id,
+                        picking_out.sale_id,
+                        picking_out.partner_id,
+                        picking_out.state
+            FROM stock_picking picking_out
+                JOIN stock_picking_type spt
+                    ON spt.id = picking_out.picking_type_id
+                        AND spt.code = 'outgoing'
+                JOIN orders so
+                    ON so.sale_id = picking_out.sale_id
+                        AND so.sale_reference = picking_out.origin
+            WHERE picking_out.state = 'done'
+            GROUP BY picking_out.id,
+                             picking_out.picking_type_id,
+                             picking_out.sale_id,
+                             picking_out.partner_id,
+                             picking_out.state
         """
         return query
 
