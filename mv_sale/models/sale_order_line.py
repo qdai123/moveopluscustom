@@ -9,10 +9,49 @@ from odoo.tools.sql import column_exists, create_column
 
 _logger = logging.getLogger(__name__)
 
+SERVICE_TYPE = "service"
+AGENCY_CODE = "CKT"
+
 
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
     is_promotion = fields.Boolean(related='product_id.is_promotion', store=True)
+
+    code_product = fields.Char("Product Code")
+    price_discount_inv = fields.Monetary(
+        "Price Disc.%",
+        compute="_compute_price_total_before_discount",
+        store=True,
+        currency_field="currency_id",
+    )
+    price_total_before_discount = fields.Monetary(
+        "Price Before Disc.%",
+        compute="_compute_price_total_before_discount",
+        store=True,
+        currency_field="currency_id",
+    )
+    price_subtotal_before_discount = fields.Monetary(
+        "Subtotal before Discount",
+        compute="_compute_price_subtotal_before_discount",
+        store=True,
+        currency_field="currency_id",
+    )
+    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
+    discount_line_id = fields.Many2one(
+        "mv.compute.discount.line",
+        "Discount Line by Policy",
+        readonly=True,
+    )
+    is_discount_agency = fields.Boolean(
+        "Product Agency (Disc.%)",
+        compute="_is_discount_agency",
+        store=True,
+        compute_sudo=True,
+    )
+    recompute_discount_agency = fields.Boolean(default=False)
+
+    # === Permission/Flags Fields ===#
+    is_sales_manager = fields.Boolean(compute="_compute_permissions")
 
     def _auto_init(self):
         # MOVEO+ OVERRIDE: Create column to stop ORM from computing it himself (too slow)
@@ -29,110 +68,91 @@ class SaleOrderLine(models.Model):
             )
         return super()._auto_init()
 
-    code_product = fields.Char("Product Code")
-    price_subtotal_before_discount = fields.Monetary(
-        "Subtotal before Discount",
-        compute="_compute_price_subtotal_before_discount",
-        store=True,
-        currency_field="currency_id",
-    )
-    hidden_show_qty = fields.Boolean(help="Don't show change Quantity on Website")
-    discount_line_id = fields.Many2one(
-        "mv.compute.discount.line",
-        "Discount Line by Policy",
-        readonly=True,
-    )
-    is_discount_agency = fields.Boolean(
-        "Agency Discount Product",
-        compute="_is_discount_agency",
-        store=True,
-        compute_sudo=True,
-    )
-    recompute_discount_agency = fields.Boolean(default=False)
-
-    # === Permission/Flags Fields ===#
-    is_sales_manager = fields.Boolean(compute="_compute_permissions")
-
     @api.depends("order_id")
     @api.depends_context("uid")
     def _compute_permissions(self):
+        """Computes whether the user has manager permissions"""
         for sol in self:
             sol.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
 
-    # /// ORM Methods
-
     @api.depends("product_id", "product_id.default_code")
     def _is_discount_agency(self):
+        """Determines if the line is a discount agency"""
         for sol in self:
-            sol.is_discount_agency = sol._filter_discount_agency_lines(sol.order_id)
+            sol.is_discount_agency = sol._filter_agency_lines(sol.order_id)
 
-    @api.depends("qty_delivered", "price_unit", "discount")
-    def _compute_price_subtotal_before_discount(self):
+    @api.depends("product_uom_qty", "price_unit", "price_subtotal", "product_id")
+    def _compute_price_total_before_discount(self):
         for sol in self:
-            try:
-                if sol.price_unit and sol.qty_delivered and sol.discount:
-                    sol.price_subtotal_before_discount = (
-                        sol.price_unit * sol.qty_delivered
-                    ) - ((sol.price_unit * sol.qty_delivered) * sol.discount / 100)
-                else:
-                    sol.price_subtotal_before_discount = 0
-            except Exception as e:
-                _logger.error(
-                    f"Error computing subtotal before discount for line {sol.id}: {e}"
+            # Continue only if the product is not a reward and is not service
+            if sol.product_id and not sol.reward_id and not sol.is_service:
+                sol.price_total_before_discount = sol.price_unit * sol.product_uom_qty
+                sol.price_discount_inv = (
+                    sol.price_total_before_discount - sol.price_subtotal
                 )
-                sol.price_subtotal_before_discount = 0
+            else:
+                sol.price_total_before_discount = 0.0
+                sol.price_discount_inv = 0.0
+
+    @api.depends("price_unit", "qty_delivered", "discount")
+    def _compute_price_subtotal_before_discount(self):
+        """Computes the price subtotal before applying discounts"""
+        for sol in self:
+            sol.price_subtotal_before_discount = (
+                self._calculate_subtotal_before_discount(
+                    sol.price_unit, sol.qty_delivered, sol.discount
+                )
+            )
+            self._log_price_subtotal(sol.id, sol.price_subtotal_before_discount)
+
+    def _calculate_subtotal_before_discount(self, price_unit, qty_delivered, discount):
+        if price_unit and qty_delivered:
+            subtotal = price_unit * qty_delivered
+            discount_amount = subtotal * discount / 100
+            return subtotal - discount_amount
+        return 0
+
+    def _log_price_subtotal(self, sol_id, price_subtotal_before_discount):
+        _logger.info(
+            f"Computed subtotal before discount for line {sol_id}: {price_subtotal_before_discount}"
+        )
 
     def _compute_product_updatable(self):
-        service_lines = self.filtered(
-            lambda line: line.product_template_id.detailed_type == "service"
-            and line.state not in ["cancel", "sale"]
-            and not line.is_sales_manager
-        )
+        service_lines = self._filter_service_lines_excluding_states(["cancel", "sale"])
         super(SaleOrderLine, self - service_lines)._compute_product_updatable()
         service_lines.product_updatable = True
 
     def _compute_product_uom_readonly(self):
-        service_lines = self.filtered(
-            lambda line: line.ids
-            and line.product_template_id.detailed_type == "service"
-            and line.state not in ["cancel", "sale"]
-            and not line.is_sales_manager
-        )
+        service_lines = self._filter_service_lines_excluding_states(["cancel", "sale"])
         super(SaleOrderLine, self - service_lines)._compute_product_uom_readonly()
         service_lines.product_uom_readonly = True
 
-    # /// CRUD Methods
+    def _set_product_code(self, vals):
+        """Helper method to set product code from the product."""
+        if "product_id" in vals and not vals.get("code_product"):
+            product = self.env["product.product"].browse(vals["product_id"])
+            vals["code_product"] = product.default_code
+
+    def _set_recompute_discount_agency(self):
+        """Set the recompute_discount_agency flag to True for lines that need it"""
+        lines_to_update = self._filter_agency_lines(self.order_id)
+        lines_to_update.write({"recompute_discount_agency": True})
 
     @api.model
     def create(self, vals):
-        if "product_id" in vals and not vals.get("code_product"):
-            product = self.env["product.product"].browse(vals["product_id"])
-            vals["code_product"] = product.default_code
+        self._set_product_code(vals)
         return super(SaleOrderLine, self).create(vals)
 
     def write(self, vals):
-        if "product_id" in vals and not vals.get("code_product"):
-            product = self.env["product.product"].browse(vals["product_id"])
-            vals["code_product"] = product.default_code
-
+        self._set_product_code(vals)
         res = super(SaleOrderLine, self).write(vals)
-
         if any(sol.hidden_show_qty or sol.reward_id for sol in self):
             return res
-        else:
-            if "product_uom_qty" in vals and vals["product_uom_qty"]:
-                for sol in self:
-                    sol._set_recompute_discount_agency()
-                    sol.order_id._reset_discount_agency(sol.order_id.state)
-
-            return res
-
-    def _set_recompute_discount_agency(self):
-        """
-        Set the recompute_discount_agency flag to True for lines that need it.
-        """
-        lines_to_update = self._get_discount_agency_line()
-        lines_to_update.write({"recompute_discount_agency": True})
+        if "product_uom_qty" in vals and vals["product_uom_qty"]:
+            for sol in self:
+                sol._set_recompute_discount_agency()
+                sol.order_id._reset_discount_agency(sol.order_id.state)
+        return res
 
     def unlink(self):
         for sol in self:
@@ -145,13 +165,32 @@ class SaleOrderLine(models.Model):
                 )
         return super(SaleOrderLine, self).unlink()
 
-    # MOVEO+ OVERRIDE: Force to delete the record if it's not confirmed by Sales Manager
     @api.ondelete(at_uninstall=False)
     def _unlink_except_confirmed(self):
+        """Override unlink method to prevent deletion unless confirmed by Sales Manager"""
         if not self.env.user.has_group(GROUP_SALES_MANAGER):
             return super(SaleOrderLine, self)._unlink_except_confirmed()
 
-    # /// HOOKS Methods
+    def _filter_agency_lines(self, order=False):
+        """Filters the discount agency lines for the given order"""
+        try:
+            if not order:
+                return self.browse()
+            return order.order_line.filtered(
+                lambda sol: sol.product_id.product_tmpl_id.detailed_type == SERVICE_TYPE
+                and sol.product_id.default_code == AGENCY_CODE
+            )
+        except Exception as e:
+            _logger.error(f"Failed to filter agency order lines: {e}")
+            return self.env["sale.order.line"]
+
+    def _filter_service_lines_excluding_states(self, excluded_states):
+        """Filters the service lines excluding the provided states"""
+        return self.filtered(
+            lambda line: line.product_template_id.detailed_type == SERVICE_TYPE
+            and line.state not in excluded_states
+            and not line.is_sales_manager
+        )
 
     def _is_not_sellable_line(self):
         return (
@@ -159,29 +198,3 @@ class SaleOrderLine(models.Model):
             or self.is_discount_agency
             or super()._is_not_sellable_line()
         )
-
-    # /// HELPERS Methods
-
-    def _get_discount_agency_line(self):
-        return self._filter_discount_agency_lines(self.order_id)
-
-    def _filter_discount_agency_lines(self, order=False):
-        try:
-            # [>] Ensure that the method is called on a single record
-            # self.ensure_one()
-
-            # [>] Return an empty recordset if no order_id is provided
-            if not order:
-                return self.browse()
-
-            # [>] Filter the order lines based on the conditions
-            # [1] The product is a service
-            # [2] The product is a service with default code "CKT"
-            agency_order_lines = order.order_line.filtered(
-                lambda sol: sol.product_id.product_tmpl_id.detailed_type == "service"
-                and sol.product_id.default_code == "CKT"
-            )
-            return agency_order_lines
-        except Exception as e:
-            _logger.error(f"Failed to filter agency order lines: {e}")
-            return self.env["sale.order.line"]

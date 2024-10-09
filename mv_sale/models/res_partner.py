@@ -324,13 +324,13 @@ class ResPartner(models.Model):
         if state == "sale":
             agency_domain += [("state", "=", "sale")]
             return Order.search(agency_domain).filtered(
-                lambda order: order.order_line._filter_discount_agency_lines(order)
+                lambda order: order.order_line._filter_agency_lines(order)
                 or order.bonus_order > 0
             )
         elif state == "not_sale":
             agency_domain += [("state", "in", ["draft", "sent"])]
             return Order.search(agency_domain).filtered(
-                lambda order: order.order_line._filter_discount_agency_lines(order)
+                lambda order: order.order_line._filter_agency_lines(order)
                 or order.bonus_order > 0
             )
 
