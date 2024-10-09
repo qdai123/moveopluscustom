@@ -168,7 +168,7 @@ class MvComputeDiscount(models.Model):
             if rec.month and rec.year:
                 date_str = "{}/{}".format(str(rec.month), str(rec.year))
             else:
-                date_str = _get_current_date_string()
+                date_str = get_current_date_string()
             rec.name = date_str
 
     @api.depends("year", "month")
