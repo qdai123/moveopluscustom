@@ -635,7 +635,6 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
             [
                 ("partner_id", "=", partner.id),
                 ("name", "=", previous_month + "/" + previous_year),
-                ("is_month", "=", True),
             ]
         )
         if (
@@ -644,7 +643,9 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
             and quantity_for_two_months > int(discount_line_id.quantity_from) * 2
         ):
             vals["is_two_month"] = True
-            vals["two_months_quantity_accepted"] = True
+            vals["two_months_quantity_accepted"] = (
+                quantity_for_two_months > int(discount_line_id.quantity_from) * 2
+            )
             vals["two_month"] = discount_line_id.two_month
             vals["amount_two_month"] = previous_discount.amount_total + total_sales
             vals["two_money"] = (
@@ -659,19 +660,17 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
             str(int(self.month) - i) + "/" + self.year for i in range(1, 3)
         ]
         previous_months_discount = self.env["mv.compute.discount.line"].search(
-            [
-                ("partner_id", "=", partner.id),
-                ("name", "in", previous_months),
-                ("is_month", "=", True),
-            ]
+            [("partner_id", "=", partner.id), ("name", "in", previous_months)]
         )
         if (
             self.month in QUARTER_OF_YEAR
-            and not previous_months_discount
+            and previous_months_discount
             and quantity_for_quarter > int(qty_min_by_lv) * 3
         ):
             vals["is_quarter"] = True
-            vals["quarter_quantity_accepted"] = True
+            vals["quarter_quantity_accepted"] = (
+                quantity_for_quarter > int(qty_min_by_lv) * 3
+            )
             vals["quarter"] = discount_line_id.quarter
             vals["quarter_money"] = (
                 (
