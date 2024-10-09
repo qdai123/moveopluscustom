@@ -35,7 +35,7 @@
                     <group>
                         <group name="group_information_1">
                             <field name="partner_id"/>
-                            <field name="partner_company_ref" class="fw-bold"/>
+                            <field name="partner_company_ref"/>
                             <field name="level"/>
                             <field name="basic" invisible="1"/>
                             <field name="currency_id" invisible="1"/>
@@ -116,7 +116,7 @@
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
                                     <field name="partner_id" string="Customer"/>
-                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                    <field name="amount_total" sum="Price" widget="monetary" optional="hidden"/>
                                 </tree>
                             </field>
                         </page>
@@ -126,7 +126,7 @@
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
                                     <field name="partner_id" string="Customer"/>
-                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                    <field name="amount_total" sum="Price" widget="monetary" optional="hidden"/>
                                 </tree>
                             </field>
                         </page>
@@ -136,7 +136,7 @@
                                     <field name="currency_id" column_invisible="1"/>
                                     <field name="name" string="Order"/>
                                     <field name="partner_id" string="Customer"/>
-                                    <field name="amount_total" sum="Price" widget="monetary"/>
+                                    <field name="amount_total" sum="Price" widget="monetary" optional="hidden"/>
                                 </tree>
                             </field>
                         </page>
@@ -165,10 +165,16 @@
                 <field column_invisible="1" name="partner_id"/>
                 <field name="partner_company_ref" string="Đại lý" class="fw-bold"/>
                 <field name="level" optional="show"/>
-                <field name="quantity" sum="Quantity" optional="show"/>
-                <field name="quantity_discount" sum="Quantity" optional="hidden"/>
                 <field name="quantity_from" optional="hidden"/>
+                <field name="quantity"
+                       string="S/L lốp bán"
+                       sum="Quantity"
+                       class="fw-bold"
+                       decoration-info="partner_sales_state == 'qualified_by_approving'"
+                       decoration-danger="(quantity &lt; quantity_from) and partner_sales_state != 'qualified_by_approving'"
+                       optional="show"/>
                 <field name="quantity_to" optional="hidden"/>
+                <field name="quantity_discount" sum="Quantity" optional="hidden"/>
                 <field name="amount_total" string="Doanh thu" class="fw-bold" widget="monetary" sum="Amount month"/>
                 <field name="month" optional="hidden"/>
                 <field name="month_money" widget="monetary" sum="Discount month"/>
