@@ -384,7 +384,7 @@ class MvComputeDiscount(models.Model):
         """Process partners to compute discount and total sales information."""
         list_line_ids = []
         report_date = self.report_date
-        for partner in partners.filtered(lambda p: p.id in [140, 128, 111, 173, 212]):
+        for partner in partners:
             vals = self._prepare_values_for_confirmation(partner, report_date)
 
             OrderLines = self._get_orders_by_partner(order_lines, partner)
@@ -638,7 +638,11 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
                 ("is_month", "=", True),
             ]
         )
-        if previous_discount and not previous_discount.is_two_month:
+        if (
+            previous_discount
+            and not previous_discount.is_two_month
+            and quantity_for_two_months > int(discount_line_id.quantity_from) * 2
+        ):
             vals["is_two_month"] = True
             vals["two_months_quantity_accepted"] = True
             vals["two_month"] = discount_line_id.two_month

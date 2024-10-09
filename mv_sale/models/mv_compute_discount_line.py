@@ -171,96 +171,46 @@ class MvComputeDiscountLine(models.Model):
     # BUSINESS Methods
     # =================================
 
-    def action_approve_for_promote(self):
-        self.ensure_one()
-
-        if not self._access_approve():
-            raise AccessError("Bạn không có quyền duyệt!")
-
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Vui lòng chọn % chiết khấu Khuyến Khích cho Đại lý",
-            "res_model": "mv.wizard.promote.discount.line",
-            "views": [
-                [
-                    self.env.ref(
-                        "mv_sale.mv_wizard_promote_discount_line_form_view"
-                    ).id,
-                    "form",
-                ]
-            ],
-            "domain": [],
-            "context": {
-                "default_compute_discount_line_id": self.id,
-                "default_compute_discount_id": self.parent_id.id,
-                "default_partner_id": self.partner_id.id,
-            },
-            "target": "new",
-        }
-
     def action_approve_for_month(self):
         self.ensure_one()
-
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
         vals = {}
-        discount_line_env = self.env["mv.compute.discount.line"]
-        if self.quantity < self.quantity_from:
-            is_two_months = False
-            # |||| Case 1: For a month
-            vals.update(
-                {
-                    "is_month": True,
-                    "partner_sales_state": "qualified_by_approving",
-                    "month": self.discount_line_id.month,
-                    "month_money": self.amount_total
-                    * self.discount_line_id.month
-                    / 100,
-                }
-            )
-            # |||| Case 2: For two months
-            amount_by_two_month = 0
-            previous_month = "{}/{}".format(
-                str(int(self.month_parent) - 1), self.parent_id.year
-            )
-            discount_line_previous_month = discount_line_env.search(
+        is_month = self.quantity < self.quantity_from
+        is_two_months, total_money = False, 0
+
+        def calculate_monthly_discount():
+            return {
+                "is_month": is_month,
+                "partner_sales_state": "qualified_by_approving",
+                "month": self.discount_line_id.month,
+                "month_money": self.amount_total * self.discount_line_id.month / 100,
+            }
+
+        def find_previous_month():
+            return "{}/{}".format(str(int(self.month_parent) - 1), self.parent_id.year)
+
+        def search_discount_line(previous_month):
+            discount_line_env = self.env["mv.compute.discount.line"]
+            return discount_line_env.search(
                 [
                     ("partner_id", "=", self.partner_id.id),
-                    ("is_month", "=", True),
-                    ("is_two_month", "=", False),
                     ("name", "=", previous_month),
+                    ("is_month", "=", True),
                 ]
             )
-            if discount_line_previous_month:
-                is_two_months = True
-                for line in discount_line_previous_month:
-                    amount_by_two_month += line.amount_total
 
-                vals.update(
-                    {
-                        "is_two_month": True,
-                        "two_month": self.discount_line_id.two_month,
-                        "two_money": (amount_by_two_month + self.amount_total)
-                        * self.discount_line_id.two_month
-                        / 100,
-                    }
-                )
-            self.write(vals)
-            # Create history line for discount
-            total_money = (
-                vals["two_money"] + vals["month_money"]
-                if is_two_months
-                else vals["month_money"]
-            )
-            self.create_history_line(
-                self,
-                "approve_for_two_months",
-                "Đã duyệt Chiết Khấu Tháng cho đại lý, đang chờ duyệt tổng tháng %s."
-                % self.name,
-                total_money,
-            )
-            # Tracking for user
+        def calculate_two_month_discount(amount_by_two_month):
+            return {
+                "is_two_month": True,
+                "two_month": self.discount_line_id.two_month,
+                "two_money": (amount_by_two_month + self.amount_total)
+                * self.discount_line_id.two_month
+                / 100,
+            }
+
+        def post_tracking_message(total_money):
             self.parent_id.message_post(
                 body=Markup(
                     """
@@ -268,48 +218,83 @@ class MvComputeDiscountLine(models.Model):
                         %s đã xác nhận chiết khấu tháng cho %s. <br/>
                         Với số tiền là: <b>%s</b>
                     </div>
-                """
+                    """
                 )
                 % (
                     self.env.user.name,
                     self.partner_id.name,
-                    self.format_value(
-                        amount=self.month_money, currency=self.currency_id
-                    ),
+                    self.format_value(amount=total_money, currency=self.currency_id),
                 )
             )
 
+        # Compute monthly discount details.
+        if is_month:
+            vals.update(calculate_monthly_discount())
+
+        # Compute two-month discount details.
+        previous_month = find_previous_month()
+        discount_lines = search_discount_line(previous_month)
+        if discount_lines and not discount_lines.is_two_month:
+            is_two_months = True
+            amount_by_two_month = sum(line.amount_total for line in discount_lines)
+            vals.update(calculate_two_month_discount(amount_by_two_month))
+
+        self.write(vals)
+
+        # Create history line for discount
+        total_money = (
+            vals["two_money"] + vals["month_money"]
+            if is_two_months
+            else vals["month_money"]
+        )
+        self.create_history_line(
+            self,
+            "approve_for_two_months",
+            f"Đã xác nhận Chiết Khấu Tháng cho đại lý, đang chờ duyệt tổng tháng {self.name}.",
+            total_money,
+        )
+
+        # Tracking for user
+        post_tracking_message(total_money)
+
     def action_quarter(self):
         self.ensure_one()
-
         if not self._access_approve():
             raise AccessError("Bạn không có quyền duyệt!")
 
-        amount_two_month = 0
-        name_one = str(int(self.month_parent) - 1) + "/" + self.parent_id.year
-        name_two = str(int(self.month_parent) - 2) + "/" + self.parent_id.year
-        domain = [
-            ("name", "in", [name_one, name_two]),
-            ("partner_id", "=", self.partner_id.id),
-        ]
-        line_ids = self.env["mv.compute.discount.line"].search(domain)
-        if len(line_ids) > 0:
-            for line in line_ids:
-                amount_two_month += line.amount_total
+        amount_two_month = self._calculate_two_month_amount()
+        total_money = (
+            (amount_two_month + self.amount_total) * self.discount_line_id.quarter / 100
+        )
+
         self.write(
             {
                 "is_quarter": True,
                 "partner_sales_state": "qualified_by_approving",
                 "quarter": self.discount_line_id.quarter,
-                "quarter_money": (amount_two_month + self.amount_total)
-                * self.discount_line_id.quarter
-                / 100,
+                "quarter_money": total_money,
             }
         )
-        # Create history line for discount
-        total_money = (
-            (amount_two_month + self.amount_total) * self.discount_line_id.quarter / 100
-        )
+
+        self._create_history_line(total_money)
+        self._post_quarter_discount_message()
+
+    def _calculate_two_month_amount(self):
+        amount_two_month = 0
+        month_names = [
+            str(int(self.month_parent) - i) + "/" + self.parent_id.year
+            for i in range(1, 3)
+        ]
+        domain = [
+            ("name", "in", month_names),
+            ("partner_id", "=", self.partner_id.id),
+        ]
+        line_ids = self.env["mv.compute.discount.line"].search(domain)
+        for line in line_ids:
+            amount_two_month += line.amount_total
+        return amount_two_month
+
+    def _create_history_line(self, total_money):
         self.create_history_line(
             self,
             "approve_for_quarter",
@@ -317,7 +302,8 @@ class MvComputeDiscountLine(models.Model):
             % self.name,
             total_money,
         )
-        # Tracking for user
+
+    def _post_quarter_discount_message(self):
         self.parent_id.message_post(
             body=Markup(
                 """
@@ -325,7 +311,7 @@ class MvComputeDiscountLine(models.Model):
                     %s đã xác nhận chiết khấu quý cho %s. <br/>
                     Với số tiền là: <b>%s</b>
                 </div>
-            """
+                """
             )
             % (self.env.user.name, self.partner_id.name, str(self.quarter_money))
         )
@@ -372,6 +358,33 @@ class MvComputeDiscountLine(models.Model):
             )
             % (self.env.user.name, self.partner_id.name, str(total_year))
         )
+
+    def action_approve_for_promote(self):
+        self.ensure_one()
+
+        if not self._access_approve():
+            raise AccessError("Bạn không có quyền duyệt!")
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Vui lòng chọn % chiết khấu Khuyến Khích cho Đại lý",
+            "res_model": "mv.wizard.promote.discount.line",
+            "views": [
+                [
+                    self.env.ref(
+                        "mv_sale.mv_wizard_promote_discount_line_form_view"
+                    ).id,
+                    "form",
+                ]
+            ],
+            "domain": [],
+            "context": {
+                "default_compute_discount_line_id": self.id,
+                "default_compute_discount_id": self.parent_id.id,
+                "default_partner_id": self.partner_id.id,
+            },
+            "target": "new",
+        }
 
     def create_history_line(self, record, state, description, total_money):
         is_waiting_approval = (

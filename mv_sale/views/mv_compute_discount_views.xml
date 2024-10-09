@@ -73,7 +73,12 @@
 									<field name="partner_company_ref" string="Đại lý" class="fw-bold"/>
 									<field name="level" optional="show"/>
 									<field name="quantity_from" string="MIN" optional="hidden"/>
-									<field name="quantity" string="S/L lốp bán" class="fw-bold" decoration-danger="quantity &lt; quantity_from" optional="show"/>
+									<field name="quantity"
+									       string="S/L lốp bán"
+									       class="fw-bold"
+									       decoration-info="partner_sales_state == 'qualified_by_approving'"
+									       decoration-danger="(quantity &lt; quantity_from) and partner_sales_state != 'qualified_by_approving'"
+									       optional="show"/>
 									<field name="quantity_to" string="MAX" optional="hidden"/>
 									<field name="amount_total" string="Doanh thu" widget="monetary" class="fw-bold"/>
 									<field column_invisible="1" name="basic"/>
@@ -95,6 +100,11 @@
 									<field name="promote_discount_percentage" string="% C/K Khuyến Khích" widget="percentage" class="fw-bold" optional="hidden"/>
 									<field name="promote_discount_money" widget="monetary"/>
 									<field name="total_money" string="Tổng số tiền" widget="monetary" class="fw-bold"/>
+									<field name="partner_sales_state"
+									       decoration-success="partner_sales_state in ['qualified', 'qualified_by_approving']"
+									       decoration-warning="partner_sales_state == 'imqualified'"
+									       widget="badge"
+									       optional="hidden"/>
 									<button name="action_approve_for_month"
 									        class="btn btn-success"
 									        type="object"
