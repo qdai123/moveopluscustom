@@ -262,7 +262,7 @@ class SalesDataReport(models.Model):
             FROM res_partner p
             WHERE p.active 
                 AND p.is_agency
-                AND p.use_for_report IS DISTINCT FROM TRUE
+                AND p.use_for_report
                 AND EXISTS (SELECT 1
                                      FROM sale_order s
                                      WHERE s.partner_id = p.id)
@@ -306,6 +306,29 @@ class SalesDataReport(models.Model):
                         FILTER (WHERE attribute_code IN ('{dong_lop}', '{dong_lop}_duplicated'))                   AS attribute_4
             FROM products
             GROUP BY product_id, product_template_id
+        """
+        return query
+
+    def _select_delivered_stock(self):
+        query = """
+            SELECT picking_out.id AS id,
+                        picking_out.picking_type_id,
+                        picking_out.sale_id,
+                        picking_out.partner_id,
+                        picking_out.state
+            FROM stock_picking picking_out
+                JOIN stock_picking_type spt
+                    ON spt.id = picking_out.picking_type_id
+                        AND spt.code = 'outgoing'
+                JOIN orders so
+                    ON so.sale_id = picking_out.sale_id
+                        AND so.sale_reference = picking_out.origin
+            WHERE picking_out.state = 'done'
+            GROUP BY picking_out.id,
+                             picking_out.picking_type_id,
+                             picking_out.sale_id,
+                             picking_out.partner_id,
+                             picking_out.state
         """
         return query
 
@@ -499,12 +522,14 @@ class SalesDataReport(models.Model):
             partners AS (%s),
             products AS (%s),
             filtered_attributes AS (%s),
-            orders AS (%s)
+            orders AS (%s),
+            delivered_stock AS (%s)
         """ % (
             self._select_partners(),
             self._select_products(),
             self._select_filtered_attributes(),
             self._select_orders(),
+            self._select_delivered_stock(),
         )
         return query
 
