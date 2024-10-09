@@ -33,8 +33,8 @@
 			<attribute name="t-if">not line._is_not_sellable_line() and not line.is_service</attribute>
 		</xpath>
 		<xpath expr="//a[hasclass('js_delete_product')]" position="replace">
-			<t t-if="not line.is_reward_line">
-				<a href="#" class="js_delete_product d-inline-block d-md-none small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
+			<t t-if="not line._is_not_sellable_line() or not line.is_service or not line.reward_id">
+				<a href="#" class="js_delete_product d-inline-block small" aria-label="Remove from cart" title="Remove from cart">Xóa</a>
 			</t>
 		</xpath>
 	</template>
@@ -78,13 +78,13 @@
 
 			<!-- [MO+] START: Chiết Khấu áp dụng theo chương trình -->
 			<t t-if="is_partner_agency">
-				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.reward_id)" t-as="so_line">
+				<t t-foreach="website_sale_order.website_order_line.filtered(lambda line: line.reward_id and line.reward_id.program_id and line.reward_id.program_id.program_type != 'buy_x_get_y')" t-as="so_line">
 					<tr id="order_total_reward_line">
 						<td class="border-0 pb-2 ps-0 pt-0 text-start text-muted" colspan="2">
-							Chiết khấu (Sản phẩm) <t t-out="'({}%)'.format(int(so_line.discount))"/>
+							<t t-out="so_line.name_short"/>
 						</td>
 						<td class="text-end border-0 pb-2 pe-0 pt-0 text-muted">
-							<span t-out="-(so_line.price_unit*so_line.product_uom_qty)"
+							<span t-field="so_line.price_subtotal"
 							      class="monetary_field"
 							      style="white-space: nowrap;"
 							      t-options="{'widget': 'monetary', 'display_currency': website_sale_order.currency_id}"/>
