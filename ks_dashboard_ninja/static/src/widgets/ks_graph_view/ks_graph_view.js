@@ -857,7 +857,14 @@ export class KsGraphPreview extends Component{
                     bigNumberPrefixes: [{"number":1e+6,"suffix":"M"},{ "number": 1e+9, "suffix": "M" },{ "number": 1e+12, "suffix": "M" },
                     { "number": 1e+15, "suffix": "M" },{ "number": 1e+18, "suffix": "M" }]
                 });
-            }else{
+            }//Minh Hieu: Add new condition for vietnamese number format
+            else if (rec.ks_data_format && rec.ks_data_format == 'vietnamese') {
+                this.root.numberFormatter.setAll({
+                    numberFormat: "#.0a",
+                    bigNumberPrefixes:[{"number":1e+3,"suffix":"Nghìn"},{ "number": 1e+6, "suffix": "Triệu" },
+                             { "number": 1e+9, "suffix": "Tỷ" },{ "number": 1e+12, "suffix": "Nghìn tỷ" }]
+                });
+            } else{
                 this.root.numberFormatter.setAll({
                     numberFormat: "#"
                 });
