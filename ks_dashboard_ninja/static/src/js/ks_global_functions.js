@@ -192,7 +192,7 @@ export const globalfunction = {
                 }
 
         },
-        //Add new function for vietnamese number format
+        //Minh Hieu: Add new function for vietnamese number format
        ksNumVietnameseFormatter(num) {
             var negative = false;
 
