@@ -640,7 +640,7 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
         if (
             previous_discount
             and not previous_discount.is_two_month
-            and quantity_for_two_months > int(discount_line_id.quantity_from) * 2
+            and quantity_for_two_months >= int(discount_line_id.quantity_from) * 2
         ):
             vals["is_two_month"] = True
             vals["two_months_quantity_accepted"] = (
@@ -665,7 +665,7 @@ SELECT (SELECT delivered_quantity FROM delivered_previous_month) AS previous_mon
         if (
             self.month in QUARTER_OF_YEAR
             and previous_months_discount
-            and quantity_for_quarter > int(qty_min_by_lv) * 3
+            and quantity_for_quarter >= int(qty_min_by_lv) * 3
         ):
             vals["is_quarter"] = True
             vals["quarter_quantity_accepted"] = (
