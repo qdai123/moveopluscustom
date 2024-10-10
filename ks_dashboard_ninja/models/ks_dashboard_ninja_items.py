@@ -577,6 +577,7 @@ class KsDashboardNinjaItems(models.Model):
         ('global', 'English Format'),
         ('indian', 'Indian Format'),
         ('colombian', 'Colombian Peso Format'),
+        ('vietnamese', 'Vietnamese Format'),
         ('exact', 'Exact Value')],
         string='Number System',
         default='global',
