@@ -116,6 +116,8 @@ export const globalfunction = {
                     return self.ksNumIndianFormatter( ks_record_count, 1);
                 }else if (ks_data_format == 'colombian'){
                     return self.ksNumColombianFormatter( ks_record_count, 1, ks_precision_digits);
+                }else if (ks_data_format == 'vietnamese') {
+                    return self.ksNumVietnameseFormatter(ks_record_count);
                 }else{
                     return self.ksNumFormatter(ks_record_count, 1);
                 }
@@ -189,6 +191,25 @@ export const globalfunction = {
                     }
                 }
 
+        },
+        //Add new function for vietnamese number format
+       ksNumVietnameseFormatter(num) {
+            var negative = false;
+
+            // Handle negative numbers
+            if (num < 0) {
+                num = Math.abs(num);
+                negative = true;
+            }
+
+            // Format number
+            var formattedNumber = new Intl.NumberFormat('en-US').format(num);
+
+            if (negative) {
+                return "-" + formattedNumber;
+            } else {
+                return formattedNumber;
+            }
         }
 
 }
