@@ -613,10 +613,7 @@ class SalesDataReport(models.Model):
                         ON so.sale_order_line_id = sm.sale_line_id 
                             AND so.product_id = sm.product_id
                 JOIN partners partner ON partner.id = so.partner_id
-                JOIN stock_picking picking_out
-                        ON picking_out.id = sml.picking_id 
-                            AND picking_out.state = 'done' 
-                            AND picking_out.return_id ISNULL
+                JOIN delivered_stock picking_out ON picking_out.id = sml.picking_id
                 LEFT JOIN res_partner partner_ship
                         ON partner_ship.type = 'delivery'
                             AND partner_ship.id = picking_out.partner_id
@@ -626,9 +623,12 @@ class SalesDataReport(models.Model):
         return """
             WHERE lot.name NOT IN (SELECT DISTINCT lot.name
                                                     FROM stock_move_line move_line
-                                                            JOIN stock_lot lot ON lot.id = move_line.lot_id
+                                                            LEFT JOIN stock_lot lot ON lot.id = move_line.lot_id
                                                             JOIN stock_picking picking_in 
                                                                 ON picking_in.id = move_line.picking_id
+                                                            JOIN stock_picking_type spt
+                                                                ON spt.id = picking_in.picking_type_id
+                                                                    AND spt.code = 'incoming'
                                                     WHERE picking_in.state = 'done'
                                                         AND picking_in.return_id = picking_out.id)
         """
