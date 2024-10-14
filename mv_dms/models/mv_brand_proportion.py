@@ -24,12 +24,12 @@ class MvBrandProportion(models.Model):
     proportion = fields.Float("Tỷ trọng", compute="_compute_proportion", store=True)
     quantity_per_month = fields.Integer("Số lượng/tháng", default=0)
 
-    # _sql_constraints = [
-    #     (
-    #         "brand_year_participation_unique",
-    #         "UNIQUE(brand_id, year_participation)",
-    #         "Hãng lốp và năm tham gia phải là duy nhất!",
-    #     ),
+    _sql_constraints = [
+        (
+            "partner_survey_brand_year_participation_unique",
+            "UNIQUE(partner_survey_id, brand_id, year_participation)",
+            "Hãng lốp và năm tham gia phải là duy nhất!",
+        )
     ]
 
     @api.depends(
