@@ -1,42 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<menuitem id="sales_data_report_menu_all"
-              name="Sales Data Analysis"
-              action="sales_data_report_action_view_all"
-              parent="sale.menu_sale_report"
-              sequence="50"/>
+	<menuitem id="sales_data_report_menu_all" name="Sales Data Analysis" action="sales_data_report_action_view_all" parent="sale.menu_sale_report" sequence="50"/>
 
 	<!-- Menu Configuration: Discount by MOVEO PLUS -->
 	<menuitem id="mv_menu_sales_discount_config" name="Chiết khấu" parent="sale.menu_sale_config" sequence="25"/>
-
-	<menuitem id="mv_discount_menu"
+	<menuitem id="mv_discount_sale_quantity_menu"
 	          name="Cấu hình chiết khấu Đại lý"
 	          action="mv_discount_action"
 	          parent="mv_menu_sales_discount_config"
-	          sequence="0"/>
-
+	          sequence="0"
+	/>
+	<menuitem id="mv_discount_policy_menu"
+	          name="Cấu hình chiết khấu giảm giá"
+	          action="mv_discount_policy_action_view"
+	          parent="mv_menu_sales_discount_config"
+	          sequence="1"
+	/>
 	<menuitem id="mv_warranty_discount_policy_menu"
 	          name="Cấu hình chiết khấu kích hoạt"
 	          action="mv_warranty_discount_policy_action_view"
 	          parent="mv_menu_sales_discount_config"
-	          sequence="1"/>
-
+	          sequence="2"
+	/>
 	<menuitem id="mv_compute_discount_menu"
 	          name="Tính chiết khấu sản lượng"
 	          action="mv_compute_discount_action"
 	          parent="mv_menu_sales_discount_config"
-	          sequence="2"/>
-
+	          sequence="3"
+	/>
 	<menuitem id="mv_compute_warranty_discount_menu"
 	          name="Tính chiết khấu kích hoạt"
 	          action="mv_compute_warranty_discount_policy_action_view"
 	          parent="mv_menu_sales_discount_config"
-	          sequence="3"/>
-
+	          sequence="5"
+	/>
 	<menuitem id="discount_report_menu"
 	          name="Báo cáo chiết khấu sản lượng"
 	          action="discount_report_action"
 	          parent="mv_menu_sales_discount_config"
-	          sequence="4"/>
+	          sequence="6"
+	/>
 
 </odoo>

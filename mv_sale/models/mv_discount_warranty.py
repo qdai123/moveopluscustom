@@ -175,36 +175,10 @@ class MvWarrantyDiscountPolicy(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        res = super(MvWarrantyDiscountPolicy, self).create(vals_list)
-
-        # TODO: This method should be validated for every time create new record
-        if res:
-            for record in res:
-                if not record.partner_ids:
-                    partner_ids = self.env["mv.discount.partner"].search(
-                        [("partner_id.is_agency", "=", True)]
-                    )
-                    record.partner_ids = [(6, 0, partner_ids.ids)]
-                    for partner in partner_ids:
-                        partner.write(
-                            {"warranty_discount_policy_ids": [(4, record.id)]}
-                        )
-
-        return res
+        return super().create(vals_list)
 
     def write(self, vals):
-        res = super(MvWarrantyDiscountPolicy, self).write(vals)
-
-        # TODO: This method should be validated for every time update current record
-        if res:
-            for record in self:
-                if record.partner_ids:
-                    for partner in record.partner_ids:
-                        partner.write(
-                            {"warranty_discount_policy_ids": [(6, 0, record.ids)]}
-                        )
-
-        return res
+        return super().write(vals)
 
     @api.constrains("line_ids")
     def _limit_policy_conditions(self):

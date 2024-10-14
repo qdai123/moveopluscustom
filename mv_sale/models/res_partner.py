@@ -93,6 +93,16 @@ class ResPartner(models.Model):
         string="Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
     )
 
+    # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU GIẢM GIÁ ===#
+    discount_policy_ids = fields.Many2many(
+        "mv.discount.policy",
+        "mv_discount_policy_res_partner_rel",
+        "mv_discount_policy_id",
+        "partner_id",
+        string="Chiết khấu giảm giá",
+        help="Chính sách 'CHIẾT KHẤU GIẢM GIÁ' cho Đại Lý",
+    )
+
     def name_get(self):
         res = []
         for partner in self:
