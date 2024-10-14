@@ -29,7 +29,7 @@ class MvBrandProportion(models.Model):
             "partner_survey_brand_year_participation_unique",
             "UNIQUE(partner_survey_id, brand_id, year_participation)",
             "Hãng lốp và năm tham gia phải là duy nhất!",
-        ),
+        )
     ]
 
     @api.depends(
