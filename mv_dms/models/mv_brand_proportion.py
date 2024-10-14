@@ -26,8 +26,8 @@ class MvBrandProportion(models.Model):
 
     _sql_constraints = [
         (
-            "brand_year_participation_unique",
-            "UNIQUE(brand_id, year_participation)",
+            "partner_survey_brand_year_participation_unique",
+            "UNIQUE(partner_survey_id, brand_id, year_participation)",
             "Hãng lốp và năm tham gia phải là duy nhất!",
         ),
     ]
