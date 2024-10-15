@@ -8,6 +8,7 @@ from . import loyalty_rule
 from . import mail_message
 from . import mv_compute_discount
 from . import mv_compute_discount_line
+from . import mv_compute_discount_policy
 from . import mv_discount
 from . import mv_discount_line
 from . import mv_discount_partner
@@ -17,6 +18,7 @@ from . import mv_discount_warranty
 from . import mv_promote_discount_line
 from . import mv_white_place_discount_line
 from . import product_attribute
+from . import product_product
 from . import product_template
 from . import res_partner
 from . import sale_make_invoice_advance

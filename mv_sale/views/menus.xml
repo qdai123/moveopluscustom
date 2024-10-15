@@ -28,6 +28,12 @@
 	          parent="mv_menu_sales_discount_config"
 	          sequence="3"
 	/>
+	<menuitem id="mv_compute_discount_policy_menu"
+	          name="Tính chiết khấu giảm giá"
+	          action="mv_compute_discount_policy_action_view"
+	          parent="mv_menu_sales_discount_config"
+	          sequence="4"
+	/>
 	<menuitem id="mv_compute_warranty_discount_menu"
 	          name="Tính chiết khấu kích hoạt"
 	          action="mv_compute_warranty_discount_policy_action_view"

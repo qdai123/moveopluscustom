@@ -4,7 +4,7 @@
 		<field name="name">mv_sale.mv.discount.policy.tree</field>
 		<field name="model">mv.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
+			<tree duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
 				<field name="policy_name" string="Chính sách"/>
 				<field name="policy_type" string="Loại chính sách" column_invisible="1"/>
 				<field name="date_from" string="Ngày bắt đầu"/>
@@ -23,7 +23,7 @@
 		<field name="name">mv_sale.mv.discount.policy.form</field>
 		<field name="model">mv.discount.policy</field>
 		<field name="arch" type="xml">
-			<form string="Discount Policy FORM" duplicate="false">
+			<form duplicate="false">
 				<header>
 					<field name="can_access" invisible="True"/>
 					<button class="btn btn-primary" name="action_apply" type="object" string="Áp dụng" invisible="not id or (can_access and policy_status != 'open') or not can_access"/>
@@ -63,10 +63,13 @@
 						</page>
 						<page string="Cấu hình sản phẩm" name="page_product_config">
 							<field mode="tree" name="policy_product_level_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_policy_id': id}">
-								<tree editable="bottom" default_order="level">
+								<tree editable="bottom" delete="false" default_order="product_id">
 									<field name="policy_id" column_invisible="1"/>
 									<field name="company_currency_id" column_invisible="1"/>
-									<field name="product_id" widget="many2one_barcode" context="{'default_detailed_type': 'product'}" options="{'no_open': True, 'no_create_edit': True}"/>
+									<field name="product_id" string="Sản phẩm áp dụng" widget="many2one_barcode" context="{'default_detailed_type': 'product'}" options="{'no_open': True, 'no_create_edit': True}"/>
+									<field name="product_template_id" column_invisible="1"/>
+									<field name="product_custom_attribute_value_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}" column_invisible="1"/>
+									<field name="product_no_variant_attribute_value_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}" column_invisible="1"/>
 									<field name="price_level_1" string="Cấp 1" readonly="not product_id"/>
 									<field name="price_level_2" string="Cấp 2" readonly="not product_id or price_level_1 &lt; 0"/>
 									<field name="price_level_3" string="Cấp 3" readonly="not product_id or price_level_2 &lt; 0"/>
@@ -78,12 +81,12 @@
 							<button name="load_partners" string="Làm mới" type="object" class="btn-link mb-1 px-0" icon="fa-refresh" invisible="policy_status in ['applying', 'close']"/>
 							<field name="mv_partner_ids" nolabel="1" context="{'default_discount_policy_ids': active_ids}" readonly="1">
 								<tree default_order="level" delete="false" limit="80">
-									<field name="partner_id" string="Khách hàng / Đại lý" options="{'no_open': True}"/>
+									<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
 									<field name="date" string="Ngày hiệu lực"/>
 									<field name="level" string="Cấp bậc"/>
-									<field name="min_debt"/>
-									<field name="max_debt"/>
-									<field name="number_debt"/>
+									<field name="min_debt" optional="hidden"/>
+									<field name="max_debt" optional="hidden"/>
+									<field name="number_debt" optional="hidden"/>
 								</tree>
 							</field>
 						</page>
@@ -97,7 +100,7 @@
 		<field name="name">mv_sale.mv.discount.policy.search</field>
 		<field name="model">mv.discount.policy</field>
 		<field name="arch" type="xml">
-			<search string="Discount Policy SEARCH">
+			<search>
 				<field name="policy_name" string="Chính sách"/>
 				<filter string="Current Year" name="filter_current_year" domain="[('date_from', '&gt;=', (context_today()).strftime('%Y-01-01')), ('date_from', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
 				<separator/>

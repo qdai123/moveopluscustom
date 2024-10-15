@@ -11,7 +11,7 @@ def get_years():
 
 class MvDiscountPolicy(models.Model):
     _name = "mv.discount"
-    _description = _("MOVEO PLUS Discount Policy")
+    _description = "Chính sách chiết khấu sản lượng"
 
     partner_ids = fields.One2many(
         "mv.discount.partner",

@@ -97,7 +97,7 @@ class MvDiscountPolicy(models.Model):
     # CONSTRAINS Methods
     # =================================
 
-    @api.constrains("company_id", "date_from", "date_to")
+    @api.constrains("company_ids", "date_from", "date_to")
     def _validate_already_exist_policy(self):
         for policy in self:
             if self._is_policy_date_range_valid(policy):
@@ -134,14 +134,6 @@ class MvDiscountPolicy(models.Model):
                 day=1
             ) - timedelta(days=1)
 
-    # @api.model_create_multi
-    # def create(self, vals_list):
-    #     return super().create(vals_list)
-
-    # @api.multi
-    # def write(self, vals):
-    #     return super().write(vals)
-
     # =================================
     # ACTION Methods
     # =================================
@@ -149,18 +141,34 @@ class MvDiscountPolicy(models.Model):
     def load_partners(self):
         """
         Load all partners that are agencies and not in the current policy.
-        :return: list of partners
+        :return: list of partners has been added to the policy.
         """
         self.ensure_one()
-
         existing_partner_ids = self.mv_partner_ids.ids
-        new_partners = self.env["mv.discount.partner"].search(
-            [
-                ("partner_id.is_agency", "=", True),
-                ("id", "not in", existing_partner_ids),
-            ]
-        )
+
+        def _get_new_partners(existing_partner_ids):
+            return self.env["mv.discount.partner"].search(
+                [
+                    ("partner_id.is_agency", "=", True),
+                    ("id", "not in", existing_partner_ids),
+                ]
+            )
+
+        def _update_existing_agency_partners(agency_partners):
+            for partner in self.env["res.partner"].browse(agency_partners):
+                if (
+                    partner.is_agency
+                    and partner.use_for_report
+                    and not partner.discount_policy_ids
+                ):
+                    partner.discount_policy_ids = [(6, 0, self.ids)]
+
+        new_partners = _get_new_partners(existing_partner_ids)
         self.mv_partner_ids = [(4, partner.id) for partner in new_partners]
+
+        if existing_partner_ids:
+            # _update_existing_agency_partners(existing_partner_ids)
+            _logger.debug("Updated existing partners.")
 
     def _check_access(self):
         self.ensure_one()
@@ -297,7 +305,7 @@ class MvDiscountPolicyProductLevelLine(models.Model):
     )
     product_custom_attribute_value_ids = fields.One2many(
         comodel_name="product.attribute.custom.value",
-        inverse_name="sale_order_line_id",
+        inverse_name="mv_discount_policy_product_level_id",
         string="Custom Values",
         compute="_compute_custom_attribute_values",
         store=True,
