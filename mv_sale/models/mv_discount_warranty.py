@@ -67,7 +67,7 @@ def convert_to_code(text):
 
 class MvWarrantyDiscountPolicy(models.Model):
     _name = "mv.warranty.discount.policy"
-    _description = _("Warranty Discount Policy")
+    _description = "Chính sách chiết khấu kích hoạt bảo hành"
     _order = "date_from desc, date_to desc"
 
     # ACCESS/RULE Fields:
@@ -175,36 +175,10 @@ class MvWarrantyDiscountPolicy(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        res = super(MvWarrantyDiscountPolicy, self).create(vals_list)
-
-        # TODO: This method should be validated for every time create new record
-        if res:
-            for record in res:
-                if not record.partner_ids:
-                    partner_ids = self.env["mv.discount.partner"].search(
-                        [("partner_id.is_agency", "=", True)]
-                    )
-                    record.partner_ids = [(6, 0, partner_ids.ids)]
-                    for partner in partner_ids:
-                        partner.write(
-                            {"warranty_discount_policy_ids": [(4, record.id)]}
-                        )
-
-        return res
+        return super().create(vals_list)
 
     def write(self, vals):
-        res = super(MvWarrantyDiscountPolicy, self).write(vals)
-
-        # TODO: This method should be validated for every time update current record
-        if res:
-            for record in self:
-                if record.partner_ids:
-                    for partner in record.partner_ids:
-                        partner.write(
-                            {"warranty_discount_policy_ids": [(6, 0, record.ids)]}
-                        )
-
-        return res
+        return super().write(vals)
 
     @api.constrains("line_ids")
     def _limit_policy_conditions(self):
@@ -284,7 +258,7 @@ class MvWarrantyDiscountPolicyLine(models.Model):
 class MvComputeWarrantyDiscountPolicy(models.Model):
     _inherit = ["mail.thread"]
     _name = "mv.compute.warranty.discount.policy"
-    _description = _("Compute Warranty Discount Policy")
+    _description = "Tính CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH cho Đại lý"
 
     month = fields.Selection(get_months(), default=str(datetime.now().month))
     year = fields.Selection(get_years(), default=str(datetime.now().year))
@@ -305,7 +279,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     )
     warranty_discount_policy_id = fields.Many2one(
         "mv.warranty.discount.policy",
-        "Warranty Discount Policy",
+        "Chính sách áp dụng",
         domain=[("active", "=", True), ("policy_status", "=", "applying")],
     )
     line_ids = fields.One2many(
@@ -1613,11 +1587,12 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
 
 class MvComputeWarrantyDiscountPolicyLine(models.Model):
-    _name = "mv.compute.warranty.discount.policy.line"
-    _description = _("Compute Warranty Discount (%) Line for Partner")
+    _name = _description = "mv.compute.warranty.discount.policy.line"
 
     currency_id = fields.Many2one(
-        "res.currency", compute="_get_company_currency", store=True
+        "res.currency",
+        compute="_get_company_currency",
+        store=True,
     )
     parent_id = fields.Many2one(
         "mv.compute.warranty.discount.policy",

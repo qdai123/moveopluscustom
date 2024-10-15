@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- Model: MOVEO PLUS Compute Warranty Discount Policy (Configuration) -->
-
 	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_tree_view">
 		<field name="name">mv.compute.warranty.discount.policy.tree</field>
 		<field name="model">mv.compute.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Compute Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" default_order="compute_date desc">
+			<tree duplicate="false" import="false" export_xlsx="false" default_order="compute_date desc">
 				<field name="name" string="Tháng/Năm"/>
 				<field name="state"
 				       string="Trạng thái"
@@ -23,9 +21,9 @@
 		<field name="name">mv.compute.warranty.discount.policy.form</field>
 		<field name="model">mv.compute.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<form string="MOVEO PLUS Compute Warranty Discount Policy FORM" duplicate="false">
+			<form duplicate="false">
 				<header>
-					<field name="do_readonly" invisible="True"/>
+					<field name="do_readonly" invisible="1"/>
 					<button class="btn btn-info" name="print_report" string="Xuất báo cáo Excel" type="object" invisible="state not in ['confirm', 'done']"/>
 					<button class="btn btn-primary" name="action_calculate_discount_line" type="object" string="Tính chiết khấu" invisible="state != 'draft'"/>
 					<button class="btn btn-primary" name="action_done" type="object" string="Duyệt" invisible="not id or state in ['draft', 'done']"/>
@@ -99,8 +97,6 @@
 		<field name="view_id" ref="mv_compute_warranty_discount_policy_tree_view"/>
 	</record>
 
-	<!-- Model: MOVEO PLUS Compute Warranty Discount Policy Line (Configuration) -->
-
 	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_line_form_view">
 		<field name="name">mv.compute.warranty.discount.policy.line.form</field>
 		<field name="model">mv.compute.warranty.discount.policy.line</field>
@@ -140,10 +136,10 @@
 						</group>
 					</group>
 					<notebook>
-						<page string="Phiếu" name="page_tickets">
+						<page string="Thông tin chi tiết" name="page_ticket_details">
 							<field name="helpdesk_ticket_product_moves_ids" nolabel="1" context="{'form_view_ref': 'mv_helpdesk.mv_helpdesk_ticket_product_moves_simple_form_view'}" options="{'no_open': True}">
 								<tree default_order="helpdesk_ticket_ref, lot_name, qr_code" create="false" edit="false" delete="false">
-									<field name="product_activate_twice" column_invisible="True"/>
+									<field name="product_activate_twice" column_invisible="1"/>
 									<field name="partner_id" string="Đại lý" options="{'no_open': True}" optional="show"/>
 									<field name="product_id" string="Sản phẩm" options="{'no_open': True}" optional="hidden"/>
 									<field name="helpdesk_ticket_ref" string="Mã phiếu" optional="hidden"/>

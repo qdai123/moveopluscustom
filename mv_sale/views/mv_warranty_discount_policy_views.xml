@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- Model: MOVEO PLUS Warranty Discount Policy (Configuration) -->
-
 	<record model="ir.ui.view" id="mv_warranty_discount_policy_tree_view">
 		<field name="name">mv.warranty.discount.policy.tree</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
+			<tree string="Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
 				<field name="name" string="Chính sách"/>
 				<field name="date_from" string="Ngày bắt đầu"/>
 				<field name="date_to" string="Ngày kết thúc"/>
-				<field name="policy_status" string="Trạng thái" widget="badge" decoration-info="policy_status == 'open'" decoration-primary="policy_status == 'applying'" decoration-muted="policy_status == 'close'"/>
+				<field name="policy_status"
+				       string="Trạng thái"
+				       widget="badge"
+				       decoration-info="policy_status == 'open'"
+				       decoration-primary="policy_status == 'applying'"
+				       decoration-muted="policy_status == 'close'"/>
 			</tree>
 		</field>
 	</record>
@@ -19,7 +22,7 @@
 		<field name="name">mv.warranty.discount.policy.form</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<form string="MOVEO PLUS Warranty Discount Policy FORM" duplicate="false">
+			<form string="Warranty Discount Policy FORM" duplicate="false">
 				<header>
 					<field name="can_access" invisible="True"/>
 					<button class="btn btn-primary" name="action_apply" type="object" string="Áp dụng" invisible="not id or (can_access and policy_status != 'open') or not can_access"/>
@@ -89,7 +92,7 @@
 		<field name="name">mv.warranty.discount.policy.search</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<search string="MOVEO PLUS Warranty Discount Policy SEARCH">
+			<search string="Warranty Discount Policy SEARCH">
 				<field name="name" string="Chính sách"/>
 				<filter string="Current Year" name="filter_current_year" domain="[('date_from', '&gt;=', (context_today()).strftime('%Y-01-01')), ('date_from', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
 				<separator/>
