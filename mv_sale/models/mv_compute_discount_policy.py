@@ -393,10 +393,7 @@ class MvComputeDiscountPolicy(models.Model):
             if OrderLines_child:
                 OrderLines += OrderLines_child
 
-            products, total_qty_delivered = self._compute_qty_delivered(
-                partner, report_date
-            )
-            vals["total_quantity"] = total_qty_delivered
+            products = self._compute_qty_delivered(partner, report_date)
             list_products_accepted = [
                 product_accepted
                 for product_accepted in products.items()
@@ -428,7 +425,6 @@ class MvComputeDiscountPolicy(models.Model):
             "currency_id": partner.company_id.sudo().currency_id
             or self.env.company.currency_id.id,
             "product_level_line_ids": [],
-            "total_quantity": 0,
         }
 
     def _get_orders_by_partner(self, order_lines, partner):
@@ -505,7 +501,7 @@ SELECT * FROM delivered_stock;
                 for r in self.env.cr.dictfetchall()
             )
         )
-        return products, sum(products.values())
+        return products
 
     def _compute_product_level_lines(self, policy_id, order_lines, products, vals):
         """Compute the product level lines based on the given order lines."""
@@ -592,7 +588,7 @@ class MvComputeDiscountPolicyLine(models.Model):
     name = fields.Char(compute="_compute_parent_name", store=True)
     state = fields.Selection(related="parent_id.state", store=True, readonly=True)
     compute_date = fields.Datetime(readonly=True)
-    partner_id = fields.Many2one("res.partner", readonly=True)
+    partner_id = fields.Many2one("res.partner", "Đại lý", readonly=True)
     partner_discount_name = fields.Char(
         compute="_define_partner_discount_name", string="Đại lý"
     )
@@ -607,7 +603,7 @@ class MvComputeDiscountPolicyLine(models.Model):
         string="Sản phẩm",
     )
     currency_id = fields.Many2one("res.currency", readonly=True)
-    total_quantity = fields.Integer(readonly=True)
+    total_quantity = fields.Integer(compute="_compute_total_quantity", store=True)
     total_price_discount = fields.Monetary(
         compute="_compute_total_price_discount",
         store=True,
@@ -625,6 +621,13 @@ class MvComputeDiscountPolicyLine(models.Model):
             else:
                 dt = datetime.now().replace(day=1)
                 line.name = "{}/{}".format(str(dt.month), str(dt.year))
+
+    @api.depends("product_level_line_ids")
+    def _compute_total_quantity(self):
+        for line in self:
+            line.total_quantity = sum(
+                [product.total_quantity for product in line.product_level_line_ids]
+            )
 
     @api.depends("product_level_line_ids")
     def _compute_total_price_discount(self):
@@ -681,6 +684,7 @@ class MvComputeProductLevelLine(models.Model):
         "Sản phẩm",
         readonly=True,
     )
+    update_count = fields.Integer("Số lần cập nhật", default=0)
     not_discount = fields.Boolean("Không chiết khấu", default=False)
     total_quantity = fields.Integer(readonly=True)
     total_price_level_1 = fields.Monetary("Level 1", currency_field="currency_id")
@@ -713,6 +717,31 @@ class MvComputeProductLevelLine(models.Model):
                 )
                 * product.total_quantity
             )
+
+    def action_update_product_price_level(self):
+        self.ensure_one()
+
+        # Return the action for opening the wizard form view
+        return {
+            "name": "Cập nhật cho sản phẩm: %s" % self.product_template_id.name,
+            "type": "ir.actions.act_window",
+            "res_model": "mv.wizard.update.product.price.level",
+            "view_mode": "form",
+            "view_id": self.env.ref(
+                "mv_sale.mv_wizard_update_product_price_level_form_view"
+            ).id,
+            "context": {
+                "default_discount_policy_line_id": self.discount_policy_line_id.id,
+                "default_discount_product_level_line_id": self.id,
+                "default_product_id": self.product_id.id,
+                "default_product_template_id": self.product_template_id.id,
+                "default_total_price_level_1": self.total_price_level_1,
+                "default_total_price_level_2": self.total_price_level_2,
+                "default_total_price_level_3": self.total_price_level_3,
+                "default_total_price_level_4": self.total_price_level_4,
+            },
+            "target": "new",
+        }
 
     @api.autovacuum
     def _gc_compute_product_level_line(self):

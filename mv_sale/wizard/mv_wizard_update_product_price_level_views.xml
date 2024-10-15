@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mv_wizard_update_product_price_level_form_view" model="ir.ui.view">
+        <field name="name">mv.wizard.update.product.price.level.form</field>
+        <field name="model">mv.wizard.update.product.price.level</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <field name="discount_policy_line_id" invisible="1"/>
+                    <field name="discount_product_level_line_id" invisible="1"/>
+                    <field name="product_id" invisible="1"/>
+                    <field name="product_template_id" invisible="1"/>
+                    <group>
+                        <group>
+                            <field name="total_price_level_1" readonly="total_price_level_1 == 0"/>
+                            <field name="total_price_level_2" readonly="total_price_level_2 == 0"/>
+                        </group>
+                        <group>
+                            <field name="total_price_level_3" readonly="total_price_level_3 == 0"/>
+                            <field name="total_price_level_4" readonly="total_price_level_4 == 0"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_update" type="object" string="Cập nhật" class="btn btn-primary"/>
+                    <button special="cancel" string="Huỷ bỏ"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

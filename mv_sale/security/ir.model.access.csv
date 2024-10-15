@@ -68,3 +68,4 @@ access_sales_data_report_users,sales.data.report Users,model_sales_data_report,b
 access_mv_wizard_discount,mv.wizard.discount,model_mv_wizard_discount,base.group_user,1,1,1,1
 access_mv_wizard_promote_discount_line,mv.wizard.promote.discount.line,model_mv_wizard_promote_discount_line,base.group_user,1,1,1,1
 access_mv_wizard_update_partner_discount,mv.wizard.update.partner.discount,model_mv_wizard_update_partner_discount,base.group_user,1,1,1,1
+access_mv_wizard_update_product_price_level,mv.wizard.update.product.price.level,model_mv_wizard_update_product_price_level,base.group_user,1,1,1,1

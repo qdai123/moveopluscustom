@@ -37,7 +37,7 @@
 					<notebook>
 						<page string="Chi tiết">
 							<field name="line_ids" nolabel="1" readonly="1" context="{'default_parent_id': id}">
-								<tree>
+								<tree decoration-muted="total_quantity == 0">
 									<field column_invisible="1" name="currency_id"/>
 									<field name="partner_id" column_invisible="1"/>
 									<field name="partner_discount_name"/>
@@ -96,18 +96,18 @@
                     <div class="oe_button_box" name="button_box"></div>
 	                <group>
 			                <group name="group_information_1">
-	                        <field name="partner_id"/>
+	                        <field name="partner_id" options="{'no_open': True}"/>
 	                        <field name="partner_company_ref"/>
 	                    </group>
-	                    <group name="group_information_2">
+	                    <group name="group_information_2" invisible="1">
 	                        <field name="total_quantity" string="Tổng số lốp bán"/>
 	                        <field name="total_price_discount" string="Tổng tiền" widget="monetary"/>
 	                    </group>
 	                </group>
                     <notebook>
                         <page string="Chi tiết sản phẩm giảm giá">
-                            <field name="product_level_line_ids" nolabel="1">
-                                <tree create="false" edit="true" delete="false" default_order="product_id" decoration-muted="not_discount">
+                            <field mode="tree" name="product_level_line_ids" nolabel="1">
+                                <tree open_form_view="False" editable="0" create="false" edit="false" delete="false" default_order="product_id" decoration-muted="not_discount">
                                     <field name="discount_policy_line_id" column_invisible="1"/>
                                     <field name="currency_id" column_invisible="1"/>
 	                                <field name="not_discount" column_invisible="1"/>
@@ -119,6 +119,7 @@
                                     <field name="total_price_level_3" widget="monetary" sum="Price Lv.3"/>
                                     <field name="total_price_level_4" widget="monetary" sum="Price Lv.4"/>
                                     <field name="total_price_all_level" string="Tổng tiền" widget="monetary" sum="Total Price All Level"/>
+	                                <button string="Điều chỉnh" name="action_update_product_price_level" type="object" class="btn btn-secondary btn-sm"/>
                                 </tree>
                             </field>
                         </page>
