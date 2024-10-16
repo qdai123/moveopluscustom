@@ -63,11 +63,15 @@
 								</tree>
 							</field>
 						</page>
-						<page string="Biến thể" name="page_product_attribute_config">
+						<page string="Sản phẩm &amp; Biến thể" name="page_product_attribute_config">
 							<label for="product_attribute_ids" string="Thuộc tính áp dụng"/>
 							<!-- Note: ('attribute_code', 'ilike', 'rim_') -->
 							<div class="o_row">
-								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" readonly="policy_status in ['applying', 'close']" options="{'not_delete': True}"/>
+								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" readonly="policy_status in ['applying', 'close']" options="{'not_delete': True}"/>
+							</div>
+							<label for="product_apply_ids" string="Sản phẩm áp dụng"/>
+							<div class="o_row g-0 d-flex">
+								<field name="product_apply_ids" nolabel="1" widget="many2many_tags" readonly="policy_status in ['applying', 'close']" context="{'tree_view_ref': 'mv_sale.product_template_very_simple_tree_view'}" options="{'color_field': 'color', 'not_delete': True, 'no_create_edit': True, 'no_create': True}"/>
 							</div>
 						</page>
 						<page string="Khách hàng / Đại lý" name="page_partner_retailer_config">

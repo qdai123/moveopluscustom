@@ -101,7 +101,21 @@ class MvWarrantyDiscountPolicy(models.Model):
         default="open",
         string="Status",
     )
-    product_attribute_ids = fields.Many2many("product.attribute")
+    product_attribute_ids = fields.Many2many(
+        "product.attribute",
+        domain=[("attribute_code", "!=", False)],
+    )
+    product_apply_ids = fields.Many2many(
+        "product.template",
+        "mv_warranty_discount_policy_product_template_rel",
+        "warranty_discount_policy_id",
+        "product_template_id",
+        domain=[
+            ("active", "=", True),
+            ("sale_ok", "=", True),
+            ("detailed_type", "=", "product"),
+        ],
+    )
     line_ids = fields.One2many(
         comodel_name="mv.warranty.discount.policy.line",
         inverse_name="warranty_discount_policy_id",
@@ -532,6 +546,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     def _calculate_discount_lines(self, partners, ticket_product_moves):
         results = []
         policy_used = self.warranty_discount_policy_id
+        policy_product_apply_ids = policy_used.product_apply_ids.ids
         compute_date = self.compute_date
         partners_mapped_with_policy = policy_used.partner_ids.mapped("partner_id").ids
         partners_to_compute_discount = partners.filtered(
@@ -550,10 +565,18 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             else:
                 vals = self._prepare_values_to_calculate_discount(partner, compute_date)
 
-            partner_tickets_registered = ticket_product_moves.filtered(
-                lambda t: t.partner_id.id == partner.id
-                or t.partner_id.parent_id.id == partner.id
-            )
+            if policy_product_apply_ids:
+                partner_tickets_registered = ticket_product_moves.filtered(
+                    lambda t: t.partner_id.id == partner.id
+                    or t.partner_id.parent_id.id == partner.id
+                    and t.product_id.product_tmpl_id.id in policy_product_apply_ids
+                )
+            else:
+                partner_tickets_registered = ticket_product_moves.filtered(
+                    lambda t: t.partner_id.id == partner.id
+                    or t.partner_id.parent_id.id == partner.id
+                )
+
             vals["helpdesk_ticket_product_moves_ids"] += partner_tickets_registered.ids
             vals["product_activation_count"] = len(
                 list(set(partner_tickets_registered))
@@ -744,6 +767,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             return self.env["product.template"].search(
                 [
                     ("active", "=", True),
+                    ("sale_ok", "=", True),
                     ("detailed_type", "=", "product"),
                     ("id", "in", products.ids),
                 ]
