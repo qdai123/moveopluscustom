@@ -108,7 +108,8 @@
                         <page string="Chi tiết sản phẩm giảm giá">
                             <field mode="tree" name="product_level_line_ids" nolabel="1">
                                 <tree open_form_view="False" editable="0" create="false" edit="false" delete="false" default_order="product_id" decoration-muted="not_discount">
-                                    <field name="discount_policy_line_id" column_invisible="1"/>
+                                    <field name="product_line_updatable" column_invisible="1"/>
+	                                <field name="discount_policy_line_id" column_invisible="1"/>
                                     <field name="currency_id" column_invisible="1"/>
 	                                <field name="not_discount" column_invisible="1"/>
                                     <field name="product_id" column_invisible="1"/>
@@ -119,7 +120,12 @@
                                     <field name="total_price_level_3" widget="monetary" sum="Price Lv.3"/>
                                     <field name="total_price_level_4" widget="monetary" sum="Price Lv.4"/>
                                     <field name="total_price_all_level" string="Tổng tiền" widget="monetary" sum="Total Price All Level"/>
-	                                <button string="Điều chỉnh" name="action_update_product_price_level" type="object" class="btn btn-secondary btn-sm"/>
+	                                <button string="Điều chỉnh"
+	                                        name="update_product_price_level"
+	                                        type="object"
+	                                        class="btn btn-secondary btn-sm"
+	                                        invisible="not product_line_updatable"/>
+	                                />
                                 </tree>
                             </field>
                         </page>

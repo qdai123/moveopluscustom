@@ -696,6 +696,18 @@ class MvComputeProductLevelLine(models.Model):
         store=True,
         string="Total",
     )
+    # Technical computed fields for UX purposes (hide/make fields readonly, ...)
+    product_line_updatable = fields.Boolean(
+        string="Can Edit Product", compute="_compute_product_updatable"
+    )
+
+    @api.depends("discount_policy_line_id")
+    def _compute_product_updatable(self):
+        for line in self:
+            line.product_line_updatable = (
+                line.discount_policy_line_id
+                and line.discount_policy_line_id.state != "done"
+            )
 
     @api.depends(
         "total_quantity",
@@ -718,29 +730,35 @@ class MvComputeProductLevelLine(models.Model):
                 * product.total_quantity
             )
 
-    def action_update_product_price_level(self):
+    def update_product_price_level(self):
         self.ensure_one()
-
-        # Return the action for opening the wizard form view
         return {
             "name": "Cập nhật cho sản phẩm: %s" % self.product_template_id.name,
             "type": "ir.actions.act_window",
             "res_model": "mv.wizard.update.product.price.level",
             "view_mode": "form",
-            "view_id": self.env.ref(
-                "mv_sale.mv_wizard_update_product_price_level_form_view"
-            ).id,
-            "context": {
-                "default_discount_policy_line_id": self.discount_policy_line_id.id,
-                "default_discount_product_level_line_id": self.id,
-                "default_product_id": self.product_id.id,
-                "default_product_template_id": self.product_template_id.id,
-                "default_total_price_level_1": self.total_price_level_1,
-                "default_total_price_level_2": self.total_price_level_2,
-                "default_total_price_level_3": self.total_price_level_3,
-                "default_total_price_level_4": self.total_price_level_4,
-            },
+            "view_id": self._get_view_id(),
+            "context": self._get_context(),
             "target": "new",
+        }
+
+    def _get_view_id(self):
+        return self.env.ref("mv_sale.mv_wizard_update_product_price_level_form_view").id
+
+    def _get_context(self):
+        return {
+            "default_discount_policy_line_id": self.discount_policy_line_id.id,
+            "default_discount_product_level_line_id": self.id,
+            "default_product_id": self.product_id.id,
+            "default_product_template_id": self.product_template_id.id,
+            "default_old_total_price_level_1": self.total_price_level_1,
+            "default_new_total_price_level_1": self.total_price_level_1,
+            "default_old_total_price_level_2": self.total_price_level_2,
+            "default_new_total_price_level_2": self.total_price_level_2,
+            "default_old_total_price_level_3": self.total_price_level_3,
+            "default_new_total_price_level_3": self.total_price_level_3,
+            "default_old_total_price_level_4": self.total_price_level_4,
+            "default_new_total_price_level_4": self.total_price_level_4,
         }
 
     @api.autovacuum
