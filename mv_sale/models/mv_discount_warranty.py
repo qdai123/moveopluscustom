@@ -25,7 +25,7 @@ DEFAULT_SERVER_DATETIME_FORMAT = "%s %s" % (
     DEFAULT_SERVER_TIME_FORMAT,
 )
 
-DISCOUNT_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+POLICY_APPROVER = "mv_sale.group_mv_compute_discount_approver"
 
 # Ticket Type Codes for Warranty Activation:
 SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
@@ -70,20 +70,20 @@ class MvWarrantyDiscountPolicy(models.Model):
     _description = "Chính sách chiết khấu kích hoạt bảo hành"
     _order = "date_from desc, date_to desc"
 
-    # ACCESS/RULE Fields:
-    can_access = fields.Boolean(
-        compute="_compute_can_access",
-        default=lambda self: self.env.user.has_group(DISCOUNT_APPROVER)
-        or self.env.user._is_admin()
-        or self.env.user._is_system(),
-    )
+    def _default_can_access(self):
+        user = self.env.user
+        return user.has_group(POLICY_APPROVER) or user._is_admin() or user._is_system()
 
     @api.depends_context("uid")
-    def _compute_can_access(self):
-        for record in self:
-            record.can_access = self._fully_access()
+    def _can_access(self):
+        for policy in self:
+            policy.can_access = self._fully_access()
 
-    active = fields.Boolean(string="Active", default=True)
+    can_access = fields.Boolean(
+        compute="_can_access",
+        default=lambda self: self._default_can_access(),
+    )
+    active = fields.Boolean(default=True)
     name = fields.Char(compute="_compute_name", store=True, readonly=False)
     date_from = fields.Date(default=lambda self: fields.Date.today().replace(day=1))
     date_to = fields.Date(
@@ -107,86 +107,9 @@ class MvWarrantyDiscountPolicy(models.Model):
         inverse_name="warranty_discount_policy_id",
     )
     partner_ids = fields.Many2many(
-        comodel_name="mv.discount.partner", domain=[("partner_id.is_agency", "=", True)]
+        comodel_name="mv.discount.partner",
+        domain=[("partner_id.is_agency", "=", True)],
     )
-
-    def action_reset_to_open(self):
-        self.ensure_one()
-
-        if not self._fully_access():
-            raise AccessError(
-                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
-            )
-
-        self.write({"policy_status": "open"})
-
-    def action_apply(self):
-        self.ensure_one()
-
-        if not self._fully_access():
-            raise AccessError(
-                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
-            )
-
-        if self.policy_status == "open":
-            self.write({"policy_status": "applying"})
-
-        return True
-
-    def action_close(self):
-        self.ensure_one()
-
-        if not self._fully_access():
-            raise AccessError(
-                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
-            )
-
-        if self.policy_status == "applying":
-            self.write({"policy_status": "close"})
-
-        return True
-
-    @api.depends("date_from", "date_to")
-    def _compute_name(self):
-        for record in self:
-            policy_name = "Chính sách chiết khấu kích hoạt"
-            date_from = record.date_from
-            date_to = record.date_to
-
-            if date_from and date_to:
-                if date_from.year == date_to.year:
-                    if date_from.month == date_to.month:
-                        record.name = (
-                            f"{policy_name} (tháng {date_from.month}/{date_from.year})"
-                        )
-                    else:
-                        record.name = f"{policy_name} (từ {date_from.month}/{date_from.year} đến {date_to.month}/{date_to.year})"
-                else:
-                    record.name = policy_name
-            else:
-                record.name = policy_name
-
-    @api.onchange("date_from")
-    def _onchange_date_from(self):
-        if self.date_from:
-            self.date_to = (self.date_from + timedelta(days=32)).replace(
-                day=1
-            ) - timedelta(days=1)
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        return super().create(vals_list)
-
-    def write(self, vals):
-        return super().write(vals)
-
-    @api.constrains("line_ids")
-    def _limit_policy_conditions(self):
-        for record in self:
-            if len(record.line_ids) > 3:
-                raise ValidationError(
-                    _("Chính sách chiết khấu không được nhiều hơn 3 điều kiện!")
-                )
 
     # =================================
     # CONSTRAINS Methods
@@ -209,17 +132,115 @@ class MvWarrantyDiscountPolicy(models.Model):
                         _("Chính sách này đã bị trùng, vui lòng kiểm tra lại!")
                     )
 
+    @api.constrains("line_ids")
+    def _limit_policy_conditions(self):
+        for record in self:
+            if len(record.line_ids) > 3:
+                raise ValidationError(
+                    _("Chính sách chiết khấu không được nhiều hơn 3 điều kiện!")
+                )
+
+    # =================================
+    # ORM/CRUD Methods
+    # =================================
+
+    @api.onchange("date_from")
+    def _onchange_date_from(self):
+        if self.date_from:
+            self.date_to = (self.date_from + timedelta(days=32)).replace(
+                day=1
+            ) - timedelta(days=1)
+
+    @api.depends("date_from", "date_to")
+    def _compute_name(self):
+        for record in self:
+            policy_name = "Chính sách chiết khấu kích hoạt"
+            date_from = record.date_from
+            date_to = record.date_to
+
+            if date_from and date_to:
+                if date_from.year == date_to.year:
+                    if date_from.month == date_to.month:
+                        record.name = (
+                            f"{policy_name} (tháng {date_from.month}/{date_from.year})"
+                        )
+                    else:
+                        record.name = f"{policy_name} (từ {date_from.month}/{date_from.year} đến {date_to.month}/{date_to.year})"
+                else:
+                    record.name = policy_name
+            else:
+                record.name = policy_name
+
+    # =================================
+    # ACTION Methods
+    # =================================
+
+    def load_partners(self):
+        """
+        Load all partners that are agencies and not in the current policy.
+        :return: list of partners has been added to the policy.
+        """
+        self.ensure_one()
+        existing_partner_ids = self.partner_ids.ids
+
+        def _get_new_partners(existing_partner_ids):
+            return self.env["mv.discount.partner"].search(
+                [
+                    ("partner_id.is_agency", "=", True),
+                    ("id", "not in", existing_partner_ids),
+                ]
+            )
+
+        def _update_existing_agency_partners(agency_partners):
+            for partner in self.env["res.partner"].browse(agency_partners):
+                if (
+                    partner.is_agency
+                    and partner.use_for_report
+                    and not partner.discount_policy_ids
+                ):
+                    partner.discount_policy_ids = [(6, 0, self.ids)]
+
+        new_partners = _get_new_partners(existing_partner_ids)
+        self.partner_ids = [(4, partner.id) for partner in new_partners]
+
+        if existing_partner_ids:
+            # _update_existing_agency_partners(existing_partner_ids)
+            _logger.debug("Updated existing partners.")
+
+    def _check_access(self):
+        self.ensure_one()
+
+        if not self._fully_access():
+            raise AccessError(
+                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
+            )
+
+    def action_reset_to_open(self):
+        self._check_access()
+        self.write({"policy_status": "open"})
+
+    def action_apply(self):
+        self._check_access()
+        if self.policy_status == "open":
+            self.write({"policy_status": "applying"})
+        return True
+
+    def action_close(self):
+        self._check_access()
+        if self.policy_status == "applying":
+            self.write({"policy_status": "close"})
+        return True
+
     # =================================
     # HELPER / PRIVATE Methods
     # =================================
 
     def _fully_access(self):
-        access = (
-            self.env.user.has_group(DISCOUNT_APPROVER)
+        return (
+            self.env.user.has_group(POLICY_APPROVER)
             or self.env.user._is_admin()
             or self.env.user._is_system()
         )
-        return access
 
 
 class MvWarrantyDiscountPolicyLine(models.Model):
@@ -256,8 +277,8 @@ class MvWarrantyDiscountPolicyLine(models.Model):
 
 
 class MvComputeWarrantyDiscountPolicy(models.Model):
-    _inherit = ["mail.thread"]
     _name = "mv.compute.warranty.discount.policy"
+    _inherit = ["mail.thread"]
     _description = "Tính CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH cho Đại lý"
 
     month = fields.Selection(get_months(), default=str(datetime.now().month))
@@ -279,8 +300,11 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     )
     warranty_discount_policy_id = fields.Many2one(
         "mv.warranty.discount.policy",
-        "Chính sách áp dụng",
+        required=True,
         domain=[("active", "=", True), ("policy_status", "=", "applying")],
+        default=lambda self: self.env["mv.warranty.discount.policy"].search(
+            [("active", "=", True), ("policy_status", "=", "applying")], limit=1
+        ),
     )
     line_ids = fields.One2many(
         "mv.compute.warranty.discount.policy.line",
@@ -330,6 +354,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
     def action_reset_to_draft(self):
         self.ensure_one()
+
         if self.state != "draft":
             _logger.info(f"Resetting policy {self.id} to draft state.")
             self.state = "draft"
@@ -683,28 +708,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             )
             return ticket_product_moves
 
-            # unique_records = {}
-            # duplicates = self.env["mv.helpdesk.ticket.product.moves"]
-            #
-            # for record in ticket_product_moves:
-            #     key = (
-            #         record.helpdesk_ticket_id.id,
-            #         record.stock_lot_id.id,
-            #         record.product_id.id,
-            #     )
-            #     if key in unique_records:
-            #         duplicates |= record
-            #     else:
-            #         unique_records[key] = record
-            #
-            # if duplicates:
-            #     duplicates.unlink()
-            #     _logger.info(f"Removed {len(duplicates)} duplicate records!")
-            #
-            # return self.env["mv.helpdesk.ticket.product.moves"].browse(
-            #     unique_records.values()
-            # )
-
         except Exception as e:
             _logger.error(f"Failed to fetch ticket product moves: {e}")
             return self.env["mv.helpdesk.ticket.product.moves"]
@@ -902,7 +905,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             return None, None
 
     def _access_approve(self):
-        return self.env.user.has_group(DISCOUNT_APPROVER)
+        return self.env.user.has_group(POLICY_APPROVER)
 
     # =================================
     # REPORT Action/Data
@@ -1605,6 +1608,11 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         related="parent_id.state", store=True, readonly=True
     )
     partner_id = fields.Many2one("res.partner", readonly=True)
+    partner_company_ref = fields.Char(
+        related="partner_id.company_registry",
+        string="Mã đại lý",
+        store=True,
+    )
     helpdesk_ticket_product_moves_ids = fields.Many2many(
         "mv.helpdesk.ticket.product.moves",
         "compute_warranty_discount_policy_ticket_product_moves_rel",

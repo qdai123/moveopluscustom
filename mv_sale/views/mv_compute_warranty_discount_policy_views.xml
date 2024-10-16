@@ -1,22 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_tree_view">
-		<field name="name">mv.compute.warranty.discount.policy.tree</field>
-		<field name="model">mv.compute.warranty.discount.policy</field>
-		<field name="arch" type="xml">
-			<tree duplicate="false" import="false" export_xlsx="false" default_order="compute_date desc">
-				<field name="name" string="Tháng/Năm"/>
-				<field name="state"
-				       string="Trạng thái"
-				       widget="badge"
-				       decoration-success="state == 'done'"
-				       decoration-info="state == 'confirm'"
-				       decoration-muted="state == 'draft'"/>
-				<field name="approved_date" string="Duyệt ngày" optional="hidden"/>
-			</tree>
-		</field>
-	</record>
-
 	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_form_view">
 		<field name="name">mv.compute.warranty.discount.policy.form</field>
 		<field name="model">mv.compute.warranty.discount.policy</field>
@@ -56,26 +39,27 @@
 						<page string="Chi tiết">
 							<field name="line_ids" nolabel="1" readonly="True" context="{'default_parent_id': active_id, 'first_policy_code': 'rim_lower_and_equal_16', 'second_policy_code': 'rim_greater_and_equal_17'}">
 								<tree default_order="parent_compute_date">
-									<field name="currency_id" column_invisible="True"/>
-									<field name="parent_compute_date" column_invisible="True"/>
+									<field name="currency_id" column_invisible="1"/>
+									<field name="parent_compute_date" column_invisible="1"/>
 									<field name="partner_id" string="Đại lý"/>
+									<field name="partner_company_ref" class="fw-bold" optional="hidden"/>
 									<field name="product_activation_count" string="Số lượng lốp đã kích hoạt"/>
 									<field name="first_warranty_policy_requirement_id" string="Điều kiện 1" widget="badge" decoration-success="first_count > 0" decoration-muted="first_count == 0"/>
-									<field name="first_quantity_from" column_invisible="True"/>
+									<field name="first_quantity_from" column_invisible="1"/>
 									<field name="first_count" string="Số lượng"/>
-									<field name="first_quantity_to" column_invisible="True"/>
+									<field name="first_quantity_to" column_invisible="1"/>
 									<field name="first_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 1)" optional="hidden"/>
 									<field name="first_warranty_policy_total_money" string="Thành tiền"/>
 									<field name="second_warranty_policy_requirement_id" string="Điều kiện 2" widget="badge" decoration-success="second_count > 0" decoration-muted="second_count == 0"/>
-									<field name="second_quantity_from" column_invisible="True"/>
+									<field name="second_quantity_from" column_invisible="1"/>
 									<field name="second_count" string="Số lượng"/>
-									<field name="second_quantity_to" column_invisible="True"/>
+									<field name="second_quantity_to" column_invisible="1"/>
 									<field name="second_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 2)" optional="hidden"/>
 									<field name="second_warranty_policy_total_money" string="Thành tiền"/>
-									<field name="third_warranty_policy_requirement_id" string="Điều kiện 3" column_invisible="True"/>
-									<field name="third_count" string="Số lượng" column_invisible="True"/>
-									<field name="third_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 3)" column_invisible="True"/>
-									<field name="third_warranty_policy_total_money" string="Thành tiền" column_invisible="True"/>
+									<field name="third_warranty_policy_requirement_id" string="Điều kiện 3" column_invisible="1"/>
+									<field name="third_count" string="Số lượng" column_invisible="1"/>
+									<field name="third_warranty_policy_money" string="Tiền chiết khấu (Điều kiện 3)" column_invisible="1"/>
+									<field name="third_warranty_policy_total_money" string="Thành tiền" column_invisible="1"/>
 									<field name="total_amount_currency" string="Tổng số tiền" widget="monetary"/>
 								</tree>
 							</field>
@@ -90,11 +74,32 @@
 		</field>
 	</record>
 
+	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_tree_view">
+		<field name="name">mv.compute.warranty.discount.policy.tree</field>
+		<field name="model">mv.compute.warranty.discount.policy</field>
+		<field name="arch" type="xml">
+			<tree duplicate="false" import="false" export_xlsx="false" default_order="compute_date desc">
+				<field name="name" string="Tháng/Năm"/>
+				<field name="state"
+				       string="Trạng thái"
+				       widget="badge"
+				       decoration-success="state == 'done'"
+				       decoration-info="state == 'confirm'"
+				       decoration-muted="state == 'draft'"/>
+				<field name="approved_date" string="Duyệt ngày" optional="hidden"/>
+			</tree>
+		</field>
+	</record>
+
 	<record id="mv_compute_warranty_discount_policy_action_view" model="ir.actions.act_window">
 		<field name="name">Tính chiết khấu kích hoạt</field>
 		<field name="res_model">mv.compute.warranty.discount.policy</field>
 		<field name="view_mode">tree,form</field>
-		<field name="view_id" ref="mv_compute_warranty_discount_policy_tree_view"/>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_smiling_face">
+				No record found ! Let's create one
+			</p>
+		</field>
 	</record>
 
 	<record model="ir.ui.view" id="mv_compute_warranty_discount_policy_line_form_view">

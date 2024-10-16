@@ -34,7 +34,7 @@ def get_months():
 class MvDiscountPolicy(models.Model):
     _name = "mv.discount.policy"
     _inherit = ["mail.thread"]
-    _description = _("Discount Policy")
+    _description = "Chính sách chiết khấu giảm giá"
     _rec_name = "policy_name"
 
     def _default_can_access(self):
