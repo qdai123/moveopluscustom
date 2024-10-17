@@ -7,7 +7,7 @@
 		<field name="priority">30</field>
 		<field name="arch" type="xml">
 			<xpath expr="//notebook" position="inside">
-				<page string="ZNS" name="page_zalo_zns" groups="mv_zalo.group_mv_zalo_manager">
+				<page string="ZNS" name="page_zalo_zns" groups="mv_zalo.group_mv_zalo_user">
 					<group>
 						<field name="zns_notification_sent" string="ZNS Sent"/>
 						<field name="zns_history_id" invisible="1"/>
@@ -26,7 +26,7 @@
 				        type="object"
 				        name="action_send_message_zns"
 				        invisible="not zns_notification_sent or not zns_history_status or zns_history_status == '-1'"
-				        groups="mv_zalo.group_mv_zalo_manager"/>
+				        groups="mv_zalo.group_mv_zalo_user"/>
 			</xpath>
 		</field>
 	</record>
@@ -41,7 +41,7 @@
 				<field name="zns_history_id" column_invisible="1"/>
 				<field name="zns_notification_sent"
 				       string="ZNS Sent"
-				       groups="mv_zalo.group_mv_zalo_manager"
+				       groups="mv_zalo.group_mv_zalo_user"
 				       optional="hidden"/>
 				<field name="zns_history_status"
 				       string="ZNS Status"
@@ -49,7 +49,7 @@
 				       decoration-info="zns_history_status == '0'"
 				       decoration-success="zns_history_status == '1'"
 				       widget="badge"
-				       groups="mv_zalo.group_mv_zalo_manager"
+				       groups="mv_zalo.group_mv_zalo_user"
 				       optional="hidden"/>
 			</xpath>
 		</field>

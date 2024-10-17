@@ -8,7 +8,11 @@
         <field name="arch" type="xml">
 	        <xpath expr="//sheet/*[1]" position="before">
 		        <header>
-			        <button class="btn btn-info" string="Send Message ZNS" type="object" name="action_send_message_zns" groups="mv_zalo.group_mv_zalo_manager"/>
+			        <button class="btn btn-info"
+			                string="Send Message ZNS"
+			                type="object"
+			                name="action_send_message_zns"
+			                groups="mv_zalo.group_mv_zalo_user"/>
 		        </header>
 	        </xpath>
 	        <xpath expr="//notebook" position="inside">
