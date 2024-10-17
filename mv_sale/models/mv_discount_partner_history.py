@@ -16,7 +16,7 @@ def get_last_date_of_month(first_date):
 
 class MvDiscountPolicyPartnerHistory(models.Model):
     _name = "mv.discount.partner.history"
-    _description = _("MO+ Discount Policy for Partner (History)")
+    _description = _("Discount Policy for Partner (History)")
     _rec_name = "history_description"
 
     # === FIELDS ===#
@@ -85,7 +85,7 @@ class MvDiscountPolicyPartnerHistory(models.Model):
 
 class MvPartnerTotalDiscountDetailsHistory(models.Model):
     _name = "mv.partner.total.discount.detail.history"
-    _description = _("MO+ Partner Total Discount Detail (History)")
+    _description = _("Partner Total Discount Detail (History)")
     _rec_name = "description"
 
     # === FIELDS ===#

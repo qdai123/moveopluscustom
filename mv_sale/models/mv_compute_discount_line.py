@@ -9,12 +9,10 @@ GROUP_APPROVER = "mv_sale.group_mv_compute_discount_approver"
 
 
 class MvComputeDiscountLine(models.Model):
-    _name = "mv.compute.discount.line"
-    _description = _("Compute Discount (%) Line for Partner Agency")
+    _name = _description = "mv.compute.discount.line"
     _rec_name = "partner_id"
 
-    # === FIELDS ===#
-    parent_id = fields.Many2one("mv.compute.discount", "Chính sách chiết khấu")
+    parent_id = fields.Many2one("mv.compute.discount", "Chính sách")
     discount_line_id = fields.Many2one(
         "mv.discount.line", "Chính sách chiết khấu chi tiết"
     )

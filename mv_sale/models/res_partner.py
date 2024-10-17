@@ -93,11 +93,21 @@ class ResPartner(models.Model):
         string="Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
     )
 
-    def name_get(self):
-        res = []
-        for partner in self:
-            res.append((partner.id, partner.partner_agency_name or partner.name))
-        return res
+    # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU GIẢM GIÁ ===#
+    discount_policy_ids = fields.Many2many(
+        "mv.discount.policy",
+        "mv_discount_policy_res_partner_rel",
+        "mv_discount_policy_id",
+        "partner_id",
+        string="Chiết khấu giảm giá",
+        help="Chính sách 'CHIẾT KHẤU GIẢM GIÁ' cho Đại Lý",
+    )
+    compute_discount_policy_line_ids = fields.One2many(
+        "mv.compute.discount.policy.line",
+        "partner_id",
+        domain=[("parent_id", "!=", False)],
+        string="Chi tiết: CHIẾT KHẤU GIẢM GIÁ",
+    )
 
     @api.model
     def auto_update_data(self):
@@ -357,26 +367,50 @@ class ResPartner(models.Model):
         :param record: The current partner record.
         :return: Tuple containing total approved discounts and total waiting approval discounts.
         """
-        total_amount_discount_approved = sum(
-            line.total_money
-            for line in record.compute_discount_line_ids.filtered(
-                lambda r: r.state == "done"
+        total_amount_discount_approved = (
+            sum(
+                line.total_money
+                for line in record.compute_discount_line_ids.filtered(
+                    lambda r: r.state == "done"
+                )
             )
-        ) + sum(
-            line.total_amount_currency
-            for line in record.compute_warranty_discount_line_ids.filtered(
-                lambda r: r.parent_state == "done"
+            + sum(
+                line.total_amount_currency
+                for line in record.compute_warranty_discount_line_ids.filtered(
+                    lambda r: r.parent_state == "done"
+                )
+            )
+            + sum(
+                line.total_amount_currency
+                for line in record.compute_warranty_discount_line_ids.filtered(
+                    lambda r: r.parent_state == "done"
+                )
+            )
+            + sum(
+                line.total_price_discount
+                for line in record.compute_discount_policy_line_ids.filtered(
+                    lambda r: r.state == "done"
+                )
             )
         )
-        total_amount_discount_waiting_approve = sum(
-            line.total_money
-            for line in record.compute_discount_line_ids.filtered(
-                lambda r: r.state != "done"
+        total_amount_discount_waiting_approve = (
+            sum(
+                line.total_money
+                for line in record.compute_discount_line_ids.filtered(
+                    lambda r: r.state != "done"
+                )
             )
-        ) + sum(
-            line.total_amount_currency
-            for line in record.compute_warranty_discount_line_ids.filtered(
-                lambda r: r.parent_state != "done"
+            + sum(
+                line.total_amount_currency
+                for line in record.compute_warranty_discount_line_ids.filtered(
+                    lambda r: r.parent_state != "done"
+                )
+            )
+            + sum(
+                line.total_price_discount
+                for line in record.compute_discount_policy_line_ids.filtered(
+                    lambda r: r.state != "done"
+                )
             )
         )
         return total_amount_discount_approved, total_amount_discount_waiting_approve
