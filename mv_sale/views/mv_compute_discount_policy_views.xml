@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record model="ir.ui.view" id="mv_sale_mv_compute_discount_policy_form_view">
+		<field name="name">mv_sale_mv.compute.discount.policy.form</field>
+		<field name="model">mv.compute.discount.policy</field>
+		<field name="arch" type="xml">
+			<form duplicate="false">
+				<header>
+					<field name="do_readonly" invisible="1"/>
+					<button class="btn btn-primary" name="action_confirm" type="object" string="Tính chiết khấu" invisible="state != 'draft' or not id"/>
+					<button class="btn btn-primary" name="action_approve" type="object" string="Duyệt" invisible="state != 'confirm'"/>
+					<button class="btn btn-secondary" name="action_cancel" type="object" string="Hủy" invisible="state != 'confirm'" confirm="Tất cả dữ liệu chiết khấu sẽ bị xóa, bạn có chắc là muốn hủy?"/>
+					<field name="state" widget="statusbar" statusbar_visible="draft,confirm"/>
+				</header>
+				<sheet>
+					<group class="col-8">
+						<label for="discount_policy_id" string="Chính sách áp dụng"/>
+						<div class="o_row">
+							<field name="discount_policy_id" readonly="do_readonly" options="{'no_open': True, 'no_create': True}"/>
+						</div>
+					</group>
+					<group/>
+					<group>
+						<group>
+							<field name="name" invisible="1" readonly="do_readonly"/>
+							<label for="month"/>
+							<div class="o_row">
+								<field name="month" required="1" readonly="do_readonly"/>
+								/
+								<field name="year" required="1" readonly="do_readonly"/>
+							</div>
+						</group>
+						<group>
+							<field name="approved_date" string="Duyệt ngày"/>
+						</group>
+					</group>
+					<notebook>
+						<page string="Chi tiết">
+							<field name="line_ids" nolabel="1" readonly="1" context="{'default_parent_id': id}">
+								<tree decoration-muted="total_quantity == 0">
+									<field column_invisible="1" name="currency_id"/>
+									<field name="partner_id" column_invisible="1"/>
+									<field name="partner_discount_name"/>
+									<field name="partner_company_ref" class="fw-bold" optional="hidden"/>
+									<field name="total_quantity" string="Tổng lốp bán được"/>
+									<field name="total_price_discount" string="Tổng tiền" widget="monetary" options="{'currency_field': 'currency_id'}" class="fw-bold"/>
+								</tree>
+							</field>
+						</page>
+					</notebook>
+				</sheet>
+				<div class="oe_chatter">
+					<field name="message_follower_ids"/>
+					<field name="message_ids"/>
+				</div>
+			</form>
+		</field>
+	</record>
+
+	<record model="ir.ui.view" id="mv_sale_mv_compute_discount_policy_tree_view">
+		<field name="name">mv_sale_mv.compute.discount.policy.tree</field>
+		<field name="model">mv.compute.discount.policy</field>
+		<field name="arch" type="xml">
+			<tree default_order="report_date desc" duplicate="false">
+				<field name="name" string="Tháng/Năm"/>
+				<field name="state"
+				       widget="badge"
+				       decoration-success="state == 'done'"
+				       decoration-info="state == 'confirm'"
+				       decoration-muted="state == 'draft'"/>
+				<field name="approved_date" string="Duyệt ngày" optional="hidden"/>
+				<field name="report_date" column_invisible="1"/>
+			</tree>
+		</field>
+	</record>
+
+	<record model="ir.actions.act_window" id="mv_compute_discount_policy_action_view">
+		<field name="name">Tính chiết khấu giảm giá</field>
+		<field name="res_model">mv.compute.discount.policy</field>
+		<field name="view_mode">tree,form</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_smiling_face">
+				No record found ! Let's create one
+			</p>
+		</field>
+	</record>
+
+	<record model="ir.ui.view" id="mv_sale_mv_compute_discount_policy_line_form_view">
+        <field name="name">mv_sale_mv.compute.discount.policy.line.form</field>
+        <field name="model">mv.compute.discount.policy.line</field>
+        <field name="arch" type="xml">
+            <form duplicate="false">
+                <sheet>
+                    <field name="parent_id" invisible="1"/>
+	                <field name="currency_id" invisible="1"/>
+                    <div class="oe_button_box" name="button_box"></div>
+	                <group>
+			                <group name="group_information_1">
+	                        <field name="partner_id" options="{'no_open': True}"/>
+	                        <field name="partner_company_ref"/>
+	                    </group>
+	                    <group name="group_information_2" invisible="1">
+	                        <field name="total_quantity" string="Tổng số lốp bán"/>
+	                        <field name="total_price_discount" string="Tổng tiền" widget="monetary"/>
+	                    </group>
+	                </group>
+                    <notebook>
+                        <page string="Chi tiết sản phẩm giảm giá">
+                            <field mode="tree" name="product_level_line_ids" nolabel="1">
+                                <tree open_form_view="False" editable="0" create="false" edit="false" delete="false" default_order="product_id" decoration-muted="not_discount">
+                                    <field name="product_line_updatable" column_invisible="1"/>
+	                                <field name="discount_policy_line_id" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+	                                <field name="not_discount" column_invisible="1"/>
+                                    <field name="product_id" column_invisible="1"/>
+                                    <field name="product_template_id"/>
+                                    <field name="total_quantity" string="Tổng số lốp bán" sum="Total Product Sales"/>
+                                    <field name="total_price_level_1" widget="monetary"  sum="Price Lv.1"/>
+                                    <field name="total_price_level_2" widget="monetary" sum="Price Lv.2"/>
+                                    <field name="total_price_level_3" widget="monetary" sum="Price Lv.3"/>
+                                    <field name="total_price_level_4" widget="monetary" sum="Price Lv.4"/>
+                                    <field name="total_price_all_level" string="Tổng tiền" widget="monetary" sum="Total Price All Level"/>
+	                                <button string="Điều chỉnh"
+	                                        name="update_product_price_level"
+	                                        type="object"
+	                                        class="btn btn-secondary btn-sm"
+	                                        invisible="not product_line_updatable"/>
+	                                />
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>
