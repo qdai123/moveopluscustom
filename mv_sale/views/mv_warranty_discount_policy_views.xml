@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- Model: MOVEO PLUS Warranty Discount Policy (Configuration) -->
-
 	<record model="ir.ui.view" id="mv_warranty_discount_policy_tree_view">
 		<field name="name">mv.warranty.discount.policy.tree</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<tree string="MOVEO PLUS Warranty Discount Policy LIST" duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
+			<tree duplicate="false" import="false" export_xlsx="false" decoration-muted="policy_status == 'close'">
 				<field name="name" string="Chính sách"/>
 				<field name="date_from" string="Ngày bắt đầu"/>
 				<field name="date_to" string="Ngày kết thúc"/>
-				<field name="policy_status" string="Trạng thái" widget="badge" decoration-info="policy_status == 'open'" decoration-primary="policy_status == 'applying'" decoration-muted="policy_status == 'close'"/>
+				<field name="policy_status"
+				       string="Trạng thái"
+				       widget="badge"
+				       decoration-info="policy_status == 'open'"
+				       decoration-primary="policy_status == 'applying'"
+				       decoration-muted="policy_status == 'close'"/>
 			</tree>
 		</field>
 	</record>
@@ -19,7 +22,7 @@
 		<field name="name">mv.warranty.discount.policy.form</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<form string="MOVEO PLUS Warranty Discount Policy FORM" duplicate="false">
+			<form duplicate="false">
 				<header>
 					<field name="can_access" invisible="True"/>
 					<button class="btn btn-primary" name="action_apply" type="object" string="Áp dụng" invisible="not id or (can_access and policy_status != 'open') or not can_access"/>
@@ -27,7 +30,7 @@
 					<button class="btn btn-secondary" name="action_reset_to_open" type="object" string="Mở lại chính sách" invisible="not id or (can_access and policy_status != 'close') or not can_access"/>
 					<field name="policy_status" widget="statusbar" statusbar_visible="open"/>
 				</header>
-				<sheet string="Warranty Discount Policy Form">
+				<sheet>
 					<field name="active" invisible="True"/>
 					<widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
 					<div class="oe_title pe-0">
@@ -60,22 +63,27 @@
 								</tree>
 							</field>
 						</page>
-						<page string="Biến thể" name="page_product_attribute_config">
+						<page string="Sản phẩm &amp; Biến thể" name="page_product_attribute_config">
 							<label for="product_attribute_ids" string="Thuộc tính áp dụng"/>
 							<!-- Note: ('attribute_code', 'ilike', 'rim_') -->
 							<div class="o_row">
-								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" domain="[('attribute_code', '!=', False)]" readonly="policy_status in ['applying', 'close']" options="{'not_delete': True}"/>
+								<field name="product_attribute_ids" nolabel="1" widget="many2many_checkboxes" readonly="policy_status in ['applying', 'close']" options="{'not_delete': True}"/>
+							</div>
+							<label for="product_apply_ids" string="Sản phẩm áp dụng"/>
+							<div class="o_row g-0 d-flex">
+								<field name="product_apply_ids" nolabel="1" widget="many2many_tags" readonly="policy_status in ['applying', 'close']" context="{'tree_view_ref': 'mv_sale.product_template_very_simple_tree_view'}" options="{'color_field': 'color', 'not_delete': True, 'no_create_edit': True, 'no_create': True}"/>
 							</div>
 						</page>
-						<page string="Khách hàng / Đại lý" name="page_partner_retailer">
-							<field name="partner_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_warranty_discount_policy_ids': active_ids}">
-								<tree default_order="level" editable="bottom" delete="false" limit="80">
-									<field name="partner_id" string="Khách hàng / Đại lý"/>
+						<page string="Khách hàng / Đại lý" name="page_partner_retailer_config">
+							<button name="load_partners" string="Làm mới" type="object" class="btn-link mb-1 px-0" icon="fa-refresh" invisible="policy_status in ['applying', 'close']"/>
+							<field name="partner_ids" nolabel="1" context="{'default_warranty_discount_policy_ids': active_ids}" readonly="1">
+								<tree default_order="level" delete="false" limit="80">
+									<field name="partner_id" string="Đại lý" options="{'no_open': True}"/>
 									<field name="date" string="Ngày hiệu lực"/>
 									<field name="level" string="Cấp bậc"/>
-									<field name="min_debt"/>
-									<field name="max_debt"/>
-									<field name="number_debt"/>
+									<field name="min_debt" optional="hidden"/>
+									<field name="max_debt" optional="hidden"/>
+									<field name="number_debt" optional="hidden"/>
 								</tree>
 							</field>
 						</page>
@@ -89,7 +97,7 @@
 		<field name="name">mv.warranty.discount.policy.search</field>
 		<field name="model">mv.warranty.discount.policy</field>
 		<field name="arch" type="xml">
-			<search string="MOVEO PLUS Warranty Discount Policy SEARCH">
+			<search>
 				<field name="name" string="Chính sách"/>
 				<filter string="Current Year" name="filter_current_year" domain="[('date_from', '&gt;=', (context_today()).strftime('%Y-01-01')), ('date_from', '&lt;', (context_today() + relativedelta(years=1)).strftime('%Y-01-01'))]"/>
 				<separator/>

@@ -4,7 +4,7 @@
 		<field name="name">mv.discount.partner.form</field>
 		<field name="model">mv.discount.partner</field>
 		<field name="arch" type="xml">
-			<form string="MOVEO PLUS Discount Partner FORM">
+			<form string="Discount Partner FORM">
 				<field name="needs_update" invisible="True"/>
 				<sheet>
 					<group>
@@ -16,8 +16,9 @@
 						</group>
 						<group>
 							<field name="date"/>
-							<field name="parent_id" string="Chiết khấu Đại lý" readonly="True" options="{'no_open': True}"/>
-							<field name="warranty_discount_policy_ids" string="Chiết khấu kích hoạt" readonly="True" widget="many2many_tags" options="{'no_open': True}"/>
+							<field string="Chiết khấu Đại lý" name="parent_id" readonly="True" options="{'no_open': True}"/>
+							<field string="Chiết Khấu Kích Hoạt Bảo Hành" name="warranty_discount_policy_ids" readonly="True" widget="many2many_tags" options="{'no_open': True}"/>
+							<field string="Chiết Khấu Giảm Giá" name="discount_policy_ids" readonly="True" widget="many2many_tags" options="{'no_open': True}"/>
 						</group>
 						<group>
 							<field name="min_debt"/>

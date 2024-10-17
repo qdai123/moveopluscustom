@@ -47,10 +47,9 @@ GROUP_APPROVER = "mv_sale.group_mv_compute_discount_approver"
 
 
 class MvComputeDiscount(models.Model):
-    _inherit = ["mail.thread", "mail.activity.mixin"]
     _name = "mv.compute.discount"
-    _description = _("Compute Discount (%) for Partner")
-
+    _description = "Tính CHIẾT KHẤU SẢN LƯỢNG cho Đại lý"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _sql_constraints = [
         (
             "month_year_uniq",
@@ -116,6 +115,8 @@ class MvComputeDiscount(models.Model):
     )
     year = fields.Selection(get_years(), "Năm")
     month = fields.Selection(get_months(), "Tháng")
+    report_date = fields.Datetime(compute="_compute_report_date", store=True)
+    approved_date = fields.Datetime(readonly=True)
     state = fields.Selection(
         [
             ("draft", "Nháp"),
@@ -133,8 +134,6 @@ class MvComputeDiscount(models.Model):
         inverse_name="parent_id",
         string="Lịch sử chi tiết số tiền CKSL",
     )
-    report_date = fields.Datetime(compute="_compute_report_date", store=True)
-    approved_date = fields.Datetime(readonly=True)
     level_promote_apply_for = fields.Integer(
         "Bậc áp dụng (Khuyến khích)",
         compute="_get_promote_discount_level",
@@ -200,9 +199,9 @@ class MvComputeDiscount(models.Model):
             for line in record.line_ids:
                 self._create_history_lines(line, "cancel")
 
-            record.write({"state": "draft", "approved_date": False})
             record.line_ids.unlink()
             record.production_discount_policy_details_history_ids.unlink()
+            record.write({"state": "draft", "approved_date": False})
 
     # [>][END] Hủy Chiết Khấu
 

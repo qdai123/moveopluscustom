@@ -3,34 +3,48 @@ from odoo import _, api, fields, models
 
 
 class MvDiscountPolicyPartner(models.Model):
-    _name = "mv.discount.partner"
-    _description = _("MO+ Discount Policy for Partner")
+    _name = _description = "mv.discount.partner"
     _rec_name = "partner_id"
 
-    # === Model: [res.partner] Fields ===#
-    partner_id = fields.Many2one(
-        "res.partner", "Đại lý", domain=[("is_agency", "=", True)]
-    )
-    partner_agency = fields.Boolean(compute="_compute_partner_agency")
-    partner_white_agency = fields.Boolean(compute="_compute_partner_agency")
-    partner_southern_agency = fields.Boolean(compute="_compute_partner_agency")
-    # === Model: [mv.discount] Fields ===#
+    # === CHÍNH SÁCH: CHIẾT KHẤU SẢN LƯỢNG ===#
     parent_id = fields.Many2one(
-        "mv.discount", "Chính sách chiết khấu", domain=[("active", "=", True)]
+        "mv.discount",
+        "CS: Chiết Khấu Sản Lượng",
+        domain=[("active", "=", True)],
     )
-    # === Model: [mv.warranty.discount.policy] Fields ===#
+    # === CHÍNH SÁCH: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===#
     warranty_discount_policy_ids = fields.Many2many(
         "mv.warranty.discount.policy",
         "mv_warranty_discount_policy_partner_rel",
         "mv_warranty_discount_policy_id",
         "mv_discount_partner_id",
-        string="Chính sách chiết khấu kích hoạt",
+        "CS: Chiết Khấu Kích Hoạt Bảo Hành",
         domain=[("active", "=", True)],
     )
-    # === Other Fields ===#
+    # === CHÍNH SÁCH: CHIẾT KHẤU GIẢM GIÁ ===#
+    discount_policy_ids = fields.Many2many(
+        "mv.discount.policy",
+        "mv_discount_policy_mv_partner_rel",
+        "mv_discount_policy_id",
+        "mv_discount_partner_id",
+        "CS: Chiết Khấu Giảm Giá",
+        domain=[("active", "=", True)],
+    )
+
+    # ===================================== #
+    partner_id = fields.Many2one(
+        "res.partner",
+        domain=[("is_agency", "=", True)],
+    )
+    partner_agency = fields.Boolean(compute="_compute_partner_agency", store=True)
+    partner_white_agency = fields.Boolean(compute="_compute_partner_agency", store=True)
+    partner_southern_agency = fields.Boolean(
+        compute="_compute_partner_agency", store=True
+    )
     date = fields.Date(
-        "Ngày hiệu lực", default=fields.Date.today().replace(day=1, month=1)
-    )  # Default: 1/1/(Current Year)
+        "Effective date",
+        default=fields.Date.today().replace(day=1, month=1),
+    )
     level = fields.Integer("Cấp bậc", default=0)
     min_debt = fields.Integer("Min Debt", default=0)
     max_debt = fields.Integer("Max Debt", default=0)
@@ -47,52 +61,41 @@ class MvDiscountPolicyPartner(models.Model):
 
     @api.depends("partner_id")
     def _compute_partner_agency(self):
-        for mv_partner in self:
-            mv_partner.partner_agency = mv_partner.partner_id.is_agency or False
-            mv_partner.partner_white_agency = (
-                mv_parner.partner_id.is_white_agency or False
-            )
-            mv_partner.partner_southern_agency = (
-                mv_parner.partner_id.is_southern_agency or False
-            )
+        for record in self:
+            self._set_agency_status(record)
+
+    def _set_agency_status(self, record):
+        record.partner_agency = record.partner_id.is_agency or False
+        record.partner_white_agency = record.partner_id.is_white_agency or False
+        record.partner_southern_agency = record.partner_id.is_southern_agency or False
 
     # =================================
     # ORM / CRUD Methods
     # =================================
 
     def write(self, vals):
-        # Filter records that meet the condition
-        relevant_records = self.filtered(
-            lambda rec: rec.parent_id
-            and rec.partner_id
-            and rec.warranty_discount_policy_ids
-        )
-
-        # Perform the write operation first
         res = super().write(vals)
-
-        # If write was successful, update the related partner records
         if res:
-            for record in relevant_records:
-                record.partner_id.write(
-                    {
-                        "warranty_discount_policy_ids": [
-                            (6, 0, record.warranty_discount_policy_ids.ids)
-                        ]
-                    }
-                )
-
+            self.filtered(
+                lambda rec: rec.parent_id
+                and rec.partner_id
+                and rec.warranty_discount_policy_ids
+            ).mapped("partner_id").write(
+                {
+                    "warranty_discount_policy_ids": [
+                        (6, 0, self.warranty_discount_policy_ids.ids)
+                    ]
+                }
+            )
         return res
 
     # =================================
     # ACTION Methods
     # =================================
 
-    def action_update_partner_discount(self):
-        self.ensure_one()
-
-        # Prepare the context for the wizard
-        context = {
+    def get_update_partner_discount_context(self):
+        """Prepare and return the context for the wizard."""
+        return {
             "default_partner_id": self.partner_id.id,
             "default_date_effective": self.date,
             "default_current_level": self.level,
@@ -104,6 +107,9 @@ class MvDiscountPolicyPartner(models.Model):
             "edit": False,
         }
 
+    def action_update_partner_discount(self):
+        self.ensure_one()
+
         # Return the action for opening the wizard form view
         return {
             "name": _("Update Policy for %s") % self.partner_id.name,
@@ -113,6 +119,6 @@ class MvDiscountPolicyPartner(models.Model):
             "view_id": self.env.ref(
                 "mv_sale.mv_wizard_update_partner_discount_form_view"
             ).id,
-            "context": context,
+            "context": self.get_update_partner_discount_context(),
             "target": "new",
         }
