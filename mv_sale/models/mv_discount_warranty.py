@@ -399,7 +399,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         tickets = self._fetch_tickets()
         if not tickets:
-            raise UserError(
+            raise ValidationError(
                 "Hiện tại không có phiếu nào đã kích hoạt trong tháng {}/{}".format(
                     self.month, self.year
                 )
@@ -411,9 +411,16 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 lambda t: t.product_id.product_tmpl_id.id in policy_product_apply_ids
             )
 
+        if policy_product_apply_ids and not ticket_product_moves:
+            raise ValidationError(
+                "Không tìm thấy sản phẩm theo chính sách kích hoạt trong tháng {}/{}".format(
+                    self.month, self.year
+                )
+            )
+
         partners = self._fetch_partners(ticket_product_moves)
         if not partners:
-            raise UserError(
+            raise ValidationError(
                 "Không tìm thấy Đại lý đăng ký trong tháng {}/{}".format(
                     self.month, self.year
                 )
