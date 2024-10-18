@@ -113,7 +113,7 @@ class ZALOLogRequest(models.Model):
                 _logger.info("Successful request.")
                 return {"success": True, "data": response_data}
             else:
-                _logger.warning(f"Request failed with status: {response.status_code}")
+                _logger.error(f"Request failed with status: {response.status_code}")
                 return {
                     "success": False,
                     "error": response_data.get("error", "Unknown error"),
@@ -144,7 +144,7 @@ class ZALOLogRequest(models.Model):
 
         try:
             _logger.info(
-                "\n >>>>>>>>>> ZALO - BEGIN: event received <<<<<<<<<<<<<\n%s\n\n",
+                ">>>>>>>>>> ZALO - BEGIN: event received <<<<<<<<<<<<<\n%s\n\n",
                 pprint.pformat(
                     {
                         "URL": self_obj.url,

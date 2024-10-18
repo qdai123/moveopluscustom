@@ -1,2 +1,3 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_zns_send_message_testing_wizard,zns.send.message.testing.wizard,model_zns_send_message_testing_wizard,,1,1,1,1
+access_ir_model_fields_zalo_user,access.ir.model.fields ZALO OA User,base.model_ir_model_fields,mv_zalo.group_mv_zalo_user,1,0,0,0

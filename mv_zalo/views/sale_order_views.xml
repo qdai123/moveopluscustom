@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ====== MOVEO PLUS INHERIT: VIEWS ====== -->
+<odoo>
+	<record id="mv_zalo_inherit_view_order_form" model="ir.ui.view">
+		<field name="name">mv_zalo.inherit.order.form</field>
+		<field name="model">sale.order</field>
+		<field name="inherit_id" ref="sale.view_order_form"/>
+		<field name="priority">35</field>
+		<field name="arch" type="xml">
+			<xpath expr="//header/button[@name='action_send_message_zns']" position="attributes">
+				<attribute name="class">btn btn-info</attribute>
+				<attribute name="string">Send Message ZNS</attribute>
+				<attribute name="invisible">state != 'sale'</attribute>
+				<attribute name="groups">mv_zalo.group_mv_zalo_user</attribute>
+			</xpath>
+		</field>
+	</record>
+</odoo>
