@@ -381,12 +381,6 @@ class ResPartner(models.Model):
                 )
             )
             + sum(
-                line.total_amount_currency
-                for line in record.compute_warranty_discount_line_ids.filtered(
-                    lambda r: r.parent_state == "done"
-                )
-            )
-            + sum(
                 line.total_price_discount
                 for line in record.compute_discount_policy_line_ids.filtered(
                     lambda r: r.state == "done"
