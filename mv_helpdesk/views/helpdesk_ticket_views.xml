@@ -7,7 +7,7 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
             <xpath expr="//notebook//page[@name='description']" position="before">
-                <page string="Details" name="ticket_product_moves_tab" invisible="mv_is_warranty_ticket">
+                <page string="Details" name="page_ticket_products_activation_warranty" invisible="mv_is_warranty_ticket">
                     <button name="action_wizard_import_lot_serial_number" string="Import Data" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary" invisible="not id"/>
                     <field invisible="True" name="portal_lot_serial_number"/>
                     <field mode="tree" name="helpdesk_ticket_product_move_ids" context="{'default_helpdesk_ticket_id': id}" domain="[('stock_move_line_id', '!=', False)]">
@@ -28,8 +28,10 @@
                     </field>
                 </page>
                 <page string="Details" name="ticket_product_moves_tab2" invisible="not mv_is_warranty_ticket">
+                    <field name="can_be_create_order" force_save="1" invisible="1" />
                     <button name="action_wizard_import_lot_serial_number" string="Import Data" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary" invisible="not id"/>
-                    <button name="action_generate_sale_order" string="Tạo đơn bán" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary"/>
+                    <span>&#160;</span>
+                    <button name="action_generate_sale_order" invisible="not can_be_create_order" string="Tạo đơn bán" type="object" groups="helpdesk.group_helpdesk_manager" class="btn btn-secondary"/>
                     <field invisible="True" name="portal_lot_serial_number"/>
                     <field mode="tree" name="helpdesk_warranty_ticket_ids" context="{'default_mv_warranty_ticket_id': id}" domain="[('stock_move_line_id', '!=', False)]">
                         <tree open_form_view="False" editable="1" string="Ticket Registered" create="false" edit="false" delete="false" default_order="helpdesk_ticket_id">
@@ -49,7 +51,7 @@
                             <field name="stock_move_id" column_invisible="True"/>
                             <field name="product_id" column_invisible="True"/>
                             <field name="mv_warranty_ticket_id" column_invisible="True"/>
-                            <button class="btn btn-secondary" name="action_open_waranty_products" string="Cập nhật" type="object" icon="fa-pencil"/>
+                            <button class="btn btn-secondary" name="action_open_warranty_products" string="Cập nhật" type="object" icon="fa-pencil"/>
                         </tree>
                     </field>
                 </page>

@@ -11,6 +11,7 @@
 				<field name="partner_agency" column_invisible="1"/>
 				<field name="partner_white_agency" column_invisible="1"/>
 				<field name="partner_southern_agency" column_invisible="1"/>
+				<field name="should_recompute_discount_agency" column_invisible="1"/>
 			</xpath>
 		</field>
 	</record>
@@ -21,6 +22,12 @@
 		<field name="inherit_id" ref="sale.view_order_form"/>
 		<field name="priority">25</field>
 		<field name="arch" type="xml">
+			<xpath expr="//field[@name='order_line']/tree" position="attributes">
+            	<attribute name="decoration-success">is_promotion == True</attribute>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/tree" position="inside">
+				<field name="is_promotion" invisible="1"/>
+			</xpath>
 			<xpath expr="//field[@name='partner_id']" position="before">
 				<field name="is_sales_manager" invisible="1"/>
             </xpath>
@@ -33,6 +40,7 @@
 				<field name="discount_agency_set" invisible="1"/>
 				<field name="compute_discount_agency" invisible="1"/>
 				<field name="recompute_discount_agency" invisible="1"/>
+				<field name="should_recompute_discount_agency" string="Cần cập nhật C/K" invisible="1"/>
             </xpath>
 			<xpath expr="//group[@name='order_details']" position="inside">
 				<field name="check_discount_10" invisible="1"/>
@@ -203,4 +211,15 @@
 			</xpath>
 		</field>
 	</record>
+
+	<!-- SERVER ACTION: Helps refresh all orders and order lines -->
+	<record model="ir.actions.server" id="action_refresh_orders">
+        <field name="name">Refresh Sale Orders</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="groups_id" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_refresh_orders()</field>
+    </record>
 </odoo>

@@ -2,8 +2,8 @@
 <odoo>
 	<!-- ==================== TEMPLATEs ==================== -->
 
-    <!-- MO+ Template: =Xác nhận Kích Hoạt Bảo Hành= -->
-	<template id="mv_helpdesk_warranty_activation_submitted" name="Xác nhận Kích Hoạt Bảo Hành">
+    <!-- MO+ Template: >> Xác nhận Kích Hoạt THÀNH CÔNG << -->
+	<template id="mv_helpdesk_warranty_activation_submitted" name="Xác nhận Kích Hoạt THÀNH CÔNG">
 		<t t-call="website.layout">
 			<div id="wrap" class="oe_structure oe_empty h-100">
 				<div class="container d-flex flex-column justify-content-center h-100">
@@ -15,29 +15,16 @@
 						<h1 class="text-center">
 							<t t-if="ticket and request.session.uid">
 								<i class="fa fa-check-circle fa-1x text-success me-2" role="img" aria-label="Success" title="Success"/>
-								<span>Mã số phiếu yêu cầu của bạn là
-									<a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
-										#
-										<span t-field="ticket.ticket_ref"/>
-									</a>
-									<t t-if="not request.session.get('uid')">
-										#
-										<span t-field="ticket.id"/>
-									</t>
-									.
+								<span>
+									Mã số phiếu yêu cầu của bạn là <a t-if="request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">#<span t-field="ticket.ticket_ref"/></a>
+									<t t-if="not request.session.get('uid')">#<span t-field="ticket.id"/></t>.
 								</span>
 							</t>
 						</h1>
-						<h2 class="text-center">
-							Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!
-						</h2>
+						<h2 class="text-center">Cảm ơn bạn đã liên hệ với chúng tôi, chúng tôi sẽ xử lý trong thời gian sớm nhất!</h2>
 						<div class="text-center">
-							<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">
-								Xem phiếu
-							</a>
-							<a class="btn btn-primary" href='/'>
-								Trở về trang chủ
-							</a>
+							<a class="btn btn-primary" t-if="ticket and request.session.uid" t-attf-href="/helpdesk/ticket/#{ticket.id}">Xem phiếu</a>
+							<a class="btn btn-primary" href='/'>Trở về trang chủ</a>
 						</div>
 					</div>
 					<div class="oe_structure" id="oe_structure_website_helpdesk_thanks_you_bottom"/>
@@ -46,208 +33,38 @@
 		</t>
 	</template>
 
-    <!-- MO+ Template: =Kích Hoạt Bảo Hành= -->
-	<template id="mv_helpdesk_warranty_activation_template" name="Kích Hoạt Bảo Hành">
+    <!-- MO+ Template: >> Kích Hoạt Bảo Hành ĐẠI LÝ << -->
+	<template id="mv_helpdesk_warranty_activation_template" name="Kích Hoạt Bảo Hành ĐẠI LÝ">
 		<t t-call="website.layout">
 			<div id="wrap" class="container mt-4">
 				<div class="row mb16">
 					<div class="col-md-8 ps-4">
 						<div class="container">
 							<h2 class="text-muted">Gửi kích hoạt bảo hành</h2>
-							<div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_form_left"/>
+							<div class="oe_structure" id="oe_structure_whelpdesk_activation_warranty_form_left"/>
 							<section class="s_text_block o_colored_level pt4 pb8" data-snippet="s_text_block" data-name="Text" style="background-image: none;">
 								<div class="container s_allow_columns">
 									<p class="o_default_snippet_text o_small">
 										<font class="text-o-color-5">
 											<em>
-												<strong>
-													MOVEO PLUS luôn lắng nghe và giải quyết những khiếu nại của khách hàng nhanh chóng.
-												</strong>
+												<strong>MOVEO PLUS luôn lắng nghe và giải quyết những khiếu nại của khách hàng nhanh chóng.</strong>
 											</em>
 										</font>
 									</p>
 								</div>
 							</section>
-							<span class="hidden" data-for="helpdesk_warranty_activation_form" t-att-data-values="{'team_id': default_helpdesk_team and default_helpdesk_team.id or ''}"/>
-							<div id="helpdesk_warranty_activation_section">
+							<span class="hidden" data-for="helpdesk_activation_warranty_form" t-att-data-values="{'team_id': team and team.id or ''}"/>
+							<div id="helpdesk_activation_warranty_section">
 								<section class="s_website_form pt16 pb16 o_colored_level" data-vcss="001" data-snippet="s_website_form" data-name="Form">
 									<div class="container">
-										<form id="helpdesk_warranty_activation_form"
-										      action="/website/form/"
-										      method="post"
-										      enctype="multipart/form-data"
-										      class="o_mark_required needs-validation"
-										      data-mark="*"
-										      data-pre-fill="true"
-										      data-success-mode="redirect"
-										      data-success-page="/kich-hoat-bao-hanh-xac-nhan-yeu-cau"
-										      data-model_name="helpdesk.ticket">
-											<div class="s_website_form_rows row s_col_no_bgcolor">
-												<!-- Field: team_id (Default Value == "Kích hoạt bảo hành") -->
-												<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable" data-type="many2one" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_team_id_default">
-															<span class="s_website_form_label_content">Team</span>
-														</label>
-														<div class="col-sm">
-															<select id="helpdesk_warranty_team_id_default" name="team_id" class="form-select s_website_form_input">
-																<option t-att-value="default_helpdesk_team.id"><t t-out="default_helpdesk_team.name"/></option>
-															</select>
-														</div>
-													</div>
-												</div>
-												<!-- [!] Validation Partner Phone Number on Public -->
-												<t t-if="anonymous">
-													<div class="mb-0 py-2 s_website_form_field col-12">
-														<div class="o_search input-group col-sm has-validation" style="height: 80%;">
-												            <input type="search" name="search" id="o_website_helpdesk_search_phone_number" class="form-control hide-focus" placeholder="Nhập số điện thoại..."/>
-												            <a href="#" role="button" id="search-btn" class="btn btn-primary btn-lg" style="background-color: #461885; border-color: #461885;">
-													            <i class="fa fa-search" style="vertical-align: super;"/>
-															</a>
-												        </div>
-													</div>
-													<div role="alert" id="phonenumber-error-message" style="font-size: 1rem; display:none; margin-bottom: 0.25rem;"/>
-												</t>
-												<!-- Field: partner_name (Required) -->
-												<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdeskWarrantyInputPartnerName">
-															<span class="s_website_form_label_content">Họ &amp; Tên</span>
-															<span class="s_website_form_mark">*</span>
-														</label>
-														<div class="col-sm">
-															<input id="helpdeskWarrantyInputPartnerName" class="form-control s_website_form_input" type="text" name="partner_name" data-fill-with="name" t-att-readonly="true"/>
-														</div>
-													</div>
-												</div>
-												<!-- Field: partner_email (Required) -->
-												<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="email" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdeskWarrantyInputPartnerEmail">
-															<span class="s_website_form_label_content">Email</span>
-															<span class="s_website_form_mark">*</span>
-														</label>
-														<div class="col-sm">
-															<input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input" type="email" name="partner_email" data-fill-with="email" t-att-readonly="true"/>
-														</div>
-													</div>
-												</div>
-												<!-- Field: name (Required, Invisible) -->
-												<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable" data-type="char" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_warranty_input_ticket_name">
-															<span class="s_website_form_label_content">Tiêu đề</span>
-															<span class="s_website_form_mark">*</span>
-														</label>
-														<div class="col-sm">
-															<input id="helpdesk_warranty_input_ticket_name" class="form-control s_website_form_input" type="text" name="name" data-fill-with="undefined" value="new"/>
-														</div>
-													</div>
-												</div>
-												<!-- Field: ticket_type_id (Required) -->
-												<div class="mb-0 py-2 s_website_form_field col-12" data-type="many2one" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_select_ticket_type_id">
-															<span class="s_website_form_label_content">Loại</span>
-															<span class="s_website_form_mark">*</span>
-														</label>
-														<div class="col-sm">
-															<select id="helpdesk_warranty_select_ticket_type_id" class="form-select s_website_form_input" name="ticket_type_id" required="True">
-																<option t-foreach="ticket_type_objects or []" t-as="type" t-att-value="type.id">
-																	<t t-out="type.name"/>
-																</option>
-															</select>
-														</div>
-													</div>
-												</div>
-												<!-- Field: sub_dealer_name (None Required) -->
-												<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_field_hidden_if"
-												     data-visibility-dependency="ticket_type_id"
-												     t-att-data-visibility-condition="type_is_sub_dealer_id"
-												     data-visibility-comparator="selected"
-												     data-type="char"
-												     data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_sub_dealer_name">
-															<span class="s_website_form_label_content">Tên Đại lý mua hàng</span>
-														</label>
-														<div class="col-sm">
-															<input id="helpdesk_warranty_input_sub_dealer_name" class="form-control s_website_form_input" type="text" name="sub_dealer_name" data-fill-with="undefined"/>
-														</div>
-													</div>
-												</div>
-												<!-- Field: tel_activation (Required) -->
-												<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id" data-visibility-comparator="selected" data-type="tel" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_tel_activation">
-															<span class="s_website_form_label_content">Số điện thoại</span>
-															<span class="s_website_form_mark">*</span>
-														</label>
-														<div class="col-sm">
-															<input id="helpdesk_warranty_input_tel_activation" class="form-control s_website_form_input" type="tel" name="tel_activation" data-fill-with="tel_activation" t-att-required="type_is_end_user_id"/>
-														</div>
-													</div>
-												</div>
-												<!-- Field: license_plates (Required) -->
-												<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id" data-visibility-comparator="selected" data-type="char" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_license_plates">
-															<span class="s_website_form_label_content">Biển số xe</span>
-															<span class="s_website_form_mark">*</span>
-														</label>
-														<div class="col-sm">
-															<input id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input" type="text" name="license_plates" data-fill-with="license_plates" t-att-required="type_is_end_user_id"/>
-														</div>
-													</div>
-												</div>
-												<!-- Field: mileage (Required) -->
-												<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if" data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id" data-visibility-comparator="selected" data-type="char" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_mileage">
-															<span class="s_website_form_label_content">Số Km hiện tại</span>
-															<span class="s_website_form_mark">*</span>
-														</label>
-														<div class="col-sm">
-															<input id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input" type="number" name="mileage" data-fill-with="mileage" t-att-required="type_is_end_user_id"/>
-														</div>
-													</div>
-												</div>
-												<!-- Field: portal_lot_serial_number (Required) -->
-												<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required" data-type="text" data-name="Field">
-													<div class="row s_col_no_resize s_col_no_bgcolor">
-														<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="helpdesk_warranty_input_portal_lot_serial_number">
-															<span class="s_website_form_label_content">Số Lô/Số Mã Vạch</span>
-															<span class="s_website_form_mark">*</span>
-															<button type="button" id="scanning-btn" class="btn btn-primary">Scanning</button>
-														</label>
-														<div class="col-sm">
-															<textarea id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="3" spellcheck="false"/>
-														</div>
-													</div>
-												</div>
-												<!-- ACTION: Submit Button -->
-												<div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
-													<div style="width: 200px;" class="s_website_form_label"/>
-													<a href="#"
-													   role="button"
-													   id="submit-btn"
-													   class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text"
-													   style="background-color: #461885; border-color: #461885;">
-														Gửi kích hoạt bảo hành
-													</a>
-												</div>
-												<div t-if="request.env.user._is_admin()" class="mb-0 py-2 col-12">
-													<span id="s_website_form_result"/>
-												</div>
-											</div>
-										</form>
+										<t t-call="mv_website_helpdesk.mv_helpdesk_activation_warranty_form_data"/>
 									</div>
 								</section>
 							</div>
 						</div>
 					</div>
 					<div class="col-md-4" id="right-column">
-						<div class="oe_structure" id="oe_structure_whelpdesk_warranty_activation_sidebar_right">
+						<div class="oe_structure" id="oe_structure_whelpdesk_activation_warranty_sidebar_right">
 							<section class="s_text_image pt32 pb32 o_colored_level"
 							         data-snippet="s_text_image"
 							         data-name="Text - Image"
@@ -280,42 +97,236 @@
 		</t>
 	</template>
 
-	<data noupdate="1">
+	<!-- MO+ Form: Kích Hoạt Bảo Hành ĐẠI LÝ -->
+	<template id="mv_helpdesk_activation_warranty_form_data" name="Kích Hoạt Bảo Hành ĐẠI LÝ (FORM)">
+		<form name="activation_warranty_form"
+		      id="helpdesk_activation_warranty_form"
+		      action="/website/form/"
+		      method="post"
+		      enctype="multipart/form-data"
+		      class="o_mark_required needs-validation"
+		      data-mark="*"
+		      data-pre-fill="true"
+		      data-success-mode="redirect"
+		      data-success-page="/kich-hoat-bao-hanh-xac-nhan-yeu-cau"
+		      data-model_name="helpdesk.ticket">
+			<div class="s_website_form_rows row s_col_no_bgcolor">
+				<!-- Field: team_id (Default Value == "Kích hoạt bảo hành") -->
+				<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable"
+				     data-type="many2one" data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdesk_warranty_team_id_default">
+							<span class="s_website_form_label_content">Team</span>
+						</label>
+						<div class="col-sm">
+							<select id="helpdesk_warranty_team_id_default" name="team_id"
+							        class="form-select s_website_form_input">
+								<option t-att-value="team.id">
+									<t t-out="team.name"/>
+								</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<!-- [!] Validation Partner Phone Number on Public User only -->
+				<t t-if="anonymous">
+					<div class="mb-0 py-2 s_website_form_field col-12">
+						<div class="o_search input-group col-sm has-validation" style="height: 80%;">
+							<input type="search" name="search" id="o_website_helpdesk_search_phone_number"
+							       class="form-control hide-focus" placeholder="Nhập số điện thoại..."/>
+							<a href="#" role="button" id="search-btn" class="btn btn-primary btn-lg"
+							   style="background-color: #461885; border-color: #461885;">
+								<i class="fa fa-search" style="vertical-align: super;"/>
+							</a>
+						</div>
+					</div>
+					<div role="alert" id="phonenumber-error-message"
+					     style="font-size: 1rem; display:none; margin-bottom: 0.25rem;"/>
+				</t>
+				<!-- Field: partner_name (Required) -->
+				<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="char"
+				     data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdeskWarrantyInputPartnerName">
+							<span class="s_website_form_label_content">Họ &amp; Tên</span>
+							<span class="s_website_form_mark">*</span>
+						</label>
+						<div class="col-sm">
+							<input id="helpdeskWarrantyInputPartnerName" class="form-control s_website_form_input"
+							       type="text" name="partner_name" data-fill-with="name" t-att-readonly="true"/>
+						</div>
+					</div>
+				</div>
+				<!-- Field: partner_email (Required) -->
+				<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_required" data-type="email"
+				     data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px"
+						       for="helpdeskWarrantyInputPartnerEmail">
+							<span class="s_website_form_label_content">Email</span>
+							<span class="s_website_form_mark">*</span>
+						</label>
+						<div class="col-sm">
+							<input id="helpdeskWarrantyInputPartnerEmail" class="form-control s_website_form_input"
+							       type="email" name="partner_email" data-fill-with="email" t-att-readonly="true"/>
+						</div>
+					</div>
+				</div>
+				<!-- Field: name (Required, Invisible) -->
+				<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required s_website_form_field_hidden o_draggable"
+				     data-type="char" data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px"
+						       for="helpdesk_warranty_input_ticket_name">
+							<span class="s_website_form_label_content">Tiêu đề</span>
+							<span class="s_website_form_mark">*</span>
+						</label>
+						<div class="col-sm">
+							<input id="helpdesk_warranty_input_ticket_name" class="form-control s_website_form_input"
+							       type="text" name="name" data-fill-with="undefined" value="new"/>
+						</div>
+					</div>
+				</div>
+				<!-- Field: ticket_type_id (Required) -->
+				<div class="mb-0 py-2 s_website_form_field col-12" data-type="many2one" data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdesk_warranty_select_ticket_type_id">
+							<span class="s_website_form_label_content">Loại</span>
+							<span class="s_website_form_mark">*</span>
+						</label>
+						<div class="col-sm">
+							<select id="helpdesk_warranty_select_ticket_type_id"
+							        class="form-select s_website_form_input" name="ticket_type_id" required="True">
+								<option t-foreach="ticket_type_objects or []" t-as="type" t-att-value="type.id">
+									<t t-out="type.name"/>
+								</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<!-- Field: sub_dealer_name (None Required) -->
+				<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_field_hidden_if"
+				     data-visibility-dependency="ticket_type_id"
+				     t-att-data-visibility-condition="type_is_sub_dealer_id"
+				     data-visibility-comparator="selected"
+				     data-type="char"
+				     data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdesk_warranty_input_sub_dealer_name">
+							<span class="s_website_form_label_content">Tên Đại lý mua hàng</span>
+						</label>
+						<div class="col-sm">
+							<input id="helpdesk_warranty_input_sub_dealer_name"
+							       class="form-control s_website_form_input" type="text" name="sub_dealer_name"
+							       data-fill-with="undefined"/>
+						</div>
+					</div>
+				</div>
+				<!-- Field: tel_activation (Required) -->
+				<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if"
+				     data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id"
+				     data-visibility-comparator="selected" data-type="tel" data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdesk_warranty_input_tel_activation">
+							<span class="s_website_form_label_content">Số điện thoại</span>
+							<span class="s_website_form_mark">*</span>
+						</label>
+						<div class="col-sm">
+							<input id="helpdesk_warranty_input_tel_activation" class="form-control s_website_form_input"
+							       type="tel" name="tel_activation" data-fill-with="tel_activation"
+							       t-att-required="type_is_end_user_id"/>
+						</div>
+					</div>
+				</div>
+				<!-- Field: license_plates (Required) -->
+				<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if"
+				     data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id"
+				     data-visibility-comparator="selected" data-type="char" data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdesk_warranty_input_license_plates">
+							<span class="s_website_form_label_content">Biển số xe</span>
+							<span class="s_website_form_mark">*</span>
+						</label>
+						<div class="col-sm">
+							<input id="helpdesk_warranty_input_license_plates" class="form-control s_website_form_input"
+							       type="text" name="license_plates" data-fill-with="license_plates"
+							       t-att-required="type_is_end_user_id"/>
+						</div>
+					</div>
+				</div>
+				<!-- Field: mileage (Required) -->
+				<div t-attf-class="mb-0 py-2 s_website_form_field col-12 {{ 's_website_form_model_required' if type_is_end_user_id else '' }} s_website_form_field_hidden_if"
+				     data-visibility-dependency="ticket_type_id" t-att-data-visibility-condition="type_is_end_user_id"
+				     data-visibility-comparator="selected" data-type="char" data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdesk_warranty_input_mileage">
+							<span class="s_website_form_label_content">Số Km hiện tại</span>
+							<span class="s_website_form_mark">*</span>
+						</label>
+						<div class="col-sm">
+							<input id="helpdesk_warranty_input_mileage" class="form-control s_website_form_input"
+							       type="number" name="mileage" data-fill-with="mileage"
+							       t-att-required="type_is_end_user_id"/>
+						</div>
+					</div>
+				</div>
+				<!-- Field: portal_lot_serial_number (Required) -->
+				<div class="mb-0 py-2 s_website_form_field col-12 s_website_form_model_required" data-type="text" data-name="Field">
+					<div class="row s_col_no_resize s_col_no_bgcolor">
+						<label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px"
+						       for="helpdesk_warranty_input_portal_lot_serial_number">
+							<span class="s_website_form_label_content">Số Lô/Số Mã Vạch</span>
+							<span class="s_website_form_mark">*</span>
+							<button type="button" id="scanning-btn" class="btn btn-primary">Scanning</button>
+						</label>
+						<div class="col-sm">
+							<textarea required="True" id="helpdesk_warranty_input_portal_lot_serial_number" type="text" class="form-control s_website_form_input" name="portal_lot_serial_number" rows="3" spellcheck="false"/>
+						</div>
+					</div>
+				</div>
+				<!-- ACTION: Submit Button -->
+				<div class="mb-0 py-2 col-12 s_website_form_submit" data-name="Submit Button">
+					<div style="width: 200px;" class="s_website_form_label"/>
+					<a href="#" role="button" id="submit-activation-warranty" class="btn btn-primary btn-lg s_website_form_send o_default_snippet_text" style="background-color: #461885; border-color: #461885;">
+						Gửi kích hoạt bảo hành
+					</a>
+				</div>
+				<div t-if="request.env.user._is_admin()" class="mb-0 py-2 col-12">
+					<span id="s_website_form_result"/>
+				</div>
+			</div>
+		</form>
+	</template>
 
-		<!-- ==================== PAGEs ==================== -->
+	<!-- ==================== PAGEs ==================== -->
 
-		<!-- MO+ Page: Xác nhận Kích Hoạt Bảo Hành -->
-		<record id="mv_website_helpdesk_warranty_activation_submitted_ticket_website_page" model="website.page">
-			<field name="is_published">True</field>
-			<field name="url">/kich-hoat-bao-hanh-xac-nhan-yeu-cau</field>
-			<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_submitted"/>
-			<field name="track">True</field>
-			<field name="website_meta_description">
-				Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+ sau khi đã kích hoạt Thành Công
-			</field>
-		</record>
+	<!-- MO+ Page Template: >> Xác nhận Kích Hoạt Bảo Hành << -->
+	<record id="mv_website_helpdesk_warranty_activation_submitted_ticket_website_page" model="website.page">
+		<field name="is_published">True</field>
+		<field name="url">/kich-hoat-bao-hanh-xac-nhan-yeu-cau</field>
+		<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_submitted"/>
+		<field name="track">True</field>
+		<field name="website_meta_description">
+			Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+ sau khi đã kích hoạt Thành Công
+		</field>
+	</record>
 
-		<!-- MO+ Page: Kích Hoạt Bảo Hành -->
-		<record id="mv_website_helpdesk_warranty_activation_website_page" model="website.page">
-			<field name="is_published">True</field>
-			<field name="url">/kich-hoat-bao-hanh</field>
-			<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_template"/>
-			<field name="track">True</field>
-			<field name="website_meta_description">
-				Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+
-			</field>
-		</record>
-
-		<!-- ==================== MENUs ==================== -->
-
-		<!-- MO+ Website Menu: Bảo Hành -->
-		<record id="mv_website_helpdesk_warranty_activation_website_menu" model="website.menu">
-			<field name="name">Bảo hành</field>
-			<field name="url">/kich-hoat-bao-hanh</field>
-			<field name="page_id" ref="mv_website_helpdesk.mv_website_helpdesk_warranty_activation_website_page"/>
-			<field name="parent_id" ref="website.main_menu"/>
-			<field name="sequence" type="int">30</field>
-		</record>
-
-	</data>
+	<!-- MO+ Page Template: >> Kích Hoạt Bảo Hành << -->
+	<record id="mv_website_helpdesk_warranty_activation_website_page" model="website.page">
+		<field name="is_published">True</field>
+		<field name="url">/kich-hoat-bao-hanh</field>
+		<field name="view_id" ref="mv_website_helpdesk.mv_helpdesk_warranty_activation_template"/>
+		<field name="track">True</field>
+		<field name="website_indexed" eval="False"/>
+		<field name="website_meta_description">
+			Đây là trang thông tin về dịch vụ Kích Hoạt Bảo Hành của MO+
+		</field>
+	</record>
 </odoo>

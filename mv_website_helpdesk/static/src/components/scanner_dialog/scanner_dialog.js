@@ -67,7 +67,7 @@ export class ScannerDialog extends Component {
         const $partnerEmail = $("#helpdeskWarrantyInputPartnerEmail");
         const $telNumberActivation = $("#helpdesk_warranty_input_tel_activation");
         try {
-            const res = await this.rpc("/mv_website_helpdesk/check_scanned_code", {
+            const res = await this.rpc("/helpdesk/check_scanned_code", {
                 codes: listCode,
                 ticket_type: $ticketType.val(),
                 partner_name: $partnerName.val(),

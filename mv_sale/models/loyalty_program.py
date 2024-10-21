@@ -4,7 +4,8 @@ from odoo.exceptions import ValidationError
 
 
 class LoyaltyProgram(models.Model):
-    _inherit = "loyalty.program"
+    _name = "loyalty.program"
+    _inherit = ["loyalty.program", "mail.thread", "mail.activity.mixin"]
 
     apply_for = fields.Boolean(string="Apply for", default=False)
     apply_for_all_agency = fields.Boolean(string="All")
@@ -33,3 +34,14 @@ class LoyaltyProgram(models.Model):
                     "Bạn không thể chọn nhiều hơn một loại Đại lý cho chương trình khuyến mãi này "
                     "hoặc có thể chọn Tất cả"
                 )
+
+    def write(self, vals):
+        result = super(LoyaltyProgram, self).write(vals)
+        for record in self:
+            record.message_post(
+                body=f"Record updated by {self.env.user.name}",
+                subject="Record Updated",
+                message_type="notification",
+                subtype_id=self.env.ref("mail.mt_note").id,
+            )
+        return result

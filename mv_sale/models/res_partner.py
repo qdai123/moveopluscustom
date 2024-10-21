@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
-from datetime import datetime
+
 from dateutil.relativedelta import relativedelta
 
-from odoo import _, api, fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -28,21 +28,35 @@ class ResPartner(models.Model):
     # sale_mv_ids: Danh sách các đơn hàng mà Đại Lý đã được áp dụng chiết khấu
     # total_so_bonus_order: Tổng số tiền chiết khấu đã được áp dụng cho các đơn hàng của Đại Lý
     # total_so_quotations_discount: Tổng số tiền chiết khấu đang chờ xác nhận cho các đơn báo giá của Đại Lý
+    # use_for_report: Sử dụng trong Báo Cáo
     # ===#
-    line_ids = fields.One2many("mv.discount.partner", "partner_id", copy=False)
+    line_ids = fields.One2many(
+        "mv.discount.partner",
+        "partner_id",
+        copy=False,
+    )
     currency_id = fields.Many2one(
-        "res.currency", compute="_get_company_currency", readonly=True
+        "res.currency",
+        compute="_get_company_currency",
+        readonly=True,
     )
     amount = fields.Float(readonly=True)
     amount_currency = fields.Monetary(currency_field="currency_id", readonly=True)
+    quantity_threshold_value = fields.Integer(
+        string="Quantity Threshold Value",
+        default=4,
+        help="Set the quantity threshold value for this partner.",
+    )
     waiting_amount_currency = fields.Monetary(
-        currency_field="currency_id", readonly=True
+        currency_field="currency_id",
+        readonly=True,
     )
     sale_mv_ids = fields.Many2many("sale.order", readonly=True)
     total_so_bonus_order = fields.Monetary(compute="_compute_sale_order", store=True)
     total_so_quotations_discount = fields.Monetary(
         compute="_compute_sale_order", store=True
     )
+    use_for_report = fields.Boolean("Sử dụng trong Báo Cáo", default=False)
 
     # === THÔNG TIN ĐẠI LÝ
     # Đại lý: Là nhà phân phối trực thuộc của công ty MOVEOPLUS
@@ -51,7 +65,9 @@ class ResPartner(models.Model):
     # Bảo lãnh ngân hàng, Chiết khấu bảo lãnh ngân hàng (%)
     # ===#
     partner_agency_name = fields.Char(
-        "Tên Đại Lý", compute="_compute_partner_agency_name", store=True
+        "Tên Đại Lý",
+        compute="_compute_partner_agency_name",
+        store=True,
     )
     is_agency = fields.Boolean("Đại lý", tracking=True)
     is_white_agency = fields.Boolean("Đại lý vùng trắng", tracking=True)
@@ -74,24 +90,47 @@ class ResPartner(models.Model):
         string="Chi tiết: CHIẾT KHẤU SẢN LƯỢNG",
     )
 
+    # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU GIẢM GIÁ ===#
+    discount_policy_ids = fields.Many2many(
+        "mv.discount.policy",
+        "mv_discount_policy_res_partner_rel",
+        "mv_discount_policy_id",
+        "partner_id",
+        string="Chiết khấu giảm giá",
+        help="Chính sách 'CHIẾT KHẤU GIẢM GIÁ' cho Đại Lý",
+    )
+    compute_discount_policy_line_ids = fields.One2many(
+        "mv.compute.discount.policy.line",
+        "partner_id",
+        string="Chi tiết: CHIẾT KHẤU GIẢM GIÁ",
+        domain=[("parent_id", "!=", False)],
+    )
+
     # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===#
     warranty_discount_policy_ids = fields.Many2many(
         "mv.warranty.discount.policy",
-        string="Chiết khấu kích hoạt",
+        string="Chiết khấu kích hoạt bảo hành",
         help="Chính sách 'CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH' cho Đại Lý",
     )
     compute_warranty_discount_line_ids = fields.One2many(
         "mv.compute.warranty.discount.policy.line",
         "partner_id",
+        "Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
         domain=[("parent_id", "!=", False)],
-        string="Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
     )
 
-    def name_get(self):
-        res = []
-        for partner in self:
-            res.append((partner.id, partner.partner_agency_name or partner.name))
-        return res
+    # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH THEO SẢN PHẨM ===#
+    discount_product_warranty_policy_ids = fields.Many2many(
+        "mv.discount.product.warranty.policy",
+        string="Chiết khấu kích hoạt theo sản phẩm",
+        help="Chính sách 'CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH THEO SẢN PHẨM' cho Đại Lý",
+    )
+    compute_discount_product_warranty_line_ids = fields.One2many(
+        "mv.compute.discount.product.warranty.policy.line",
+        "partner_id",
+        "Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH THEO SẢN PHẨM",
+        domain=[("parent_id", "!=", False)],
+    )
 
     @api.model
     def auto_update_data(self):
@@ -164,7 +203,6 @@ class ResPartner(models.Model):
 
         :return: dict: A success notification if triggered manually, otherwise None.
         """
-        _logger.debug("Starting 'action_update_discount_amount'.")
 
         for partner in self:
             # Initialize discount-related fields
@@ -204,8 +242,6 @@ class ResPartner(models.Model):
             wallet = total_amount_discount_approved - partner.total_so_bonus_order
             partner.amount = wallet if wallet > 0 else 0.0
             partner.amount_currency = wallet if wallet > 0 else 0.0
-
-        _logger.debug("Completed 'action_update_discount_amount'.")
 
     # =================================
     # CONSTRAINS Methods
@@ -321,13 +357,13 @@ class ResPartner(models.Model):
         if state == "sale":
             agency_domain += [("state", "=", "sale")]
             return Order.search(agency_domain).filtered(
-                lambda order: order.order_line._filter_discount_agency_lines(order)
+                lambda order: order.order_line._filter_agency_lines(order)
                 or order.bonus_order > 0
             )
         elif state == "not_sale":
             agency_domain += [("state", "in", ["draft", "sent"])]
             return Order.search(agency_domain).filtered(
-                lambda order: order.order_line._filter_discount_agency_lines(order)
+                lambda order: order.order_line._filter_agency_lines(order)
                 or order.bonus_order > 0
             )
 
@@ -354,26 +390,56 @@ class ResPartner(models.Model):
         :param record: The current partner record.
         :return: Tuple containing total approved discounts and total waiting approval discounts.
         """
-        total_amount_discount_approved = sum(
-            line.total_money
-            for line in record.compute_discount_line_ids.filtered(
-                lambda r: r.state == "done"
+        total_amount_discount_approved = (
+            sum(
+                line.total_money
+                for line in record.compute_discount_line_ids.filtered(
+                    lambda r: r.state == "done"
+                )
             )
-        ) + sum(
-            line.total_amount_currency
-            for line in record.compute_warranty_discount_line_ids.filtered(
-                lambda r: r.parent_state == "done"
+            + sum(
+                line.total_amount_currency
+                for line in record.compute_warranty_discount_line_ids.filtered(
+                    lambda r: r.parent_state == "done"
+                )
+            )
+            + sum(
+                line.total_price_discount
+                for line in record.compute_discount_policy_line_ids.filtered(
+                    lambda r: r.state == "done"
+                )
+            )
+            + sum(
+                line.total_reward_amount
+                for line in record.compute_discount_product_warranty_line_ids.filtered(
+                    lambda r: r.state == "done"
+                )
             )
         )
-        total_amount_discount_waiting_approve = sum(
-            line.total_money
-            for line in record.compute_discount_line_ids.filtered(
-                lambda r: r.state != "done"
+        total_amount_discount_waiting_approve = (
+            sum(
+                line.total_money
+                for line in record.compute_discount_line_ids.filtered(
+                    lambda r: r.state != "done"
+                )
             )
-        ) + sum(
-            line.total_amount_currency
-            for line in record.compute_warranty_discount_line_ids.filtered(
-                lambda r: r.parent_state != "done"
+            + sum(
+                line.total_amount_currency
+                for line in record.compute_warranty_discount_line_ids.filtered(
+                    lambda r: r.parent_state != "done"
+                )
+            )
+            + sum(
+                line.total_price_discount
+                for line in record.compute_discount_policy_line_ids.filtered(
+                    lambda r: r.state != "done"
+                )
+            )
+            + sum(
+                line.total_reward_amount
+                for line in record.compute_discount_product_warranty_line_ids.filtered(
+                    lambda r: r.state != "done"
+                )
             )
         )
         return total_amount_discount_approved, total_amount_discount_waiting_approve

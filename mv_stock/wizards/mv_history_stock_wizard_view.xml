@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="mv_history_stock_wizard_view_form" model="ir.ui.view">
+            <field name="name">mv.history.stock.wizard.view.form</field>
+            <field name="model">mv.history.stock.wizard</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <group>
+                            <field name="date_from" widget="date"/>
+                        </group>
+                        <group>
+                            <field name="date_to" widget="date"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button string="Xem báo cáo tồn" name="export_stock" type="object" class="oe_highlight" data-hotkey="q"/>
+                        <button string="Cancel" class="btn btn-secondary" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="mv_history_stock_wizard_action_view" model="ir.actions.act_window">
+            <field name="name">Xuất/Nhập tồn</field>
+            <field name="res_model">mv.history.stock.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="mv_history_stock_wizard_view_form"/>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

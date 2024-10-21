@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mv_shop_kanban" model="ir.ui.view">
+            <field name="name">mv.shop.kanban</field>
+            <field name="model">mv.shop</field>
+            <field name="arch" type="xml">
+                <kanban sample="1">
+                    <field name="id"/>
+                    <field name="color"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_card oe_kanban_global_click">
+                                <div class="oe_kanban_details">
+                                    <div class="o_kanban_record_top mb-0">
+                                        <div class="o_kanban_record_headings">
+                                            <strong class="o_kanban_record_title">
+                                                <field name="name"/>
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div name="shop_square_meter" class="mt-1">
+                                        Diện tích: <field name="square_meter"/>
+                                    </div>
+                                    <div name="shop_address" class="mt-1">
+                                        Địa chỉ: <field name="address"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+    <record id="view_mv_shop_form" model="ir.ui.view">
+        <field name="name">mv.shop.form</field>
+        <field name="model">mv.shop</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group col="2">
+                        <group>
+                            <field name="name" options="{'no_open': True}"/>
+                            <field name="street" options="{'no_open': True}"/>
+                            <field name="state_id" options="{'no_open': True}"/>
+                            <field name="district_id" options="{'no_open': True}"/>
+                            <field name="wards_id" options="{'no_open': True}"/>
+                            <field name="country_id" options="{'no_open': True}"/>
+                            <field name="square_meter" options="{'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="partner_survey_id" options="{'no_open': True}" readonly="1"/>
+                            <field name="mv_shop_categ_id" options="{'no_open': True}"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mv_shop_tree" model="ir.ui.view">
+        <field name="name">mv.shop.tree</field>
+        <field name="model">mv.shop</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="mv_shop_categ_id" optional="show"/>
+                <field name="street"/>
+                <field name="country_id"/>
+                <field name="state_id"/>
+                <field name="district_id"/>
+                <field name="wards_id"/>
+                <field name="address" optional="hidden"/>
+                <field name="square_meter"/>
+                <field name="partner_survey_id" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mv_shop_search" model="ir.ui.view">
+        <field name="name">mv.shop.search</field>
+        <field name="model">mv.shop</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="mv_shop_categ_id"/>
+                <field name="partner_survey_id"/>
+                <filter string="Current Month" name="current_month" domain="[('partner_survey_id.create_date', '&lt;',(context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')),('partner_survey_id.create_date', '&gt;=', time.strftime('%%Y-%%m-01'))]"/>
+                <filter string="Previous Month" name="previous_month" domain="[('partner_survey_id.create_date', '&gt;=', (context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')),('partner_survey_id.create_date', '&lt;', time.strftime('%%Y-%%m-01'))]"/>
+                <group string="Group by">
+                    <filter name="group_shop_category" string="Group by Category" context="{'group_by':'mv_shop_categ_id'}"/>
+                    <separator/>
+                    <filter name="group_survey" string="Group by Survey" context="{'group_by':'partner_survey_id'}"/>
+                    <separator/>
+                    <filter name="group_state" string="Group by State" context="{'group_by':'state_id'}"/>
+                    <filter name="group_district" string="Group by District" context="{'group_by':'district_id'}"/>
+                    <filter name="group_ward" string="Group by Ward" context="{'group_by':'wards_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_view_mv_shop" model="ir.actions.act_window">
+		<field name="name">Shops</field>
+		<field name="res_model">mv.shop</field>
+		<field name="view_mode">kanban,tree,form</field>
+		<field name="help" type="html">
+			<p class="o_view_nocontent_smiling_face">
+				Create a new shop
+			</p>
+		</field>
+	</record>
+
+</odoo>

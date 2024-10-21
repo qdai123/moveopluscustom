@@ -3,7 +3,7 @@ import itertools
 import logging
 from collections import defaultdict
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -25,12 +25,17 @@ class SaleOrder(models.Model):
     is_sales_manager = fields.Boolean(compute="_compute_permissions")
     discount_agency_set = fields.Boolean(
         compute="_compute_permissions",
-        help="""Ghi nhận: Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
+        help="""Khi có bổ sung "Chiết khấu sản lượng (Tháng/Quý/Năm)" trên đơn bán.""",
     )
     compute_discount_agency = fields.Boolean(compute="_compute_permissions")
     recompute_discount_agency = fields.Boolean(
         compute="_compute_permissions",
         string="Discount Agency Amount should be recomputed",
+    )
+    should_recompute_discount_agency = fields.Boolean(
+        string="Discount Agency Amount should be recomputed",
+        default=False,
+        readonly=True,
     )
     is_order_returns = fields.Boolean(
         default=False, help="Ghi nhận: Là đơn đổi/trả hàng."
@@ -40,26 +45,47 @@ class SaleOrder(models.Model):
 
     # === PARTNER FIELDS ===#
     partner_agency = fields.Boolean(
-        related="partner_id.is_agency", store=True, readonly=True
+        related="partner_id.is_agency",
+        store=True,
+        readonly=True,
     )
     partner_white_agency = fields.Boolean(
-        related="partner_id.is_white_agency", store=True, readonly=True
+        related="partner_id.is_white_agency",
+        store=True,
+        readonly=True,
     )
     partner_southern_agency = fields.Boolean(
-        related="partner_id.is_southern_agency", store=True, readonly=True
+        related="partner_id.is_southern_agency",
+        store=True,
+        readonly=True,
     )
     bank_guarantee = fields.Boolean(
-        related="partner_id.bank_guarantee", store=True, readonly=True
+        related="partner_id.bank_guarantee",
+        store=True,
+        readonly=True,
     )
-    discount_bank_guarantee = fields.Float(compute="_compute_discount", store=True)
+    discount_bank_guarantee = fields.Float(
+        compute="_compute_discount",
+        store=True,
+    )
     after_discount_bank_guarantee = fields.Float(
-        compute="_compute_discount", store=True
+        compute="_compute_discount",
+        store=True,
     )
 
     # === DISCOUNT POLICY FIELDS ===#
-    discount_line_id = fields.Many2one("mv.compute.discount.line", readonly=True)
-    check_discount_10 = fields.Boolean(compute="_compute_discount", store=True)
-    percentage = fields.Float(compute="_compute_discount", store=True)
+    discount_line_id = fields.Many2one(
+        "mv.compute.discount.line",
+        readonly=True,
+    )
+    check_discount_10 = fields.Boolean(
+        compute="_compute_discount",
+        store=True,
+    )
+    percentage = fields.Float(
+        compute="_compute_discount",
+        store=True,
+    )
     bonus_max = fields.Float(
         compute="_compute_bonus_order_line",
         store=True,
@@ -75,15 +101,26 @@ class SaleOrder(models.Model):
         store=True,
         help="Số tiền Đại lý có thể áp dụng để tính chiết khấu.",
     )
-    is_claim_warranty = fields.Boolean("Áp dụng CS bảo hành", readonly="1")
+    is_claim_warranty = fields.Boolean(
+        "Áp dụng CS bảo hành",
+        readonly=True,
+    )
     mv_moves_warranty_ids = fields.Many2many(
         "mv.helpdesk.ticket.product.moves",
         "order_warranty_products_relation",
         "order_id",
         "warranty_id",
         string="Áp dụng cho số serial",
-        readonly="1",
+        readonly=True,
     )
+
+    @api.onchange("company_id")
+    def _onchange_company_id_warning(self):
+        if self.env.context.get("create_order_from_claim_ticket"):
+            self.show_update_pricelist = True
+            return {}
+        else:
+            return super(SaleOrder, self)._onchange_company_id_warning()
 
     @api.depends("state", "order_line.product_id", "order_line.product_uom_qty")
     @api.depends_context("uid")
@@ -103,9 +140,7 @@ class SaleOrder(models.Model):
                 # Check if the user is a Sales Manager
                 order.is_sales_manager = self.env.user.has_group(GROUP_SALES_MANAGER)
                 # Check if the order has discount agency lines
-                order.discount_agency_set = (
-                    order.order_line._filter_discount_agency_lines(order)
-                )
+                order.discount_agency_set = order.order_line._filter_agency_lines(order)
                 _logger.debug(
                     f"Order {order.id}: discount_agency_set = {order.discount_agency_set}"
                 )
@@ -138,7 +173,7 @@ class SaleOrder(models.Model):
                 continue
 
             partner_wallet = order.partner_id.amount_currency
-            bonus_order_line = order.order_line._get_discount_agency_line()
+            bonus_order_line = order.order_line._filter_agency_lines(order=order)
 
             if bonus_order_line:
                 bonus_order = abs(bonus_order_line[0].sudo().price_unit)
@@ -151,7 +186,7 @@ class SaleOrder(models.Model):
     def _compute_bonus_order_line(self):
         for order in self.filtered("partner_agency"):
             if order.state != "cancel" and order.order_line:
-                bonus_order_line = order.order_line._get_discount_agency_line()
+                bonus_order_line = order.order_line._filter_agency_lines(order=order)
                 if bonus_order_line:
                     order.bonus_order = abs(bonus_order_line[0].sudo().price_unit)
                 else:
@@ -278,6 +313,8 @@ class SaleOrder(models.Model):
 
         order_product_lines = order.order_line.filtered(
             lambda sol: sol.product_id.product_tmpl_id.detailed_type == "product"
+            and not sol.is_reward_line
+            and not sol.is_service
         )
         for line in order_product_lines:
             total_price_no_service += line.price_unit * line.product_uom_qty
@@ -349,11 +386,15 @@ class SaleOrder(models.Model):
     # ==================================
 
     def write(self, vals):
-        if "product_uom_qty" in vals and vals["product_uom_qty"]:
-            orders_to_update = self.filtered(lambda so: so.product_uom_qty > 0)
-            for order in orders_to_update:
-                order._update_programs_and_rewards()
-                order._auto_apply_rewards()
+        # FIXME: HOTFIX for the issue of re-computing discount agency amount
+        # if "order_line" in vals and vals["order_line"]:
+        #     for item in vals["order_line"]:
+        #         if (
+        #             "product_uom_qty" in item[2]
+        #             and item[2]["product_uom_qty"]
+        #             and not self.should_recompute_discount_agency
+        #         ):
+        #             self.should_recompute_discount_agency = True
 
         return super(SaleOrder, self).write(vals)
 
@@ -536,7 +577,7 @@ class SaleOrder(models.Model):
 
     def _filter_order_lines(self):
         order = self
-        order_lines_discount = order.order_line._filter_discount_agency_lines(order)
+        order_lines_discount = order.order_line._filter_agency_lines(order)
         order_lines_delivery = order.order_line.filtered("is_delivery")
         return order_lines_discount, order_lines_delivery
 
@@ -565,12 +606,13 @@ class SaleOrder(models.Model):
         order_with_company = order.with_company(order.company_id)
         context["default_sale_order_id"] = order.id
         context["default_total_weight"] = order._get_estimated_weight()
-        context["default_discount_amount_apply"] = order.partner_id.amount_currency
 
         if context.get("recompute_discount_agency"):
             wizard_name = "Cập nhật chiết khấu"
+            context["default_discount_amount_apply"] = order.bonus_remaining
         else:
             wizard_name = "Chiết khấu"
+            context["default_discount_amount_apply"] = order.partner_id.amount_currency
 
         carrier = (
             (
@@ -663,8 +705,9 @@ class SaleOrder(models.Model):
 
     def action_clear_discount_lines(self):
         # Filter the order lines based on the conditions
-        discount_lines = self.order_line._get_discount_agency_line()
-        discount_lines += self.order_line.filtered(lambda sol: sol.is_reward_line)
+        order = self
+        discount_lines = order.order_line._filter_agency_lines(order=order)
+        discount_lines += order.order_line.filtered(lambda sol: sol.is_reward_line)
 
         # Unlink the discount lines
         if discount_lines:
@@ -702,6 +745,13 @@ class SaleOrder(models.Model):
             ):
                 error_message = (
                     "Các đơn hàng sau không có Phương thức vận chuyển HOẶC Chiết Khấu Sản Lượng, vui lòng kiểm tra: %s"
+                    % ", ".join(orders_agency.mapped("display_name")),
+                )
+                raise UserError(error_message)
+
+            if all(order.should_recompute_discount_agency for order in orders_agency):
+                error_message = (
+                    "Các đơn hàng sau cần được tính lại Chiết Khấu Sản Lượng: %s"
                     % ", ".join(orders_agency.mapped("display_name")),
                 )
                 raise UserError(error_message)
@@ -774,6 +824,19 @@ class SaleOrder(models.Model):
             else:
                 order.with_context(action_confirm=True).action_recompute_discount()
 
+    def _recompute_prices(self):
+        lines_to_recompute = self._get_update_prices_lines()
+        lines_to_recompute.invalidate_recordset(["pricelist_item_id"])
+        lines_to_recompute._compute_price_unit()
+        # Special case: we want to overwrite the existing discount on _recompute_prices call
+        # i.e. to make sure the discount is correctly reset
+        # if pricelist discount_policy is different than when the price was first computed.
+        lines_to_recompute.filtered(lambda sol: not sol.is_reward_line).discount = 0.0
+        lines_to_recompute.filtered(
+            lambda sol: not sol.is_reward_line
+        )._compute_discount()
+        self.show_update_pricelist = False
+
     # === MOVEO+ FULL OVERRIDE '_get_program_domain', '_update_programs_and_rewards' ===#
 
     def _get_program_domain(self):
@@ -797,39 +860,31 @@ class SaleOrder(models.Model):
             ("date_to", ">=", today),
         ]
 
-        # === ĐẠI LÝ CHÍNH THỨC ===#
-        if (
-            self.partner_agency
-            and not self.partner_white_agency
-            and not self.partner_southern_agency
-        ):
-            program_domain += [
+        def add_agency_conditions(domain, agency_field, agency_value):
+            domain += [
                 "|",
-                ("partner_agency_ok", "=", self.partner_agency),
+                (agency_field, "=", agency_value),
                 ("apply_for_all_agency", "=", True),
             ]
-        # === ĐẠI LÝ VÙNG TRẮNG ===#
-        elif (
-            self.partner_agency
-            and self.partner_white_agency
-            and not self.partner_southern_agency
-        ):
-            program_domain += [
-                "|",
-                ("partner_white_agency_ok", "=", self.partner_white_agency),
-                ("apply_for_all_agency", "=", True),
-            ]
-        # === ĐẠI LÝ MIỀN NAM ===#
-        elif (
-            self.partner_agency
-            and self.partner_southern_agency
-            and not self.partner_white_agency
-        ):
-            program_domain += [
-                "|",
-                ("partner_southern_agency_ok", "=", self.partner_southern_agency),
-                ("apply_for_all_agency", "=", True),
-            ]
+
+        if self.partner_agency:
+            if self.partner_white_agency:
+                # === ĐẠI LÝ VÙNG TRẮNG ===#
+                add_agency_conditions(
+                    program_domain, "partner_white_agency_ok", self.partner_white_agency
+                )
+            elif self.partner_southern_agency:
+                # === ĐẠI LÝ MIỀN NAM ===#
+                add_agency_conditions(
+                    program_domain,
+                    "partner_southern_agency_ok",
+                    self.partner_southern_agency,
+                )
+            else:
+                # === ĐẠI LÝ CHÍNH THỨC ===#
+                add_agency_conditions(
+                    program_domain, "partner_agency_ok", self.partner_agency
+                )
 
         return program_domain
 
@@ -1133,7 +1188,7 @@ class SaleOrder(models.Model):
         delivery_line = order.delivery_set or order.order_line.filtered(
             lambda sol: sol.is_delivery
         )
-        discount_agency_line = self.order_line._filter_discount_agency_lines(order)
+        discount_agency_line = self.order_line._filter_agency_lines(order)
         return delivery_line and discount_agency_line
 
     def _check_delivery_lines(self):
@@ -1145,32 +1200,36 @@ class SaleOrder(models.Model):
             raise UserError("Không tìm thấy dòng giao hàng nào trong đơn hàng.")
 
     def _check_not_free_qty_in_stock(self):
-        if self.state not in ["draft", "sent"]:
-            return
+        if self.state in ["draft", "sent"]:
+            product_lines = self._get_product_order_lines()
+            error_products = self._get_error_products(product_lines)
 
-        # Use list comprehension instead of filtered method
-        product_order_lines = [
+            if error_products:
+                error_message = self._construct_error_message(error_products)
+                raise ValidationError(error_message)
+
+    def _get_product_order_lines(self):
+        return [
             line
             for line in self.order_line
             if line.product_id.product_tmpl_id.detailed_type == "product"
         ]
 
+    def _get_error_products(self, product_lines):
         error_products = []
-        if product_order_lines:
-            for so_line in product_order_lines:
-                if so_line.product_uom_qty > so_line.free_qty_today:
-                    error_products.append(
-                        f"\n- {so_line.product_template_id.name}. [ Số lượng có thể đặt: {int(so_line.free_qty_today)} (Cái) ]"
-                    )
+        for line in product_lines:
+            if line.product_uom_qty > line.free_qty_today:
+                error_products.append(
+                    f"\n- {line.product_template_id.name}. [ Số lượng có thể đặt: {int(line.free_qty_today)} (Cái) ]"
+                )
+        return error_products
 
-        # Raise all errors at once
-        if error_products:
-            error_message = (
-                "Bạn không được phép đặt quá số lượng hiện tại:"
-                + "".join(error_products)
-                + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
-            )
-            raise ValidationError(error_message)
+    def _construct_error_message(self, error_products):
+        return (
+            "Bạn không được phép đặt quá số lượng hiện tại:"
+            + "".join(error_products)
+            + "\n\nVui lòng kiểm tra lại số lượng còn lại trong kho!"
+        )
 
     # ==================================
     # TOOLING
@@ -1208,7 +1267,7 @@ class SaleOrder(models.Model):
         return self.is_order_returns
 
     # =============================================================
-    # TRIGGER Methods (Public)
+    # HELPER/TRIGGER Methods (Public)
     # These methods are called when a record is updated or deleted.
     # TODO: Update theses functional - Phat Dang <phat.dangminh@moveoplus.com>
     # =============================================================
@@ -1217,4 +1276,11 @@ class SaleOrder(models.Model):
         """=== This method is called when a record is updated or deleted ==="""
         self._compute_partner_bonus()  # Update partner bonus
         self._compute_bonus_order_line()  # Update bonus order line
+        self.mapped("order_line")._compute_amount()
         return True
+
+    def action_refresh_orders(self):
+        """=== Refresh all orders ==="""
+        orders = self.filtered(lambda so: so.state == "sale")
+        if orders:
+            orders.so_trigger_update()

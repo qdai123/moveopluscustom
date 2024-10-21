@@ -25,7 +25,12 @@ DEFAULT_SERVER_DATETIME_FORMAT = "%s %s" % (
     DEFAULT_SERVER_TIME_FORMAT,
 )
 
-DISCOUNT_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+POLICY_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+POLICY_STATUS = [
+    ("open", "Sẵn sàng"),
+    ("applying", "Đang Áp Dụng"),
+    ("close", "Đã kết thúc"),
+]
 
 # Ticket Type Codes for Warranty Activation:
 SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
@@ -67,24 +72,36 @@ def convert_to_code(text):
 
 class MvWarrantyDiscountPolicy(models.Model):
     _name = "mv.warranty.discount.policy"
-    _description = _("Warranty Discount Policy")
+    _description = "Chính sách chiết khấu kích hoạt bảo hành"
     _order = "date_from desc, date_to desc"
 
-    # ACCESS/RULE Fields:
-    can_access = fields.Boolean(
-        compute="_compute_can_access",
-        default=lambda self: self.env.user.has_group(DISCOUNT_APPROVER)
-        or self.env.user._is_admin()
-        or self.env.user._is_system(),
-    )
+    def _default_can_access(self):
+        user = self.env.user
+        return user.has_group(POLICY_APPROVER) or user._is_admin() or user._is_system()
 
     @api.depends_context("uid")
-    def _compute_can_access(self):
-        for record in self:
-            record.can_access = self._fully_access()
+    def _can_access(self):
+        for policy in self:
+            policy.can_access = self._fully_access()
 
-    active = fields.Boolean(string="Active", default=True)
-    name = fields.Char(compute="_compute_name", store=True, readonly=False)
+    can_access = fields.Boolean(
+        compute="_can_access",
+        default=lambda self: self._default_can_access(),
+    )
+    active = fields.Boolean(default=True)
+    company_ids = fields.Many2many(
+        "res.company",
+        "res_company_mv_warranty_discount_policy_rel",
+        "company_id",
+        "policy_id",
+        "Companies",
+        default=lambda self: self.env.company,
+    )
+    partner_ids = fields.Many2many(
+        "mv.discount.partner",
+        string="Partners",
+        domain=[("partner_id.is_agency", "=", True)],
+    )
     date_from = fields.Date(default=lambda self: fields.Date.today().replace(day=1))
     date_to = fields.Date(
         default=lambda self: (date.today().replace(day=1) + timedelta(days=32)).replace(
@@ -92,127 +109,28 @@ class MvWarrantyDiscountPolicy(models.Model):
         )
         - timedelta(days=1)
     )
-    policy_status = fields.Selection(
-        selection=[
-            ("open", "Sẵn sàng"),
-            ("applying", "Đang Áp Dụng"),
-            ("close", "Đã kết thúc"),
-        ],
-        default="open",
-        string="Status",
-    )
-    product_attribute_ids = fields.Many2many("product.attribute")
+    name = fields.Char(compute="_compute_name", store=True, readonly=False)
+    policy_status = fields.Selection(POLICY_STATUS, default="open", string="Status")
+    policy_description = fields.Html("Description")
     line_ids = fields.One2many(
-        comodel_name="mv.warranty.discount.policy.line",
-        inverse_name="warranty_discount_policy_id",
+        "mv.warranty.discount.policy.line",
+        "warranty_discount_policy_id",
     )
-    partner_ids = fields.Many2many(
-        comodel_name="mv.discount.partner", domain=[("partner_id.is_agency", "=", True)]
+    product_attribute_ids = fields.Many2many(
+        "product.attribute",
+        domain=[("attribute_code", "!=", False)],
     )
-
-    def action_reset_to_open(self):
-        self.ensure_one()
-
-        if not self._fully_access():
-            raise AccessError(
-                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
-            )
-
-        self.write({"policy_status": "open"})
-
-    def action_apply(self):
-        self.ensure_one()
-
-        if not self._fully_access():
-            raise AccessError(
-                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
-            )
-
-        if self.policy_status == "open":
-            self.write({"policy_status": "applying"})
-
-        return True
-
-    def action_close(self):
-        self.ensure_one()
-
-        if not self._fully_access():
-            raise AccessError(
-                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
-            )
-
-        if self.policy_status == "applying":
-            self.write({"policy_status": "close"})
-
-        return True
-
-    @api.depends("date_from", "date_to")
-    def _compute_name(self):
-        for record in self:
-            policy_name = "Chính sách chiết khấu kích hoạt"
-            date_from = record.date_from
-            date_to = record.date_to
-
-            if date_from and date_to:
-                if date_from.year == date_to.year:
-                    if date_from.month == date_to.month:
-                        record.name = (
-                            f"{policy_name} (tháng {date_from.month}/{date_from.year})"
-                        )
-                    else:
-                        record.name = f"{policy_name} (từ {date_from.month}/{date_from.year} đến {date_to.month}/{date_to.year})"
-                else:
-                    record.name = policy_name
-            else:
-                record.name = policy_name
-
-    @api.onchange("date_from")
-    def _onchange_date_from(self):
-        if self.date_from:
-            self.date_to = (self.date_from + timedelta(days=32)).replace(
-                day=1
-            ) - timedelta(days=1)
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        res = super(MvWarrantyDiscountPolicy, self).create(vals_list)
-
-        # TODO: This method should be validated for every time create new record
-        if res:
-            for record in res:
-                if not record.partner_ids:
-                    partner_ids = self.env["mv.discount.partner"].search(
-                        [("partner_id.is_agency", "=", True)]
-                    )
-                    record.partner_ids = [(6, 0, partner_ids.ids)]
-                    for partner in partner_ids:
-                        partner.write(
-                            {"warranty_discount_policy_ids": [(4, record.id)]}
-                        )
-
-        return res
-
-    def write(self, vals):
-        res = super(MvWarrantyDiscountPolicy, self).write(vals)
-
-        # TODO: This method should be validated for every time update current record
-        if res:
-            for record in self:
-                if record.partner_ids:
-                    for partner in record.partner_ids:
-                        partner.write(
-                            {"warranty_discount_policy_ids": [(6, 0, record.ids)]}
-                        )
-
-        return res
-
-    @api.constrains("line_ids")
-    def _limit_policy_conditions(self):
-        for record in self:
-            if len(record.line_ids) > 3:
-                raise ValidationError(
-                    _("Chính sách chiết khấu không được nhiều hơn 3 điều kiện!")
-                )
+    product_apply_ids = fields.Many2many(
+        "product.template",
+        "mv_warranty_discount_policy_product_template_rel",
+        "warranty_discount_policy_id",
+        "product_template_id",
+        domain=[
+            ("active", "=", True),
+            ("sale_ok", "=", True),
+            ("detailed_type", "=", "product"),
+        ],
+    )
 
     # =================================
     # CONSTRAINS Methods
@@ -235,17 +153,115 @@ class MvWarrantyDiscountPolicy(models.Model):
                         _("Chính sách này đã bị trùng, vui lòng kiểm tra lại!")
                     )
 
+    @api.constrains("line_ids")
+    def _limit_policy_conditions(self):
+        for record in self:
+            if len(record.line_ids) > 3:
+                raise ValidationError(
+                    _("Chính sách chiết khấu không được nhiều hơn 3 điều kiện!")
+                )
+
+    # =================================
+    # ORM/CRUD Methods
+    # =================================
+
+    @api.onchange("date_from")
+    def _onchange_date_from(self):
+        if self.date_from:
+            self.date_to = (self.date_from + timedelta(days=32)).replace(
+                day=1
+            ) - timedelta(days=1)
+
+    @api.depends("date_from", "date_to")
+    def _compute_name(self):
+        for record in self:
+            policy_name = "Chính sách chiết khấu kích hoạt"
+            date_from = record.date_from
+            date_to = record.date_to
+
+            if date_from and date_to:
+                if date_from.year == date_to.year:
+                    if date_from.month == date_to.month:
+                        record.name = (
+                            f"{policy_name} (tháng {date_from.month}/{date_from.year})"
+                        )
+                    else:
+                        record.name = f"{policy_name} (từ {date_from.month}/{date_from.year} đến {date_to.month}/{date_to.year})"
+                else:
+                    record.name = policy_name
+            else:
+                record.name = policy_name
+
+    # =================================
+    # ACTION Methods
+    # =================================
+
+    def load_partners(self):
+        """
+        Load all partners that are agencies and not in the current policy.
+        :return: list of partners has been added to the policy.
+        """
+        self.ensure_one()
+        existing_partner_ids = self.partner_ids.ids
+
+        def _get_new_partners(existing_partner_ids):
+            return self.env["mv.discount.partner"].search(
+                [
+                    ("partner_id.is_agency", "=", True),
+                    ("id", "not in", existing_partner_ids),
+                ]
+            )
+
+        def _update_existing_agency_partners(agency_partners):
+            for partner in self.env["res.partner"].browse(agency_partners):
+                if (
+                    partner.is_agency
+                    and partner.use_for_report
+                    and not partner.discount_policy_ids
+                ):
+                    partner.discount_policy_ids = [(6, 0, self.ids)]
+
+        new_partners = _get_new_partners(existing_partner_ids)
+        self.partner_ids = [(4, partner.id) for partner in new_partners]
+
+        if existing_partner_ids:
+            # _update_existing_agency_partners(existing_partner_ids)
+            _logger.debug("Updated existing partners.")
+
+    def _check_access(self):
+        self.ensure_one()
+
+        if not self._fully_access():
+            raise AccessError(
+                "Bạn không có quyền thao tác, vui lòng liên hệ người có thẩm quyền!"
+            )
+
+    def action_reset_to_open(self):
+        self._check_access()
+        self.write({"policy_status": "open"})
+
+    def action_apply(self):
+        self._check_access()
+        if self.policy_status == "open":
+            self.write({"policy_status": "applying"})
+        return True
+
+    def action_close(self):
+        self._check_access()
+        if self.policy_status == "applying":
+            self.write({"policy_status": "close"})
+        return True
+
     # =================================
     # HELPER / PRIVATE Methods
     # =================================
 
     def _fully_access(self):
-        access = (
-            self.env.user.has_group(DISCOUNT_APPROVER)
+        return (
+            self.env.user.has_group(POLICY_APPROVER)
             or self.env.user._is_admin()
             or self.env.user._is_system()
         )
-        return access
 
 
 class MvWarrantyDiscountPolicyLine(models.Model):
@@ -265,7 +281,7 @@ class MvWarrantyDiscountPolicyLine(models.Model):
     quantity_from = fields.Integer("Số lượng Min", default=0)
     quantity_to = fields.Integer("Số lượng Max", default=0)
     discount_amount = fields.Monetary(
-        "Số tiền chiết khấu", digits=(16, 2), currency_field="currency_id"
+        "Số tiền chiết khấu", currency_field="currency_id"
     )
     explanation = fields.Text("Diễn giải")
     explanation_code = fields.Char(
@@ -280,81 +296,84 @@ class MvWarrantyDiscountPolicyLine(models.Model):
             else:
                 record.explanation_code = "_code_"
 
+    @api.autovacuum
+    def _gc_warranty_discount_policy_line(self):
+        """Delete all policy lines that are not linked to the parent policy."""
+        lines_to_del = self.env["mv.warranty.discount.policy.line"].search(
+            [("warranty_discount_policy_id", "=", False)]
+        )
+        if lines_to_del:
+            lines_to_del.unlink()
+            _logger.info("Successfully deleted unlinked policy lines.")
+        else:
+            _logger.info("No unlinked policy lines found.")
+
 
 class MvComputeWarrantyDiscountPolicy(models.Model):
-    _inherit = ["mail.thread"]
     _name = "mv.compute.warranty.discount.policy"
-    _description = _("Compute Warranty Discount Policy")
+    _description = "Tính CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH cho Đại lý"
+    _inherit = ["mail.thread"]
 
-    # ACCESS / RULE Fields:
-    do_readonly = fields.Boolean("Readonly?", compute="_do_readonly")
-
-    def _do_readonly(self):
-        """
-        Set the `do_readonly` field based on the state of the record.
-
-        This method iterates over each record and sets the `do_readonly` field to `True`
-        if the state is "done", otherwise sets it to `False`.
-
-        :return: False
-        """
-        for rec in self:
-            rec.do_readonly = rec.state == "done"
-
-    # BASE Fields:
-    month = fields.Selection(get_months())
+    month = fields.Selection(get_months(), default=str(datetime.now().month))
     year = fields.Selection(get_years(), default=str(datetime.now().year))
-    compute_date = fields.Datetime(compute="_compute_compute_date", store=True)
     approved_date = fields.Datetime(readonly=True)
-    name = fields.Char(compute="_compute_name", store=True)
+    compute_date = fields.Datetime(compute="_compute_name_and_date", store=True)
+    name = fields.Char(compute="_compute_name_and_date", store=True)
     state = fields.Selection(
         selection=[("draft", "Nháp"), ("confirm", "Lưu"), ("done", "Đã Duyệt")],
         default="draft",
         readonly=True,
         tracking=True,
     )
+    warranty_discount_policy_id = fields.Many2one(
+        "mv.warranty.discount.policy",
+        required=True,
+        domain=[("active", "=", True), ("policy_status", "=", "applying")],
+        default=lambda self: self.env["mv.warranty.discount.policy"].search(
+            [("active", "=", True), ("policy_status", "=", "applying")], limit=1
+        ),
+    )
+    line_ids = fields.One2many(
+        "mv.compute.warranty.discount.policy.line",
+        "parent_id",
+        "Compute Discount Lines",
+    )
+    do_readonly = fields.Boolean(
+        "Readonly?",
+        compute="_compute_do_readonly",
+        help="Make fields readonly based on Rules.",
+    )
+
+    def _compute_do_readonly(self):
+        """
+        Set the `do_readonly` field based on the state of the record.
+
+        This method iterates over each record and sets the `do_readonly` field to `True`
+        if the state is "done", otherwise sets it to `False`.
+        """
+        for rec in self:
+            rec.do_readonly = rec.state == "done"
 
     @api.depends("year", "month")
-    def _compute_name(self):
+    def _compute_name_and_date(self):
         """
-        Compute the name based on the month and year.
+        Compute the `name` and `compute_date` based on the month and year.
 
-        This method sets the `name` field to "month/year" if both `month` and `year` are set.
-        If either is not set, it uses the current month and year.
+        This method sets the `name` field to "month/year" and the `compute_date` field to the first day of the given month and year
+        if both `month` and `year` are set. If either is not set, it uses the current month and year.
 
         :return: None
         """
         for rec in self:
             if rec.month and rec.year:
                 rec.name = "{}/{}".format(str(rec.month), str(rec.year))
-            else:
-                dt = datetime.now().replace(day=1)
-                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
-
-    # RELATION Fields:
-    warranty_discount_policy_id = fields.Many2one(
-        comodel_name="mv.warranty.discount.policy",
-        domain=[("active", "=", True), ("policy_status", "=", "applying")],
-    )
-    line_ids = fields.One2many("mv.compute.warranty.discount.policy.line", "parent_id")
-
-    @api.depends("year", "month")
-    def _compute_compute_date(self):
-        """
-        Compute the `compute_date` based on the month and year.
-
-        This method sets the `compute_date` field to the first day of the given month and year
-        if both `month` and `year` are set. If either is not set, it uses the first day of the current month and year.
-
-        :return: None
-        """
-        for rec in self:
-            if rec.month and rec.year:
                 rec.compute_date = datetime.now().replace(
                     day=1, month=int(rec.month), year=int(rec.year)
                 )
             else:
-                rec.compute_date = datetime.now().replace(day=1)
+                dt = datetime.now().replace(day=1)
+                rec.name = "{}/{}".format(str(dt.month), str(dt.year))
+                rec.compute_date = dt
 
     # =================================
     # BUSINESS Methods
@@ -362,6 +381,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
     def action_reset_to_draft(self):
         self.ensure_one()
+
         if self.state != "draft":
             _logger.info(f"Resetting policy {self.id} to draft state.")
             self.state = "draft"
@@ -382,6 +402,9 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         if not self.warranty_discount_policy_id:
             raise ValidationError("Chưa chọn Chính sách chiết khấu!")
 
+        policy_used = self.warranty_discount_policy_id
+        policy_product_apply_ids = policy_used.product_apply_ids.ids
+
         _logger.info(
             f"Calculating discount lines for policy {self.warranty_discount_policy_id.id} "
             f"for month {self.month}/{self.year}."
@@ -389,17 +412,28 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
         tickets = self._fetch_tickets()
         if not tickets:
-            raise UserError(
+            raise ValidationError(
                 "Hiện tại không có phiếu nào đã kích hoạt trong tháng {}/{}".format(
                     self.month, self.year
                 )
             )
 
         ticket_product_moves = self._fetch_ticket_product_moves(tickets)
+        if policy_product_apply_ids:
+            ticket_product_moves = ticket_product_moves.filtered(
+                lambda t: t.product_id.product_tmpl_id.id in policy_product_apply_ids
+            )
+
+        if policy_product_apply_ids and not ticket_product_moves:
+            raise ValidationError(
+                "Không tìm thấy sản phẩm theo chính sách kích hoạt trong tháng {}/{}".format(
+                    self.month, self.year
+                )
+            )
 
         partners = self._fetch_partners(ticket_product_moves)
         if not partners:
-            raise UserError(
+            raise ValidationError(
                 "Không tìm thấy Đại lý đăng ký trong tháng {}/{}".format(
                     self.month, self.year
                 )
@@ -408,7 +442,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         # Calculate discount lines
         results = self._calculate_discount_lines(partners, ticket_product_moves)
         if not results:
-            raise UserError(
+            raise ValidationError(
                 "Không có dữ liệu để tính chiết khấu cho tháng {}/{}".format(
                     self.month, self.year
                 )
@@ -447,15 +481,10 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 helpdesk_stage_done = self.env.ref(
                     "mv_website_helpdesk.warranty_stage_done"
                 ).id
-                stage_id = (
-                    self.env["helpdesk.stage"]
-                    .search(
-                        [("id", "=", helpdesk_stage_done)],
-                        limit=1,
-                    )
-                    .id
+                stage_id = self.env["helpdesk.stage"].search(
+                    [("id", "=", helpdesk_stage_done)], limit=1
                 )
-                helpdesk_tickets.write({"stage_id": stage_id})
+                helpdesk_tickets.write({"stage_id": stage_id.id})
 
             # Create history line for discount
             for line in record.line_ids.filtered(lambda rec: rec.parent_id):
@@ -566,6 +595,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                 lambda t: t.partner_id.id == partner.id
                 or t.partner_id.parent_id.id == partner.id
             )
+
             vals["helpdesk_ticket_product_moves_ids"] += partner_tickets_registered.ids
             vals["product_activation_count"] = len(
                 list(set(partner_tickets_registered))
@@ -670,10 +700,13 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     def _fetch_tickets(self):
         try:
             date_from, date_to = self._get_dates(
-                self.compute_date, self.month, self.year
+                self.compute_date,
+                self.month,
+                self.year,
             )
 
             # Cache the stage references to avoid multiple lookups
+            # Only the "New" and "Done" stages are relevant for Warranty Activation
             stage_new_id = self.env.ref("mv_website_helpdesk.warranty_stage_new").id
             stage_done_id = self.env.ref("mv_website_helpdesk.warranty_stage_done").id
 
@@ -704,94 +737,113 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             return self.env["mv.helpdesk.ticket.product.moves"]
 
         try:
-            return self.env["mv.helpdesk.ticket.product.moves"].search(
+            ticket_product_moves = self.env["mv.helpdesk.ticket.product.moves"].search(
                 [
                     ("helpdesk_ticket_id", "in", tickets.ids),
+                    (
+                        "helpdesk_ticket_type_id.code",
+                        "in",
+                        [SUB_DEALER_CODE, END_USER_CODE],
+                    ),
                     ("product_activate_twice", "=", False),
                 ]
             )
+            return ticket_product_moves
+
         except Exception as e:
             _logger.error(f"Failed to fetch ticket product moves: {e}")
             return self.env["mv.helpdesk.ticket.product.moves"]
 
     def _fetch_partners(self, ticket_product_moves):
+        if not ticket_product_moves:
+            return self.env["res.partner"]
+
         try:
-            if ticket_product_moves:
-                return (
-                    self.env["res.partner"]
-                    .sudo()
-                    .browse(ticket_product_moves.mapped("partner_id").ids)
-                )
+            partner_ids = ticket_product_moves.mapped("partner_id").ids
+            return self.env["res.partner"].sudo().browse(partner_ids)
         except Exception as e:
             _logger.error(f"Failed to fetch partners: {e}")
             return self.env["res.partner"]
 
-    def _fetch_warranty_policy(self, policy_code, domain=[]):
-        try:
-            policy_domain = domain
-            if policy_code and not domain:
-                policy_domain = [("explanation_code", "=", policy_code)]
+    def _fetch_warranty_policy(self, policy_code, domain=None):
+        if domain is None:
+            domain = []
 
-            return self.env["mv.warranty.discount.policy.line"].search(
-                policy_domain, limit=1
-            )
+        try:
+            if policy_code and not domain:
+                domain = [("explanation_code", "=", policy_code)]
+
+            return self.env["mv.warranty.discount.policy.line"].search(domain, limit=1)
         except Exception as e:
             _logger.error(f"Failed to fetch warranty policy: {e}")
             return self.env["mv.warranty.discount.policy.line"]
 
     def _fetch_product_template(self, products):
+        if not products:
+            return self.env["product.template"]
+
         try:
-            if products:
-                return self.env["product.template"].search(
-                    [("id", "in", products.ids), ("detailed_type", "=", "product")]
-                )
+            return self.env["product.template"].search(
+                [
+                    ("active", "=", True),
+                    ("sale_ok", "=", True),
+                    ("detailed_type", "=", "product"),
+                    ("id", "in", products.ids),
+                ]
+            )
         except Exception as e:
             _logger.error(f"Failed to fetch product template: {e}")
             return self.env["product.template"]
 
     def _fetch_product_template_attribute_lines(self, policy_used, products):
+        if not products:
+            return self.env["product.template.attribute.line"]
+
         try:
-            if products:
-                return self.env["product.template.attribute.line"].search(
-                    [
-                        ("product_tmpl_id", "in", products.ids),
-                        ("attribute_id", "in", policy_used.product_attribute_ids.ids),
-                    ]
-                )
+            return self.env["product.template.attribute.line"].search(
+                [
+                    ("product_tmpl_id", "in", products.ids),
+                    ("attribute_id", "in", policy_used.product_attribute_ids.ids),
+                ]
+            )
         except Exception as e:
             _logger.error(f"Failed to fetch product template attribute lines: {e}")
             return self.env["product.template.attribute.line"]
 
     def _fetch_product_template_attribute_values(self, products):
+        if not products:
+            return self.env["product.template.attribute.value"]
+
         try:
-            if products:
-                return self.env["product.template.attribute.value"].search(
-                    [
-                        ("attribute_line_id", "in", products.ids),
-                        ("ptav_active", "=", True),
-                    ]
-                )
+            return self.env["product.template.attribute.value"].search(
+                [
+                    ("attribute_line_id", "in", products.ids),
+                    ("ptav_active", "=", True),
+                ]
+            )
         except Exception as e:
             _logger.error(f"Failed to fetch product template attribute values: {e}")
             return self.env["product.template.attribute.value"]
 
     def _fetch_product_attribute_values(self, policy_used, products):
+        if not products and not policy_used:
+            return self.env["product.attribute.value"]
+
         try:
-            if products and policy_used:
-                return self.env["product.attribute.value"].search(
-                    [
-                        (
-                            "id",
-                            "in",
-                            products.mapped("product_attribute_value_id")
-                            .filtered(
-                                lambda v: v.attribute_id.id
-                                in policy_used.product_attribute_ids.ids
-                            )
-                            .ids,
+            return self.env["product.attribute.value"].search(
+                [
+                    (
+                        "id",
+                        "in",
+                        products.mapped("product_attribute_value_id")
+                        .filtered(
+                            lambda v: v.attribute_id.id
+                            in policy_used.product_attribute_ids.ids
                         )
-                    ]
-                )
+                        .ids,
+                    )
+                ]
+            )
         except Exception as e:
             _logger.error(f"Failed to fetch product attribute values: {e}")
             return self.env["product.attribute.value"]
@@ -811,7 +863,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         """
         self._validate_policy_done_not_unlink()
         self.env["mv.compute.warranty.discount.policy.line"].search(
-            [("parent_id", "=", False)]
+            [("parent_id", "=", self.ids)]
         ).unlink()
 
         return super(MvComputeWarrantyDiscountPolicy, self).unlink()
@@ -850,11 +902,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
                         f"Chính sách của {record.month}/{record.year} đã được tạo hoặc đã được tính toán rồi!"
                     )
 
-    @api.constrains(
-        "compute_date",
-        "warranty_discount_policy_id.date_from",
-        "warranty_discount_policy_id.date_to",
-    )
+    @api.constrains("compute_date", "warranty_discount_policy_id")
     def _validate_time_frame_of_discount_policy(self):
         for record in self:
             if record.warranty_discount_policy_id and record.compute_date:
@@ -900,7 +948,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             return None, None
 
     def _access_approve(self):
-        return self.env.user.has_group(DISCOUNT_APPROVER)
+        return self.env.user.has_group(POLICY_APPROVER)
 
     # =================================
     # REPORT Action/Data
@@ -958,10 +1006,9 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         attachments_to_remove = self.env["ir.attachment"].search(
             [
                 ("res_model", "=", self._name),
-                ("res_id", "=", self.id),
+                ("res_id", "in", self.ids),
                 ("create_uid", "=", self.env.uid),
                 ("create_date", "<", fields.Datetime.now()),
-                ("name", "ilike", "Moveoplus-Warranty-Discount-%"),
             ]
         )
         if attachments_to_remove:
@@ -1586,11 +1633,12 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
 
 
 class MvComputeWarrantyDiscountPolicyLine(models.Model):
-    _name = "mv.compute.warranty.discount.policy.line"
-    _description = _("Compute Warranty Discount (%) Line for Partner")
+    _name = _description = "mv.compute.warranty.discount.policy.line"
 
     currency_id = fields.Many2one(
-        "res.currency", compute="_get_company_currency", store=True
+        "res.currency",
+        compute="_get_company_currency",
+        store=True,
     )
     parent_id = fields.Many2one(
         "mv.compute.warranty.discount.policy",
@@ -1603,11 +1651,16 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
         related="parent_id.state", store=True, readonly=True
     )
     partner_id = fields.Many2one("res.partner", readonly=True)
+    partner_company_ref = fields.Char(
+        related="partner_id.company_registry",
+        string="Mã đại lý",
+        store=True,
+    )
     helpdesk_ticket_product_moves_ids = fields.Many2many(
         "mv.helpdesk.ticket.product.moves",
         "compute_warranty_discount_policy_ticket_product_moves_rel",
+        string="Danh sách sản phẩm",
         readonly=True,
-        context={"create": False, "edit": False},
     )
     product_activation_count = fields.Integer(default=0)
     first_warranty_policy_requirement_id = fields.Many2one(
@@ -1616,40 +1669,27 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     first_count = fields.Integer()
     first_quantity_from = fields.Integer()
     first_quantity_to = fields.Integer()
-    first_warranty_policy_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
-    first_warranty_policy_total_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
+    first_warranty_policy_money = fields.Monetary(currency_field="currency_id")
+    first_warranty_policy_total_money = fields.Monetary(currency_field="currency_id")
     second_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
     second_count = fields.Integer()
     second_quantity_from = fields.Integer()
     second_quantity_to = fields.Integer()
-    second_warranty_policy_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
-    second_warranty_policy_total_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
+    second_warranty_policy_money = fields.Monetary(currency_field="currency_id")
+    second_warranty_policy_total_money = fields.Monetary(currency_field="currency_id")
     third_warranty_policy_requirement_id = fields.Many2one(
         "mv.warranty.discount.policy.line", readonly=True
     )
     third_count = fields.Integer()
     third_quantity_from = fields.Integer()
     third_quantity_to = fields.Integer()
-    third_warranty_policy_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
-    third_warranty_policy_total_money = fields.Monetary(
-        digits=(16, 2), currency_field="currency_id"
-    )
+    third_warranty_policy_money = fields.Monetary(currency_field="currency_id")
+    third_warranty_policy_total_money = fields.Monetary(currency_field="currency_id")
     total_amount_currency = fields.Monetary(
         compute="_compute_total",
         store=True,
-        digits=(16, 2),
         currency_field="currency_id",
     )
 
@@ -1682,3 +1722,15 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
                 + rec.second_warranty_policy_total_money
                 + rec.third_warranty_policy_total_money
             )
+
+    @api.autovacuum
+    def _gc_compute_warranty_discount_policy_line(self):
+        """Delete all policy lines that are not linked to the parent policy."""
+        lines_to_del = self.env["mv.compute.warranty.discount.policy.line"].search(
+            [("parent_id", "=", False)]
+        )
+        if lines_to_del:
+            lines_to_del.unlink()
+            _logger.info("Successfully deleted unlinked policy lines.")
+        else:
+            _logger.info("No unlinked policy lines found.")

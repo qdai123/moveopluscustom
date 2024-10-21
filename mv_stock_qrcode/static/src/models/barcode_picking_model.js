@@ -2,6 +2,7 @@
 
 import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
+import { ScanLotSerial } from '@biz_stock_qrcode/components/scan_lot_serial/scan_lot_serial';
 import BarcodePickingModel from "@stock_barcode/models/barcode_picking_model";
 
 
@@ -249,11 +250,14 @@ patch(BarcodePickingModel.prototype, {
                         codeScanningData = data['codeScanningData']
                         let exceedingQuantity = 0;
 
+                        debugger
+
                         if (product.tracking !== 'serial' && codeScanningData.uom && codeScanningData.uom.category_id == currentLine.product_uom_id.category_id) {
                             // convert to current line's uom
                             codeScanningData.quantity = (codeScanningData.quantity / codeScanningData.uom.factor) * currentLine.product_uom_id.factor;
                             codeScanningData.uom = currentLine.product_uom_id;
                         }
+                        debugger
                         // Checks the quantity doesn't exceed the line's remaining quantity.
                         if (currentLine.reserved_uom_qty && product.tracking === 'none') {
                             const remainingQty = currentLine.reserved_uom_qty - currentLine.qty_done;
@@ -264,16 +268,18 @@ patch(BarcodePickingModel.prototype, {
                                 codeScanningData.quantity = remainingQty;
                             }
                         }
+                        debugger
                         if (codeScanningData.quantity > 0 || codeScanningData.lot || codeScanningData.lotName) {
-                            const fieldsParams = this._convertDataToFieldsParams(QRcodeData);
+                            const fieldsParams = this._convertDataToFieldsParams(codeScanningData);
                             if (codeScanningData.uom) {
                                 fieldsParams.uom = codeScanningData.uom;
                             }
                             await this.updateLine(currentLine, fieldsParams);
                         }
+                        debugger
                         if (exceedingQuantity) { // Creates a new line for the excess quantity.
                             codeScanningData.quantity = exceedingQuantity;
-                            const fieldsParams = this._convertDataToFieldsParams(QRcodeData);
+                            const fieldsParams = this._convertDataToFieldsParams(codeScanningData);
 
                             if (codeScanningData.uom) {
                                 fieldsParams.uom = codeScanningData.uom;
@@ -283,7 +289,7 @@ patch(BarcodePickingModel.prototype, {
                                 fieldsParams,
                             });
                         }
-
+                        debugger
                         if (currentLine) {
                             this._selectLine(currentLine);
                         }
@@ -291,6 +297,7 @@ patch(BarcodePickingModel.prototype, {
                     },
                 })
             } else {
+                debugger
                 let exceedingQuantity = 0;
                 if (product.tracking !== 'serial' && codeScanningData.uom && codeScanningData.uom.category_id == currentLine.product_uom_id.category_id) {
                     // convert to current line's uom
@@ -368,6 +375,8 @@ patch(BarcodePickingModel.prototype, {
                 { type: "danger" }
             );
         }
+
+        console.debug("Testing QR-Code:  ...");
 
         const filters = {};
         if (this.selectedLine && this.selectedLine.product_id.tracking !== 'none') {

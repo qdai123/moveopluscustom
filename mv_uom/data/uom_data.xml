@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+	<!-- MO+: UOM Categories -->
+	<record id="product_uom_categ_capacity" model="uom.category">
+		<field name="name">Capacity</field>
+	</record>
+
+	<!-- MO+: UOM.UOM -->
+	<!-- BATTERY CAPACITY -->
+	<record id="product_uom_ampe" model="uom.uom">
+        <field name="category_id" ref="product_uom_categ_capacity"/>
+        <field name="name">Ampe (Ah)</field>
+        <field name="factor" eval="1.0"/>
+        <field name="uom_type">reference</field>
+    </record>
+    <record id="product_uom_miliampe" model="uom.uom">
+        <field name="category_id" ref="product_uom_categ_capacity"/>
+        <field name="name">Miliampe (mA)</field>
+        <field name="factor" eval="1000"/>
+        <field name="uom_type">smaller</field>
+    </record>
+
+</odoo>

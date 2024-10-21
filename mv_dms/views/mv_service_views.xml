@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record model="ir.ui.view" id="mv_service_tree_view">
+		<field name="name">mv_service.tree</field>
+		<field name="model">mv.service</field>
+		<field name="arch" type="xml">
+			<tree string="Services" editable="bottom" multi_edit="true" duplicate="false" sample="true">
+				<field name="name" string="Tên dịch vụ"/>
+			</tree>
+		</field>
+	</record>
+
+	<record model="ir.actions.act_window" id="mv_dms_action_view_all_services">
+		<field name="name">Dịch vụ</field>
+		<field name="res_model">mv.service</field>
+		<field name="view_mode">tree</field>
+		<field name="context">{}</field>
+		<field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new service
+            </p>
+        </field>
+	</record>
+</odoo>

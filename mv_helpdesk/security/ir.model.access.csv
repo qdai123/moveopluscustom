@@ -5,4 +5,4 @@ access_mv_helpdesk_ticket_product_moves_portal_user,access.mv.helpdesk.ticket.pr
 
 access_mv_helpdesk_wizard_import_lot_serial_number,access.mv.helpdesk.wizard.import.lot.serial.number Helpdesk Manager,model_wizard_import_lot_serial_number,helpdesk.group_helpdesk_manager,1,1,1,1
 
-access_mv_helpdesk_stock_move_line_report_internal_user,access.mv.helpdesk.stock.move.line.report Internal User,model_mv_helpdesk_stock_move_line_report,base.group_user,1,1,1,1
+access_mv_helpdesk_stock_move_line_report_internal_user,access.mv.helpdesk.stock.move.line.report Internal User,model_mv_helpdesk_stock_move_line_report,base.group_user,1,0,0,0

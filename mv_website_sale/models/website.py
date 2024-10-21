@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-from odoo import models, _lt
+from odoo import _lt, models
 
 
 class MoveoplusWebsite(models.Model):
     _inherit = "website"
 
-    def _get_moveoplus_checkout_agency_step_list(self):
+    # === MOVEOPLUS OVERRIDE ===#
+
+    def _get_moveoplus_checkout_step_list(self):
         """Return an ordered list of Moveo PLus steps according to the current template rendered.
-
-            TODO: Implement the logic to add the "Moveoplus info" step when needed.
-
         :rtype: list
         :return: A list with the following structure:
             [
@@ -29,29 +28,30 @@ class MoveoplusWebsite(models.Model):
         redirect_to_sign_in = (
             self.account_on_checkout == "mandatory" and self.is_public_user()
         )
-
         steps = [
             (
                 ["website_sale.cart"],
                 {
-                    "name": "Xem lại đơn hàng",
+                    "name": _lt("Review Order"),
                     "current_href": "/shop/cart",
                     "main_button": (
-                        "Đăng nhập" if redirect_to_sign_in else "Tiến hành thanh toán"
+                        _lt("Sign In")
+                        if redirect_to_sign_in
+                        else _lt("Proceed to checkout")
                     ),
                     "main_button_href": f'{"/web/login?redirect=" if redirect_to_sign_in else ""}/shop/checkout?express=1',
-                    "back_button": "Tiếp tục mua hàng",
+                    "back_button": _lt("Continue shopping"),
                     "back_button_href": "/shop",
                 },
             ),
             (
                 ["website_sale.checkout", "website_sale.address"],
                 {
-                    "name": "Vận chuyển",
+                    "name": _lt("Shipping"),
                     "current_href": "/shop/checkout",
-                    "main_button": "Xác nhận",
+                    "main_button": _lt("Confirm"),
                     "main_button_href": f'{"/shop/extra_info" if is_extra_step_active else "/shop/confirm_order"}',
-                    "back_button": "Quay lại giỏ hàng",
+                    "back_button": _lt("Back to cart"),
                     "back_button_href": "/shop/cart",
                 },
             ),
@@ -61,11 +61,11 @@ class MoveoplusWebsite(models.Model):
                 (
                     ["website_sale.extra_info"],
                     {
-                        "name": "Thông tin bổ sung",
+                        "name": _lt("Extra Info"),
                         "current_href": "/shop/extra_info",
-                        "main_button": "Tiếp tục thanh toán",
+                        "main_button": _lt("Continue checkout"),
                         "main_button_href": "/shop/confirm_order",
-                        "back_button": "Quay lại bước vận chuyển",
+                        "back_button": _lt("Return to shipping"),
                         "back_button_href": "/shop/checkout",
                     },
                 )
@@ -74,9 +74,9 @@ class MoveoplusWebsite(models.Model):
             (
                 ["website_sale.payment"],
                 {
-                    "name": "Thanh toán",
+                    "name": _lt("Payment"),
                     "current_href": "/shop/payment",
-                    "back_button": "Quay lại giỏ hàng",
+                    "back_button": _lt("Back to cart"),
                     "back_button_href": "/shop/cart",
                 },
             )
@@ -85,14 +85,14 @@ class MoveoplusWebsite(models.Model):
 
     def _get_checkout_steps(self, current_step=None):
         """Override of `website_sale` to add a "Moveoplus for Partner Agency" step when needed."""
-
-        checkout_steps = super()._get_checkout_steps(current_step=None)
+        checkout_steps = super()._get_checkout_steps(current_step)
         order = self.sudo().sale_get_order()
         agency = order and order.partner_id and order.partner_id.is_agency
+
         if agency:
-            checkout_steps = self._get_moveoplus_checkout_agency_step_list()
+            checkout_steps = self._get_moveoplus_checkout_step_list()
 
         if current_step:
             return next(step for step in checkout_steps if current_step in step[0])[1]
-        else:
-            return checkout_steps
+
+        return checkout_steps
