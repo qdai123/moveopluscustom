@@ -7,9 +7,7 @@
 		<field name="priority">100</field>
 		<field name="arch" type="xml">
 			<xpath expr="//block[@id='pay_invoice_online_setting_container']" position="inside">
-				<setting string="ZNS Payment Notification Template"
-				         help="Automatically send notifications to Customers before the Due Date"
-				         documentation="https://developers.zalo.me/docs/zalo-notification-service/bat-dau/gioi-thieu-zalo-notification-service-api">
+				<setting string="ZNS Payment Notification Template" help="Automatically send notifications to Customers before the Due Date" documentation="https://developers.zalo.me/docs/zalo-notification-service/bat-dau/gioi-thieu-zalo-notification-service-api">
 					<div class="content-group">
 						<div class="row mt8">
 							<label for="zns_payment_notification_template_id" class="col-lg-5 o_light_label" string="(ZNS) Template"/>

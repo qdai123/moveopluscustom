@@ -60,33 +60,53 @@ class MvComputeDiscountLine(models.Model):
     # /// ACTIONS ///
 
     def action_send_message_zns(self):
+        """Send ZNS message to the partner's phone number."""
         self.ensure_one()
 
         if not self.partner_id:
             return
 
-        phone_number = self.partner_mobile or self.partner_id.mobile
+        phone_number = self.get_partner_phone_number()
         if not phone_number:
-            _logger.error("Partner has no phone number.")
             return
 
-        valid_phone_number = zns_convert_valid_phonenumber(phone_number)
+        valid_phone_number = self.get_valid_phone_number(phone_number)
         if not valid_phone_number:
-            _logger.error("Invalid phone number for partner")
             return
 
         self._compute_amount_update()  # Recompute the discount amount
 
-        # Prepare the context for the wizard view
+        view_id = self.get_wizard_view_id()
+        if not view_id:
+            return
+
+        zns_template = self.get_zns_template()
+        context = self.prepare_context(valid_phone_number, zns_template)
+
+        return self.open_wizard_form(view_id, context)
+
+    def get_partner_phone_number(self):
+        phone_number = self.partner_mobile or self.partner_id.mobile
+        if not phone_number:
+            _logger.error("Partner has no phone number.")
+        return phone_number
+
+    def get_valid_phone_number(self, phone_number):
+        valid_phone_number = zns_convert_valid_phonenumber(phone_number)
+        if not valid_phone_number:
+            _logger.error("Invalid phone number for partner")
+        return valid_phone_number
+
+    def get_wizard_view_id(self):
         view_id = self.env.ref("biz_zalo_zns.view_zns_send_message_wizard_form")
         if not view_id:
             _logger.error(
                 "View 'biz_zalo_zns.view_zns_send_message_wizard_form' not found."
             )
-            return
+        return view_id
 
-        # ZNS Template:
-        zns_template = self.env["zns.template"].search(
+    def get_zns_template(self):
+        return self.env["zns.template"].search(
             [
                 ("active", "=", True),
                 ("sample_data", "!=", False),
@@ -95,7 +115,8 @@ class MvComputeDiscountLine(models.Model):
             limit=1,
         )
 
-        context = {
+    def prepare_context(self, valid_phone_number, zns_template):
+        return {
             "default_template_id": zns_template.id if zns_template else False,
             "default_phone": valid_phone_number,
             "default_use_type": self._name,
@@ -104,7 +125,7 @@ class MvComputeDiscountLine(models.Model):
             "default_mv_compute_discount_line_id": self.id,
         }
 
-        # Return the action dictionary to open the wizard form view
+    def open_wizard_form(self, view_id, context):
         return {
             "name": _("Send Message ZNS"),
             "type": "ir.actions.act_window",

@@ -11,25 +11,25 @@ class MvComputeDiscount(models.Model):
 
     def action_done(self):
         super(MvComputeDiscount, self).action_done()
-
         for record in self:
             # [>] Send ZNS Notification to Partner Agency
-            record.send_zns_notification()
-
+            record.notify_partner_agency()
         return True
 
     # =================================
     # ZALO ZNS Methods
     # =================================
 
-    def send_zns_notification(self):
-        if self.line_ids:
-            for line in self.line_ids.filtered(
-                lambda r: r.partner_id
-                and r.partner_id.mobile
-                and not r.zns_notification_sent
-            ):
-                line.sudo().send_zns_message()
-                line.sudo().partner_id.action_update_discount_amount()
+    def notify_partner_agency(self):
+        eligible_lines = self.get_eligible_lines()
+        for line in eligible_lines:
+            line.sudo().send_zns_message()
+            line.sudo().partner_id.action_update_discount_amount()
+        return bool(eligible_lines)
 
-        return False
+    def get_eligible_lines(self):
+        return self.line_ids.filtered(
+            lambda r: r.partner_id
+            and r.partner_id.mobile
+            and not r.zns_notification_sent
+        )
