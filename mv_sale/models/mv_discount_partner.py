@@ -12,15 +12,6 @@ class MvDiscountPolicyPartner(models.Model):
         "CS: Chiết Khấu Sản Lượng",
         domain=[("active", "=", True)],
     )
-    # === CHÍNH SÁCH: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===#
-    warranty_discount_policy_ids = fields.Many2many(
-        "mv.warranty.discount.policy",
-        "mv_warranty_discount_policy_partner_rel",
-        "mv_warranty_discount_policy_id",
-        "mv_discount_partner_id",
-        "CS: Chiết Khấu Kích Hoạt Bảo Hành",
-        domain=[("active", "=", True)],
-    )
     # === CHÍNH SÁCH: CHIẾT KHẤU GIẢM GIÁ ===#
     discount_policy_ids = fields.Many2many(
         "mv.discount.policy",
@@ -30,12 +21,27 @@ class MvDiscountPolicyPartner(models.Model):
         "CS: Chiết Khấu Giảm Giá",
         domain=[("active", "=", True)],
     )
+    # === CHÍNH SÁCH: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===#
+    warranty_discount_policy_ids = fields.Many2many(
+        "mv.warranty.discount.policy",
+        "mv_warranty_discount_policy_partner_rel",
+        "mv_warranty_discount_policy_id",
+        "mv_discount_partner_id",
+        "CS: Chiết Khấu Kích Hoạt Bảo Hành",
+        domain=[("active", "=", True)],
+    )
+    # === CHÍNH SÁCH: CHIẾT KHẤU KÍCH HOẠT THEO SẢN PHẨM ===#
+    discount_product_warranty_policy_ids = fields.Many2many(
+        "mv.discount.product.warranty.policy",
+        "mv_discount_product_warranty_policy_mv_partner_rel",
+        "mv_discount_product_warranty_policy_id",
+        "mv_discount_partner_id",
+        "CS: Chiết Khấu Kích Hoạt theo Sản Phẩm",
+        domain=[("active", "=", True)],
+    )
 
     # ===================================== #
-    partner_id = fields.Many2one(
-        "res.partner",
-        domain=[("is_agency", "=", True)],
-    )
+    partner_id = fields.Many2one("res.partner", domain=[("is_agency", "=", True)])
     partner_agency = fields.Boolean(compute="_compute_partner_agency", store=True)
     partner_white_agency = fields.Boolean(compute="_compute_partner_agency", store=True)
     partner_southern_agency = fields.Boolean(

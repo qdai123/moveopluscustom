@@ -26,6 +26,11 @@ DEFAULT_SERVER_DATETIME_FORMAT = "%s %s" % (
 )
 
 POLICY_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+POLICY_STATUS = [
+    ("open", "Sẵn sàng"),
+    ("applying", "Đang Áp Dụng"),
+    ("close", "Đã kết thúc"),
+]
 
 # Ticket Type Codes for Warranty Activation:
 SUB_DEALER_CODE = "kich_hoat_bao_hanh_dai_ly"
@@ -84,7 +89,19 @@ class MvWarrantyDiscountPolicy(models.Model):
         default=lambda self: self._default_can_access(),
     )
     active = fields.Boolean(default=True)
-    name = fields.Char(compute="_compute_name", store=True, readonly=False)
+    company_ids = fields.Many2many(
+        "res.company",
+        "res_company_mv_warranty_discount_policy_rel",
+        "company_id",
+        "policy_id",
+        "Companies",
+        default=lambda self: self.env.company,
+    )
+    partner_ids = fields.Many2many(
+        "mv.discount.partner",
+        string="Partners",
+        domain=[("partner_id.is_agency", "=", True)],
+    )
     date_from = fields.Date(default=lambda self: fields.Date.today().replace(day=1))
     date_to = fields.Date(
         default=lambda self: (date.today().replace(day=1) + timedelta(days=32)).replace(
@@ -92,14 +109,12 @@ class MvWarrantyDiscountPolicy(models.Model):
         )
         - timedelta(days=1)
     )
-    policy_status = fields.Selection(
-        selection=[
-            ("open", "Sẵn sàng"),
-            ("applying", "Đang Áp Dụng"),
-            ("close", "Đã kết thúc"),
-        ],
-        default="open",
-        string="Status",
+    name = fields.Char(compute="_compute_name", store=True, readonly=False)
+    policy_status = fields.Selection(POLICY_STATUS, default="open", string="Status")
+    policy_description = fields.Html("Description")
+    line_ids = fields.One2many(
+        "mv.warranty.discount.policy.line",
+        "warranty_discount_policy_id",
     )
     product_attribute_ids = fields.Many2many(
         "product.attribute",
@@ -115,14 +130,6 @@ class MvWarrantyDiscountPolicy(models.Model):
             ("sale_ok", "=", True),
             ("detailed_type", "=", "product"),
         ],
-    )
-    line_ids = fields.One2many(
-        comodel_name="mv.warranty.discount.policy.line",
-        inverse_name="warranty_discount_policy_id",
-    )
-    partner_ids = fields.Many2many(
-        comodel_name="mv.discount.partner",
-        domain=[("partner_id.is_agency", "=", True)],
     )
 
     # =================================
@@ -289,23 +296,29 @@ class MvWarrantyDiscountPolicyLine(models.Model):
             else:
                 record.explanation_code = "_code_"
 
+    @api.autovacuum
+    def _gc_warranty_discount_policy_line(self):
+        """Delete all policy lines that are not linked to the parent policy."""
+        lines_to_del = self.env["mv.warranty.discount.policy.line"].search(
+            [("warranty_discount_policy_id", "=", False)]
+        )
+        if lines_to_del:
+            lines_to_del.unlink()
+            _logger.info("Successfully deleted unlinked policy lines.")
+        else:
+            _logger.info("No unlinked policy lines found.")
+
 
 class MvComputeWarrantyDiscountPolicy(models.Model):
     _name = "mv.compute.warranty.discount.policy"
-    _inherit = ["mail.thread"]
     _description = "Tính CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH cho Đại lý"
+    _inherit = ["mail.thread"]
 
     month = fields.Selection(get_months(), default=str(datetime.now().month))
     year = fields.Selection(get_years(), default=str(datetime.now().year))
     approved_date = fields.Datetime(readonly=True)
-    compute_date = fields.Datetime(
-        compute="_compute_name_and_date",
-        store=True,
-    )
-    name = fields.Char(
-        compute="_compute_name_and_date",
-        store=True,
-    )
+    compute_date = fields.Datetime(compute="_compute_name_and_date", store=True)
+    name = fields.Char(compute="_compute_name_and_date", store=True)
     state = fields.Selection(
         selection=[("draft", "Nháp"), ("confirm", "Lưu"), ("done", "Đã Duyệt")],
         default="draft",
@@ -389,6 +402,9 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         if not self.warranty_discount_policy_id:
             raise ValidationError("Chưa chọn Chính sách chiết khấu!")
 
+        policy_used = self.warranty_discount_policy_id
+        policy_product_apply_ids = policy_used.product_apply_ids.ids
+
         _logger.info(
             f"Calculating discount lines for policy {self.warranty_discount_policy_id.id} "
             f"for month {self.month}/{self.year}."
@@ -403,10 +419,21 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             )
 
         ticket_product_moves = self._fetch_ticket_product_moves(tickets)
+        if policy_product_apply_ids:
+            ticket_product_moves = ticket_product_moves.filtered(
+                lambda t: t.product_id.product_tmpl_id.id in policy_product_apply_ids
+            )
+
+        if policy_product_apply_ids and not ticket_product_moves:
+            raise ValidationError(
+                "Không tìm thấy sản phẩm theo chính sách kích hoạt trong tháng {}/{}".format(
+                    self.month, self.year
+                )
+            )
 
         partners = self._fetch_partners(ticket_product_moves)
         if not partners:
-            raise UserError(
+            raise ValidationError(
                 "Không tìm thấy Đại lý đăng ký trong tháng {}/{}".format(
                     self.month, self.year
                 )
@@ -415,7 +442,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         # Calculate discount lines
         results = self._calculate_discount_lines(partners, ticket_product_moves)
         if not results:
-            raise UserError(
+            raise ValidationError(
                 "Không có dữ liệu để tính chiết khấu cho tháng {}/{}".format(
                     self.month, self.year
                 )
@@ -546,7 +573,6 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
     def _calculate_discount_lines(self, partners, ticket_product_moves):
         results = []
         policy_used = self.warranty_discount_policy_id
-        policy_product_apply_ids = policy_used.product_apply_ids.ids
         compute_date = self.compute_date
         partners_mapped_with_policy = policy_used.partner_ids.mapped("partner_id").ids
         partners_to_compute_discount = partners.filtered(
@@ -565,17 +591,10 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
             else:
                 vals = self._prepare_values_to_calculate_discount(partner, compute_date)
 
-            if policy_product_apply_ids:
-                partner_tickets_registered = ticket_product_moves.filtered(
-                    lambda t: t.partner_id.id == partner.id
-                    or t.partner_id.parent_id.id == partner.id
-                    and t.product_id.product_tmpl_id.id in policy_product_apply_ids
-                )
-            else:
-                partner_tickets_registered = ticket_product_moves.filtered(
-                    lambda t: t.partner_id.id == partner.id
-                    or t.partner_id.parent_id.id == partner.id
-                )
+            partner_tickets_registered = ticket_product_moves.filtered(
+                lambda t: t.partner_id.id == partner.id
+                or t.partner_id.parent_id.id == partner.id
+            )
 
             vals["helpdesk_ticket_product_moves_ids"] += partner_tickets_registered.ids
             vals["product_activation_count"] = len(
@@ -844,7 +863,7 @@ class MvComputeWarrantyDiscountPolicy(models.Model):
         """
         self._validate_policy_done_not_unlink()
         self.env["mv.compute.warranty.discount.policy.line"].search(
-            [("parent_id", "=", False)]
+            [("parent_id", "=", self.ids)]
         ).unlink()
 
         return super(MvComputeWarrantyDiscountPolicy, self).unlink()
@@ -1640,6 +1659,7 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
     helpdesk_ticket_product_moves_ids = fields.Many2many(
         "mv.helpdesk.ticket.product.moves",
         "compute_warranty_discount_policy_ticket_product_moves_rel",
+        string="Danh sách sản phẩm",
         readonly=True,
     )
     product_activation_count = fields.Integer(default=0)
@@ -1702,3 +1722,15 @@ class MvComputeWarrantyDiscountPolicyLine(models.Model):
                 + rec.second_warranty_policy_total_money
                 + rec.third_warranty_policy_total_money
             )
+
+    @api.autovacuum
+    def _gc_compute_warranty_discount_policy_line(self):
+        """Delete all policy lines that are not linked to the parent policy."""
+        lines_to_del = self.env["mv.compute.warranty.discount.policy.line"].search(
+            [("parent_id", "=", False)]
+        )
+        if lines_to_del:
+            lines_to_del.unlink()
+            _logger.info("Successfully deleted unlinked policy lines.")
+        else:
+            _logger.info("No unlinked policy lines found.")
