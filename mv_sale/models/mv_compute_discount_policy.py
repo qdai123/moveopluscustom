@@ -39,7 +39,7 @@ def get_current_date_string():
     return "{}/{}".format(str(dt.month), str(dt.year))
 
 
-GROUP_APPROVER = "mv_sale.group_mv_compute_discount_approver"
+POLICY_APPROVER = "mv_sale.group_mv_compute_discount_approver"
 
 
 class MvComputeDiscountPolicy(models.Model):
@@ -55,7 +55,7 @@ class MvComputeDiscountPolicy(models.Model):
         :param env: Environment context to access user groups.
         :return: True/False
         """
-        return env.user.has_group(GROUP_APPROVER)
+        return env.user.has_group(POLICY_APPROVER)
 
     def set_readonly_fields(self):
         """
@@ -105,17 +105,8 @@ class MvComputeDiscountPolicy(models.Model):
     line_ids = fields.One2many("mv.compute.discount.policy.line", "parent_id")
     do_readonly = fields.Boolean("Readonly?", compute="set_readonly_fields")
 
-    def unlink(self):
-        """Override the unlink method to prevent deletion of confirmed records."""
-        self._validate_policy_done_not_unlink()
-        self.env["mv.compute.discount.policy.line"].search(
-            [("parent_id", "in", self.ids)]
-        ).unlink()
-
-        return super(MvComputeDiscountPolicy, self).unlink()
-
     # =================================
-    # ORM Methods
+    # ORM/CRUD Methods
     # =================================
 
     def _validate_policy_done_not_unlink(self):
@@ -199,6 +190,15 @@ class MvComputeDiscountPolicy(models.Model):
                 rec.report_date = datetime.now().replace(day=1, month=month, year=year)
             except ValueError:
                 rec.report_date = datetime.now().replace(day=1)
+
+    def unlink(self):
+        """Override the unlink method to prevent deletion of confirmed records."""
+        self._validate_policy_done_not_unlink()
+        self.env["mv.compute.discount.policy.line"].search(
+            [("parent_id", "in", self.ids)]
+        ).unlink()
+
+        return super(MvComputeDiscountPolicy, self).unlink()
 
     # =================================
     # BUSINESS Methods
@@ -652,9 +652,7 @@ class MvComputeDiscountPolicyLine(models.Model):
     @api.autovacuum
     def _gc_compute_discount_policy_line(self):
         """Delete all lines that are not linked to the parent."""
-        lines_to_del = self.env["mv.compute.discount.policy.line"].search(
-            [("parent_id", "=", False)]
-        )
+        lines_to_del = self.env[self._name].search([("parent_id", "=", False)])
         if lines_to_del:
             lines_to_del.unlink()
             _logger.info("Successfully deleted unlinked policy lines.")
@@ -675,10 +673,7 @@ class MvComputeProductLevelLine(models.Model):
         related="discount_policy_line_id.currency_id",
         store=True,
     )
-    product_id = fields.Many2one(
-        "product.product",
-        readonly=True,
-    )
+    product_id = fields.Many2one("product.product", readonly=True)
     product_template_id = fields.Many2one(
         "product.template",
         "Sản phẩm",
@@ -764,7 +759,7 @@ class MvComputeProductLevelLine(models.Model):
     @api.autovacuum
     def _gc_compute_product_level_line(self):
         """Delete all lines that are not linked to the parent."""
-        lines_to_del = self.env["mv.compute.product.level.line"].search(
+        lines_to_del = self.env[self._name].search(
             [("discount_policy_line_id", "=", False)]
         )
         if lines_to_del:

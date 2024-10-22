@@ -1267,7 +1267,7 @@ class SaleOrder(models.Model):
         return self.is_order_returns
 
     # =============================================================
-    # TRIGGER Methods (Public)
+    # HELPER/TRIGGER Methods (Public)
     # These methods are called when a record is updated or deleted.
     # TODO: Update theses functional - Phat Dang <phat.dangminh@moveoplus.com>
     # =============================================================
@@ -1276,4 +1276,11 @@ class SaleOrder(models.Model):
         """=== This method is called when a record is updated or deleted ==="""
         self._compute_partner_bonus()  # Update partner bonus
         self._compute_bonus_order_line()  # Update bonus order line
+        self.mapped("order_line")._compute_amount()
         return True
+
+    def action_refresh_orders(self):
+        """=== Refresh all orders ==="""
+        orders = self.filtered(lambda so: so.state == "sale")
+        if orders:
+            orders.so_trigger_update()

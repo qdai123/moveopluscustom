@@ -31,12 +31,13 @@
 							</div>
 						</group>
 						<group>
+							<field name="report_date" invisible="1"/>
 							<field name="approved_date" string="Duyệt ngày"/>
 						</group>
 					</group>
 					<notebook>
 						<page string="Chi tiết">
-							<field name="line_ids" nolabel="1" readonly="1" context="{'default_parent_id': id}">
+							<field name="line_ids" nolabel="1" readonly="1" context="{'default_parent_id': active_id}">
 								<tree decoration-muted="total_quantity == 0">
 									<field column_invisible="1" name="currency_id"/>
 									<field name="partner_id" column_invisible="1"/>
