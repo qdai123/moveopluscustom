@@ -28,10 +28,17 @@ class ResPartner(models.Model):
     # sale_mv_ids: Danh sách các đơn hàng mà Đại Lý đã được áp dụng chiết khấu
     # total_so_bonus_order: Tổng số tiền chiết khấu đã được áp dụng cho các đơn hàng của Đại Lý
     # total_so_quotations_discount: Tổng số tiền chiết khấu đang chờ xác nhận cho các đơn báo giá của Đại Lý
+    # use_for_report: Sử dụng trong Báo Cáo
     # ===#
-    line_ids = fields.One2many("mv.discount.partner", "partner_id", copy=False)
+    line_ids = fields.One2many(
+        "mv.discount.partner",
+        "partner_id",
+        copy=False,
+    )
     currency_id = fields.Many2one(
-        "res.currency", compute="_get_company_currency", readonly=True
+        "res.currency",
+        compute="_get_company_currency",
+        readonly=True,
     )
     amount = fields.Float(readonly=True)
     amount_currency = fields.Monetary(currency_field="currency_id", readonly=True)
@@ -41,7 +48,8 @@ class ResPartner(models.Model):
         help="Set the quantity threshold value for this partner.",
     )
     waiting_amount_currency = fields.Monetary(
-        currency_field="currency_id", readonly=True
+        currency_field="currency_id",
+        readonly=True,
     )
     sale_mv_ids = fields.Many2many("sale.order", readonly=True)
     total_so_bonus_order = fields.Monetary(compute="_compute_sale_order", store=True)
@@ -57,7 +65,9 @@ class ResPartner(models.Model):
     # Bảo lãnh ngân hàng, Chiết khấu bảo lãnh ngân hàng (%)
     # ===#
     partner_agency_name = fields.Char(
-        "Tên Đại Lý", compute="_compute_partner_agency_name", store=True
+        "Tên Đại Lý",
+        compute="_compute_partner_agency_name",
+        store=True,
     )
     is_agency = fields.Boolean("Đại lý", tracking=True)
     is_white_agency = fields.Boolean("Đại lý vùng trắng", tracking=True)
@@ -80,19 +90,6 @@ class ResPartner(models.Model):
         string="Chi tiết: CHIẾT KHẤU SẢN LƯỢNG",
     )
 
-    # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===#
-    warranty_discount_policy_ids = fields.Many2many(
-        "mv.warranty.discount.policy",
-        string="Chiết khấu kích hoạt",
-        help="Chính sách 'CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH' cho Đại Lý",
-    )
-    compute_warranty_discount_line_ids = fields.One2many(
-        "mv.compute.warranty.discount.policy.line",
-        "partner_id",
-        domain=[("parent_id", "!=", False)],
-        string="Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
-    )
-
     # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU GIẢM GIÁ ===#
     discount_policy_ids = fields.Many2many(
         "mv.discount.policy",
@@ -105,8 +102,34 @@ class ResPartner(models.Model):
     compute_discount_policy_line_ids = fields.One2many(
         "mv.compute.discount.policy.line",
         "partner_id",
-        domain=[("parent_id", "!=", False)],
         string="Chi tiết: CHIẾT KHẤU GIẢM GIÁ",
+        domain=[("parent_id", "!=", False)],
+    )
+
+    # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH ===#
+    warranty_discount_policy_ids = fields.Many2many(
+        "mv.warranty.discount.policy",
+        string="Chiết khấu kích hoạt bảo hành",
+        help="Chính sách 'CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH' cho Đại Lý",
+    )
+    compute_warranty_discount_line_ids = fields.One2many(
+        "mv.compute.warranty.discount.policy.line",
+        "partner_id",
+        "Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH",
+        domain=[("parent_id", "!=", False)],
+    )
+
+    # === MO+ POLICY: CHÍNH SÁCH CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH THEO SẢN PHẨM ===#
+    discount_product_warranty_policy_ids = fields.Many2many(
+        "mv.discount.product.warranty.policy",
+        string="Chiết khấu kích hoạt theo sản phẩm",
+        help="Chính sách 'CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH THEO SẢN PHẨM' cho Đại Lý",
+    )
+    compute_discount_product_warranty_line_ids = fields.One2many(
+        "mv.compute.discount.product.warranty.policy.line",
+        "partner_id",
+        "Chi tiết: CHIẾT KHẤU KÍCH HOẠT BẢO HÀNH THEO SẢN PHẨM",
+        domain=[("parent_id", "!=", False)],
     )
 
     @api.model
@@ -381,14 +404,14 @@ class ResPartner(models.Model):
                 )
             )
             + sum(
-                line.total_amount_currency
-                for line in record.compute_warranty_discount_line_ids.filtered(
-                    lambda r: r.parent_state == "done"
+                line.total_price_discount
+                for line in record.compute_discount_policy_line_ids.filtered(
+                    lambda r: r.state == "done"
                 )
             )
             + sum(
-                line.total_price_discount
-                for line in record.compute_discount_policy_line_ids.filtered(
+                line.total_reward_amount
+                for line in record.compute_discount_product_warranty_line_ids.filtered(
                     lambda r: r.state == "done"
                 )
             )
@@ -409,6 +432,12 @@ class ResPartner(models.Model):
             + sum(
                 line.total_price_discount
                 for line in record.compute_discount_policy_line_ids.filtered(
+                    lambda r: r.state != "done"
+                )
+            )
+            + sum(
+                line.total_reward_amount
+                for line in record.compute_discount_product_warranty_line_ids.filtered(
                     lambda r: r.state != "done"
                 )
             )
