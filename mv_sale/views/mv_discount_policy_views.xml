@@ -70,11 +70,11 @@
 									<field name="product_template_id" column_invisible="1"/>
 									<field name="product_custom_attribute_value_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}" column_invisible="1"/>
 									<field name="product_no_variant_attribute_value_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}" column_invisible="1"/>
-									<field name="price_level_0" string="Cấp 0" readonly="not product_id"/>
-									<field name="price_level_1" string="Cấp 1" readonly="not product_id or price_level_0 &lt; 0"/>
-									<field name="price_level_2" string="Cấp 2" readonly="not product_id or price_level_1 &lt; 0"/>
-									<field name="price_level_3" string="Cấp 3" readonly="not product_id or price_level_2 &lt; 0"/>
-									<field name="price_level_4" string="Cấp 4" readonly="not product_id or price_level_3 &lt; 0"/>
+									<field name="price_level_1" string="Mức 0" readonly="not product_id"/>
+									<field name="price_level_2" string="Mức 1" readonly="not product_id or price_level_1 &lt; 0"/>
+									<field name="price_level_3" string="Mức 2" readonly="not product_id or price_level_2 &lt; 0"/>
+									<field name="price_level_4" string="Mức 3" readonly="not product_id or price_level_3 &lt; 0"/>
+									<field name="price_level_5" string="Mức 4" readonly="not product_id or price_level_4 &lt; 0"/>
 								</tree>
 							</field>
 						</page>
