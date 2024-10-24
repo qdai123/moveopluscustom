@@ -74,6 +74,7 @@
 									<field name="price_level_2" string="Cấp 2" readonly="not product_id or price_level_1 &lt; 0"/>
 									<field name="price_level_3" string="Cấp 3" readonly="not product_id or price_level_2 &lt; 0"/>
 									<field name="price_level_4" string="Cấp 4" readonly="not product_id or price_level_3 &lt; 0"/>
+									<field name="price_level_5" string="Cấp 5" readonly="not product_id or price_level_4 &lt; 0"/>
 								</tree>
 							</field>
 						</page>

@@ -686,6 +686,7 @@ class MvComputeProductLevelLine(models.Model):
     total_price_level_2 = fields.Monetary("Level 2", currency_field="currency_id")
     total_price_level_3 = fields.Monetary("Level 3", currency_field="currency_id")
     total_price_level_4 = fields.Monetary("Level 4", currency_field="currency_id")
+    total_price_level_5 = fields.Monetary("Level 5", currency_field="currency_id")
     total_price_all_level = fields.Monetary(
         compute="_compute_total_price_discount",
         store=True,
@@ -710,6 +711,7 @@ class MvComputeProductLevelLine(models.Model):
         "total_price_level_2",
         "total_price_level_3",
         "total_price_level_4",
+        "total_price_level_5",
     )
     def _compute_total_price_discount(self):
         for product in self:
@@ -720,6 +722,7 @@ class MvComputeProductLevelLine(models.Model):
                         product.total_price_level_2,
                         product.total_price_level_3,
                         product.total_price_level_4,
+                        product.total_price_level_5,
                     ]
                 )
                 * product.total_quantity
@@ -754,6 +757,8 @@ class MvComputeProductLevelLine(models.Model):
             "default_new_total_price_level_3": self.total_price_level_3,
             "default_old_total_price_level_4": self.total_price_level_4,
             "default_new_total_price_level_4": self.total_price_level_4,
+            "default_old_total_price_level_5": self.total_price_level_5,
+            "default_new_total_price_level_5": self.total_price_level_5,
         }
 
     @api.autovacuum
