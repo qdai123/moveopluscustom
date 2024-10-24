@@ -232,8 +232,8 @@ class MvDiscountPolicyLevelQuantityLine(models.Model):
     @api.constrains("level")
     def _check_level_limited(self):
         for record in self:
-            if record.level < 1 or record.level > 5:
-                raise ValidationError("Level must be in range 1-5!")
+            if record.level < 0 or record.level > 4:
+                raise ValidationError("Level must be in range 0-4!")
 
     @api.constrains("quantity_min", "quantity_max")
     def _check_quantity_range(self):
@@ -326,11 +326,11 @@ class MvDiscountPolicyProductLevelLine(models.Model):
         precompute=True,
         ondelete="restrict",
     )
-    price_level_1 = fields.Monetary("Level 1", currency_field="company_currency_id")
-    price_level_2 = fields.Monetary("Level 2", currency_field="company_currency_id")
-    price_level_3 = fields.Monetary("Level 3", currency_field="company_currency_id")
-    price_level_4 = fields.Monetary("Level 4", currency_field="company_currency_id")
-    price_level_5 = fields.Monetary("Level 5", currency_field="company_currency_id")
+    price_level_1 = fields.Monetary("Mức 0", currency_field="company_currency_id")
+    price_level_2 = fields.Monetary("Mức 1", currency_field="company_currency_id")
+    price_level_3 = fields.Monetary("Mức 2", currency_field="company_currency_id")
+    price_level_4 = fields.Monetary("Mức 3", currency_field="company_currency_id")
+    price_level_5 = fields.Monetary("Mức 4", currency_field="company_currency_id")
 
     @api.depends("product_id")
     def _compute_product_template_id(self):

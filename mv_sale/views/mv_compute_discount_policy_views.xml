@@ -116,11 +116,11 @@
                                     <field name="product_id" column_invisible="1"/>
                                     <field name="product_template_id"/>
                                     <field name="total_quantity" string="Tổng số lốp bán" sum="Total Product Sales"/>
-                                    <field name="total_price_level_1" widget="monetary"  sum="Price Lv.1"/>
+                                    <field name="total_price_level_1" widget="monetary" sum="Price Lv.1"/>
                                     <field name="total_price_level_2" widget="monetary" sum="Price Lv.2"/>
                                     <field name="total_price_level_3" widget="monetary" sum="Price Lv.3"/>
                                     <field name="total_price_level_4" widget="monetary" sum="Price Lv.4"/>
-                                    <field name="total_price_level_5" widget="monetary" sum="Price Lv.5"/>
+									<field name="total_price_level_5" widget="monetary" sum="Price Lv.5"/>
                                     <field name="total_price_all_level" string="Tổng tiền" widget="monetary" sum="Total Price All Level"/>
 	                                <button string="Điều chỉnh"
 	                                        name="update_product_price_level"
