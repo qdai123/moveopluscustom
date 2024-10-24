@@ -326,11 +326,11 @@ class MvDiscountPolicyProductLevelLine(models.Model):
         precompute=True,
         ondelete="restrict",
     )
-    price_level_0 = fields.Monetary("Level 1", currency_field="company_currency_id")
-    price_level_1 = fields.Monetary("Level 2", currency_field="company_currency_id")
-    price_level_2 = fields.Monetary("Level 3", currency_field="company_currency_id")
-    price_level_3 = fields.Monetary("Level 4", currency_field="company_currency_id")
-    price_level_4 = fields.Monetary("Level 5", currency_field="company_currency_id")
+    price_level_0 = fields.Monetary("Level 0", currency_field="company_currency_id")
+    price_level_1 = fields.Monetary("Level 1", currency_field="company_currency_id")
+    price_level_2 = fields.Monetary("Level 2", currency_field="company_currency_id")
+    price_level_3 = fields.Monetary("Level 3", currency_field="company_currency_id")
+    price_level_4 = fields.Monetary("Level 4", currency_field="company_currency_id")
 
     @api.depends("product_id")
     def _compute_product_template_id(self):
