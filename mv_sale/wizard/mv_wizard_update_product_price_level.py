@@ -36,6 +36,8 @@ class WizardUpdateProductPriceLevel(models.TransientModel):
         "product.template",
         readonly=True,
     )
+    old_total_price_level_0 = fields.Float("Level 0")
+    new_total_price_level_0 = fields.Float("Level 0")
     old_total_price_level_1 = fields.Float("Level 1")
     new_total_price_level_1 = fields.Float("Level 1")
     old_total_price_level_2 = fields.Float("Level 2")
@@ -64,6 +66,7 @@ class WizardUpdateProductPriceLevel(models.TransientModel):
         if any(
             price < 0
             for price in [
+                self.new_total_price_level_0,
                 self.new_total_price_level_1,
                 self.new_total_price_level_2,
                 self.new_total_price_level_3,
@@ -74,6 +77,7 @@ class WizardUpdateProductPriceLevel(models.TransientModel):
 
     def _prepare_updated_values(self, update_count):
         return {
+            "total_price_level_0": self.new_total_price_level_0,
             "total_price_level_1": self.new_total_price_level_1,
             "total_price_level_2": self.new_total_price_level_2,
             "total_price_level_3": self.new_total_price_level_3,
