@@ -14,6 +14,7 @@
                     <field name="old_total_price_level_2" invisible="1"/>
                     <field name="old_total_price_level_3" invisible="1"/>
                     <field name="old_total_price_level_4" invisible="1"/>
+                    <field name="old_total_price_level_5" invisible="1"/>
                     <group>
                         <group>
                             <field name="new_total_price_level_1" readonly="old_total_price_level_1 == 0"/>
@@ -22,6 +23,7 @@
                         <group>
                             <field name="new_total_price_level_3" readonly="old_total_price_level_3 == 0"/>
                             <field name="new_total_price_level_4" readonly="old_total_price_level_4 == 0"/>
+                            <field name="new_total_price_level_5" readonly="old_total_price_level_5 == 0"/>
                         </group>
                     </group>
                 </sheet>

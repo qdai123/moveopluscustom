@@ -31,12 +31,13 @@
 							</div>
 						</group>
 						<group>
+							<field name="report_date" invisible="1"/>
 							<field name="approved_date" string="Duyệt ngày"/>
 						</group>
 					</group>
 					<notebook>
 						<page string="Chi tiết">
-							<field name="line_ids" nolabel="1" readonly="1" context="{'default_parent_id': id}">
+							<field name="line_ids" nolabel="1" readonly="1" context="{'default_parent_id': active_id}">
 								<tree decoration-muted="total_quantity == 0">
 									<field column_invisible="1" name="currency_id"/>
 									<field name="partner_id" column_invisible="1"/>
@@ -115,10 +116,11 @@
                                     <field name="product_id" column_invisible="1"/>
                                     <field name="product_template_id"/>
                                     <field name="total_quantity" string="Tổng số lốp bán" sum="Total Product Sales"/>
-                                    <field name="total_price_level_1" widget="monetary"  sum="Price Lv.1"/>
+                                    <field name="total_price_level_1" widget="monetary" sum="Price Lv.1"/>
                                     <field name="total_price_level_2" widget="monetary" sum="Price Lv.2"/>
                                     <field name="total_price_level_3" widget="monetary" sum="Price Lv.3"/>
                                     <field name="total_price_level_4" widget="monetary" sum="Price Lv.4"/>
+									<field name="total_price_level_5" widget="monetary" sum="Price Lv.5"/>
                                     <field name="total_price_all_level" string="Tổng tiền" widget="monetary" sum="Total Price All Level"/>
 	                                <button string="Điều chỉnh"
 	                                        name="update_product_price_level"

@@ -63,17 +63,18 @@
 						</page>
 						<page string="Cấu hình sản phẩm" name="page_product_config">
 							<field mode="tree" name="policy_product_level_ids" nolabel="1" readonly="policy_status in ['applying', 'close']" context="{'default_policy_id': id}">
-								<tree editable="bottom" delete="false" default_order="product_id">
+								<tree editable="bottom" default_order="product_id">
 									<field name="policy_id" column_invisible="1"/>
 									<field name="company_currency_id" column_invisible="1"/>
 									<field name="product_id" string="Sản phẩm áp dụng" widget="many2one_barcode" context="{'default_detailed_type': 'product'}" options="{'no_open': True, 'no_create_edit': True}"/>
 									<field name="product_template_id" column_invisible="1"/>
 									<field name="product_custom_attribute_value_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}" column_invisible="1"/>
 									<field name="product_no_variant_attribute_value_ids" widget="many2many_tags" options="{'no_open': True, 'no_create_edit': True}" column_invisible="1"/>
-									<field name="price_level_1" string="Cấp 1" readonly="not product_id"/>
-									<field name="price_level_2" string="Cấp 2" readonly="not product_id or price_level_1 &lt; 0"/>
-									<field name="price_level_3" string="Cấp 3" readonly="not product_id or price_level_2 &lt; 0"/>
-									<field name="price_level_4" string="Cấp 4" readonly="not product_id or price_level_3 &lt; 0"/>
+									<field name="price_level_1" string="Mức 0" readonly="not product_id"/>
+									<field name="price_level_2" string="Mức 1" readonly="not product_id or price_level_1 &lt; 0"/>
+									<field name="price_level_3" string="Mức 2" readonly="not product_id or price_level_2 &lt; 0"/>
+									<field name="price_level_4" string="Mức 3" readonly="not product_id or price_level_3 &lt; 0"/>
+									<field name="price_level_5" string="Mức 4" readonly="not product_id or price_level_4 &lt; 0"/>
 								</tree>
 							</field>
 						</page>
