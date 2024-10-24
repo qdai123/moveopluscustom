@@ -2,7 +2,6 @@
 import json
 import logging
 
-from markupsafe import Markup
 from odoo.addons.biz_zalo_common.models.common import (
     get_datetime,
 )

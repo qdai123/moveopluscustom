@@ -20,6 +20,7 @@
 		<field name="name">mv_sale.inherit.order.form</field>
 		<field name="model">sale.order</field>
 		<field name="inherit_id" ref="sale.view_order_form"/>
+		<field name="priority">25</field>
 		<field name="arch" type="xml">
 			<xpath expr="//field[@name='order_line']/tree" position="attributes">
             	<attribute name="decoration-success">is_promotion == True</attribute>

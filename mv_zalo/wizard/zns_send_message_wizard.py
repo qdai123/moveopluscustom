@@ -4,9 +4,12 @@ import logging
 
 from markupsafe import Markup
 from odoo.addons.biz_zalo_common.models.common import (
-    CODE_ERROR_ZNS,
     get_datetime,
     show_success_message,
+)
+from odoo.addons.mv_zalo.core.zalo_notification_service import (
+    CODE_ERROR_ZNS,
+    ZNS_GET_DATA_BY_TEMPLATE,
 )
 from odoo.addons.mv_zalo.models.zns_templates import MODELS_ZNS_USE_TYPE
 
@@ -40,20 +43,28 @@ class ZnsSendMessageWizard(models.TransientModel):
     )
 
     # === Fields OVERRIDE ===#
+    use_type = fields.Selection(selection_add=MODELS_ZNS_USE_TYPE)
     template_id = fields.Many2one(
         "zns.template",
         "ZNS Template",
         domain="[('use_type', '=', use_type)]",
         required=True,
     )
-    use_type = fields.Selection(selection_add=MODELS_ZNS_USE_TYPE)
+    template_data = fields.Text()
+    template_data_json = fields.Json("Template Data", compute="_compute_template_data")
+
+    @api.depends("template_data")
+    def _compute_template_data(self):
+        for record in self:
+            record.template_data_json = json.loads(record.template_data)
 
     # === OVERRIDE METHODS ===#
 
     @api.onchange("template_id")
     def onchange_template_id(self):  # FULL OVERRIDE
-        if not self.template_id or not self.template_id.sample_data_ids:
-            self.template_data = json.dumps({})
+        template = self.template_id
+        if not template or not template.sample_data_ids:
+            self.write({"template_data": json.dumps({})})
             return
 
         use_type_mapping = {
@@ -65,20 +76,19 @@ class ZnsSendMessageWizard(models.TransientModel):
             "mv.compute.warranty.discount.policy.line": self.mv_compute_warranty_discount_line_id,
         }
 
-        data = {}
-        for sample_id in self.template_id.sample_data_ids:
-            related_record = use_type_mapping.get(self.use_type)
-            if related_record:
-                try:
-                    data[sample_id.name] = (
-                        sample_id.value
-                        if not sample_id.field_id
-                        else self._get_sample_data_by(sample_id, related_record)
-                    )
-                except Exception as e:
-                    _logger.error(
-                        f"Error extracting sample data for {sample_id.name}: {e}"
-                    )
+        related_record = use_type_mapping.get(self.use_type)
+        if not related_record:
+            self.write({"template_data": json.dumps({})})
+            return
+
+        data = {
+            sample_id.name: (
+                sample_id.value
+                if not sample_id.sudo().field_id
+                else ZNS_GET_DATA_BY_TEMPLATE(sample_id, related_record)
+            )
+            for sample_id in template.sample_data_ids
+        }
 
         self.template_data = json.dumps(data)
 
@@ -218,7 +228,7 @@ class ZnsSendMessageWizard(models.TransientModel):
             if not config_id:
                 raise ValidationError("Config not found!")
 
-            LogRequest = self.env["zalo.log.request"]
+            LogRequest = self.env["zalo.log.request"].with_context(manual_send_zns=True)
             sub_url = "/message/template"
             url_api = config_id._get_sub_url_zns(sub_url)
 

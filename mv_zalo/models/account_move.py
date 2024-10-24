@@ -18,7 +18,6 @@ from odoo.addons.mv_zalo.core.zalo_notification_service import (
 )
 
 from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ class AccountMove(models.Model):
     _inherit = "account.move"
 
     @api.model
-    def _GET_ZNS_TEMPLATE(self):
+    def get_zns_template(self):
         ICPSudo = self.env["ir.config_parameter"].sudo()
         return ICPSudo.get_param(ZNS_PAYMENT_NOTIFICATION_TEMPLATE, "")
 
@@ -215,7 +214,7 @@ class AccountMove(models.Model):
             _logger.info(f"Send Message ZNS successfully for Invoice {self.name}!")
 
     def generate_zns_history(self, data, config_id=False):
-        template_id = self._GET_ZNS_TEMPLATE()
+        template_id = self.get_zns_template()
         if not template_id or template_id is None:
             _logger.error("ZNS Payment Notification Template not found.")
             return False
@@ -283,7 +282,7 @@ class AccountMove(models.Model):
 
         testing_phone = sanitize_phone(phone) if phone else False
 
-        template_id = self._GET_ZNS_TEMPLATE()
+        template_id = self.get_zns_template()
         if not template_id:
             _logger.error("ZNS Payment Notification Template not found.")
             return
