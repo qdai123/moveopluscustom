@@ -682,10 +682,11 @@ class MvComputeProductLevelLine(models.Model):
     update_count = fields.Integer("Số lần cập nhật", default=0)
     not_discount = fields.Boolean("Không chiết khấu", default=False)
     total_quantity = fields.Integer(readonly=True)
-    total_price_level_1 = fields.Monetary("Level 1", currency_field="currency_id")
-    total_price_level_2 = fields.Monetary("Level 2", currency_field="currency_id")
-    total_price_level_3 = fields.Monetary("Level 3", currency_field="currency_id")
-    total_price_level_4 = fields.Monetary("Level 4", currency_field="currency_id")
+    total_price_level_1 = fields.Monetary("Mức 0", currency_field="currency_id")
+    total_price_level_2 = fields.Monetary("Mức 1", currency_field="currency_id")
+    total_price_level_3 = fields.Monetary("Mức 2", currency_field="currency_id")
+    total_price_level_4 = fields.Monetary("Mức 3", currency_field="currency_id")
+    total_price_level_5 = fields.Monetary("Mức 4", currency_field="currency_id")
     total_price_all_level = fields.Monetary(
         compute="_compute_total_price_discount",
         store=True,
@@ -710,6 +711,7 @@ class MvComputeProductLevelLine(models.Model):
         "total_price_level_2",
         "total_price_level_3",
         "total_price_level_4",
+        "total_price_level_5",
     )
     def _compute_total_price_discount(self):
         for product in self:
@@ -720,6 +722,7 @@ class MvComputeProductLevelLine(models.Model):
                         product.total_price_level_2,
                         product.total_price_level_3,
                         product.total_price_level_4,
+                        product.total_price_level_5,
                     ]
                 )
                 * product.total_quantity
@@ -754,6 +757,8 @@ class MvComputeProductLevelLine(models.Model):
             "default_new_total_price_level_3": self.total_price_level_3,
             "default_old_total_price_level_4": self.total_price_level_4,
             "default_new_total_price_level_4": self.total_price_level_4,
+            "default_old_total_price_level_5": self.total_price_level_5,
+            "default_new_total_price_level_5": self.total_price_level_5,
         }
 
     @api.autovacuum
