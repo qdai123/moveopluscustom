@@ -36,15 +36,16 @@ class WizardUpdateProductPriceLevel(models.TransientModel):
         "product.template",
         readonly=True,
     )
-    old_total_price_level_1 = fields.Float("Level 1")
-    new_total_price_level_1 = fields.Float("Level 1")
-    old_total_price_level_2 = fields.Float("Level 2")
-    new_total_price_level_2 = fields.Float("Level 2")
-    old_total_price_level_3 = fields.Float("Level 3")
-    new_total_price_level_3 = fields.Float("Level 3")
-    old_total_price_level_4 = fields.Float("Level 4")
-    new_total_price_level_4 = fields.Float("Level 4")
-
+    old_total_price_level_1 = fields.Float("Mức 1")
+    new_total_price_level_1 = fields.Float("Mức 1")
+    old_total_price_level_2 = fields.Float("Mức 2")
+    new_total_price_level_2 = fields.Float("Mức 2")
+    old_total_price_level_3 = fields.Float("Mức 3")
+    new_total_price_level_3 = fields.Float("Mức 3")
+    old_total_price_level_4 = fields.Float("Mức 4")
+    new_total_price_level_4 = fields.Float("Mức 4")
+    old_total_price_level_5 = fields.Float("Mức 5")
+    new_total_price_level_5 = fields.Float("Mức 5")
     def action_update(self):
         self.ensure_one()
         self.check_prices()
@@ -68,6 +69,7 @@ class WizardUpdateProductPriceLevel(models.TransientModel):
                 self.new_total_price_level_2,
                 self.new_total_price_level_3,
                 self.new_total_price_level_4,
+                self.new_total_price_level_5,
             ]
         ):
             raise UserError(_("Price must be greater than 0."))
@@ -78,6 +80,7 @@ class WizardUpdateProductPriceLevel(models.TransientModel):
             "total_price_level_2": self.new_total_price_level_2,
             "total_price_level_3": self.new_total_price_level_3,
             "total_price_level_4": self.new_total_price_level_4,
+            "total_price_level_5": self.new_total_price_level_5,
             "update_count": update_count + 1,
         }
 
